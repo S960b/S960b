@@ -1,110 +1,89 @@
-# PHault - solving the blind SQL injection
+# PHault - writeup (blind SQL injection, beginner level)
 
-## The target
+## What the task was
 
-A single PHP endpoint: `/?id=`. The index page renders its own source with `highlight_file()`, which immediately showed the query:
+A page with an `id` parameter. The page does this with your input:
 
-```php
-$sql = "SELECT username FROM users WHERE id = " . $_GET["id"];  // bare concatenation
-$res = $db->query($sql);
-if (!$res) die("ill try to tell him, dw");
-$row = $res->fetch_row();
-```
+    SELECT username FROM users WHERE id = <your input>
 
-A textbook SQL injection point, and the flag sat in a `flag` table. The hard part was that the app never shows anything: on success it prints the same phrase as on failure.
+Your input goes straight into the SQL query, without filtering. That is an SQL injection point: instead of a number, I can send SQL code. The catch: the page never shows the query result. Whatever happens, it answers with the same message - success and failure look identical. The flag is somewhere in the database.
 
-## Dead ends (in the order I hit them)
+"Blind" SQL injection means exactly this: the input reaches the query, but the answer is invisible, so the whole task is finding **any** way to tell "yes" from "no".
 
-**1. In-band / UNION - dead.** Every response was byte-identical: same 4557 bytes, same md5 for `1`, `1'`, `1 OR 1=1`, `-1`, `0x1` and UNION variants. There is no echo channel, so nothing to read in the body.
+Nice bonus: the page displays its own source code (`highlight_file()`), so the exact query and the error handling were visible from the start.
 
-**2. Time-based - dead.** `SLEEP(8)`, `BENCHMARK`, heavy cartesian JOINs - all returned in 2.59-2.64s. `SLEEP(1)` and `SLEEP(0)` were indistinguishable. I burned a few requests on timing variants before reading the source properly: a shutdown function pads every fast response up to 2.0 seconds (`usleep(2.0 - elapsed)` in `register_shutdown_function`, with the author's comment `// no timing attack!!`), and anything that would actually take longer never finishes. The timing channel is simply not there.
+## What I tried first (and why each failed)
 
-**3. File write - dead.** `INTO OUTFILE` silently did nothing: no FILE privilege (or an empty `secure_file_priv`).
+1. **UNION SELECT** - asking the query to return the flag as a normal-looking row. Dead: the page never prints rows anyway. The response was byte-identical every time (same length, same md5) for valid, invalid and injected inputs.
 
-**4. Classic error-based (extractvalue / updatexml) - dead.** `mysqli_report(MYSQLI_REPORT_OFF)` means failed `query()` calls return `false` without emitting warnings - the usual error channel is switched off.
+2. **Time-based** - "if my condition is true, make the query wait 8 seconds" (`SLEEP(8)`). Dead: every request came back in about the same time (~2.6s). The reason was in the source: the app pads every response to at least 2 seconds (`usleep()`), so short sleeps are hidden and long queries never finish. The author even wrote `// no timing attack!!` in the code. No timing channel.
 
-## First foothold: an array warning as an information channel
+3. **Writing the flag to a file** (`INTO OUTFILE`) - dead: no FILE privilege, the write silently does nothing.
 
-`/?id[]=1` returned:
+4. **Error-based via XML functions** (`extractvalue` / `updatexml`) - dead: MySQL errors are silenced (`mysqli_report(MYSQLI_REPORT_OFF)`), so nothing appears in the error text.
 
-```
-Warning: Array to string conversion in /var/www/html/index.php on line 14
-```
+So: no visible output, no timing, no file writes, no errors. Four standard approaches, all gone.
 
-Three facts from one request: the parameter reaches PHP as intended, `display_errors` is `On`, and the webroot is `/var/www/html`. With errors rendered into the body, the hunt for an error-based oracle was on.
+## The break: PHP printed a warning
 
-## The channel that worked: PHP 8 mysqli `true` vs result set
+I sent `id[]=1` - an array instead of a number. PHP replied:
 
-The clue was in the source again. On PHP 8, `mysqli::query()` returns:
+    Warning: Array to string conversion in /var/www/html/index.php on line 14
 
-- a `mysqli_result` for a SELECT with rows,
-- `true` when the statement executed but produced **no result set** (e.g. `SELECT ... INTO @var`),
-- `false` on error.
+One request, three facts: the input reaches PHP, PHP shows errors in the response (`display_errors = On`), and the webroot path leaked. If PHP errors are visible, there may be a way to make them answer my questions.
 
-The app does `$res->fetch_row()` unconditionally after the error check. `fetch_row()` on the boolean `true` is a hard Fatal error - and `display_errors=On` puts that fatal right into the body.
+## The oracle: "Fatal error" vs the normal answer
 
-So I appended `INTO @a` to my probe query. Now the body became a two-state oracle:
+The source shows what happens after the query:
 
-- body length 4744, contains `Fatal error` (query OK, `fetch_row()` on bool) = condition TRUE
-- body length 4557, the die phrase = query FALSE
+    $res = $db->query($sql);
+    if (!$res) die("ill try to tell him, dw");
+    $row = $res->fetch_row();
 
-Sanity probes:
+In PHP 8, `mysqli::query()` can return `true` instead of a result set - for example, if the query is `SELECT ... INTO @a` (picking a value into a variable, no result rows). Then the code calls `fetch_row()` on that `true`. PHP 8 throws a **Fatal error**: "Call to a member function fetch_row() on bool". And since errors are visible, that text lands in the response body.
 
-```
-1 INTO @a                                     -> Fatal (oracle alive)
-1 AND (SELECT 1 FROM flag LIMIT 1) INTO @a     -> Fatal (table exists)
-1 AND (SELECT 1 FROM no_such_table LIMIT 1) INTO @a -> die
-```
+Result: two distinguishable responses.
 
-One pitfall on the way: `1 AND (SELECT 1 FROM users) INTO @a` (no LIMIT) came back as die and briefly looked like the table did not exist. With `LIMIT 1` it was Fatal. Use `LIMIT 1` in existence probes, always.
+- body length 4744, contains "Fatal error" -> query executed fine -> my condition is TRUE
+- body length 4557, the usual die message -> query failed -> FALSE
 
-## Building the conditional: a runtime error, not a prepare-time one
+This is an oracle: I can ask "is statement X true?" and read yes/no from the page.
 
-Natural idea: `IF(<cond>, 1, (SELECT 1 FROM no_such_table))`. It died in **both** branches - because a missing table is resolved at prepare time, before the condition ever runs. Constant errors (`POW(10,400)`, bad geometry literals) behave the same way: never a runtime decision. That was another dead end, useful to know.
+## Asking questions: the IF + runtime error trick
 
-The working false branch is a true runtime error - a duplicate entry, which only fires if the query is actually executed:
+First idea: `IF(condition, 1, (SELECT 1 FROM nonexistent_table))`. It failed in **both** branches - MySQL notices the missing table when it prepares the query, before the condition is even evaluated. Constant errors behave the same way.
 
-```sql
-(SELECT 1 FROM (SELECT COUNT(*),FLOOR(RAND(0)*2)x FROM information_schema.columns GROUP BY x)t)
-```
+What works is an error that only happens when the query actually runs. Classic one - a duplicate entry:
 
-Final probe shape:
+    SELECT 1 FROM (SELECT COUNT(*),FLOOR(RAND(0)*2)x FROM information_schema.columns GROUP BY x)t
 
-```sql
-1 AND IF(<cond>, 1, <RTE>) INTO @a
-```
+It fires "Duplicate entry ... for key" only at execution time. Final payload:
 
-- `<cond>` true -> branch `1` -> query OK -> Fatal body (4744)
-- `<cond>` false -> RTE executes -> duplicate entry -> die body (4557)
+    ?id=1 AND IF(<condition>, 1, <that-error>) INTO @a
 
-Verified with trivial conditions (`1=1`, `1=2`) before touching the flag query.
+- condition TRUE -> the `1` branch runs -> no error -> Fatal body
+- condition FALSE -> the error branch runs -> duplicate entry -> die body
 
-## Exfiltrating the flag
+## Extracting the flag
 
-With a reliable boolean oracle, extraction is mechanical:
+With yes/no questions working, extraction is mechanical:
 
 - flag length: `LENGTH((SELECT flag FROM flag LIMIT 1)) > mid`
 - each character: `ASCII(SUBSTRING((SELECT flag FROM flag LIMIT 1), N, 1)) > mid`
 
-Binary search over ASCII [32,126], about 7 requests per character. I read the source to confirm the `flag` table had a `flag` column (same LIMIT 1 existence probe over `information_schema.columns`).
+Binary search over printable characters - about 7 questions per character. I wrote a small Python script (`scripts/exfil.py`). To stay under the radar I paced it: Firefox User-Agent, a 1.3s pause between requests, one request at a time, everything logged to a file. ~480 requests over ~14 minutes, and the flag came back character by character.
 
-For pacing I kept it slow and single-threaded: Firefox User-Agent, a 1.3s pause between probes, one GET per probe, every response logged to a file. The full run was ~480 requests over ~14 minutes without tripping anything.
+Result (masked): `pwnsec{728c...d674}` - 24 characters.
 
-The script is attached: `scripts/exfil.py`. It first searches the length, then walks the flag character by character. The instance host is redacted (`HOST = "<CHALLENGE-INSTANCE-HOST>"`) - the original challenge instance is long expired, so set it to your own instance before running. The search logic itself was verified offline first (stub `urllib.request.urlopen` and `time.sleep`, run the unchanged script against a known flag) before pointing it at the live endpoint.
+## One-paragraph version (for interviews)
 
-## Result
+The site puts user input straight into an SQL query but shows no results - a blind SQL injection. UNION, timing, file write and error-based approaches were all blocked (identical output, ~2 second response padding, no privileges, silenced errors). A malformed input (`id[]=1`) revealed that PHP errors are visible in responses. PHP 8 returns `true` from a query without a result set, and the script then crashes on `fetch_row()` - the Fatal error text became my "yes" signal. Combining that with `IF(condition, 1, runtime_error)` gave a yes/no oracle, and a paced Python script extracted the flag via binary search, character by character.
 
-```
-FLAG: pwnsec{728c...d674}
-```
+## Lessons learned
 
-(24 characters, extracted one by one - the full value is masked here.)
-
-## What this one taught me
-
-1. Identical responses do not mean the injection point is useless - find an observable difference somewhere else (a warning, a fatal, a header, timing).
-2. Anti-timing padding (`usleep` to a fixed response time) is recognizable: everything comes back at the same wall time, and long queries never return at all. Don't fight it - switch channels.
-3. PHP 8's `mysqli::query()` returning `true` vs a result set vs `false` is a clean boolean oracle whenever `display_errors` is on.
-4. Conditional payloads must branch on a **runtime** error; prepare-time errors kill both branches.
-5. Automate the repetitive part, but verify the automation offline against a known answer first.
-6. `highlight_file()` on an index page is a gift: read the source before brute-forcing anything.
+1. "Blind" means no output - look for any other observable difference: an error page, a warning, a header.
+2. If all timing requests return the same time, the app is padding responses - stop probing timing.
+3. PHP errors leaking into responses (`display_errors`) are a legitimate information channel.
+4. Database questions (`IF`) need a runtime error in the false branch; prepare-time errors kill both branches.
+5. Automate the boring part, but stay polite: slow single requests beat fast bursts.
+6. The page showed its own source - reading it first saved hours. Read the source before guessing.
