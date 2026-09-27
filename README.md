@@ -12,9 +12,9 @@ Authorized penetration testing and security assessment case studies.
 
 ## CTF
 
-Writeups and technical notes from CTF competitions, one folder per challenge type.
+Writeups and technical notes from CTF competitions, structured as `ctf/<event>/<type>/<challenge>`.
 
-- [Web](ctf/web/) - PHault: blind SQL injection
+- [pwnsec / Web - PHault: blind SQL injection](ctf/pwnsec/web/)
 
 ## About
 
