@@ -1,4 +1,4 @@
-# Print Print Revolution — writeup (pwn, custom fmtstr)
+# Print Print Revolution - writeup (pwn, custom fmtstr)
 
 ## What the task was
 
@@ -67,7 +67,7 @@ So line 2 looks like:
 - `target` sits at buffer[48] → `arg[12]`.
 - `value`   sits at buffer[56] → `arg[13]`.
 
-When the parser later reaches the null bytes inside `target`, it stops — but
+When the parser later reaches the null bytes inside `target`, it stops - but
 the write already happened.
 
 ---
@@ -212,7 +212,7 @@ Flag: `sun{...}` (masked)
 `%N$w` specifier is an 8-byte write-what-where: `*(arg[N]) = arg[N+1]`, and the
 arguments map directly onto our input buffer (`arg[6+i] = buffer[i*8]`). We leak
 libc through `%73$p`, overwrite `strcspn@got` with `system`, and then every line
-we type is executed as a command — so `cat flag.txt` prints the flag.
+we type is executed as a command - so `cat flag.txt` prints the flag.
 
 ---
 

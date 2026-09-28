@@ -1,8 +1,8 @@
-# Used Goods of Tomorrow — writeup (web, GraphQL)
+# Used Goods of Tomorrow - writeup (web, GraphQL)
 
 ## What the task was
 
-Tomorrow-Mart is a marketplace for used goods. You open a FutureBank account and get 500 starter credits. The store's crown jewel is **Lot #4042 — Founders' Vault Deed (SEALED)**, priced at **1,000,000 credits**.
+Tomorrow-Mart is a marketplace for used goods. You open a FutureBank account and get 500 starter credits. The store's crown jewel is **Lot #4042 - Founders' Vault Deed (SEALED)**, priced at **1,000,000 credits**.
 
 The storefront and all wallet actions go through a single GraphQL endpoint:
 
@@ -240,7 +240,7 @@ Flag: `sun{...}` (masked)
 
 ## One-paragraph version
 
-The store runs entirely through a GraphQL API with **schema introspection left enabled**. Introspection shows a hidden debug mutation, `vendorTerminalSync`, which is meant to be disabled before launch and plainly returns a **master vendor key**. That key unlocks an internal `promoCodes` query, which exposes `FOUNDERS-100` — a 100%-off coupon for Lot #4042. Registering a normal account and placing the order with that coupon buys the deed for free and returns the flag.
+The store runs entirely through a GraphQL API with **schema introspection left enabled**. Introspection shows a hidden debug mutation, `vendorTerminalSync`, which is meant to be disabled before launch and plainly returns a **master vendor key**. That key unlocks an internal `promoCodes` query, which exposes `FOUNDERS-100` - a 100%-off coupon for Lot #4042. Registering a normal account and placing the order with that coupon buys the deed for free and returns the flag.
 
 ---
 
@@ -249,4 +249,4 @@ The store runs entirely through a GraphQL API with **schema introspection left e
 1. **Check GraphQL introspection first.** It is the fastest way to enumerate hidden queries and mutations.
 2. **Read the "note" / debug text.** `vendorTerminalSync` literally says "disable this endpoint before public launch".
 3. Internal promo / discount codes are an easy blind spot; a `percentOff = 100` code is an instant win.
-4. The client-side UI is just a thin wrapper — talk to the API directly.
+4. The client-side UI is just a thin wrapper - talk to the API directly.

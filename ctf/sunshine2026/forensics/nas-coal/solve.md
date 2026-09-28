@@ -1,14 +1,14 @@
-# NAS coal — writeup (forensics, a macro inside a PowerPoint deck)
+# NAS coal - writeup (forensics, a macro inside a PowerPoint deck)
 
 ## What the task was
 
-We get one file: `gem_collection.pptm`, a 2.2 MB macro-enabled PowerPoint presentation ("My gem collection"). Five slides, some pictures, a few jokes. The task name is the hint — **NAS coal** — and the category is forensics, so the flag is somewhere in the file, not on the screen.
+We get one file: `gem_collection.pptm`, a 2.2 MB macro-enabled PowerPoint presentation ("My gem collection"). Five slides, some pictures, a few jokes. The task name is the hint - **NAS coal** - and the category is forensics, so the flag is somewhere in the file, not on the screen.
 
 There is no Windows and no Office in the environment, and we do not need either: a `.pptm` is just a ZIP archive with XML and binary parts, and the malicious part of such files is always a VBA project under `ppt/vbaProject.bin`.
 
 ---
 
-## Step 1 — look at the file the cheap way
+## Step 1 - look at the file the cheap way
 
 ```bash
 file gem_collection.pptm
@@ -20,7 +20,7 @@ unzip -l gem_collection.pptm | grep -iE 'vba|macro'
 
 That is the whole recon: `.pptm` = OOXML ZIP container, and it ships a VBA project. Docs (`docm`) and sheets (`xlsm`) work exactly the same way.
 
-Reading the slide XML is worth a minute — the author left a deliberate hint (slide 5: `marge? > mfw  olevba  oneshot  chall`, slide 1: `My gem collection (NAS thoughever)`):
+Reading the slide XML is worth a minute - the author left a deliberate hint (slide 5: `marge? > mfw  olevba  oneshot  chall`, slide 1: `My gem collection (NAS thoughever)`):
 
 ```bash
 for f in $(unzip -Z1 gem_collection.pptm 'ppt/slides/slide*.xml'); do
@@ -28,9 +28,9 @@ for f in $(unzip -Z1 gem_collection.pptm 'ppt/slides/slide*.xml'); do
 done
 ```
 
-Slides carry text and images only — the flag is not in the XML.
+Slides carry text and images only - the flag is not in the XML.
 
-## Step 2 — the tools that make this a five-minute job
+## Step 2 - the tools that make this a five-minute job
 
 The hint says it outright: **olevba**. `oletools` is the toolkit for OLE/OOXML office documents (no Office, no macros executed):
 
@@ -48,7 +48,7 @@ mraptor gem_collection.pptm     # "macro malware?" verdict
 #  Flags: A=AutoExec, W=Write, X=Execute
 ```
 
-Note what `mraptor` says here: **Macro OK**, no flags — the sub is not `Auto_Open`, and it never writes to disk, so the "macro malware" heuristic stays quiet. Automatic verdicts do not help in this task; you have to dump the code:
+Note what `mraptor` says here: **Macro OK**, no flags - the sub is not `Auto_Open`, and it never writes to disk, so the "macro malware" heuristic stays quiet. Automatic verdicts do not help in this task; you have to dump the code:
 
 ```bash
 olevba gem_collection.pptm      # the actual dump: source code + keyword table
@@ -75,7 +75,7 @@ End Sub
 
 That is the whole challenge in one screen: a Base64 blob, and a command line that feeds it to `powershell.exe -EncodedCommand`.
 
-## Step 3 — decode the blob
+## Step 3 - decode the blob
 
 PowerShell's `-EncodedCommand` takes Base64 of a **UTF-16LE** string, so plain `base64 -d` gives you interleaved NUL bytes. Decode with the right codec:
 
@@ -121,13 +121,13 @@ Worth noting what the macro *would* do if it ran: it only builds a string and `D
 
 ## What I tried first (and why each failed)
 
-1. **Looking at the slides.** Text and pictures only; the hints are there, the flag is not. Slide 5 literally names `olevba` — read the slides first, it costs one command.
+1. **Looking at the slides.** Text and pictures only; the hints are there, the flag is not. Slide 5 literally names `olevba` - read the slides first, it costs one command.
 
-2. **`strings` on the file.** Useless in two ways: the deck is ZIP-compressed, and inside the ZIP the VBA module is stored in the MS-OVBA *compressed* form. `unzip -p gem_collection.pptm ppt/vbaProject.bin | strings` finds the ASCII fragments `powershell.exe -NoProfile -EncodedCommand` and `encoded` (a useful nudge), but **not the Base64 blob** — it is inside the compressed module stream, so only a VBA-aware parser (olevba) can get it out.
+2. **`strings` on the file.** Useless in two ways: the deck is ZIP-compressed, and inside the ZIP the VBA module is stored in the MS-OVBA *compressed* form. `unzip -p gem_collection.pptm ppt/vbaProject.bin | strings` finds the ASCII fragments `powershell.exe -NoProfile -EncodedCommand` and `encoded` (a useful nudge), but **not the Base64 blob** - it is inside the compressed module stream, so only a VBA-aware parser (olevba) can get it out.
 
 3. **Searching the raw bytes for the flag.** The flag string never appears in plaintext anywhere: inside the macro it exists only as part of that Base64 blob, and the blob itself is compressed again by the VBA project format. Byte-grepping the `.pptm`/`vbaProject.bin` for `sun{`, `campaign` or the Base64 fragment returns nothing.
 
-4. **`olevba --decode`.** It does try to decode Base64 strings, but for a UTF-16LE PowerShell payload it prints only a truncated, NUL-riddled fragment. Take the string and decode it yourself — two commands, deterministic result.
+4. **`olevba --decode`.** It does try to decode Base64 strings, but for a UTF-16LE PowerShell payload it prints only a truncated, NUL-riddled fragment. Take the string and decode it yourself - two commands, deterministic result.
 
 5. **Opening the file in LibreOffice / PowerPoint to "run" the macro.** Not needed and not desirable: the macro is not the payload, the *text inside it* is the flag. Static tools give the answer without ever executing anything.
 
@@ -143,7 +143,7 @@ The artefact is a macro-enabled PowerPoint deck, which is a ZIP (OOXML) with a V
 
 ## Lessons learned
 
-1. **Macro-enabled Office files are ZIP + OLE.** `unzip -l` first: `ppt/vbaProject.bin`, `word/vbaProject.bin`, `xl/vbaProject.bin` — that is where the code lives.
+1. **Macro-enabled Office files are ZIP + OLE.** `unzip -l` first: `ppt/vbaProject.bin`, `word/vbaProject.bin`, `xl/vbaProject.bin` - that is where the code lives.
 2. **`oleid` → `olevba` → `mraptor` is the standard path** and needs no Office and no privileges. `olevba` decompiles the module and highlights the suspicious keywords for you.
 3. **PowerShell `-EncodedCommand` = Base64 of UTF-16LE.** Decoding with the wrong codec is the classic mistake; `iconv -f UTF-16LE` (or `.decode('utf-16-le')`) fixes it.
 4. **`strings` is not enough** when the container compresses its parts (ZIP inside, MS-OVBA compression inside that). It gives hints, not payloads.

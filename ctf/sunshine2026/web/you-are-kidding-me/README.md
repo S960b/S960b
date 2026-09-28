@@ -1,4 +1,4 @@
-# You Are Kidding Me — JWT `kid` key/path confusion
+# You Are Kidding Me - JWT `kid` key/path confusion
 
 - **Platform:** SunshineCTF 2026
 - **Category:** Web

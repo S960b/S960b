@@ -1,4 +1,4 @@
-# You Are Kidding Me — writeup (web, JWT `kid` confusion)
+# You Are Kidding Me - writeup (web, JWT `kid` confusion)
 
 ## What the task was
 
@@ -30,7 +30,7 @@ Decoding:
 { "sub": "testuser", "role": "reader" }
 ```
 
-The critical detail is the **`kid`** header. It names the key the server should use for verification. The suspicion is that the server loads the secret from a file whose path is taken straight from `kid` — a classic **key / path confusion**.
+The critical detail is the **`kid`** header. It names the key the server should use for verification. The suspicion is that the server loads the secret from a file whose path is taken straight from `kid` - a classic **key / path confusion**.
 
 ---
 
@@ -180,7 +180,7 @@ Flag: `sun{...}` (masked)
 
 ## One-paragraph version
 
-The reader pass is an HS256-signed JWT whose `kid` header is taken trust-nav as a file path for the HMAC secret. Since the path is not validated, pointing `kid` at a **public file we can download** — `/app/static/style.css` — and signing the token with those same CSS bytes yields a valid signature. With `role=editor` in the payload, the forged token gets us into `/admin` and the flag.
+The reader pass is an HS256-signed JWT whose `kid` header is taken trust-nav as a file path for the HMAC secret. Since the path is not validated, pointing `kid` at a **public file we can download** - `/app/static/style.css` - and signing the token with those same CSS bytes yields a valid signature. With `role=editor` in the payload, the forged token gets us into `/admin` and the flag.
 
 ---
 
@@ -189,4 +189,4 @@ The reader pass is an HS256-signed JWT whose `kid` header is taken trust-nav as 
 1. A `kid`/`x5t`-style header that controls the secret is a red flag; always test if the server reads a file/URL from it.
 2. Prefer a `kid` that points at a **public, byte-for-byte known** resource over a random guess.
 3. Combined with common container paths (`/app/...`), this becomes a full key-confusion bypass.
-4. As long as the file bytes match, the HMAC secret can be any data — not necessarily a secret-looking string.
+4. As long as the file bytes match, the HMAC secret can be any data - not necessarily a secret-looking string.

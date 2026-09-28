@@ -1,4 +1,4 @@
-# suntrail — a flag hidden in a keyboard layout (.klc)
+# suntrail - a flag hidden in a keyboard layout (.klc)
 
 - **Platform:** SunshineCTF 2026
 - **Category:** Forensics
@@ -22,8 +22,8 @@ Starting on the first key in the file and following the arrows across the physic
 
 Files:
 
-- `solve.md` — the full story, written for beginners, plus the tools that make it a five-minute job
-- `scripts/parse_klc.py` — parses the `.klc` table, walks the trail and prints the flag
-- `assets/suntrail.klc` — the artefact; in this published copy three letters (`t`, `y`, `_`) are replaced by dots so no live flag ships with the repo
+- `solve.md` - the full story, written for beginners, plus the tools that make it a five-minute job
+- `scripts/parse_klc.py` - parses the `.klc` table, walks the trail and prints the flag
+- `assets/suntrail.klc` - the artefact; in this published copy three letters (`t`, `y`, `_`) are replaced by dots so no live flag ships with the repo
 
 No Windows and no MSKLC installation is needed: the file is text, and the only "tool" for the hidden part is a Unicode table.

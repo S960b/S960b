@@ -1,4 +1,4 @@
-# Used Goods of Tomorrow — GraphQL introspection + hidden promo code
+# Used Goods of Tomorrow - GraphQL introspection + hidden promo code
 
 - **Platform:** SunshineCTF 2026
 - **Category:** Web
@@ -7,7 +7,7 @@
 - **Flag:** `sun{...}` (masked)
 - **Endpoint:** `POST /graphql`
 
-"Used Goods of Tomorrow" is a GraphQL-backed storefront ("Tomorrow-Mart"). Every new scout gets 500 starter credits. The goal is to buy the crown jewel, **Lot #4042 — Founders' Vault Deed**, which costs 1,000,000 credits.
+"Used Goods of Tomorrow" is a GraphQL-backed storefront ("Tomorrow-Mart"). Every new scout gets 500 starter credits. The goal is to buy the crown jewel, **Lot #4042 - Founders' Vault Deed**, which costs 1,000,000 credits.
 
 The whole chain is a GraphQL enumeration:
 
