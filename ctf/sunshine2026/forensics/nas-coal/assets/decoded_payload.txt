@@ -1,0 +1,4 @@
+$campaign = 'sun{yup_...._gem}'
+$source = 'https://gem-cache.example.invalid/coal.bin'
+$destination = 'coal.bin'
+[pscustomobject]@{Operation='download'; Campaign=$campaign; Source=$source; Destination=$destination}

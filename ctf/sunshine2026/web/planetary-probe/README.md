@@ -1,7 +1,7 @@
 # Planetary Probe - SROP on a tiny syscall-only ELF
 
 - **Platform:** SunshineCTF 2026
-- **Category:** Pwn
+- **Category:** Web
 - **Difficulty:** Medium
 - **Date:** 2026
 - **Flag:** `sun{...}` (masked)
