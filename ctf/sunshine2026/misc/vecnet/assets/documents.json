@@ -1,0 +1,18 @@
+{
+  "ids": [
+    "user_password_requirements",
+    "user_hash_sha256",
+    "magic_string"
+  ],
+  "documents": [
+    null,
+    "d8dd241199d2617765d7613fdd1df5358297b55f258647fe463de586bbfe3ebf",
+    "sunshinectf8_"
+  ],
+  "metadatas": [
+    null,
+    null,
+    null
+  ],
+  "note": "Mirror of the challenge ChromaDB /get response (vectors stored separately in embeddings.npy, same order as ids)."
+}

@@ -28,6 +28,8 @@ So the API is easy to poke directly with `curl` or any HTTP client.
 
 The first obvious question: is schema introspection turned on? GraphQL servers often leave it enabled by accident, and it dumps the whole type system.
 
+Note: introspection itself is a **standard, documented GraphQL capability** - every spec-compliant server ships it, and its presence is not a vulnerability. It matters here only because it made a hidden operation discoverable; the same attack would work with the schema obtained any other way.
+
 ---
 
 ## Step 1: introspection reveals a hidden mutation
@@ -145,7 +147,13 @@ The response includes the flag. The deal is yours for **0 credits**.
 2. **Finding an admin route / exposed auth backdoor on the web app** - nothing there; the app is a thin GraphQL client.
 3. **Brute-forcing promo codes blindly** - a waste of time. The legitimate path is the introspection + vendor key leak.
 
-The actual bug is simply that **introspection is left on** and a **debug mutation exposes a master key**. Nothing exotic beyond that.
+The vulnerability is not introspection - introspection is a standard,
+documented GraphQL feature. The real bugs are: **(1)** an unauthenticated
+debug mutation, `vendorTerminalSync`, that returns the master vendor key, and
+**(2)** a `promoCodes` query that trusts that key and hands out 100%-off codes.
+Introspection only made the hidden operation discoverable; the same exploit
+would work with the schema obtained from documentation, source, or error
+messages.
 
 ---
 
@@ -240,13 +248,13 @@ Flag: `sun{...}` (masked)
 
 ## One-paragraph version
 
-The store runs entirely through a GraphQL API with **schema introspection left enabled**. Introspection shows a hidden debug mutation, `vendorTerminalSync`, which is meant to be disabled before launch and plainly returns a **master vendor key**. That key unlocks an internal `promoCodes` query, which exposes `FOUNDERS-100` - a 100%-off coupon for Lot #4042. Registering a normal account and placing the order with that coupon buys the deed for free and returns the flag.
+The store runs entirely through a GraphQL API. Schema introspection (a standard feature, not a vulnerability by itself) revealed a hidden debug mutation, `vendorTerminalSync`, which was meant to be disabled before launch and plainly returns a **master vendor key**. That key unlocks an internal `promoCodes` query, which exposes `FOUNDERS-100` - a 100%-off coupon for Lot #4042. Registering a normal account and placing the order with that coupon buys the deed for free and returns the flag.
 
 ---
 
 ## Lessons learned
 
-1. **Check GraphQL introspection first.** It is the fastest way to enumerate hidden queries and mutations.
+1. **Check GraphQL introspection first.** It is the fastest way to enumerate hidden queries and mutations - but treat it as a discovery tool: introspection being enabled is standard behaviour, the bug is whatever sensitive operation it reveals.
 2. **Read the "note" / debug text.** `vendorTerminalSync` literally says "disable this endpoint before public launch".
 3. Internal promo / discount codes are an easy blind spot; a `percentOff = 100` code is an instant win.
 4. The client-side UI is just a thin wrapper - talk to the API directly.

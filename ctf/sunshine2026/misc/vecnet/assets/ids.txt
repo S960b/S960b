@@ -1,0 +1,3 @@
+user_password_requirements
+user_hash_sha256
+magic_string

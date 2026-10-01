@@ -106,7 +106,10 @@ binary / loader. One stands out:
 %73$p  ->  libc + 0x2a1ca
 ```
 
-That offset is stable for the provided glibc (2.39), so:
+That is a **code pointer**: the saved return address from `main()` into
+libc's startup code (between `__libc_init_first` and `__libc_start_main` in
+the provided glibc 2.39; `readelf` on the shipped libc confirms the `.text`
+layout). It is stable across runs, so:
 
 ```python
 libc   = leak - 0x2a1ca
@@ -136,7 +139,16 @@ cat flag.txt
 
 1. **Looking for a `system` import or a win function** - there is none; `system` is not imported and there is no `win`.
 2. **Classic `%n`-style write to `puts@got` etc.** - the character-set handling is custom; the reliable write is `%N$w`, not `%n`.
-3. **Wrong libc-leak offset** - the first candidate (`libc+0x2a380`) *looked* page-aligned but was off by `0x18000`, which made the final `system` call `SIGSEGV`. The correct leak is at `libc+0x2a1ca` (verified against `/proc/<pid>/maps`).
+3. **Pinned the wrong libc pointer** - the `%N$p` scan showed several libc
+   addresses, and my first anchor was `libc+0x2a380`. That is a real offset
+   in this glibc 2.39 (`gnu_get_libc_version`, a function pointer), so it
+   looked like a perfectly good base - but subtracting the *code* offset
+   `0x2a1ca` from it shifts the base by `0x2a380 - 0x2a1ca = 0x1b6`. Every
+   address computed from that base is off by `0x1b6`, so the address written
+   into `strcspn@got` was not `system` but a spot 0x1b6 bytes off, and the
+   next input line died with `SIGSEGV`. The correct anchor is the saved
+   return address at `libc+0x2a1ca`, verified against `/proc/<pid>/maps`
+   (`readelf -sW` on the shipped libc then confirms `system` at `0x58740`).
 4. **Overwriting `write@got` / `strlen@got`** - technically possible, but `strcspn@got` is the cleanest trigger because main() calls it with our own input as the argument.
 
 The only real "gotcha" was nailing the libc-leak offset. Everything else is a single write + a normal command line.
@@ -227,5 +239,7 @@ we type is executed as a command - so `cat flag.txt` prints the flag.
    hitting a `\0`.
 4. Pick a GOT target that the program calls with attacker-controlled data
    (`strcspn` on our input) for a clean `-> system` transition.
-5. Verify the libc-leak offset (e.g. with `/proc/<pid>/maps`) instead of
-   trusting a "looks page-aligned" candidate.
+5. Before subtracting an offset from a leak, know what the pointer actually
+   is (saved return address vs. function/data pointer) and verify the base,
+   e.g. with `/proc/<pid>/maps` - a 0x1b6 base error is invisible in the
+   hexdump but breaks every address computed from it.

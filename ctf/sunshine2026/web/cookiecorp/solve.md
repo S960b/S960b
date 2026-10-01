@@ -36,16 +36,46 @@ The authentication cookies are initially protected with `HttpOnly`, so a simple 
 
 So the problem was not simply finding the magic cookie name.
 
-## The break: flooding the Inspector's cookie jar
+## The break: evicting the Inspector's HttpOnly role cookie
 
-The recipe builder allows up to 300 ingredients, and every ingredient becomes a separate cookie.
+The recipe builder allows up to **300 ingredients**, and every ingredient
+becomes a separate cookie in the Inspector's browser: `mixer.js` executes
+`document.cookie = name + "=" + value + "; path=/"` for each one. So a single
+review visit gives us up to ~300 cookie writes inside a privileged browser
+context.
 
-That gives us a much more interesting primitive: instead of setting one cookie, we can make the Inspector's browser create **hundreds of distinct cookies** in one visit.
+That matters because of a specific cookie-store rule: **a page script cannot
+overwrite an HttpOnly cookie** with the same name/domain/path. The Inspector's
+cookie jar contains two login cookies:
 
-The winning payload used **281 ingredients**:
+```text
+session = <opaque id>   HttpOnly, Priority=High
+role    = baker         HttpOnly, default priority
+```
 
-- 275 generated cookie names using combinations such as `inspector_*`, `quality_*`, `chief_*`, `seal_*`, `auth_*`, `role_*`, etc.
-- 6 privileged-looking cookies added at the end:
+So a plain `role=chief` ingredient is *silently ignored* - the server still
+sees `role=baker` and awards the STANDARD seal. This is the trap behind dead
+ends 1 and 4: the decisive state lives in the Inspector's jar, not in my baker
+session.
+
+An HttpOnly cookie cannot be overwritten, but it **can be evicted**. Chromium
+enforces a limit of 180 cookies per domain and, when the limit is crossed,
+evicts cookies least-recently-used first, with the lowest-priority cookies
+removed first (RFC 6265 eviction). `session` is protected by `Priority=High`;
+`role` is not. The attack:
+
+1. 275 filler ingredients push the jar past the 180-cookie limit.
+2. Chromium evicts the oldest default-priority cookies - the HttpOnly
+   `role=baker` is gone.
+3. The trailing `role=chief` ingredient is no longer shadowed, so it **is**
+   stored as the effective `role` cookie.
+4. `mixer.js` then calls `/api/seal` with the still-valid `session`
+   (Priority=High survived the eviction).
+5. The server reads `role=chief` and awards the **GOLDEN SEAL**.
+
+The winning payload used **281 ingredients**: 275 generated filler names
+(`inspector_*`, `quality_*`, `chief_*`, `seal_*`, `auth_*`, `role_*`, ...)
+followed by the privileged-looking cookies:
 
 ```text
 role=chief
@@ -56,22 +86,49 @@ isChief=true
 goldenSeal=true
 ```
 
-The exact browser cookie-store behaviour is the key. The flooding changes the Inspector's cookie state, and the final privileged cookie names are processed after the large batch of low-priority cookies.
+Only `role=chief` drives the seal decision; the other trailing names were
+extra guesses and are harmless. The ordering is the important part: the
+privileged names must come *after* the filler, once the jar is full.
 
-This has an important consequence: the trick works in the **automated Inspector's browser**, which has the Inspector's authentication context. Repeating `role=chief` from my own baker session did not work because that was a completely different session.
+### What was verified live vs. reconstructed after the event
 
-After submitting the 281-cookie recipe, the Inspector returned a **Golden Seal** instead of the standard seal.
+- **Verified live on the challenge instance:** the 281-cookie recipe made the
+  Inspector return `GOLDEN SEAL` (the poll loop in `exploit.py`); direct
+  `role=chief` from my baker session and single-cookie guesses from my own
+  context always ended in STANDARD / `403 inspector authorization required`.
+- **Verified locally, same browser engine:** `scripts/repro_eviction.py`
+  replays the whole browser-side primitive. A headless Chromium (the same
+  engine family as the Inspector bot) logs in against a tiny local server that
+  sets the same cookies (`session` Priority=High + `role=baker`, both
+  HttpOnly), runs the mixer, and calls `/api/seal` with the challenge's rule
+  (GOLDEN iff `role == chief`). Chromium 136 output:
+
+  ```text
+  filler | seal    | role seen by server | session
+  0      | STANDARD| baker               | present
+  178    | STANDARD| baker               | present
+  180    | GOLDEN  | chief               | present
+  ```
+
+  The flip happens exactly at Chromium's documented 180-cookie-per-domain
+  limit, and the High-priority `session` cookie survives; the default-priority
+  `role=baker` does not.
+- **Reconstructed after the event:** the challenge shipped no server source,
+  so the exact server-side rule (GOLDEN iff `role == chief`, `session`
+  Priority=High) was pinned down after the event by cross-checking other
+  public writeups. The browser-side mechanism above does not depend on that
+  detail and is reproducible locally.
 
 ## Exploitation
 
 The exploit is completely automatic:
 
 1. Register a normal baker account.
-2. Build a recipe containing 281 cookie-producing ingredients.
-3. Put the privileged-looking cookies at the end.
-4. Submit the recipe for inspection.
-5. Poll `/recipe/<id>` until the Inspector finishes.
-6. Check for `GOLDEN SEAL`.
+2. Build a recipe with 281 cookie-producing ingredients: 275 filler cookies,
+   then `role=chief` (and the other guesses) at the very end.
+3. Submit the recipe for inspection.
+4. Poll `/recipe/<id>` until the Inspector finishes.
+5. Check for `GOLDEN SEAL`.
 
 The relevant part of the script is simply:
 
@@ -105,12 +162,38 @@ Flag: `sun{...}` (masked)
 
 ## One-paragraph version (for interviews)
 
-The application lets users submit recipes, and an automated browser turns every recipe ingredient into a cookie with `document.cookie`. Direct attempts to forge the Chief role failed because the normal baker session was protected and the authentication cookies were `HttpOnly`. XSS and mass-assignment attempts also failed. The useful primitive was the 300-ingredient limit: by creating 281 distinct cookies and placing privileged-looking cookie names at the end, I could change the automated Inspector's cookie state. The Inspector then called `/api/seal` from its own authenticated browser context and the server awarded the **Golden Seal**.
+CookieCorp lets you submit a recipe that an automated headless-Chromium
+Inspector loads in its own browser, turning every ingredient into a cookie
+write (`document.cookie = name=value`). The Inspector already holds an
+HttpOnly `role=baker` cookie, and JavaScript cannot overwrite an HttpOnly
+cookie - so a single `role=chief` ingredient never sticks. The trick is to
+evict that cookie instead: the recipe builder allows 300 ingredients, and
+Chromium evicts least-recently-used cookies past its 180-cookie-per-domain
+limit. Flooding the jar with 275 filler cookies evicts the HttpOnly
+`role=baker` (default priority) while the `session` cookie (Priority=High)
+survives; the trailing `role=chief` ingredient is then stored as the real
+role. The Inspector's own `/api/seal` call now carries `role=chief` and the
+server returns the Chief's Golden Seal. The browser-side mechanism is
+reproduced locally with a tiny server plus headless Chromium
+(`scripts/repro_eviction.py`): the seal flips from STANDARD to GOLDEN exactly
+at 180 cookies.
 
 ## Lessons learned
 
-1. When an application turns attacker-controlled fields into cookies, think about the browser's cookie store, not just individual cookie values.
-2. A client-side primitive can be much more powerful when it runs in a privileged automated browser.
-3. `HttpOnly` blocks normal JavaScript access, but it does not make the surrounding cookie-handling logic automatically safe.
-4. Testing the exploit from the wrong session can be misleading: the important request here is the Inspector's request, not the attacker's baker request.
-5. When a feature has a large bounded list, check whether the boundary interacts with browser or parser limits.
+1. HttpOnly does not make a cookie unremovable - it only blocks JS from
+   reading or overwriting it. A cookie-jar overflow (RFC 6265 eviction,
+   Chromium's 180-per-domain limit) can evict it anyway.
+2. Watch cookie priorities: in this challenge `session` was `Priority=High`
+   and survived the eviction; the default-priority `role` was the eviction
+   victim. Protection attributes on cookies are part of the security model.
+3. A client-side primitive becomes powerful when it runs in a privileged
+   automated browser - the attacker controls persistent state (cookies) in a
+   context that then performs an authorized action.
+4. Testing from the wrong session is misleading: the relevant request is the
+   Inspector's `/api/seal`, not the attacker's baker requests.
+5. When a feature has a large bounded list (300 ingredients), check whether
+   its boundary interacts with browser limits - here it exceeded the cookie
+   jar capacity.
+6. Pin the mechanism down with a local reproduction using the same engine
+   (Playwright + Chromium) instead of leaving the explanation at "it worked":
+   the flip point (180 cookies) is reproducible and checkable.

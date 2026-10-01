@@ -15,5 +15,7 @@ Files:
 
 - `solve.md` - the full story, written for beginners, including dead ends and why they failed
 - `scripts/git_recover.py` - helper for recovering files from the exposed `.git` directory (host placeholder)
-- `scripts/chroma_dump.py` - helper for dumping the ChromaDB collection by UUID (host/secret placeholders)
+- `scripts/chroma_dump.py` - helper for dumping the ChromaDB collection by UUID (`--out FILE` saves the full JSON, vectors included)
+- `scripts/invert_embedding.py` - embedding-space sanity check + vec2text inversion of the password-rule vector (reproducible from `assets/`)
 - `scripts/brute_password.py` - local SHA256 brute-force for the final archive password pattern
+- `assets/embeddings.npy`, `assets/ids.txt`, `assets/documents.json` - the three vectors + plaintext records dumped from the challenge instance, so the inversion step is reproducible after the instance closed

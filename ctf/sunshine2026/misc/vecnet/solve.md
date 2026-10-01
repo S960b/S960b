@@ -101,7 +101,7 @@ This confirmed that the archive password was probably hidden in an embedding and
 
 ## Dumping ChromaDB
 
-Once the API shape was understood, the useful call was a POST to the collection UUID's `/get` endpoint with documents, embeddings, and metadata included.
+Once the API shape was understood, the useful call was a POST to the collection UUID's `/get` endpoint with documents, embeddings, and metadata included (`scripts/chroma_dump.py`; pass `--out vec_get.json` to keep the vectors - they are needed for the next step and are omitted from the console summary for readability).
 
 The collection contained three records:
 
@@ -113,6 +113,10 @@ The `magic_string` and hash were plaintext. The actual password rule was stored 
 
 A quick sanity check was important: embedding the known plaintext `sunshinectf8_` locally and comparing it to the stored `magic_string` vector gave cosine similarity `1.0000`. That confirmed the local model matched the target embedding model.
 
+The instance is gone now, but the three vectors are shipped in `assets/`
+(`embeddings.npy` + `ids.txt` + `documents.json`, same order as the `/get`
+response), so the rest of the chain is fully reproducible offline.
+
 ## Inverting the embedding
 
 I used `vec2text` with a GTR-base corrector and the settings from the email:
@@ -120,9 +124,25 @@ I used `vec2text` with a GTR-base corrector and the settings from the email:
     num_steps=4
     sequence_beam_width=5
 
-The target embedding inverted to a sentence like:
+`scripts/invert_embedding.py` does both the sanity check and the inversion:
 
-    The user's first and last initials, three special characters followed by the magic string.
+```bash
+pip install vec2text==0.0.13 torch numpy
+python3 scripts/invert_embedding.py assets/ --steps 4 --beam 5
+```
+
+Observed output (the 4-step run from the solving session took ~1-2 minutes
+on CPU, depending on the machine):
+
+    cos(embed('sunshinectf8_'), magic_string vec) = 1.0000
+    [user_password_requirements] steps=4 beam=5 (119s):
+        The user's first and last initials, three special characters
+        followed by the magic string.
+
+(A zero-step run, `--steps 0`, already proves the embedding space is right but
+returns noisier text: `"The first three characters, the user's special string,
+and the last three digits, followed by the user's magic string string
+identification."`)
 
 So the password format was:
 
@@ -130,7 +150,7 @@ So the password format was:
 
 The likely initials came from the emails and Git history. The final person was Greg Roberts, so `GR` was a natural candidate, but I still let the script search initials and special-character triples against the SHA256 hash.
 
-The hash check recovered the archive password pattern. In the public writeup I keep the exact password masked, but the local helper script can recompute it from the hash.
+The hash check (`scripts/brute_password.py`) recovered the archive password pattern. In the public writeup I keep the exact password masked, but the local helper script can recompute it from the hash.
 
 ## Extracting the flag
 

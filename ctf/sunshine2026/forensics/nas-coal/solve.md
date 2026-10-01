@@ -4,7 +4,7 @@
 
 We get one file: `gem_collection.pptm`, a 2.2 MB macro-enabled PowerPoint presentation ("My gem collection"). Five slides, some pictures, a few jokes. The task name is the hint - **NAS coal** - and the category is forensics, so the flag is somewhere in the file, not on the screen.
 
-There is no Windows and no Office in the environment, and we do not need either: a `.pptm` is just a ZIP archive with XML and binary parts, and the malicious part of such files is always a VBA project under `ppt/vbaProject.bin`.
+There is no Windows and no Office in the environment, and we do not need either: a `.pptm` is just a ZIP archive with XML and binary parts. In this particular file the payload lives in the VBA project under `ppt/vbaProject.bin` - the classic spot for macro payloads (though not the only one: OLE objects, external relationships and embedded packages can carry payloads too, so check those as well).
 
 ---
 
@@ -129,7 +129,7 @@ Worth noting what the macro *would* do if it ran: it only builds a string and `D
 
 4. **`olevba --decode`.** It does try to decode Base64 strings, but for a UTF-16LE PowerShell payload it prints only a truncated, NUL-riddled fragment. Take the string and decode it yourself - two commands, deterministic result.
 
-5. **Opening the file in LibreOffice / PowerPoint to "run" the macro.** Not needed and not desirable: the macro is not the payload, the *text inside it* is the flag. Static tools give the answer without ever executing anything.
+5. **Opening the file in PowerPoint / LibreOffice to "run" the macro** - a considered option, not a performed step: this environment has no Office and no LibreOffice installed. It was not needed either: the macro is not the payload, the *text inside it* is the flag. Static tools give the answer without ever executing anything.
 
 So the real lesson of this challenge: a macro-enabled Office file is a ZIP + an OLE VBA project, and `oleid` → `olevba` is the standard two-command path. Everything else is a detour.
 
