@@ -94,32 +94,71 @@ def cmd_collect(args):
 
 
 # ---------------- analyze / replay ----------------
+def cmd_index(args):
+    """Просканировать parquet и записать reports/parquet_index.json (ревью P1.4)."""
+    cfg = load_cfg(args.config)
+    from analysis.parquet_index import save_parquet_index
+    parquet_dir = os.path.join(args.data_root or BASE, cfg["storage"]["parquet_dir"])
+    reports_dir = os.path.join(args.data_root or BASE, cfg["storage"].get("reports_dir", "reports"))
+    idx = save_parquet_index(parquet_dir, reports_dir)
+    print(f"index: files={idx['files']} runs={len(idx['runs'])}")
+    for r in idx["runs"][-5:]:
+        print(f"  {r['run_id']} boot={r['boot_id']} n={r['n_events']} "
+              f"start={r['start_utc_ns']/1e9:.0f} end={r['end_utc_ns']/1e9:.0f}")
+
+
+def _max_utc_ns(parquet_dir):
+    """Быстрый максимум recv_utc_ns по всем parquet (сканируется одна колонка)."""
+    import pyarrow.dataset as ds
+    files = []
+    for root, _, fs in os.walk(parquet_dir):
+        for f in fs:
+            if f.endswith(".parquet") and not f.startswith("."):
+                files.append(os.path.join(root, f))
+    if not files:
+        return None
+    try:
+        d = ds.dataset(files, format="parquet")
+        return int(d.to_table(columns=["recv_utc_ns"]).column("recv_utc_ns").max())
+    except Exception:
+        return None
+
+
 def _load_window(args, cfg, symbol):
     """Загрузка parquet последнего run с опциональным окном (--window-min).
-    Без окна полная сессия может не влезть в память на живых данных (OOM на ~400К строк)."""
+
+    Ревью P1: фильтр времени (recv_utc_ns) действует в СКАНЕРЕ ДО материализации —
+    загружаются только последние (window_min + warmup) минут, а не весь run.
+    Возвращает (df, window_start_ns_utc | None)."""
     from analysis import load_parquet_all
+    parquet_dir = os.path.join(args.data_root or BASE, cfg["storage"]["parquet_dir"])
     run_id = getattr(args, "run_id", None)
     max_runs = getattr(args, "runs", None) or 1
-    df = load_parquet_all(os.path.join(args.data_root or BASE, cfg["storage"]["parquet_dir"]),
-                          symbol=symbol, run_id=run_id, max_runs=max_runs)
-    if df.empty:
-        return df
     w = getattr(args, "window_min", None)
-    if w:
-        cut = df.recv_utc_ns.max() - w * 60 * 1e9
-        df = df[df.recv_utc_ns >= cut].reset_index(drop=True)
-        print(f"window: последние {w} мин → {len(df)} событий")
-    return df
+    if run_id or not w:
+        df = load_parquet_all(parquet_dir, symbol=symbol, run_id=run_id, max_runs=max_runs)
+        return df, None
+    # окно: загружаем window + разогрев (премия 30 мин + запас на W/MAD)
+    t_max = _max_utc_ns(parquet_dir)
+    warmup = cfg["oracle"]["window_min"] * 60
+    t_min = t_max - (w * 60 + warmup) * 1e9
+    df = load_parquet_all(parquet_dir, symbol=symbol, max_runs=1,
+                          t_min_ns=t_min, t_max_ns=t_max)
+    window_start_ns = t_max - w * 60 * 1e9
+    print(f"window: последние {w} мин → {len(df)} событий "
+          f"(загружено {w + warmup} мин с разогревом {warmup} мин)")
+    return df, int(window_start_ns)
 
 
 def cmd_analyze(args):
     cfg = load_cfg(args.config)
     symbol = args.symbol or "BTCUSDT"
     # ревью: по умолчанию один последний run (monotonic разных сессий несравним)
-    df_all = _load_window(args, cfg, symbol)
+    df_all, win_start = _load_window(args, cfg, symbol)
     if df_all.empty:
         print("no parquet data yet — run collect first")
         return
+    args.window_start_ns = win_start
     print(f"analyze {symbol}: {len(df_all)} events, "
           f"exchanges={sorted(df_all.exchange.unique())}, "
           f"types={sorted(df_all.event_type.unique())}")
@@ -143,9 +182,10 @@ def cmd_paper(args):
     cfg = load_cfg(args.config)
     from analysis.analyze_run import run_paper
     symbol = args.symbol or "BTCUSDT"
-    df_all = _load_window(args, cfg, symbol)
+    df_all, win_start = _load_window(args, cfg, symbol)
     if df_all.empty:
         print("no data"); return
+    args.window_start_ns = win_start
     run_paper(cfg, args.data_root or BASE, df_all, symbol, args)
 
 
@@ -177,6 +217,9 @@ def main():
     sp.add_argument("--out", default=None)
     sp.add_argument("--verbose", action="store_true")
     sp.set_defaults(fn=cmd_discover)
+
+    sp = sub.add_parser("index")
+    sp.set_defaults(fn=cmd_index)
 
     sp = sub.add_parser("collect")
     sp.add_argument("--minutes", type=float, default=None)
@@ -216,13 +259,23 @@ def main():
 def cmd_replay(args):
     cfg = load_cfg(args.config)
     symbol = args.symbol or "BTCUSDT"
-    df = _load_window(args, cfg, symbol)
+    df, _ = _load_window(args, cfg, symbol)
     if df.empty:
         print("no data"); return
     # воспроизводимый event replay: проверяем согласованность снапшотов/дельт и строим mid-ряд
     from analysis.replay_check import replay_check
+    import hashlib as _hl
     rep = replay_check(df, symbol)
+    rep['run_id'] = str(df.run_id.iloc[0])
+    rep['n_events'] = len(df)
+    rep['config_hash'] = _hl.sha256(json.dumps(cfg, sort_keys=True).encode()).hexdigest()
     print("replay check:", json.dumps(rep, indent=1))
+    # JSON текущего run (ревью P0: проверяемость отчёта)
+    out = os.path.join(args.data_root or BASE, cfg["storage"].get("reports_dir", "reports"))
+    os.makedirs(out, exist_ok=True)
+    with open(os.path.join(out, f"replay_{symbol}.json"), "w", encoding="utf-8") as f:
+        json.dump(rep, f, indent=1, ensure_ascii=False)
+    print(f"saved reports/replay_{symbol}.json")
 
 
 if __name__ == "__main__":

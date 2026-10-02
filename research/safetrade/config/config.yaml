@@ -40,6 +40,7 @@ sqlite_path: data/state.db
 storage:
   raw_dir: data/raw
   parquet_dir: data/parquet
+  reports_dir: reports
   jsonl_max_bytes: 26214400       # 25 МБ
   parquet_flush_s: 10.0           # закрытие буфера parquet по времени (ревью P0-5)
   disk_warn_bytes: 12000000000    # предупреждение первым

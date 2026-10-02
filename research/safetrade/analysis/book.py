@@ -11,6 +11,8 @@ from datetime import datetime, timezone
 import duckdb
 import pandas as pd
 
+from .parquet_index import latest_run_from_index as _latest_run_from_index
+
 
 def _files_for_latest_run(files: list, max_runs: int = 1):
     """Выбор файлов последнего(их) run по времени записи в имени файла:
@@ -34,11 +36,15 @@ def _files_for_latest_run(files: list, max_runs: int = 1):
 
 
 def load_parquet_all(parquet_dir: str, exchange=None, symbol=None, event_types=None,
-                     run_id=None, max_runs=None) -> pd.DataFrame:
+                     run_id=None, max_runs=None, t_min_ns=None, t_max_ns=None,
+                     index_path=None) -> pd.DataFrame:
     """Загрузить закрытые parquet-файлы (replay, ТЗ п.5/10).
     Ревью: выбор run/session — по умолчанию ТОЛЬКО последний run (monotonic-часы разных
-    загрузок несравнимы). Файлы предфильтруются по run_id из имени ДО сканирования;
-    чтение через pyarrow.dataset (duckdb виснет на тысячах мелких файлов + union_by_name)."""
+    загрузок несравнимы). Если задан index_path (reports/parquet_index.json), последний
+    run выбирается ПО ДАННЫМ (start_utc_ns), а не по времени записи имени файла (ревью P1.4).
+    Чтение через pyarrow.dataset (duckdb виснет на тысячах мелких файлов + union_by_name).
+    t_min_ns/t_max_ns — фильтр времени в СКАНЕРЕ (по recv_utc_ns), до материализации
+    в pandas: защита от OOM для длинных сессий (ревью P1)."""
     import pyarrow.dataset as ds
     files = []
     for root, _, fs in os.walk(parquet_dir):
@@ -55,9 +61,14 @@ def load_parquet_all(parquet_dir: str, exchange=None, symbol=None, event_types=N
     elif max_runs not in (None, 1):
         raise ValueError("Analyze runs separately: monotonic clocks from different runs cannot be joined")
     elif max_runs == 1 or max_runs is None:
-        files = _files_for_latest_run(files, max_runs=1)
-    if not files:
-        return pd.DataFrame()
+        # последний run по индексу (данные), иначе по времени записи имени файла
+        rid = _latest_run_from_index(index_path) if index_path else None
+        if rid:
+            files = [f for f in files if f"_{rid}_" in os.path.basename(f)]
+        else:
+            files = _files_for_latest_run(files, max_runs=1)
+        if not files:
+            return pd.DataFrame()
     dataset = ds.dataset(files, format="parquet")
     # выбор последней сессии (run_id/boot_id) по данным
     tbl = dataset.to_table(columns=["run_id", "boot_id", "recv_utc_ns"])
@@ -74,6 +85,10 @@ def load_parquet_all(parquet_dir: str, exchange=None, symbol=None, event_types=N
         filt = filt & (ds.field("canonical_symbol") == symbol)
     if event_types:
         filt = filt & ds.field("event_type").isin(list(event_types))
+    if t_min_ns is not None:
+        filt = filt & (ds.field("recv_utc_ns") >= int(t_min_ns))
+    if t_max_ns is not None:
+        filt = filt & (ds.field("recv_utc_ns") <= int(t_max_ns))
     tbl = dataset.to_table(filter=filt)
     df = tbl.to_pandas()
     df = parse_bids_asks(df)

@@ -1,89 +1,906 @@
 {
- "report_type": "paper",
- "code_version": "v1.0.0-dev",
- "generated_utc": "2026-10-02T13:42:22.326538+00:00",
- "symbol": "BTCUSDT",
- "initial_balance_usdt": 100.0,
- "fees_taker_bps": 10.0,
- "hypotheses": {
-  "A": {
-   "n_signals": 0,
-   "n_entries": 0,
-   "n_trades": 0,
-   "pnl_sum_usdt": 0.0,
-   "fees_sum_usdt": 0.0,
-   "by_L": {
-    "250": {
-     "n": 0,
-     "pnl": 0.0
+  "report_type": "paper",
+  "generated_utc": "2026-10-02T20:02:37.156951+00:00",
+  "symbol": "BTCUSDT",
+  "run_id": "st_059dff501f0b",
+  "boot_id": "36e803127568",
+  "code_revision": "f1c94ccb6b4fe873251ab85d93b8084e4e86c6a5",
+  "code_dirty": true,
+  "config_hash": "1c6a693775bd459962bde9aabd77e1ff58bb04928b1d9624fd0c77809aebdc5b",
+  "config": {
+    "schema_version": 2,
+    "run_id_prefix": "st",
+    "sources": [
+      "binance",
+      "okx",
+      "bybit"
+    ],
+    "target": "safetrade",
+    "markets": [
+      {
+        "symbol": "BTC/USDT",
+        "canonical": "BTCUSDT",
+        "enabled": true
+      },
+      {
+        "symbol": "ETH/USDT",
+        "canonical": "ETHUSDT",
+        "enabled": false
+      },
+      {
+        "symbol": "DOGE/USDT",
+        "canonical": "DOGEUSDT",
+        "enabled": false
+      }
+    ],
+    "channels": {
+      "bbo": true,
+      "book": true,
+      "trades": false
     },
-    "500": {
-     "n": 0,
-     "pnl": 0.0
+    "safetrade": {
+      "rest_snapshot_s": 30.0
     },
-    "1000": {
-     "n": 0,
-     "pnl": 0.0
+    "sqlite_path": "data/state.db",
+    "storage": {
+      "raw_dir": "data/raw",
+      "parquet_dir": "data/parquet",
+      "reports_dir": "reports",
+      "jsonl_max_bytes": 26214400,
+      "parquet_flush_s": 10.0,
+      "disk_warn_bytes": 12000000000,
+      "disk_limit_bytes": 10000000000
     },
-    "2000": {
-     "n": 0,
-     "pnl": 0.0
-    }
-   }
+    "health": {
+      "stale_after_s": 30
+    },
+    "oracle": {
+      "window_min": 30,
+      "premium_min_points": 10,
+      "premium_min_span_s": 900,
+      "premium_max_age_s": 60,
+      "min_sources_for_primary": 3,
+      "min_sources_for_degraded": 2
+    },
+    "reach": {
+      "horizons_s": [
+        1,
+        5,
+        15,
+        30,
+        60,
+        180,
+        300
+      ]
+    },
+    "paper": {
+      "initial_balance_usdt": 100.0,
+      "sizes_usdt": [
+        10,
+        25,
+        50
+      ],
+      "hypotheses": {
+        "A": {
+          "W_s": 5,
+          "D_s": 0,
+          "H_s": 30,
+          "L_ms": [
+            250,
+            500,
+            1000,
+            2000
+          ]
+        },
+        "B": {
+          "W_s": 15,
+          "D_s": 1,
+          "H_s": 60,
+          "L_ms": [
+            250,
+            500,
+            1000,
+            2000
+          ]
+        },
+        "C": {
+          "W_s": 60,
+          "D_s": 3,
+          "H_s": 180,
+          "L_ms": [
+            250,
+            500,
+            1000,
+            2000
+          ]
+        }
+      },
+      "noise": {
+        "mad_mult": 1.5,
+        "abs_min_bps": 2.0
+      },
+      "confirm_min_sources": 2,
+      "cooldown_s": 60,
+      "buffer_bps": 5.0,
+      "oracle_dispersion_bps": 15.0
+    },
+    "fees": {
+      "safetrade": {
+        "taker_bps": 10.0,
+        "maker_bps": 0.0,
+        "verified": false,
+        "source": "модельное допущение; комиссию проверить для рынка и аккаунта",
+        "note": "значение уточнить по fees-странице"
+      }
+    },
+    "fitness": {
+      "max_book_age_s": 5.0,
+      "max_bbo_age_s": 2.0
+    },
+    "timezone_display": "Europe/Moscow",
+    "allow_trading": false
   },
-  "B": {
-   "n_signals": 0,
-   "n_entries": 0,
-   "n_trades": 0,
-   "pnl_sum_usdt": 0.0,
-   "fees_sum_usdt": 0.0,
-   "by_L": {
-    "250": {
-     "n": 0,
-     "pnl": 0.0
-    },
-    "500": {
-     "n": 0,
-     "pnl": 0.0
-    },
-    "1000": {
-     "n": 0,
-     "pnl": 0.0
-    },
-    "2000": {
-     "n": 0,
-     "pnl": 0.0
-    }
-   }
+  "n_events": 1882487,
+  "ready_for_live_trading": false,
+  "period": {
+    "start_utc": "2026-10-02T14:47:15.884968+00:00",
+    "end_utc": "2026-10-02T16:32:26.278332+00:00",
+    "span_s": 6310.393362532
   },
-  "C": {
-   "n_signals": 0,
-   "n_entries": 0,
-   "n_trades": 0,
-   "pnl_sum_usdt": 0.0,
-   "fees_sum_usdt": 0.0,
-   "by_L": {
-    "250": {
-     "n": 0,
-     "pnl": 0.0
+  "limitations": [
+    "Offline research; no orders sent",
+    "Receive-time lead/lag includes network latency",
+    "REST SafeTrade observations do not verify a subsecond opportunity",
+    "Execution assumes complete capped fills and quoted depth; no queue model",
+    "Fees and market precision require exchange verification before trading"
+  ],
+  "recording_status": "stopped",
+  "synthetic": false,
+  "initial_balance_usdt": 100.0,
+  "fees_taker_bps": 10.0,
+  "hypotheses": {
+    "A": {
+      "n_signals": 93,
+      "scenarios": {
+        "L250_Q10": {
+          "L_ms": 250,
+          "budget_usdt": 10,
+          "n_entries": 0,
+          "n_closed": 0,
+          "n_open_unknown": 0,
+          "n_unknown_entries": 0,
+          "cash_usdt": 100.0,
+          "realized_pnl_usdt": 0.0,
+          "available_cash_usdt": 100.0,
+          "fees_paid_usdt": 0.0,
+          "open_position": null,
+          "equity_usdt": 100.0,
+          "rejections": {
+            "premium_unavailable": 7,
+            "long_only": 48,
+            "decision_book_unusable": 38
+          }
+        },
+        "L250_Q25": {
+          "L_ms": 250,
+          "budget_usdt": 25,
+          "n_entries": 0,
+          "n_closed": 0,
+          "n_open_unknown": 0,
+          "n_unknown_entries": 0,
+          "cash_usdt": 100.0,
+          "realized_pnl_usdt": 0.0,
+          "available_cash_usdt": 100.0,
+          "fees_paid_usdt": 0.0,
+          "open_position": null,
+          "equity_usdt": 100.0,
+          "rejections": {
+            "premium_unavailable": 7,
+            "long_only": 48,
+            "decision_book_unusable": 38
+          }
+        },
+        "L250_Q50": {
+          "L_ms": 250,
+          "budget_usdt": 50,
+          "n_entries": 0,
+          "n_closed": 0,
+          "n_open_unknown": 0,
+          "n_unknown_entries": 0,
+          "cash_usdt": 100.0,
+          "realized_pnl_usdt": 0.0,
+          "available_cash_usdt": 100.0,
+          "fees_paid_usdt": 0.0,
+          "open_position": null,
+          "equity_usdt": 100.0,
+          "rejections": {
+            "premium_unavailable": 7,
+            "long_only": 48,
+            "decision_book_unusable": 38
+          }
+        },
+        "L500_Q10": {
+          "L_ms": 500,
+          "budget_usdt": 10,
+          "n_entries": 0,
+          "n_closed": 0,
+          "n_open_unknown": 0,
+          "n_unknown_entries": 0,
+          "cash_usdt": 100.0,
+          "realized_pnl_usdt": 0.0,
+          "available_cash_usdt": 100.0,
+          "fees_paid_usdt": 0.0,
+          "open_position": null,
+          "equity_usdt": 100.0,
+          "rejections": {
+            "premium_unavailable": 7,
+            "long_only": 48,
+            "decision_book_unusable": 38
+          }
+        },
+        "L500_Q25": {
+          "L_ms": 500,
+          "budget_usdt": 25,
+          "n_entries": 0,
+          "n_closed": 0,
+          "n_open_unknown": 0,
+          "n_unknown_entries": 0,
+          "cash_usdt": 100.0,
+          "realized_pnl_usdt": 0.0,
+          "available_cash_usdt": 100.0,
+          "fees_paid_usdt": 0.0,
+          "open_position": null,
+          "equity_usdt": 100.0,
+          "rejections": {
+            "premium_unavailable": 7,
+            "long_only": 48,
+            "decision_book_unusable": 38
+          }
+        },
+        "L500_Q50": {
+          "L_ms": 500,
+          "budget_usdt": 50,
+          "n_entries": 0,
+          "n_closed": 0,
+          "n_open_unknown": 0,
+          "n_unknown_entries": 0,
+          "cash_usdt": 100.0,
+          "realized_pnl_usdt": 0.0,
+          "available_cash_usdt": 100.0,
+          "fees_paid_usdt": 0.0,
+          "open_position": null,
+          "equity_usdt": 100.0,
+          "rejections": {
+            "premium_unavailable": 7,
+            "long_only": 48,
+            "decision_book_unusable": 38
+          }
+        },
+        "L1000_Q10": {
+          "L_ms": 1000,
+          "budget_usdt": 10,
+          "n_entries": 0,
+          "n_closed": 0,
+          "n_open_unknown": 0,
+          "n_unknown_entries": 0,
+          "cash_usdt": 100.0,
+          "realized_pnl_usdt": 0.0,
+          "available_cash_usdt": 100.0,
+          "fees_paid_usdt": 0.0,
+          "open_position": null,
+          "equity_usdt": 100.0,
+          "rejections": {
+            "premium_unavailable": 7,
+            "long_only": 48,
+            "decision_book_unusable": 38
+          }
+        },
+        "L1000_Q25": {
+          "L_ms": 1000,
+          "budget_usdt": 25,
+          "n_entries": 0,
+          "n_closed": 0,
+          "n_open_unknown": 0,
+          "n_unknown_entries": 0,
+          "cash_usdt": 100.0,
+          "realized_pnl_usdt": 0.0,
+          "available_cash_usdt": 100.0,
+          "fees_paid_usdt": 0.0,
+          "open_position": null,
+          "equity_usdt": 100.0,
+          "rejections": {
+            "premium_unavailable": 7,
+            "long_only": 48,
+            "decision_book_unusable": 38
+          }
+        },
+        "L1000_Q50": {
+          "L_ms": 1000,
+          "budget_usdt": 50,
+          "n_entries": 0,
+          "n_closed": 0,
+          "n_open_unknown": 0,
+          "n_unknown_entries": 0,
+          "cash_usdt": 100.0,
+          "realized_pnl_usdt": 0.0,
+          "available_cash_usdt": 100.0,
+          "fees_paid_usdt": 0.0,
+          "open_position": null,
+          "equity_usdt": 100.0,
+          "rejections": {
+            "premium_unavailable": 7,
+            "long_only": 48,
+            "decision_book_unusable": 38
+          }
+        },
+        "L2000_Q10": {
+          "L_ms": 2000,
+          "budget_usdt": 10,
+          "n_entries": 0,
+          "n_closed": 0,
+          "n_open_unknown": 0,
+          "n_unknown_entries": 0,
+          "cash_usdt": 100.0,
+          "realized_pnl_usdt": 0.0,
+          "available_cash_usdt": 100.0,
+          "fees_paid_usdt": 0.0,
+          "open_position": null,
+          "equity_usdt": 100.0,
+          "rejections": {
+            "premium_unavailable": 7,
+            "long_only": 48,
+            "decision_book_unusable": 38
+          }
+        },
+        "L2000_Q25": {
+          "L_ms": 2000,
+          "budget_usdt": 25,
+          "n_entries": 0,
+          "n_closed": 0,
+          "n_open_unknown": 0,
+          "n_unknown_entries": 0,
+          "cash_usdt": 100.0,
+          "realized_pnl_usdt": 0.0,
+          "available_cash_usdt": 100.0,
+          "fees_paid_usdt": 0.0,
+          "open_position": null,
+          "equity_usdt": 100.0,
+          "rejections": {
+            "premium_unavailable": 7,
+            "long_only": 48,
+            "decision_book_unusable": 38
+          }
+        },
+        "L2000_Q50": {
+          "L_ms": 2000,
+          "budget_usdt": 50,
+          "n_entries": 0,
+          "n_closed": 0,
+          "n_open_unknown": 0,
+          "n_unknown_entries": 0,
+          "cash_usdt": 100.0,
+          "realized_pnl_usdt": 0.0,
+          "available_cash_usdt": 100.0,
+          "fees_paid_usdt": 0.0,
+          "open_position": null,
+          "equity_usdt": 100.0,
+          "rejections": {
+            "premium_unavailable": 7,
+            "long_only": 48,
+            "decision_book_unusable": 38
+          }
+        }
+      },
+      "funnel": {
+        "sources_stale": 34,
+        "external_history_missing": 1298,
+        "weak_move": 137262,
+        "disagree": 242,
+        "oracle_dispersion": 0,
+        "cooldown_skipped": 1383629,
+        "signal": 93
+      }
     },
-    "500": {
-     "n": 0,
-     "pnl": 0.0
+    "B": {
+      "n_signals": 94,
+      "scenarios": {
+        "L250_Q10": {
+          "L_ms": 250,
+          "budget_usdt": 10,
+          "n_entries": 0,
+          "n_closed": 0,
+          "n_open_unknown": 0,
+          "n_unknown_entries": 0,
+          "cash_usdt": 100.0,
+          "realized_pnl_usdt": 0.0,
+          "available_cash_usdt": 100.0,
+          "fees_paid_usdt": 0.0,
+          "open_position": null,
+          "equity_usdt": 100.0,
+          "rejections": {
+            "premium_unavailable": 7,
+            "long_only": 48,
+            "decision_book_unusable": 38,
+            "persistence_failed": 1
+          }
+        },
+        "L250_Q25": {
+          "L_ms": 250,
+          "budget_usdt": 25,
+          "n_entries": 0,
+          "n_closed": 0,
+          "n_open_unknown": 0,
+          "n_unknown_entries": 0,
+          "cash_usdt": 100.0,
+          "realized_pnl_usdt": 0.0,
+          "available_cash_usdt": 100.0,
+          "fees_paid_usdt": 0.0,
+          "open_position": null,
+          "equity_usdt": 100.0,
+          "rejections": {
+            "premium_unavailable": 7,
+            "long_only": 48,
+            "decision_book_unusable": 38,
+            "persistence_failed": 1
+          }
+        },
+        "L250_Q50": {
+          "L_ms": 250,
+          "budget_usdt": 50,
+          "n_entries": 0,
+          "n_closed": 0,
+          "n_open_unknown": 0,
+          "n_unknown_entries": 0,
+          "cash_usdt": 100.0,
+          "realized_pnl_usdt": 0.0,
+          "available_cash_usdt": 100.0,
+          "fees_paid_usdt": 0.0,
+          "open_position": null,
+          "equity_usdt": 100.0,
+          "rejections": {
+            "premium_unavailable": 7,
+            "long_only": 48,
+            "decision_book_unusable": 38,
+            "persistence_failed": 1
+          }
+        },
+        "L500_Q10": {
+          "L_ms": 500,
+          "budget_usdt": 10,
+          "n_entries": 0,
+          "n_closed": 0,
+          "n_open_unknown": 0,
+          "n_unknown_entries": 0,
+          "cash_usdt": 100.0,
+          "realized_pnl_usdt": 0.0,
+          "available_cash_usdt": 100.0,
+          "fees_paid_usdt": 0.0,
+          "open_position": null,
+          "equity_usdt": 100.0,
+          "rejections": {
+            "premium_unavailable": 7,
+            "long_only": 48,
+            "decision_book_unusable": 38,
+            "persistence_failed": 1
+          }
+        },
+        "L500_Q25": {
+          "L_ms": 500,
+          "budget_usdt": 25,
+          "n_entries": 0,
+          "n_closed": 0,
+          "n_open_unknown": 0,
+          "n_unknown_entries": 0,
+          "cash_usdt": 100.0,
+          "realized_pnl_usdt": 0.0,
+          "available_cash_usdt": 100.0,
+          "fees_paid_usdt": 0.0,
+          "open_position": null,
+          "equity_usdt": 100.0,
+          "rejections": {
+            "premium_unavailable": 7,
+            "long_only": 48,
+            "decision_book_unusable": 38,
+            "persistence_failed": 1
+          }
+        },
+        "L500_Q50": {
+          "L_ms": 500,
+          "budget_usdt": 50,
+          "n_entries": 0,
+          "n_closed": 0,
+          "n_open_unknown": 0,
+          "n_unknown_entries": 0,
+          "cash_usdt": 100.0,
+          "realized_pnl_usdt": 0.0,
+          "available_cash_usdt": 100.0,
+          "fees_paid_usdt": 0.0,
+          "open_position": null,
+          "equity_usdt": 100.0,
+          "rejections": {
+            "premium_unavailable": 7,
+            "long_only": 48,
+            "decision_book_unusable": 38,
+            "persistence_failed": 1
+          }
+        },
+        "L1000_Q10": {
+          "L_ms": 1000,
+          "budget_usdt": 10,
+          "n_entries": 0,
+          "n_closed": 0,
+          "n_open_unknown": 0,
+          "n_unknown_entries": 0,
+          "cash_usdt": 100.0,
+          "realized_pnl_usdt": 0.0,
+          "available_cash_usdt": 100.0,
+          "fees_paid_usdt": 0.0,
+          "open_position": null,
+          "equity_usdt": 100.0,
+          "rejections": {
+            "premium_unavailable": 7,
+            "long_only": 48,
+            "decision_book_unusable": 38,
+            "persistence_failed": 1
+          }
+        },
+        "L1000_Q25": {
+          "L_ms": 1000,
+          "budget_usdt": 25,
+          "n_entries": 0,
+          "n_closed": 0,
+          "n_open_unknown": 0,
+          "n_unknown_entries": 0,
+          "cash_usdt": 100.0,
+          "realized_pnl_usdt": 0.0,
+          "available_cash_usdt": 100.0,
+          "fees_paid_usdt": 0.0,
+          "open_position": null,
+          "equity_usdt": 100.0,
+          "rejections": {
+            "premium_unavailable": 7,
+            "long_only": 48,
+            "decision_book_unusable": 38,
+            "persistence_failed": 1
+          }
+        },
+        "L1000_Q50": {
+          "L_ms": 1000,
+          "budget_usdt": 50,
+          "n_entries": 0,
+          "n_closed": 0,
+          "n_open_unknown": 0,
+          "n_unknown_entries": 0,
+          "cash_usdt": 100.0,
+          "realized_pnl_usdt": 0.0,
+          "available_cash_usdt": 100.0,
+          "fees_paid_usdt": 0.0,
+          "open_position": null,
+          "equity_usdt": 100.0,
+          "rejections": {
+            "premium_unavailable": 7,
+            "long_only": 48,
+            "decision_book_unusable": 38,
+            "persistence_failed": 1
+          }
+        },
+        "L2000_Q10": {
+          "L_ms": 2000,
+          "budget_usdt": 10,
+          "n_entries": 0,
+          "n_closed": 0,
+          "n_open_unknown": 0,
+          "n_unknown_entries": 0,
+          "cash_usdt": 100.0,
+          "realized_pnl_usdt": 0.0,
+          "available_cash_usdt": 100.0,
+          "fees_paid_usdt": 0.0,
+          "open_position": null,
+          "equity_usdt": 100.0,
+          "rejections": {
+            "premium_unavailable": 7,
+            "long_only": 48,
+            "decision_book_unusable": 38,
+            "persistence_failed": 1
+          }
+        },
+        "L2000_Q25": {
+          "L_ms": 2000,
+          "budget_usdt": 25,
+          "n_entries": 0,
+          "n_closed": 0,
+          "n_open_unknown": 0,
+          "n_unknown_entries": 0,
+          "cash_usdt": 100.0,
+          "realized_pnl_usdt": 0.0,
+          "available_cash_usdt": 100.0,
+          "fees_paid_usdt": 0.0,
+          "open_position": null,
+          "equity_usdt": 100.0,
+          "rejections": {
+            "premium_unavailable": 7,
+            "long_only": 48,
+            "decision_book_unusable": 38,
+            "persistence_failed": 1
+          }
+        },
+        "L2000_Q50": {
+          "L_ms": 2000,
+          "budget_usdt": 50,
+          "n_entries": 0,
+          "n_closed": 0,
+          "n_open_unknown": 0,
+          "n_unknown_entries": 0,
+          "cash_usdt": 100.0,
+          "realized_pnl_usdt": 0.0,
+          "available_cash_usdt": 100.0,
+          "fees_paid_usdt": 0.0,
+          "open_position": null,
+          "equity_usdt": 100.0,
+          "rejections": {
+            "premium_unavailable": 7,
+            "long_only": 48,
+            "decision_book_unusable": 38,
+            "persistence_failed": 1
+          }
+        }
+      },
+      "funnel": {
+        "sources_stale": 6,
+        "external_history_missing": 3542,
+        "weak_move": 136374,
+        "disagree": 0,
+        "oracle_dispersion": 0,
+        "cooldown_skipped": 1382542,
+        "signal": 94
+      }
     },
-    "1000": {
-     "n": 0,
-     "pnl": 0.0
-    },
-    "2000": {
-     "n": 0,
-     "pnl": 0.0
+    "C": {
+      "n_signals": 86,
+      "scenarios": {
+        "L250_Q10": {
+          "L_ms": 250,
+          "budget_usdt": 10,
+          "n_entries": 0,
+          "n_closed": 0,
+          "n_open_unknown": 0,
+          "n_unknown_entries": 0,
+          "cash_usdt": 100.0,
+          "realized_pnl_usdt": 0.0,
+          "available_cash_usdt": 100.0,
+          "fees_paid_usdt": 0.0,
+          "open_position": null,
+          "equity_usdt": 100.0,
+          "rejections": {
+            "premium_unavailable": 5,
+            "long_only": 52,
+            "decision_book_unusable": 29
+          }
+        },
+        "L250_Q25": {
+          "L_ms": 250,
+          "budget_usdt": 25,
+          "n_entries": 0,
+          "n_closed": 0,
+          "n_open_unknown": 0,
+          "n_unknown_entries": 0,
+          "cash_usdt": 100.0,
+          "realized_pnl_usdt": 0.0,
+          "available_cash_usdt": 100.0,
+          "fees_paid_usdt": 0.0,
+          "open_position": null,
+          "equity_usdt": 100.0,
+          "rejections": {
+            "premium_unavailable": 5,
+            "long_only": 52,
+            "decision_book_unusable": 29
+          }
+        },
+        "L250_Q50": {
+          "L_ms": 250,
+          "budget_usdt": 50,
+          "n_entries": 0,
+          "n_closed": 0,
+          "n_open_unknown": 0,
+          "n_unknown_entries": 0,
+          "cash_usdt": 100.0,
+          "realized_pnl_usdt": 0.0,
+          "available_cash_usdt": 100.0,
+          "fees_paid_usdt": 0.0,
+          "open_position": null,
+          "equity_usdt": 100.0,
+          "rejections": {
+            "premium_unavailable": 5,
+            "long_only": 52,
+            "decision_book_unusable": 29
+          }
+        },
+        "L500_Q10": {
+          "L_ms": 500,
+          "budget_usdt": 10,
+          "n_entries": 0,
+          "n_closed": 0,
+          "n_open_unknown": 0,
+          "n_unknown_entries": 0,
+          "cash_usdt": 100.0,
+          "realized_pnl_usdt": 0.0,
+          "available_cash_usdt": 100.0,
+          "fees_paid_usdt": 0.0,
+          "open_position": null,
+          "equity_usdt": 100.0,
+          "rejections": {
+            "premium_unavailable": 5,
+            "long_only": 52,
+            "decision_book_unusable": 29
+          }
+        },
+        "L500_Q25": {
+          "L_ms": 500,
+          "budget_usdt": 25,
+          "n_entries": 0,
+          "n_closed": 0,
+          "n_open_unknown": 0,
+          "n_unknown_entries": 0,
+          "cash_usdt": 100.0,
+          "realized_pnl_usdt": 0.0,
+          "available_cash_usdt": 100.0,
+          "fees_paid_usdt": 0.0,
+          "open_position": null,
+          "equity_usdt": 100.0,
+          "rejections": {
+            "premium_unavailable": 5,
+            "long_only": 52,
+            "decision_book_unusable": 29
+          }
+        },
+        "L500_Q50": {
+          "L_ms": 500,
+          "budget_usdt": 50,
+          "n_entries": 0,
+          "n_closed": 0,
+          "n_open_unknown": 0,
+          "n_unknown_entries": 0,
+          "cash_usdt": 100.0,
+          "realized_pnl_usdt": 0.0,
+          "available_cash_usdt": 100.0,
+          "fees_paid_usdt": 0.0,
+          "open_position": null,
+          "equity_usdt": 100.0,
+          "rejections": {
+            "premium_unavailable": 5,
+            "long_only": 52,
+            "decision_book_unusable": 29
+          }
+        },
+        "L1000_Q10": {
+          "L_ms": 1000,
+          "budget_usdt": 10,
+          "n_entries": 0,
+          "n_closed": 0,
+          "n_open_unknown": 0,
+          "n_unknown_entries": 0,
+          "cash_usdt": 100.0,
+          "realized_pnl_usdt": 0.0,
+          "available_cash_usdt": 100.0,
+          "fees_paid_usdt": 0.0,
+          "open_position": null,
+          "equity_usdt": 100.0,
+          "rejections": {
+            "premium_unavailable": 5,
+            "long_only": 52,
+            "decision_book_unusable": 29
+          }
+        },
+        "L1000_Q25": {
+          "L_ms": 1000,
+          "budget_usdt": 25,
+          "n_entries": 0,
+          "n_closed": 0,
+          "n_open_unknown": 0,
+          "n_unknown_entries": 0,
+          "cash_usdt": 100.0,
+          "realized_pnl_usdt": 0.0,
+          "available_cash_usdt": 100.0,
+          "fees_paid_usdt": 0.0,
+          "open_position": null,
+          "equity_usdt": 100.0,
+          "rejections": {
+            "premium_unavailable": 5,
+            "long_only": 52,
+            "decision_book_unusable": 29
+          }
+        },
+        "L1000_Q50": {
+          "L_ms": 1000,
+          "budget_usdt": 50,
+          "n_entries": 0,
+          "n_closed": 0,
+          "n_open_unknown": 0,
+          "n_unknown_entries": 0,
+          "cash_usdt": 100.0,
+          "realized_pnl_usdt": 0.0,
+          "available_cash_usdt": 100.0,
+          "fees_paid_usdt": 0.0,
+          "open_position": null,
+          "equity_usdt": 100.0,
+          "rejections": {
+            "premium_unavailable": 5,
+            "long_only": 52,
+            "decision_book_unusable": 29
+          }
+        },
+        "L2000_Q10": {
+          "L_ms": 2000,
+          "budget_usdt": 10,
+          "n_entries": 0,
+          "n_closed": 0,
+          "n_open_unknown": 0,
+          "n_unknown_entries": 0,
+          "cash_usdt": 100.0,
+          "realized_pnl_usdt": 0.0,
+          "available_cash_usdt": 100.0,
+          "fees_paid_usdt": 0.0,
+          "open_position": null,
+          "equity_usdt": 100.0,
+          "rejections": {
+            "premium_unavailable": 5,
+            "long_only": 52,
+            "decision_book_unusable": 29
+          }
+        },
+        "L2000_Q25": {
+          "L_ms": 2000,
+          "budget_usdt": 25,
+          "n_entries": 0,
+          "n_closed": 0,
+          "n_open_unknown": 0,
+          "n_unknown_entries": 0,
+          "cash_usdt": 100.0,
+          "realized_pnl_usdt": 0.0,
+          "available_cash_usdt": 100.0,
+          "fees_paid_usdt": 0.0,
+          "open_position": null,
+          "equity_usdt": 100.0,
+          "rejections": {
+            "premium_unavailable": 5,
+            "long_only": 52,
+            "decision_book_unusable": 29
+          }
+        },
+        "L2000_Q50": {
+          "L_ms": 2000,
+          "budget_usdt": 50,
+          "n_entries": 0,
+          "n_closed": 0,
+          "n_open_unknown": 0,
+          "n_unknown_entries": 0,
+          "cash_usdt": 100.0,
+          "realized_pnl_usdt": 0.0,
+          "available_cash_usdt": 100.0,
+          "fees_paid_usdt": 0.0,
+          "open_position": null,
+          "equity_usdt": 100.0,
+          "rejections": {
+            "premium_unavailable": 5,
+            "long_only": 52,
+            "decision_book_unusable": 29
+          }
+        }
+      },
+      "funnel": {
+        "sources_stale": 6,
+        "external_history_missing": 10349,
+        "weak_move": 228406,
+        "disagree": 0,
+        "oracle_dispersion": 0,
+        "cooldown_skipped": 1283711,
+        "signal": 86
+      }
     }
-   }
+  },
+  "account_rule": "Each hypothesis/delay/budget starts its own account; scenario PnLs must not be summed",
+  "execution_book": {
+    "n_snapshots": 206,
+    "n_observation_only": 206
   }
- },
- "restrictions": [
-  "ВИРТУАЛЬНАЯ ТОРГОВЛЯ; taker/taker по стакану SafeTrade; реальных ордеров нет; результаты не рекомендации"
- ],
- "note": "разделение сработало как один период (данные короткие) — dev/validation/holdout разделяется при накоплении данных"
 }

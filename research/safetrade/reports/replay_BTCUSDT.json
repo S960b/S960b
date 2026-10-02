@@ -1,0 +1,48 @@
+{
+ "symbol": "BTCUSDT",
+ "exchanges": {
+  "binance": {
+   "events": 1426117,
+   "snapshots": 63067,
+   "deltas": 0,
+   "primary_observations": 1363050,
+   "valid_observations": 1363050,
+   "final_valid": true,
+   "mid": 85156.005
+  },
+  "bybit": {
+   "events": 359126,
+   "snapshots": 1,
+   "deltas": 239619,
+   "primary_observations": 119506,
+   "valid_observations": 119506,
+   "final_valid": true,
+   "mid": 85149.35
+  },
+  "okx": {
+   "events": 92387,
+   "snapshots": 52385,
+   "deltas": 0,
+   "primary_observations": 40002,
+   "valid_observations": 40002,
+   "final_valid": true,
+   "mid": 85151.55
+  },
+  "safetrade": {
+   "events": 4857,
+   "snapshots": 206,
+   "deltas": 4651,
+   "primary_observations": 206,
+   "valid_observations": 206,
+   "final_valid": true,
+   "mid": 85241.65,
+   "execution_ready": false,
+   "unsynchronized_deltas_excluded": 4651
+  }
+ },
+ "ok": true,
+ "execution_ready": false,
+ "run_id": "st_059dff501f0b",
+ "n_events": 1882487,
+ "config_hash": "1c6a693775bd459962bde9aabd77e1ff58bb04928b1d9624fd0c77809aebdc5b"
+}

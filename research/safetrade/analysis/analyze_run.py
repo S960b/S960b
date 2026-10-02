@@ -2,7 +2,9 @@
 import csv
 import hashlib
 import json
+import math
 import os
+import shutil
 import subprocess
 from dataclasses import asdict
 from datetime import datetime, timezone
@@ -140,13 +142,24 @@ def run_full_analysis(cfg, base_dir, df_all, symbol, args=None):
     report['signals_meta'] = {'n_signals': len(signals), 'n_evaluated': len(results)}
     report['funnel'] = funnel
     report['premium']['side_ratios'] = _side_ratio_stats(df, cfg, r)
+    # CSV диагностики сигналов (ревью P0.2): свежесть baseline и будущее покрытие отдельно
+    safe_series = series.get(cfg['target'])
+    n_csv = _signal_diag_csv(signals, sim, r, safe_series, cfg, horizons,
+                             os.path.join(base_dir, 'reports', f"signals_{symbol}_{report['run_id']}.csv"))
+    if n_csv:
+        shutil.copyfile(os.path.join(base_dir, 'reports', f"signals_{symbol}_{report['run_id']}.csv"),
+                        os.path.join(base_dir, 'reports', f'signals_{symbol}.csv'))
+    report['signals_csv'] = {'n_rows': n_csv, 'path': f'reports/signals_{symbol}.csv'}
     report['result'] = 'research_only' if safe is not None and report['oracle']['n_R_points'] else 'insufficient_data'
     _write_report(report, os.path.join(base_dir, 'reports'), f'analysis_{symbol}.json')
-    print(f"analysis: run={report['run_id']} signals={len(signals)} premium_points={len(pt)}")
+    print(f"analysis: run={report['run_id']} signals={len(signals)} premium_points={len(pt)} "
+          f"signals_csv={n_csv}")
     return report
 
 
 def _side_ratio_stats(df, cfg, r):
+    """Распределение bid/R, ask/R, mid/R и спреда ОДНОГО снимка (ревью: медианы скрывают
+    редкие отклонения — нужны min/p10/p50/p90 и доля ask<R)."""
     if r is None:
         return {'n': 0}
     rows = []
@@ -158,10 +171,83 @@ def _side_ratio_stats(df, cfg, r):
             book.apply(ev)
         except (ValueError, ArithmeticError):
             continue
-        if R is not None and book.mid() is not None:
-            rows.append((float(book.best_bid())/float(R), float(book.best_ask())/float(R), float(book.mid())/float(R)))
-    return {'n': len(rows), **({k: float(np.median([v[i] for v in rows]))
-            for i, k in enumerate(['bid_R_median', 'ask_R_median', 'mid_R_median'])} if rows else {})}
+        bid, ask, mid = book.best_bid(), book.best_ask(), book.mid()
+        if R is None or mid is None or bid is None or ask is None or float(R) <= 0:
+            continue
+        rows.append((float(bid)/float(R), float(ask)/float(R), float(mid)/float(R),
+                     (float(ask)-float(bid))/float(mid)))
+    if not rows:
+        return {'n': 0}
+    stats = {'n': len(rows)}
+    for i, k in enumerate(['bid_R', 'ask_R', 'mid_R', 'spread_mid']):
+        v = np.array([x[i] for x in rows], dtype=float)
+        stats[k + '_min'] = float(v.min())
+        stats[k + '_p10'] = float(np.percentile(v, 10))
+        stats[k + '_p50'] = float(np.percentile(v, 50))
+        stats[k + '_p90'] = float(np.percentile(v, 90))
+    ask = np.array([x[1] for x in rows])
+    stats['ask_below_R_count'] = int((ask < 1.0).sum())
+    stats['ask_below_R_pct'] = round(float((ask < 1.0).mean()) * 100, 2)
+    return stats
+
+
+def _signal_diag_csv(signals, sim, r, safe_series, cfg, horizons, out_path):
+    """CSV диагностики каждого сигнала (ревью P0.2): t0 UTC, направление, W,
+    delta_R_bps (фактический), фактический порог, R0/F0, возраст предыдущего
+    пригодного снимка SafeTrade, время следующего, число будущих снимков на H,
+    отдельные статусы baseline и будущего покрытия."""
+    import csv as _csv
+    import bisect as _bisect
+    if not signals:
+        return 0
+    columns = oracle_columns(r)
+    fields = ['t0_utc', 'direction', 'W_s', 'delta_R_bps', 'threshold_bps', 'R0', 'F0',
+              'prev_snap_utc', 'prev_snap_age_s', 'prev_snap_usable',
+              'next_snap_utc'] + \
+             [f'n_future_{int(h)}s' for h in horizons] + ['baseline_status']
+    safe_times = safe_series.mono_ns.to_numpy(dtype=np.int64) if safe_series is not None else np.array([])
+    safe_utc = safe_series.utc_ns.to_numpy(dtype=np.int64) if safe_series is not None and 'utc_ns' in safe_series else None
+    safe_mid = safe_series.mid.to_numpy(dtype=float) if safe_series is not None else np.array([])
+    age_max = cfg['fitness']['max_bbo_age_s']
+    n = 0
+    os.makedirs(os.path.dirname(out_path) or '.', exist_ok=True)
+    with open(out_path + '.tmp', 'w', newline='', encoding='utf-8') as f:
+        w = _csv.DictWriter(f, fieldnames=fields)
+        w.writeheader()
+        for sig in sorted(signals, key=lambda s: s.t0_ns):
+            t0 = int(sig.t0_ns)
+            # фактическое движение R за W (то же, что считал detect_signals)
+            before = oracle_asof(r, t0 - int(sig.W_s * 1e9), age_max, columns)
+            d_bps = (math.log(sig.R0 / float(before)) * 1e4) if before is not None else None
+            # предыдущий пригодный снимок SafeTrade
+            k = _bisect.bisect_right(safe_times, t0) - 1
+            prev_utc = prev_age = None
+            prev_usable = False
+            if k >= 0:
+                prev_age = (t0 - int(safe_times[k])) / 1e9
+                prev_utc = _utc(int(safe_utc[k])) if safe_utc is not None and k < len(safe_utc) else None
+                prev_usable = prev_age <= age_max and np.isfinite(safe_mid[k])
+            next_utc = None
+            if k + 1 < len(safe_times):
+                next_utc = _utc(int(safe_utc[k + 1])) if safe_utc is not None else None
+            row = {'t0_utc': _utc(int(sig.signal_utc_ns)) if sig.signal_utc_ns else _utc(t0),
+                   'direction': sig.direction, 'W_s': sig.W_s,
+                   'delta_R_bps': round(d_bps, 3) if d_bps is not None else '',
+                   'threshold_bps': round(sig.threshold * 1e4, 3),
+                   'R0': sig.R0, 'F0': sig.F0,
+                   'prev_snap_utc': prev_utc, 'prev_snap_age_s': round(prev_age, 1) if prev_age is not None else '',
+                   'prev_snap_usable': prev_usable,
+                   'next_snap_utc': next_utc,
+                   'baseline_status': 'fresh' if prev_usable else 'stale_or_missing'}
+            for h in horizons:
+                lim = t0 + int(h * 1e9)
+                cnt = int(((safe_times > t0) & (safe_times <= lim) &
+                           np.isfinite(safe_mid)).sum())
+                row[f'n_future_{int(h)}s'] = cnt
+            w.writerow(row)
+            n += 1
+    os.replace(out_path + '.tmp', out_path)
+    return n
 
 
 def run_paper(cfg, base_dir, df_all, symbol, args=None):

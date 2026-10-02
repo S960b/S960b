@@ -132,7 +132,8 @@ class PaperSimulator:
         return math.log(float(b)/float(a))
 
     def detect_signals(self, mid_series_by_ex, t0_ns, t1_ns, W_s, D_s):
-        funnel = Counter({k: 0 for k in ('no_3of3', 'no_source_data', 'weak_move', 'disagree', 'spread', 'signal')})
+        funnel = Counter({k: 0 for k in ('sources_stale', 'external_history_missing', 'weak_move',
+                                         'disagree', 'oracle_dispersion', 'cooldown_skipped', 'signal')})
         ext = {k: v for k, v in mid_series_by_ex.items() if k in self.sources}
         self._ext = ext
         if len(ext) != 3:
@@ -145,15 +146,18 @@ class PaperSimulator:
         signals, cooldown = [], 0
         last_t = None
         for j, t in enumerate(tr):
-            if t < t0_ns or t > t1_ns or t < cooldown or (j+1 < len(tr) and tr[j+1] == t):
+            if t < t0_ns or t > t1_ns or (j+1 < len(tr) and tr[j+1] == t):
+                continue
+            if t < cooldown:
+                funnel['cooldown_skipped'] += 1
                 continue
             last_t = t
             values = [self._source_mid(s, t) for s in ext.values()]
             if any(v is None for v in values) or not math.isfinite(rv[j]):
-                funnel['no_3of3'] += 1; continue
+                funnel['sources_stale'] += 1; continue
             before = oracle_asof(rs, int(t-W_s*1e9), self.cfg['fitness']['max_bbo_age_s'], self._r_columns)
             if before is None:
-                funnel['no_source_data'] += 1; continue
+                funnel['external_history_missing'] += 1; continue
             d = math.log(rv[j]/float(before))
             thr = self._past_noise_threshold(rs, 0, j, W_s)
             if abs(d) < thr:
@@ -161,9 +165,9 @@ class PaperSimulator:
             direction = 'up' if d > 0 else 'down'
             agrees, opposes, per = self._confirm(ext, t, W_s*1e9, direction, thr)
             if agrees < self.paper_cfg['confirm_min_sources'] or opposes:
-                funnel['no_source_data' if any(x[1]=='no_data' for x in per) else 'disagree'] += 1; continue
+                funnel['external_history_missing' if any(x[1]=='no_data' for x in per) else 'disagree'] += 1; continue
             if not self._spread_ok(ext, t):
-                funnel['spread'] += 1; continue
+                funnel['oracle_dispersion'] += 1; continue
             b, _ = self._premium_asof(t)
             # UTC comes from the timestamp of a received event, never from monotonic.
             utc = None
