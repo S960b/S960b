@@ -109,6 +109,7 @@ def cmd_index(args):
 
 def _max_utc_ns(parquet_dir):
     """Быстрый максимум recv_utc_ns по всем parquet (сканируется одна колонка)."""
+    import pyarrow.compute as pc
     import pyarrow.dataset as ds
     files = []
     for root, _, fs in os.walk(parquet_dir):
@@ -119,7 +120,8 @@ def _max_utc_ns(parquet_dir):
         return None
     try:
         d = ds.dataset(files, format="parquet")
-        return int(d.to_table(columns=["recv_utc_ns"]).column("recv_utc_ns").max())
+        col = d.to_table(columns=["recv_utc_ns"]).column("recv_utc_ns")
+        return int(pc.max(col).as_py())
     except Exception:
         return None
 
@@ -146,7 +148,7 @@ def _load_window(args, cfg, symbol):
                           t_min_ns=t_min, t_max_ns=t_max)
     window_start_ns = t_max - w * 60 * 1e9
     print(f"window: последние {w} мин → {len(df)} событий "
-          f"(загружено {w + warmup} мин с разогревом {warmup} мин)")
+          f"(загружено {w + warmup/60:.0f} мин: окно {w} + разогрев премии {warmup/60:.0f})")
     return df, int(window_start_ns)
 
 
