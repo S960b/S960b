@@ -9,6 +9,7 @@ import os
 import sys
 import time
 
+import numpy as np
 import yaml
 
 BASE = os.path.dirname(os.path.abspath(__file__))
@@ -107,8 +108,9 @@ def cmd_index(args):
               f"start={r['start_utc_ns']/1e9:.0f} end={r['end_utc_ns']/1e9:.0f}")
 
 
-def _max_utc_ns(parquet_dir):
-    """Быстрый максимум recv_utc_ns по всем parquet (сканируется одна колонка)."""
+def _max_utc_ns(parquet_dir, run_id=None, symbol=None):
+    """Быстрый максимум recv_utc_ns: по ВЫБРАННОМУ run/символу (не по всем файлам).
+    Возвращает (t_max_ns, n_files) или (None, 0) при отсутствии данных."""
     import pyarrow.compute as pc
     import pyarrow.dataset as ds
     files = []
@@ -117,38 +119,82 @@ def _max_utc_ns(parquet_dir):
             if f.endswith(".parquet") and not f.startswith("."):
                 files.append(os.path.join(root, f))
     if not files:
-        return None
+        return None, 0
+    if run_id:
+        files = [f for f in files if f"_{run_id}_" in os.path.basename(f)]
+    if not files:
+        return None, 0
     try:
         d = ds.dataset(files, format="parquet")
-        col = d.to_table(columns=["recv_utc_ns"]).column("recv_utc_ns")
-        return int(pc.max(col).as_py())
+        filt = None
+        if symbol:
+            filt = (ds.field("canonical_symbol") == symbol)
+        col = d.to_table(columns=["recv_utc_ns"], filter=filt).column("recv_utc_ns")
+        if col.num_chunks == 0 or col.length() == 0:
+            return None, len(files)
+        return int(pc.max(col).as_py()), len(files)
     except Exception:
-        return None
+        return None, len(files)
+
+
+def _utc_to_mono(series_by_ex, utc_ns):
+    """UTC (recv_utc_ns) → monotonic (recv_monotonic_ns) через интерполяцию по внешним сериям."""
+    for s in series_by_ex.values():
+        if 'utc_ns' not in s or s.empty:
+            continue
+        u = s.utc_ns.to_numpy(dtype=np.int64)
+        m = s.mono_ns.to_numpy(dtype=np.int64)
+        k = np.searchsorted(u, int(utc_ns), side='right') - 1
+        if k < 0:
+            return int(m[0])
+        if k + 1 >= len(u):
+            return int(m[-1])
+        # линейная интерполяция monotonic по utc между соседними наблюдениями
+        span = u[k + 1] - u[k]
+        if span <= 0:
+            return int(m[k])
+        frac = (int(utc_ns) - u[k]) / span
+        return int(m[k] + frac * (m[k + 1] - m[k]))
+    return None
 
 
 def _load_window(args, cfg, symbol):
     """Загрузка parquet последнего run с опциональным окном (--window-min).
 
     Ревью P1: фильтр времени (recv_utc_ns) действует в СКАНЕРЕ ДО материализации —
-    загружаются только последние (window_min + warmup) минут, а не весь run.
+    загружаются только последние (window_min + warmup) минут выбранного run, а не
+    весь run. --run-id и --window-min работают ВМЕСТЕ (ревью next_steps P0).
     Возвращает (df, window_start_ns_utc | None)."""
     from analysis import load_parquet_all
     parquet_dir = os.path.join(args.data_root or BASE, cfg["storage"]["parquet_dir"])
+    reports_dir = os.path.join(args.data_root or BASE, cfg["storage"].get("reports_dir", "reports"))
     run_id = getattr(args, "run_id", None)
     max_runs = getattr(args, "runs", None) or 1
     w = getattr(args, "window_min", None)
-    if run_id or not w:
-        df = load_parquet_all(parquet_dir, symbol=symbol, run_id=run_id, max_runs=max_runs)
+    index_path = reports_dir if os.path.exists(os.path.join(reports_dir, "parquet_index.json")) else None
+
+    if not w:
+        df = load_parquet_all(parquet_dir, symbol=symbol, run_id=run_id, max_runs=max_runs,
+                              index_path=index_path)
         return df, None
-    # окно: загружаем window + разогрев (премия 30 мин + запас на W/MAD)
-    t_max = _max_utc_ns(parquet_dir)
+    # окно: границы считаем В РАМКАХ выбранного run и символа
+    t_max, n_files = _max_utc_ns(parquet_dir, run_id=run_id, symbol=symbol)
+    if t_max is None:
+        raise RuntimeError(f"Нет данных parquet для run_id={run_id or 'latest'} symbol={symbol}: "
+                           f"выполните `cli.py index` и проверьте каталог {parquet_dir}")
     warmup = cfg["oracle"]["window_min"] * 60
-    t_min = t_max - (w * 60 + warmup) * 1e9
-    df = load_parquet_all(parquet_dir, symbol=symbol, max_runs=1,
-                          t_min_ns=t_min, t_max_ns=t_max)
+    # разогрев: премия + максимум W/MAD/cooldown из paper-конфига (ревью next_steps)
+    paper_cfg = cfg.get("paper", {})
+    warmup_w = max([h.get("W_s", 5) for h in paper_cfg.get("hypotheses", {}).values()] + [5])
+    max_h = max([h.get("H_s", 60) for h in paper_cfg.get("hypotheses", {}).values()] + [60])
+    warmup_extra = max(int(20 * warmup_w), int(paper_cfg.get("cooldown_s", 60)), int(max_h))
+    warmup_total = warmup + warmup_extra
+    t_min = t_max - (w * 60 + warmup_total) * 1e9
+    df = load_parquet_all(parquet_dir, symbol=symbol, run_id=run_id, max_runs=max_runs,
+                          t_min_ns=t_min, t_max_ns=t_max, index_path=index_path)
     window_start_ns = t_max - w * 60 * 1e9
     print(f"window: последние {w} мин → {len(df)} событий "
-          f"(загружено {w + warmup/60:.0f} мин: окно {w} + разогрев премии {warmup/60:.0f})")
+          f"(загружено {w + warmup_total/60:.0f} мин: окно {w} + разогрев {warmup_total/60:.0f}; files={n_files})")
     return df, int(window_start_ns)
 
 

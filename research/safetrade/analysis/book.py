@@ -40,8 +40,8 @@ def load_parquet_all(parquet_dir: str, exchange=None, symbol=None, event_types=N
                      index_path=None) -> pd.DataFrame:
     """Загрузить закрытые parquet-файлы (replay, ТЗ п.5/10).
     Ревью: выбор run/session — по умолчанию ТОЛЬКО последний run (monotonic-часы разных
-    загрузок несравнимы). Если задан index_path (reports/parquet_index.json), последний
-    run выбирается ПО ДАННЫМ (start_utc_ns), а не по времени записи имени файла (ревью P1.4).
+    загрузок несравнимы). index_path — каталог с reports/parquet_index.json; выбор
+    последнего run ПО ДАННЫМ (start_utc_ns), а не по времени записи имени (ревью P1.4).
     Чтение через pyarrow.dataset (duckdb виснет на тысячах мелких файлов + union_by_name).
     t_min_ns/t_max_ns — фильтр времени в СКАНЕРЕ (по recv_utc_ns), до материализации
     в pandas: защита от OOM для длинных сессий (ревью P1)."""
@@ -65,10 +65,12 @@ def load_parquet_all(parquet_dir: str, exchange=None, symbol=None, event_types=N
         rid = _latest_run_from_index(index_path) if index_path else None
         if rid:
             files = [f for f in files if f"_{rid}_" in os.path.basename(f)]
+            if not files:
+                return pd.DataFrame()
         else:
             files = _files_for_latest_run(files, max_runs=1)
-        if not files:
-            return pd.DataFrame()
+            if not files:
+                return pd.DataFrame()
     dataset = ds.dataset(files, format="parquet")
     # выбор последней сессии (run_id/boot_id) по данным
     tbl = dataset.to_table(columns=["run_id", "boot_id", "recv_utc_ns"])

@@ -32,6 +32,26 @@ def mono_to_utc(mid_by_ex, t_mono):
     return None
 
 
+def utc_to_mono(mid_by_ex, t_utc_ns):
+    """UTC → monotonic через интерполяцию по сериям (для scoring_period окна)."""
+    for s in mid_by_ex.values():
+        if s is None or s.empty or 'utc_ns' not in s:
+            continue
+        u = s.utc_ns.to_numpy(dtype=np.int64)
+        m = s.mono_ns.to_numpy(dtype=np.int64)
+        k = np.searchsorted(u, int(t_utc_ns), side='right') - 1
+        if k < 0:
+            return int(m[0])
+        if k + 1 >= len(u):
+            return int(m[-1])
+        span = u[k + 1] - u[k]
+        if span <= 0:
+            return int(m[k])
+        frac = (int(t_utc_ns) - u[k]) / span
+        return int(m[k] + frac * (m[k + 1] - m[k]))
+    return None
+
+
 def _context(cfg, base_dir, df, symbol, kind):
     from simulator.paper import PaperSimulator
     df = df[df.canonical_symbol == symbol].copy()
@@ -129,7 +149,20 @@ def run_full_analysis(cfg, base_dir, df_all, symbol, args=None):
     report['lead_lag_W5'] = lead_lag({ex: s for ex, s in series.items() if ex in cfg['sources']}, safe,
                                     5, 30, 1, cfg['fitness']['max_bbo_age_s']) if safe is not None else {}
     start, end = int(df.recv_monotonic_ns.min()), int(df.recv_monotonic_ns.max())
-    signals, funnel = sim.detect_signals(series, start, end, W_s=5, D_s=0)
+    # scoring_period (ревью next_steps): если задано окно, сигналы считаются ТОЛЬКО в окне,
+    # разогрев идёт на состояние/премию/MAD, но его сигналы в отчёт не входят
+    loaded_start_utc = _utc(df.recv_utc_ns.min())
+    loaded_end_utc = _utc(df.recv_utc_ns.max())
+    scoring_start_mono = None
+    if args is not None and getattr(args, 'window_start_ns', None):
+        scoring_start_mono = utc_to_mono(series, args.window_start_ns)
+        scoring_start_mono = max(start, scoring_start_mono or start)
+        report['scoring_period'] = {'start_utc': _utc(args.window_start_ns), 'end_utc': loaded_end_utc,
+                                    'warmup_start_utc': loaded_start_utc,
+                                    'note': 'Signals are scored only inside the window; warmup feeds state/premium/MAD'}
+    signals, funnel = sim.detect_signals(series,
+                                         scoring_start_mono if scoring_start_mono is not None else start,
+                                         end, W_s=5, D_s=0)
     horizons = cfg['reach']['horizons_s']
     if args is not None and getattr(args, 'horizons', None):
         horizons = [float(x) for x in args.horizons.split(',')]
@@ -142,9 +175,9 @@ def run_full_analysis(cfg, base_dir, df_all, symbol, args=None):
     report['signals_meta'] = {'n_signals': len(signals), 'n_evaluated': len(results)}
     report['funnel'] = funnel
     report['premium']['side_ratios'] = _side_ratio_stats(df, cfg, r)
-    # CSV диагностики сигналов (ревью P0.2): свежесть baseline и будущее покрытие отдельно
-    safe_series = series.get(cfg['target'])
-    n_csv = _signal_diag_csv(signals, sim, r, safe_series, cfg, horizons,
+    # CSV диагностики сигналов (ревью P0.2/next_steps): свежесть baseline и будущее покрытие отдельно
+    df_safe = df[df.exchange == cfg['target']]
+    n_csv = _signal_diag_csv(signals, sim, r, df_safe, cfg, horizons,
                              os.path.join(base_dir, 'reports', f"signals_{symbol}_{report['run_id']}.csv"))
     if n_csv:
         shutil.copyfile(os.path.join(base_dir, 'reports', f"signals_{symbol}_{report['run_id']}.csv"),
@@ -191,24 +224,49 @@ def _side_ratio_stats(df, cfg, r):
     return stats
 
 
-def _signal_diag_csv(signals, sim, r, safe_series, cfg, horizons, out_path):
-    """CSV диагностики каждого сигнала (ревью P0.2): t0 UTC, направление, W,
-    delta_R_bps (фактический), фактический порог, R0/F0, возраст предыдущего
-    пригодного снимка SafeTrade, время следующего, число будущих снимков на H,
-    отдельные статусы baseline и будущего покрытия."""
+def _signal_diag_csv(signals, sim, r, df_safe, cfg, horizons, out_path):
+    """CSV диагностики каждого сигнала (ревью next_steps P0): последний снимок SafeTrade
+    ДО/В момент t0 (никогда следующий), bid/ask/mid, отношения к R и F0, VWAP по
+    бюджетам 10/25/50, раздельные статусы внешнего R и baseline SafeTrade.
+    Отношения из stale-котировки помечаются статусом и не входят в статистику пригодных."""
     import csv as _csv
     import bisect as _bisect
     if not signals:
         return 0
-    columns = oracle_columns(r)
-    fields = ['t0_utc', 'direction', 'W_s', 'delta_R_bps', 'threshold_bps', 'R0', 'F0',
-              'prev_snap_utc', 'prev_snap_age_s', 'prev_snap_usable',
-              'next_snap_utc'] + \
-             [f'n_future_{int(h)}s' for h in horizons] + ['baseline_status']
-    safe_times = safe_series.mono_ns.to_numpy(dtype=np.int64) if safe_series is not None else np.array([])
-    safe_utc = safe_series.utc_ns.to_numpy(dtype=np.int64) if safe_series is not None and 'utc_ns' in safe_series else None
-    safe_mid = safe_series.mid.to_numpy(dtype=float) if safe_series is not None else np.array([])
-    age_max = cfg['fitness']['max_bbo_age_s']
+    columns = oracle_columns(r) if r is not None else None
+    budgets = cfg['paper']['sizes_usdt']
+    # снапшоты SafeTrade: (mono, utc, ev) — только book_snapshot с реальным стаканом
+    snaps = []
+    if df_safe is not None and not df_safe.empty:
+        sub = df_safe[df_safe.event_type == 'book_snapshot']
+        for _, ev in sub.iterrows():
+            try:
+                ob = OrderBook(); ob.apply(ev.to_dict())
+            except (ValueError, ArithmeticError):
+                continue
+            if ob.best_bid() is None or ob.best_ask() is None:
+                continue
+            snaps.append((int(ev['recv_monotonic_ns']), int(ev['recv_utc_ns']), ob))
+    snaps.sort(key=lambda x: x[0])
+    snap_times = [s[0] for s in snaps]
+
+    fields = ['run_id', 'boot_id', 'canonical_symbol', 't0_mono_ns', 't0_utc',
+              'direction', 'W_s', 'delta_R_bps', 'threshold_bps', 'R0', 'F0',
+              'external_R_usable', 'external_max_age_s',
+              'safe_quote_utc', 'safe_quote_age_s', 'safe_max_age_s',
+              'safe_baseline_usable', 'safe_quote_status',
+              'bid', 'ask', 'mid', 'spread_bps',
+              'bid_R_ratio', 'ask_R_ratio', 'bid_F0_ratio', 'ask_F0_ratio',
+              'premium_available', 'next_snap_utc'] + \
+             [f'n_future_{int(h)}s' for h in horizons] + \
+             [f'ask_vwap_{b}_filled' for b in budgets] + \
+             [f'ask_vwap_{b}_status' for b in budgets] + \
+             [f'bid_vwap_{b}_filled' for b in budgets] + \
+             [f'bid_vwap_{b}_status' for b in budgets]
+    ext_age = cfg['fitness']['max_bbo_age_s']
+    safe_age = cfg['fitness']['max_book_age_s']
+    run_id = str(df_safe.run_id.iloc[0]) if df_safe is not None and not df_safe.empty else None
+    boot_id = str(df_safe.boot_id.iloc[0]) if df_safe is not None and not df_safe.empty else None
     n = 0
     os.makedirs(os.path.dirname(out_path) or '.', exist_ok=True)
     with open(out_path + '.tmp', 'w', newline='', encoding='utf-8') as f:
@@ -216,34 +274,53 @@ def _signal_diag_csv(signals, sim, r, safe_series, cfg, horizons, out_path):
         w.writeheader()
         for sig in sorted(signals, key=lambda s: s.t0_ns):
             t0 = int(sig.t0_ns)
-            # фактическое движение R за W (то же, что считал detect_signals)
-            before = oracle_asof(r, t0 - int(sig.W_s * 1e9), age_max, columns)
-            d_bps = (math.log(sig.R0 / float(before)) * 1e4) if before is not None else None
-            # предыдущий пригодный снимок SafeTrade
-            k = _bisect.bisect_right(safe_times, t0) - 1
-            prev_utc = prev_age = None
-            prev_usable = False
-            if k >= 0:
-                prev_age = (t0 - int(safe_times[k])) / 1e9
-                prev_utc = _utc(int(safe_utc[k])) if safe_utc is not None and k < len(safe_utc) else None
-                prev_usable = prev_age <= age_max and np.isfinite(safe_mid[k])
-            next_utc = None
-            if k + 1 < len(safe_times):
-                next_utc = _utc(int(safe_utc[k + 1])) if safe_utc is not None else None
-            row = {'t0_utc': _utc(int(sig.signal_utc_ns)) if sig.signal_utc_ns else _utc(t0),
+            row = {'run_id': run_id, 'boot_id': boot_id,
+                   'canonical_symbol': (getattr(sim, 'symbols', None) or [None])[0],
+                   't0_mono_ns': t0,
+                   't0_utc': _utc(int(sig.signal_utc_ns)) if sig.signal_utc_ns else _utc(t0),
                    'direction': sig.direction, 'W_s': sig.W_s,
-                   'delta_R_bps': round(d_bps, 3) if d_bps is not None else '',
-                   'threshold_bps': round(sig.threshold * 1e4, 3),
                    'R0': sig.R0, 'F0': sig.F0,
-                   'prev_snap_utc': prev_utc, 'prev_snap_age_s': round(prev_age, 1) if prev_age is not None else '',
-                   'prev_snap_usable': prev_usable,
-                   'next_snap_utc': next_utc,
-                   'baseline_status': 'fresh' if prev_usable else 'stale_or_missing'}
+                   'external_max_age_s': ext_age, 'safe_max_age_s': safe_age}
+            before = oracle_asof(r, t0 - int(sig.W_s * 1e9), ext_age, columns) if columns else None
+            row['delta_R_bps'] = round(math.log(sig.R0 / float(before)) * 1e4, 3) if before else ''
+            row['threshold_bps'] = round(sig.threshold * 1e4, 3)
+            # внешний R доступен в t0 (не старше max_bbo_age_s)
+            r_now = oracle_asof(r, t0, ext_age, columns) if columns else None
+            row['external_R_usable'] = r_now is not None
+            row['premium_available'] = sig.b is not None and sig.F0 is not None
+            # последний снимок SafeTrade ДО/В t0
+            k = _bisect.bisect_right(snap_times, t0) - 1
+            if k < 0:
+                row.update({'safe_quote_status': 'no_quote', 'safe_baseline_usable': False,
+                            'next_snap_utc': _utc(snaps[0][1]) if snaps else None})
+            else:
+                smono, sutc, ob = snaps[k]
+                age = (t0 - smono) / 1e9
+                bid, ask, mid = ob.best_bid(), ob.best_ask(), ob.mid()
+                row.update({'safe_quote_utc': _utc(sutc), 'safe_quote_age_s': round(age, 1),
+                            'bid': float(bid), 'ask': float(ask), 'mid': float(mid),
+                            'spread_bps': round((float(ask) - float(bid)) / float(mid) * 1e4, 2),
+                            'bid_R_ratio': round(float(bid) / float(sig.R0), 6),
+                            'ask_R_ratio': round(float(ask) / float(sig.R0), 6),
+                            'bid_F0_ratio': round(float(bid) / float(sig.F0), 6) if sig.F0 else '',
+                            'ask_F0_ratio': round(float(ask) / float(sig.F0), 6) if sig.F0 else '',
+                            'safe_baseline_usable': age <= safe_age and bid is not None and ask is not None,
+                            'safe_quote_status': 'fresh' if age <= safe_age else 'stale'})
+                # VWAP по бюджетам (полная глубина; filled < budget => insufficient)
+                for b in budgets:
+                    qty = Decimal(str(b)) / Decimal(str(mid))
+                    ap, af = ob.vwap('ask', qty)
+                    bp, bf = ob.vwap('bid', qty)
+                    row[f'ask_vwap_{b}_filled'] = str(af)
+                    row[f'ask_vwap_{b}_status'] = 'ok' if af >= qty else 'insufficient_depth'
+                    row[f'bid_vwap_{b}_filled'] = str(bf)
+                    row[f'bid_vwap_{b}_status'] = 'ok' if bf >= qty else 'insufficient_depth'
+                if k + 1 < len(snaps):
+                    row['next_snap_utc'] = _utc(snaps[k + 1][1])
+            # будущие наблюдения на горизонтах (число снапшотов SafeTrade)
             for h in horizons:
                 lim = t0 + int(h * 1e9)
-                cnt = int(((safe_times > t0) & (safe_times <= lim) &
-                           np.isfinite(safe_mid)).sum())
-                row[f'n_future_{int(h)}s'] = cnt
+                row[f'n_future_{int(h)}s'] = sum(1 for t in snap_times if t0 < t <= lim)
             w.writerow(row)
             n += 1
     os.replace(out_path + '.tmp', out_path)
@@ -257,12 +334,20 @@ def run_paper(cfg, base_dir, df_all, symbol, args=None):
     replay = OrderBookReplay(target.to_dict('records'), cfg['fitness']['max_book_age_s'])
     replay.record_end_ns = int(df.recv_monotonic_ns.max())
     start, end = int(df.recv_monotonic_ns.min()), int(df.recv_monotonic_ns.max())
+    scoring_start_mono = None
+    if args is not None and getattr(args, 'window_start_ns', None):
+        scoring_start_mono = utc_to_mono(series, args.window_start_ns)
+        scoring_start_mono = max(start, scoring_start_mono or start)
+        report['scoring_period'] = {'start_utc': _utc(args.window_start_ns),
+                                    'end_utc': _utc(df.recv_utc_ns.max()),
+                                    'note': 'Paper entries only from signals inside the window; warmup feeds state'}
     report['initial_balance_usdt'] = cfg['paper']['initial_balance_usdt']
     report['fees_taker_bps'] = cfg['fees']['safetrade']['taker_bps']
     report['hypotheses'] = {}
     all_trades = []
     for name, hp in cfg['paper']['hypotheses'].items():
-        signals, funnel = sim.detect_signals(series, start, end, hp['W_s'], hp['D_s'])
+        sig_start = scoring_start_mono if scoring_start_mono is not None else start
+        signals, funnel = sim.detect_signals(series, sig_start, end, hp['W_s'], hp['D_s'])
         if report['recording_status'] == 'failed':
             funnel['recording_failure'] = len(signals)
             signals = []

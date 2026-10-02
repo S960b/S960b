@@ -335,7 +335,7 @@ def test_streamlit_empty_and_complete_data(tmp_path,monkeypatch,with_data):
     monkeypatch.setenv('SAFETRADE_CONFIG',str(out/'config.yaml') if with_data else '')
     app = AppTest.from_file(str(BASE/'dashboard/app.py'),default_timeout=30).run()
     assert not app.exception
-    assert len(app.tabs)==5
+    assert len(app.tabs)==6
     if with_data:
         assert len(app.dataframe)>=3
 

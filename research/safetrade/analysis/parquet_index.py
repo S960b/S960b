@@ -38,7 +38,9 @@ def save_parquet_index(parquet_dir: str, reports_dir: str) -> dict:
 
 
 def latest_run_from_index(reports_dir: str):
-    """run_id/boot_id последнего run по индексу (если он есть), иначе None."""
+    """run_id последнего run по индексу (каталог reports с parquet_index.json), иначе None.
+    Контракт (ревью): возвращает СТРОКУ run_id (не tuple), чтобы loader мог вставить её
+    в шаблон имени файла f'_{run_id}_'."""
     path = os.path.join(reports_dir, "parquet_index.json")
     if not os.path.exists(path):
         return None
@@ -47,4 +49,16 @@ def latest_run_from_index(reports_dir: str):
     if not idx.get("runs"):
         return None
     last = idx["runs"][-1]
-    return last["run_id"], last["boot_id"]
+    return last["run_id"]
+
+
+def latest_boot_from_index(reports_dir: str):
+    """boot_id последнего run по индексу (для отчётов), иначе None."""
+    path = os.path.join(reports_dir, "parquet_index.json")
+    if not os.path.exists(path):
+        return None
+    with open(path) as f:
+        idx = json.load(f)
+    if not idx.get("runs"):
+        return None
+    return idx["runs"][-1]["boot_id"]

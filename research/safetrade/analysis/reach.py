@@ -88,6 +88,21 @@ def test_B_executable(safe_book, qty, entry_vwap, t0_ns, horizons_s,
     return out
 
 
+def _quantile(sorted_vals, q):
+    """Линейная интерполяция квантиля (как np.quantile method='linear')."""
+    if not sorted_vals:
+        return None
+    n = len(sorted_vals)
+    if n == 1:
+        return sorted_vals[0]
+    pos = q * (n - 1)
+    lo = int(pos)
+    frac = pos - lo
+    if lo + 1 >= n:
+        return sorted_vals[lo]
+    return sorted_vals[lo] + frac * (sorted_vals[lo + 1] - sorted_vals[lo])
+
+
 def summarize_reach(results, horizons_s, key='raw'):
     out = {}
     for h in horizons_s:
@@ -101,9 +116,15 @@ def summarize_reach(results, horizons_s, key='raw'):
                 reached.append(v[key])
         n = len(vals)
         observed = statuses.get('reached', 0) + statuses.get('timeout', 0)
-        out[h] = {'n_events': n, 'n_observed_outcomes': observed, 'by_status': statuses,
-                  'reached_pct': round(len(reached) / n * 100, 1) if n else None,
-                  'reached_observed_pct': round(len(reached) / observed * 100, 1) if observed else None,
-                  'median_s': statistics.median(reached) if reached else None,
-                  'p90_s': sorted(reached)[int((len(reached)-1)*.9)] if reached else None}
+        row = {'n_events': n, 'n_observed_outcomes': observed, 'by_status': statuses,
+               'reached_pct': round(len(reached) / n * 100, 1) if n else None,
+               'reached_observed_pct': round(len(reached) / observed * 100, 1) if observed else None,
+               'median_s': statistics.median(reached) if reached else None,
+               'p90_s': _quantile(sorted(reached), 0.9) if reached else None,
+               'reached_times_list': [round(x, 2) for x in sorted(reached)] if reached else []}
+        if reached:
+            # при малом n p90 ненадёжен — показываем сами времена и n
+            row['p90_note'] = (f'p90 по {len(reached)} наблюдениям; '
+                               f'времена: {row["reached_times_list"]}')
+        out[h] = row
     return out

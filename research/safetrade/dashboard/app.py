@@ -60,7 +60,7 @@ def panel():
         st.info('Нет активной записи. Запуск: python cli.py collect --minutes 60')
     if not current.empty and any(isinstance(p, dict) and p.get('fixture') for p in current.payload):
         st.warning('Искусственные данные для проверки программы. Их результат ничего не говорит о доходности на бирже.')
-    tabs = st.tabs(['Сейчас', 'Графики', 'Достижение', 'Виртуальные счета', 'Качество'])
+    tabs = st.tabs(['Сейчас', 'Графики', 'Достижение', 'Виртуальные счета', 'Качество', 'Пары'])
     with tabs[0]:
         quotes, r, n = quote_table(current, CFG)
         st.metric('Медиана трёх внешних бирж R', f'{r:.6f}' if r is not None else 'недоступна')
@@ -126,6 +126,24 @@ def panel():
             st.dataframe(health[['ts_utc', 'exchange', 'symbol', 'connected', 'last_msg_age_s', 'msgs', 'reconnects']], hide_index=True, width='stretch')
         st.json(state.get('counters', state.get('last_run', {})), expanded=False)
         st.caption('Возраст котировки и работоспособность соединения — разные показатели. events_flushed — строки уже в закрытых Parquet-файлах.')
+    with tabs[5]:
+        # Скрининг общих пар (ревью next_steps P1): одна таблица, без новой инфраструктуры
+        screen_path = os.path.join(BASE, 'reports', 'pair_screen.csv')
+        if os.path.exists(screen_path):
+            screen = pd.read_csv(screen_path)
+            st.dataframe(screen, hide_index=True, width='stretch')
+            st.caption('Один живой REST-снимок на пару (2026-10-02). Спред — это разница bid/ask одного снимка; для кандидатов нужна запись 30–60 мин. '
+                       'protocol_status для всех пар unverified (см. safetrade_protocol_findings.md): execution coverage=0, даже если raw WS идёт часто.')
+        else:
+            st.info('reports/pair_screen.csv не найден.')
+        diag_path = os.path.join(BASE, 'reports', f'signals_{symbol}.csv')
+        if os.path.exists(diag_path):
+            with st.expander(f'Диагностика сигналов ({symbol})'):
+                sig = pd.read_csv(diag_path)
+                st.dataframe(sig, hide_index=True, width='stretch')
+                st.caption('Для каждого сигнала: возраст предыдущего снимка SafeTrade, число будущих снимков на горизонтах, '
+                           'ask_R_ratio/ask_F0_ratio, spread, VWAP-статусы бюджетов 10/25/50 USDT. '
+                           'baseline_unknown ≠ «нет будущих данных» — будущие наблюдения перечислены в колонках n_future_*s.')
 
 
 panel()
