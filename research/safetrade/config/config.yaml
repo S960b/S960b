@@ -1,0 +1,93 @@
+# SafeTrade research collector — конфигурация v2 (без секретов)
+schema_version: 2
+run_id_prefix: st
+
+# Тройка внешних источников (Этап 1; TЗ: фиксирована на время эксперимента)
+sources:
+  - binance
+  - okx
+  - bybit
+
+# Исследуемая площадка
+target: safetrade
+
+# Рынки: base/quote на всех 4 площадках. BTC/USDT — диагностический.
+markets:
+  - symbol: BTC/USDT
+    canonical: BTCUSDT
+    enabled: true
+  - symbol: ETH/USDT
+    canonical: ETHUSDT
+    enabled: false   # включить после проверки спреда/активности SafeTrade
+  - symbol: DOGE/USDT
+    canonical: DOGEUSDT
+    enabled: false
+
+# Каналы адаптеров
+channels:
+  bbo: true          # bookTicker / tickers / orderbook.1
+  book: true         # depth20 / books5 / orderbook.50 / safetrade depth
+  trades: false
+
+# SafeTrade: периодичность независимых REST-снапшотов (ревью P0-3: отдельный источник)
+safetrade:
+  rest_snapshot_s: 30.0
+
+# SQLite
+sqlite_path: data/state.db
+
+# Хранилище v2 (уникальные имена файлов, flush по времени)
+storage:
+  raw_dir: data/raw
+  parquet_dir: data/parquet
+  jsonl_max_bytes: 26214400       # 25 МБ
+  parquet_flush_s: 10.0           # закрытие буфера parquet по времени (ревью P0-5)
+  disk_warn_bytes: 12000000000    # предупреждение первым
+  disk_limit_bytes: 10000000000   # жёсткий стоп ПОСЛЕ warn (WARN > LIMIT, ревью доп.)
+
+# Health / окна
+health:
+  stale_after_s: 30
+
+# Оракул (ТЗ п.7, ревью P1-6: только внешние, 3/3)
+oracle:
+  window_min: 30
+  min_sources_for_primary: 3
+  min_sources_for_degraded: 2
+
+# Тесты достижения (ТЗ п.8)
+reach:
+  horizons_s: [1, 5, 15, 30, 60, 180, 300]
+
+# Paper-гипотезы (ТЗ п.9) — стартовый ограниченный набор, НЕ рекомендации
+paper:
+  initial_balance_usdt: 100.0
+  sizes_usdt: [10, 25, 50]
+  hypotheses:
+    A: {W_s: 5,  D_s: 0,   H_s: 30,   L_ms: [250, 500, 1000, 2000]}
+    B: {W_s: 15, D_s: 1,   H_s: 60,   L_ms: [250, 500, 1000, 2000]}
+    C: {W_s: 60, D_s: 3,   H_s: 180,  L_ms: [250, 500, 1000, 2000]}
+  noise:
+    mad_mult: 1.5
+    abs_min_bps: 2.0
+  confirm_min_sources: 2
+  cooldown_s: 60
+  buffer_bps: 5.0
+
+# Комиссии taker (maker-модель отложена по ТЗ п.10)
+fees:
+  safetrade:
+    taker_bps: 10.0
+    maker_bps: 0.0
+    source: safetrade.com/fees, checked 2026-10-02
+    note: "значение уточнить по fees-странице"
+
+# Порог пригодности котировок
+fitness:
+  max_book_age_s: 5.0
+  max_bbo_age_s: 2.0
+
+timezone_display: Europe/Moscow
+
+# Ограничения (ТЗ): никаких торговых вызовов
+allow_trading: false

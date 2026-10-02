@@ -1,0 +1,14 @@
+exchange,rank_cg_volume,volume_24h_btc,trust_score,rest_ticker,ws,ws_note,common_usdt_with_safe,status,reason
+binance,1,153960.0,10,200 OK,OK,bookTicker+depth20@100ms,13,SELECTED,топ-1 по заявленному объёму, API+WS полностью рабочие
+coinup,2,87609.6,3,403 Cloudflare,untested,-,n/a,REJECTED,Cloudflare JS-челлендж на всех REST-путях; низкий trust score
+btcc,3,86994.1,3,timeout,untested,-,n/a,REJECTED,таймаут соединения; API без публичной документации
+pionex,4,57554.3,7,200 OK,404/,WS endpoint не найден (api.pionex.com/ws 404, ws.pionex.com не поддерживает),n/a,REJECTED,REST есть, но WS-поток недоступен из фактической среды
+tapbit,5,39917.6,6,DNS fail,untested,-,n/a,REJECTED,api.tapbit.com не резолвится
+okx,6,39777.5,10,200 OK,OK,books5+tickers,11,SELECTED,замена из след.мест (топ-5 непригоден кроме binance); полный REST+WS
+weex,7,39052.2,8,DNS fail,521,ws-spot.weex.com отдаёт 521 Cloudflare origin error,n/a,REJECTED,api.weex.com не резолвится; WS недоступен
+lbank,8,29043.1,9,HTML error,untested,-,n/a,REJECTED,api.lbank.info отдаёт HTML-страницу ошибки вместо JSON (региональный блок)
+kcex,9,27031.5,6,HTTP error,untested,-,n/a,REJECTED,API отвечает HTML ERROR
+coinbase,10,26852.8,10,200 OK,untested,-,4,REJECTED,только BTC-USD (USD-котировка, не USDT); 4 общих USDT-пары
+bybit,15,23590.9,9,200 OK,OK,orderbook+publicTrade,11,SELECTED,замена из след.мест; полный REST+WS, BBO и public trades
+gate,13,24296.9,10,200 OK,OK,spot.book_ticker,17,REJECTED,рабочий, но тройка уже укомплектована (binance/okx/bybit); держим как резерв
+mexc,-,?,?,200 OK,Blocked,"wbs.mexc.com: Blocked! (региональное ограничение)",23,REJECTED,REST работает, WS заблокирован по региону

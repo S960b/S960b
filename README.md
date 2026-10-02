@@ -16,6 +16,17 @@ Writeups and technical notes from CTF competitions, structured as `ctf/<event>/<
 
 - [pwnsec / Web - PHault: blind SQL injection](ctf/pwnsec/web/)
 
+
+## Research
+
+Quantitative market microstructure research (authorized, public market data only).
+
+- [SafeTrade Price-Lead Research](research/safetrade/) - does a small exchange (SafeTrade)
+  lag the top-3 spot venues (Binance/OKX/Bybit)? Latency research pipeline: concurrent
+  public-data collection, causal oracle (median of 3 external mids), premium b(t),
+  reach-to-target tests (informational vs executable), paper simulator (virtual 100 USDT,
+  taker/taker), quality dashboard. No trading, no keys, no secrets.
+
 ## About
 
 I am currently transitioning into cybersecurity after many years of technical experience with ISP networks and cryptocurrency mining.

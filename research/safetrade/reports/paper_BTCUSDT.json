@@ -1,0 +1,89 @@
+{
+ "report_type": "paper",
+ "code_version": "v1.0.0-dev",
+ "generated_utc": "2026-10-02T13:42:22.326538+00:00",
+ "symbol": "BTCUSDT",
+ "initial_balance_usdt": 100.0,
+ "fees_taker_bps": 10.0,
+ "hypotheses": {
+  "A": {
+   "n_signals": 0,
+   "n_entries": 0,
+   "n_trades": 0,
+   "pnl_sum_usdt": 0.0,
+   "fees_sum_usdt": 0.0,
+   "by_L": {
+    "250": {
+     "n": 0,
+     "pnl": 0.0
+    },
+    "500": {
+     "n": 0,
+     "pnl": 0.0
+    },
+    "1000": {
+     "n": 0,
+     "pnl": 0.0
+    },
+    "2000": {
+     "n": 0,
+     "pnl": 0.0
+    }
+   }
+  },
+  "B": {
+   "n_signals": 0,
+   "n_entries": 0,
+   "n_trades": 0,
+   "pnl_sum_usdt": 0.0,
+   "fees_sum_usdt": 0.0,
+   "by_L": {
+    "250": {
+     "n": 0,
+     "pnl": 0.0
+    },
+    "500": {
+     "n": 0,
+     "pnl": 0.0
+    },
+    "1000": {
+     "n": 0,
+     "pnl": 0.0
+    },
+    "2000": {
+     "n": 0,
+     "pnl": 0.0
+    }
+   }
+  },
+  "C": {
+   "n_signals": 0,
+   "n_entries": 0,
+   "n_trades": 0,
+   "pnl_sum_usdt": 0.0,
+   "fees_sum_usdt": 0.0,
+   "by_L": {
+    "250": {
+     "n": 0,
+     "pnl": 0.0
+    },
+    "500": {
+     "n": 0,
+     "pnl": 0.0
+    },
+    "1000": {
+     "n": 0,
+     "pnl": 0.0
+    },
+    "2000": {
+     "n": 0,
+     "pnl": 0.0
+    }
+   }
+  }
+ },
+ "restrictions": [
+  "ВИРТУАЛЬНАЯ ТОРГОВЛЯ; taker/taker по стакану SafeTrade; реальных ордеров нет; результаты не рекомендации"
+ ],
+ "note": "разделение сработало как один период (данные короткие) — dev/validation/holdout разделяется при накоплении данных"
+}

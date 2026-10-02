@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+
+# Данные и логи (не в git — большие; история в data/ и archive_v1/)
+data/
+archive_v1/
+logs/
+*.log
+
+# Секреты
+.env
+*.secret
+
+# Системное
+.DS_Store
