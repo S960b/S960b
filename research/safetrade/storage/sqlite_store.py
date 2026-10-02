@@ -25,6 +25,8 @@ class StateStore:
         c.execute("""CREATE TABLE IF NOT EXISTS health (
             id INTEGER PRIMARY KEY AUTOINCREMENT, ts_utc TEXT, exchange TEXT, symbol TEXT,
             connected INTEGER, last_msg_age_s REAL, msgs INTEGER, reconnects INTEGER, errors TEXT)""")
+        if "details" not in {r[1] for r in c.execute("PRAGMA table_info(health)")}:
+            c.execute("ALTER TABLE health ADD COLUMN details TEXT")
         c.execute("""CREATE TABLE IF NOT EXISTS ui_state (
             key TEXT PRIMARY KEY, value TEXT, updated_utc TEXT)""")
         c.execute("""CREATE TABLE IF NOT EXISTS paper_trades (
@@ -49,17 +51,17 @@ class StateStore:
                           (run_id, boot_id, utcnow_iso(), json.dumps(sources), json.dumps(markets), "running"))
         self.conn.commit()
 
-    def stop_run(self, run_id):
+    def stop_run(self, run_id, status="stopped"):
         self.conn.execute("UPDATE runs SET stopped_utc=?, status=? WHERE run_id=?",
-                          (utcnow_iso(), "stopped", run_id))
+                          (utcnow_iso(), status, run_id))
         self.conn.commit()
 
     # ---- health ----
     def save_health(self, exchange, symbol, h: dict):
         self.conn.execute(
-            "INSERT INTO health (ts_utc, exchange, symbol, connected, last_msg_age_s, msgs, reconnects, errors) VALUES (?,?,?,?,?,?,?,?)",
+            "INSERT INTO health (ts_utc, exchange, symbol, connected, last_msg_age_s, msgs, reconnects, errors, details) VALUES (?,?,?,?,?,?,?,?,?)",
             (utcnow_iso(), exchange, symbol, int(bool(h.get("connected"))), h.get("last_msg_age_s"),
-             h.get("msgs"), h.get("reconnects"), json.dumps(h.get("errors", []))))
+             h.get("msgs"), h.get("reconnects"), json.dumps(h.get("errors", [])), json.dumps(h)))
         self.conn.commit()
 
     def latest_health(self, limit=50):

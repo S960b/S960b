@@ -53,6 +53,7 @@ class BinanceAdapter(BaseAdapter):
         if not streams:
             return
         while True:
+            ws = None
             try:
                 ws = await self.connect(WS)
                 self._mark_reconnect()
@@ -65,13 +66,16 @@ class BinanceAdapter(BaseAdapter):
                     ev = self._parse(native, symbol, parsed, t_utc, t_mono, run_id, boot_id)
                     if ev:
                         await sink.put(ev)
-                        self._mark_msg()
             except asyncio.CancelledError:
                 raise
             except Exception as e:
                 self._mark_error(f"{type(e).__name__}: {str(e)[:100]}")
                 log.warning("binance %s disconnect: %s", symbol, e)
+                await self._emit_reset(sink, symbol, run_id, boot_id)
                 await asyncio.sleep(3)
+            finally:
+                if ws is not None:
+                    await ws.close()
 
     def _parse(self, native, symbol, parsed, t_utc, t_mono, run_id, boot_id):
         if not isinstance(parsed, dict):
@@ -97,11 +101,3 @@ class BinanceAdapter(BaseAdapter):
                 run_id=run_id, boot_id=boot_id, payload=parsed,
             )
         return None
-
-    def _push_raw(self, symbol, raw, t_utc, t_mono):
-        if self.raw_q is not None:
-            try:
-                self.raw_q.put_nowait({"exchange": "binance", "symbol": symbol, "raw": raw,
-                                       "recv_utc_ns": t_utc, "recv_mono_ns": t_mono})
-            except asyncio.QueueFull:
-                pass

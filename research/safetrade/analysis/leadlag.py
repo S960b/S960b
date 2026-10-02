@@ -12,6 +12,8 @@ def _asof(times, values, t_ns, max_age_s=None):
     idx = bisect_right(times, t_ns) - 1
     if idx < 0:
         return None
+    if not math.isfinite(float(values[idx])) or values[idx] <= 0:
+        return None
     if max_age_s is not None and (t_ns - times[idx]) / 1e9 > max_age_s:
         return None
     return float(values[idx])
@@ -21,16 +23,14 @@ def shift_stats_on_events(series, W_s: float):
     """Изменения log(mid) за окно W, считанные ПО СОБЫТИЯМ (не по интерполированной сетке).
     Возвращает (t_end_array, delta_array)."""
     mono = series["mono_ns"].values
-    vals = np.log(series["mid"].values.astype(float))
+    vals = series["mid"].values.astype(float)
     out_ts, out_d = [], []
     W_ns = W_s * 1e9
-    i = 0
     for j in range(len(mono)):
-        while i < j and mono[j] - mono[i] > W_ns:
-            i += 1
-        if j - i >= 2 and mono[j] - mono[i] >= W_ns * 0.5:
+        i = bisect_right(mono, int(mono[j] - W_ns)) - 1
+        if i >= 0 and i < j and mono[j] - W_ns - mono[i] <= W_ns * 0.5 and np.isfinite(vals[i:j+1]).all() and min(vals[i], vals[j]) > 0:
             out_ts.append(int(mono[j]))
-            out_d.append(float(vals[j] - vals[i]))
+            out_d.append(float(math.log(vals[j] / vals[i])))
     return np.array(out_ts, dtype=np.int64), np.array(out_d, dtype=np.float64)
 
 
@@ -56,16 +56,22 @@ def lead_lag(external_mids: dict, safe_mids, W_s: float, max_lag_s: int = 30, st
             xs, ys, n = [], [], 0
             for k in range(len(t_ext)):
                 t0 = t_ext[k]
-                t_lag = t0 - lag * 1e9   # знак: движение safe, смещённое назад/вперёд
-                v0 = _asof(safe_t, safe_v, t_lag, max_age_s)
-                # движение safe за окно W, начиная с t_lag (as-of), без будущего
-                vW = _asof(safe_t, safe_v, t_lag + W_s * 1e9, max_age_s)
+                # External return ends at t0; target return ends at t0+lag.
+                # Positive lag means SafeTrade follows later. This is retrospective
+                # measurement, never information available to a live decision at t0.
+                t_lag = int(t0 + lag * 1e9)
+                v0 = _asof(safe_t, safe_v, int(t_lag - W_s * 1e9), max_age_s)
+                vW = _asof(safe_t, safe_v, t_lag, max_age_s)
+                lo = bisect_right(safe_t, int(t_lag - W_s * 1e9)) - 1
+                hi = bisect_right(safe_t, t_lag)
+                if lo < 0 or not np.isfinite(safe_v[lo:hi]).all() or (hi-lo > 1 and np.diff(safe_t[lo:hi]).max() / 1e9 > max_age_s):
+                    continue
                 if v0 is None or vW is None or v0 <= 0:
                     continue
                 ys.append(math.log(vW / v0))
                 xs.append(d_ext[k])
                 n += 1
-            if n >= 20:
+            if n >= 20 and np.std(xs) > 0 and np.std(ys) > 0:
                 c = float(np.corrcoef(xs, ys)[0, 1]) if len(xs) > 5 else 0.0
                 corrs[lag] = {"corr": c, "n": n}
         res[ex] = corrs
@@ -74,7 +80,7 @@ def lead_lag(external_mids: dict, safe_mids, W_s: float, max_lag_s: int = 30, st
 
 
 def coverage_stats(mids_by_exchange: dict, grid_step_s: int = 1):
-    """Доля сеточных интервалов с наблюдением источника (покрытие, не плотность)."""
+    """Message-bin occupancy only; it does not measure connection liveness."""
     out = {}
     for ex, s in mids_by_exchange.items():
         if len(s) < 2:
@@ -87,13 +93,13 @@ def coverage_stats(mids_by_exchange: dict, grid_step_s: int = 1):
             continue
         intervals = span_s / grid_step_s
         # число сеточных ячеек с хотя бы одним наблюдением
-        cells = int(span_s / grid_step_s)
+        cells = int(span_s / grid_step_s) + 1
         if cells == 0:
             out[ex] = {"coverage": 1.0 if len(s) else 0.0, "n": len(s)}
             continue
         idx = np.floor((t - t[0]) / (grid_step_s * 1e9)).astype(int)
         uniq = len(np.unique(idx))
-        out[ex] = {"coverage": uniq / cells, "n": len(s), "grid_cells": cells}
+        out[ex] = {"message_bin_occupancy": uniq / cells, "coverage": uniq / cells, "n": len(s), "grid_cells": cells}
     return out
 
 

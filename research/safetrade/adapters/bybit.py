@@ -51,9 +51,11 @@ class BybitAdapter(BaseAdapter):
             return
         got_snapshot = {t: False for t in topics}
         while True:
+            ws = None
             try:
                 ws = await self.connect(WS)
                 self._mark_reconnect()
+                got_snapshot = {t: False for t in topics}
                 await ws.send(json.dumps({"op": "subscribe", "args": topics}))
                 while True:
                     raw, parsed, t_utc, t_mono = await self._ws_recv_msg(ws)
@@ -69,28 +71,31 @@ class BybitAdapter(BaseAdapter):
                         elif mtype == "delta" and not got_snapshot.get(topic, False):
                             ev["quality_flags"].append("no_snapshot_yet")
                         await sink.put(ev)
-                        self._mark_msg()
             except asyncio.CancelledError:
                 raise
             except Exception as e:
                 self._mark_error(f"{type(e).__name__}: {str(e)[:100]}")
                 log.warning("bybit %s disconnect: %s", symbol, e)
+                await self._emit_reset(sink, symbol, run_id, boot_id)
                 await asyncio.sleep(3)
+            finally:
+                if ws is not None:
+                    await ws.close()
 
     def _parse(self, symbol, native, parsed, t_utc, t_mono, run_id, boot_id):
         if not isinstance(parsed, dict):
             return None
         topic = parsed.get("topic", "")
         data = parsed.get("data", {})
-        if topic.startswith("orderbook.1"):
+        if topic.startswith("orderbook.1."):
             # BBO: b=[["price","size"]], a=[["price","size"]] (Bybit orderbook.1)
-            b = data.get("b", [[]])[0]
-            a = data.get("a", [[]])[0]
+            b = (data.get("b") or [[]])[0]
+            a = (data.get("a") or [[]])[0]
             bbo = {"bid_price": b[0] if b else None, "bid_qty": b[1] if len(b) > 1 else None,
                    "ask_price": a[0] if a else None, "ask_qty": a[1] if len(a) > 1 else None}
             return make_event(
                 "bybit", symbol.replace("/", ""), native, "bbo", recv_utc=t_utc, recv_mono=t_mono,
-                exchange_event_ts=data.get("cts") or data.get("ts"), sequence=data.get("u"),
+                exchange_event_ts=parsed.get("cts") or data.get("cts") or parsed.get("ts") or data.get("ts"), sequence=data.get("u"),
                 side="bid", price=bbo["bid_price"], qty=bbo["bid_qty"],
                 run_id=run_id, boot_id=boot_id, payload=bbo,
             )
@@ -100,16 +105,8 @@ class BybitAdapter(BaseAdapter):
             # delta: delete = replace обновление; Bybit: массив [price, size], size=0 → удалить
             return make_event(
                 "bybit", symbol.replace("/", ""), native, et, recv_utc=t_utc, recv_mono=t_mono,
-                exchange_event_ts=data.get("cts") or data.get("ts"), sequence=data.get("u"),
+                exchange_event_ts=parsed.get("cts") or data.get("cts") or parsed.get("ts") or data.get("ts"), sequence=data.get("u"),
                 bids=data.get("b"), asks=data.get("a"),
                 run_id=run_id, boot_id=boot_id, payload={"type": mtype, "u": data.get("u"), "seq": data.get("seq")},
             )
         return None
-
-    def _push_raw(self, symbol, raw, t_utc, t_mono):
-        if self.raw_q is not None:
-            try:
-                self.raw_q.put_nowait({"exchange": "bybit", "symbol": symbol, "raw": raw,
-                                       "recv_utc_ns": t_utc, "recv_mono_ns": t_mono})
-            except asyncio.QueueFull:
-                pass

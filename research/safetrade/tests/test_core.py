@@ -64,8 +64,8 @@ class TestBBOSeries:
     def test_bbo_series_from_snapshot(self):
         import pandas as pd
         events = [
-            ev("book_snapshot", bids=[["100", "1"]], asks=[["101", "1"]], t=100),
-            ev("book_delta", bids=[["99", "2"]], asks=[["102", "1"]], t=200),
+            ev("book_snapshot", ex="fixture", bids=[["100", "1"]], asks=[["101", "1"]], t=100),
+            ev("book_delta", ex="fixture", bids=[["99", "2"]], asks=[["102", "1"]], t=200),
         ]
         df = pd.DataFrame([e for e in events])
         s = bbo_series(df)

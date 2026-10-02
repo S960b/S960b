@@ -1,15 +1,19 @@
-"""Paper-симулятор v2 (ревью P1-6/P1-7/P1-9): R строго из трёх ВНЕШНИХ источников,
-порог шума по прошлым данным, подтверждение 2/3 без ложного oppose, one-module R/b/F.
-Симуляция исполнения — по исходным событиям (не сетке). ВИРТУАЛЬНО, без плеча/шорта."""
+"""Offline long-only paper model. Each (hypothesis, delay, budget) has its own account.
+
+No exchange orders are sent. Entries model a capped, complete fill: decision filters
+use only the decision-time book; arrival-time prices only determine fill/rejection.
+REST-only books are observational and are excluded from execution.
+"""
 import math
-import statistics
 from bisect import bisect_right
-from dataclasses import dataclass, field
-from decimal import Decimal
+from collections import Counter
+from dataclasses import dataclass
+from decimal import Decimal, ROUND_DOWN
 
 import numpy as np
 
-from analysis.oracle import Oracle, build_oracle_series, premium_series, F_from_premium
+from analysis.oracle import Oracle, asof_value, oracle_asof, oracle_columns, F_from_premium
+from analysis.book import OrderBook, payload_dict
 
 
 @dataclass
@@ -22,6 +26,8 @@ class Signal:
     per_source: list
     b: float
     W_s: int
+    threshold: float = 0.0
+    signal_utc_ns: int = None
 
 
 @dataclass
@@ -43,255 +49,298 @@ class Trade:
     fee_sell: Decimal
     pnl: Decimal
     exit_reason: str
-    adverse_bps: float
-    reach_raw: bool
-    reach_adj: bool
+    adverse_bps: float = None
+    reach_raw: bool = False
+    reach_adj: bool = False
+    status: str = 'closed'
+    cash_after: Decimal = None
+    equity_after: Decimal = None
 
 
 class OrderBookReplay:
-    """Последовательный replay стакана SafeTrade: as-of снимки без будущего."""
+    """Indexed snapshots; reset barriers and quality flags survive replay."""
+    def __init__(self, events_by_mono, max_age_s=5.0):
+        self.events = sorted(events_by_mono, key=lambda e: e['recv_monotonic_ns'])
+        self._times = [int(e['recv_monotonic_ns']) for e in self.events]
+        self.max_age_s = max_age_s
+        self.record_end_ns = self._times[-1] if self._times else 0
+        self._starts = []
+        start = 0
+        for i, e in enumerate(self.events):
+            if e['event_type'] == 'book_snapshot' or 'connection_reset' in (e.get('quality_flags') or []):
+                start = i
+            self._starts.append(start)
 
-    def __init__(self, events_by_mono: list):
-        self.events = events_by_mono
-        self._times = [e["recv_monotonic_ns"] for e in events_by_mono]
-
-    def asof_ns(self, t_ns: int, max_age_s: float = 5.0):
-        from analysis.book import OrderBook
-        idx = bisect_right(self._times, t_ns) - 1
-        if idx < 0 or (t_ns - self._times[idx]) / 1e9 > max_age_s:
+    def asof_ns(self, t_ns, max_age_s=None, require_executable=True):
+        age = self.max_age_s if max_age_s is None else max_age_s
+        idx = bisect_right(self._times, int(t_ns)) - 1
+        if idx < 0:
             return None
         ob = OrderBook()
-        # от последнего снапшота до idx (кэш снапшотов — TODO оптимизация после корректности)
-        last_snap = -1
-        for i in range(idx, -1, -1):
-            if self.events[i]["event_type"] == "book_snapshot":
-                last_snap = i
-                break
-        for i in range(max(last_snap, 0), idx + 1):
-            ob.apply(self.events[i])
+        for e in self.events[self._starts[idx]:idx+1]:
+            if e['event_type'] == 'book_delta' and e['exchange'] == 'safetrade' and not payload_dict(e).get('synchronized'):
+                continue
+            try:
+                ob.apply(e)
+            except (ValueError, ArithmeticError):
+                ob.valid = ob.executable = False
+        if not ob.valid or ob.mid() is None or (t_ns-ob.last_update_mono_ns)/1e9 > age:
+            return None
+        if require_executable and not ob.executable:
+            return None
         return ob
 
 
 class PaperSimulator:
-    def __init__(self, cfg: dict, symbols: list):
+    def __init__(self, cfg, symbols):
         self.cfg = cfg
-        self.paper_cfg = cfg["paper"]
-        fees = cfg.get("fees", {}).get("safetrade", {}).get("taker_bps", 0.0)
-        self.fees = fees / 1e4   # доля
-        self.sources = cfg["sources"]                              # ТОЛЬКО внешние (ревью)
+        self.paper_cfg = cfg['paper']
+        self.fees = cfg.get('fees', {}).get('safetrade', {}).get('taker_bps', 0.0) / 1e4
+        self.sources = cfg['sources']
         self.symbols = symbols
-        self._premium_t = None
-        self._premium_b = None
+        self._premium_t = self._premium_b = None
+        self._ext = None
+        self._r_columns = None
 
-    # ================= сигналы (causal) =================
-    def detect_signals(self, mid_series_by_ex: dict, t0_ns: int, t1_ns: int, W_s: int, D_s: int):
-        """Движение R за W только по внешним; подтверждение >=2/3; порог по прошлому.
-        Возвращает (signals, funnel) — воронка причин отказа (ревью п.8)."""
-        funnel = {"no_3of3": 0, "no_source_data": 0, "weak_move": 0, "disagree": 0, "spread": 0, "signal": 0}
-        # только внешние источники для R (ревью P1-6)
-        ext = {k: v for k, v in mid_series_by_ex.items() if k in self.sources}
-        if len(ext) < 3:
-            return [], funnel
-        # событийный R-ряд по единому оракулу
-        r_series = self._build_r_series(ext)   # np.array Nx3
-        if r_series is None or len(r_series) < 50:
-            return [], funnel
-        t_r = r_series[:, 0].astype(int)
-        r = r_series[:, 1]
-        n_src = r_series[:, 2].astype(int)
-        W_ns = W_s * 1e9
-
-        # порог шума: только по данным ДО текущей точки (прошлое rolling-окно) (ревью P1-7)
-        i0 = int(np.searchsorted(t_r, t0_ns))
-        i1 = min(int(np.searchsorted(t_r, t1_ns)), len(t_r))
-        signals = []
-        cooldown_until = 0
-        for j in range(i0 + 1, i1):
-            t_j = t_r[j]
-            if t_j < cooldown_until:
-                continue
-            if n_src[j] < 3:
-                funnel["no_3of3"] += 1
-                continue
-            i = int(np.searchsorted(t_r, t_j - W_ns))
-            if i >= j - 1:
-                funnel["weak_move"] += 1
-                continue
-            r0j, r1j = r[i], r[j]
-            if r0j <= 0:
-                continue
-            d = math.log(r1j / r0j)
-            thr = self._past_noise_threshold(r_series, i, j, W_s)  # по прошлому
-            if abs(d) < thr:
-                funnel["weak_move"] += 1
-                continue
-            direction = "up" if d > 0 else "down"
-            agrees, opposes, per = self._confirm(ext, t_j, W_ns, direction, thr)
-            if agrees < self.paper_cfg["confirm_min_sources"] or opposes >= 1:
-                any_no_data = any(p[1] == "no_data" for p in per)
-                if any_no_data:
-                    funnel["no_source_data"] += 1
-                else:
-                    funnel["disagree"] += 1
-                continue
-            if not self._spread_ok(ext, t_j):
-                funnel["spread"] += 1
-                continue
-            b, _ = self._premium_asof(t_j)
-            F0 = F_from_premium(float(r1j), b)
-            signals.append(Signal(t0_ns=int(t_j), R0=float(r1j), F0=F0, direction=direction,
-                                  n_confirm=agrees, per_source=per, b=b, W_s=W_s))
-            funnel["signal"] += 1
-            cooldown_until = t_j + self.paper_cfg["cooldown_s"] * 1e9
-        return signals, funnel
-
-    def _build_r_series(self, ext: dict):
-        """Потоковый merge всех событий внешних источников; на каждом — R (as-of, 3/3)."""
-        rows = []
-        for ex, s in ext.items():
-            if len(s) < 10:
-                return None
-            t = s["mono_ns"].values
-            m = s["mid"].values
-            for k in range(len(t)):
-                rows.append((int(t[k]), ex, float(m[k])))
+    def _build_r_series(self, ext):
+        rows = [(int(t), ex, float(m)) for ex, s in ext.items()
+                for t, m in zip(s.mono_ns, s.mid)]
         rows.sort(key=lambda x: x[0])
-        oracle = Oracle(list(ext.keys()), max_bbo_age_s=self.cfg["fitness"]["max_bbo_age_s"],
-                        min_sources=3)
-        out_t, out_r, out_n = [], [], []
-        for t_ns, ex, mid in rows:
-            oracle.feed(ex, t_ns, mid)
-            R, n, ids = oracle.mid_at(t_ns)
-            if R is not None:
-                out_t.append(t_ns)
-                out_r.append(R)
-                out_n.append(n)
-        if len(out_t) < 50:
+        oracle = Oracle(self.sources, self.cfg['fitness']['max_bbo_age_s'], 3)
+        out = []
+        for t, ex, mid in rows:
+            oracle.feed(ex, t, mid)
+            r, n, _ = oracle.mid_at(t)
+            expires = min(oracle._last[s][0]+int(self.cfg['fitness']['max_bbo_age_s']*1e9) for s in self.sources) if r is not None else t
+            out.append((t, r if r is not None else float('nan'), n, expires))
+        return np.array(out, dtype=object) if out else None
+
+    def _source_mid(self, s, t):
+        return asof_value(s.mono_ns.to_numpy(dtype=np.int64), s.mid.to_numpy(dtype=float),
+                          int(t), self.cfg['fitness']['max_bbo_age_s'])[1]
+
+    def _return(self, s, t, W_ns):
+        a, b = self._source_mid(s, t-W_ns), self._source_mid(s, t)
+        if a is None or b is None:
             return None
-        return np.array([out_t, out_r, out_n]).T
+        times = s.mono_ns.to_numpy(dtype=np.int64)
+        lo = max(0, bisect_right(times, int(t-W_ns))-1)
+        hi = bisect_right(times, int(t))
+        values = s.mid.to_numpy(dtype=float)[lo:hi]
+        if not np.isfinite(values).all() or (hi-lo > 1 and np.diff(times[lo:hi]).max()/1e9 > self.cfg['fitness']['max_bbo_age_s']):
+            return None
+        return math.log(float(b)/float(a))
+
+    def detect_signals(self, mid_series_by_ex, t0_ns, t1_ns, W_s, D_s):
+        funnel = Counter({k: 0 for k in ('no_3of3', 'no_source_data', 'weak_move', 'disagree', 'spread', 'signal')})
+        ext = {k: v for k, v in mid_series_by_ex.items() if k in self.sources}
+        self._ext = ext
+        if len(ext) != 3:
+            return [], dict(funnel)
+        rs = self._build_r_series(ext)
+        if rs is None:
+            return [], dict(funnel)
+        self._r_columns = oracle_columns(rs)
+        tr, rv, _ = self._r_columns
+        signals, cooldown = [], 0
+        last_t = None
+        for j, t in enumerate(tr):
+            if t < t0_ns or t > t1_ns or t < cooldown or (j+1 < len(tr) and tr[j+1] == t):
+                continue
+            last_t = t
+            values = [self._source_mid(s, t) for s in ext.values()]
+            if any(v is None for v in values) or not math.isfinite(rv[j]):
+                funnel['no_3of3'] += 1; continue
+            before = oracle_asof(rs, int(t-W_s*1e9), self.cfg['fitness']['max_bbo_age_s'], self._r_columns)
+            if before is None:
+                funnel['no_source_data'] += 1; continue
+            d = math.log(rv[j]/float(before))
+            thr = self._past_noise_threshold(rs, 0, j, W_s)
+            if abs(d) < thr:
+                funnel['weak_move'] += 1; continue
+            direction = 'up' if d > 0 else 'down'
+            agrees, opposes, per = self._confirm(ext, t, W_s*1e9, direction, thr)
+            if agrees < self.paper_cfg['confirm_min_sources'] or opposes:
+                funnel['no_source_data' if any(x[1]=='no_data' for x in per) else 'disagree'] += 1; continue
+            if not self._spread_ok(ext, t):
+                funnel['spread'] += 1; continue
+            b, _ = self._premium_asof(t)
+            # UTC comes from the timestamp of a received event, never from monotonic.
+            utc = None
+            for s in ext.values():
+                k = bisect_right(s.mono_ns.to_numpy(dtype=np.int64), int(t))-1
+                if k >= 0 and 'utc_ns' in s:
+                    utc = int(s.utc_ns.iloc[k]) + int(t) - int(s.mono_ns.iloc[k])
+                    break
+            signals.append(Signal(int(t), float(rv[j]), F_from_premium(float(rv[j]), b),
+                                  direction, agrees, per, b, W_s, thr, utc))
+            funnel['signal'] += 1
+            cooldown = int(t + self.paper_cfg['cooldown_s']*1e9)
+        return signals, dict(funnel)
 
     def _past_noise_threshold(self, r_series, i, j, W_s):
-        """MAD изменений R за [t_j - X, t_j), X = 10*W (прошлое). Абс. нижний порог из конфига."""
-        mad_mult = self.paper_cfg["noise"]["mad_mult"]
-        abs_min = self.paper_cfg["noise"]["abs_min_bps"] / 1e4
-        t_j = r_series[j, 0]
-        x_ns = max(10 * W_s, 60) * 1e9
-        i0 = int(np.searchsorted(r_series[:, 0], t_j - x_ns))
-        if j - i0 < 20:
-            return abs_min
-        rr = r_series[i0:j, 1].astype(float)
-        diffs = np.diff(np.log(rr))
-        if len(diffs) < 10:
-            return abs_min
-        mad = float(np.median(np.abs(diffs - np.median(diffs))))
-        return max(mad_mult * mad, abs_min)
+        # Compare W-second returns to past W-second returns, on a fixed cadence.
+        # Per-message differences would make the threshold depend on traffic volume.
+        columns = self._r_columns if self._r_columns is not None else oracle_columns(r_series)
+        t, r, _ = columns
+        end = int(t[j])
+        age = self.cfg['fitness']['max_bbo_age_s']
+        returns = []
+        for u in range(int(end-max(20*W_s, 60)*1e9), end, max(1, int(W_s*1e9))):
+            a = oracle_asof(r_series, u-int(W_s*1e9), age, columns)
+            b = oracle_asof(r_series, u, age, columns)
+            if a is not None and b is not None:
+                returns.append(math.log(float(b)/float(a)))
+        noise = self.paper_cfg['noise']
+        mad = float(np.median(np.abs(np.array(returns)-np.median(returns)))) if len(returns)>=10 else 0
+        return max(noise['abs_min_bps']/1e4, noise['mad_mult']*mad)
 
     def _confirm(self, ext, t_ns, W_ns, direction, thr):
-        """2/3 подтверждение; слабое движение В ТУ ЖЕ сторону — neutral (ревью P1-7).
-        Слабое движение в противоположную сторону, превосходящее 0.25*thr — oppose."""
         agrees, opposes, per = 0, 0, []
         for ex, s in ext.items():
-            t = s["mono_ns"].values
-            j = int(np.searchsorted(t, t_ns)) - 1
-            i = int(np.searchsorted(t, t_ns - W_ns)) - 1
-            if i < 0 or j <= i or j >= len(s):
-                per.append((ex, "no_data"))
-                continue
-            mj, mi = float(s.iloc[j]["mid"]), float(s.iloc[i]["mid"])
-            if mi <= 0:
-                per.append((ex, "no_data")); continue
-            d = math.log(mj / mi)
-            same_dir = (d > 0) == (direction == "up")
-            if same_dir and abs(d) >= thr * 0.5:
-                agrees += 1; per.append((ex, "agree"))
-            elif same_dir and abs(d) < thr * 0.5:
-                per.append((ex, "weak_same"))       # neutral
-            elif abs(d) <= thr * 0.25:
-                per.append((ex, "neutral"))
+            d = self._return(s, int(t_ns), int(W_ns))
+            if d is None:
+                per.append((ex, 'no_data')); continue
+            signed = d if direction == 'up' else -d
+            if signed >= thr*.5:
+                agrees += 1; status = 'agree'
+            elif signed < -thr*.25:
+                opposes += 1; status = 'oppose'
             else:
-                opposes += 1; per.append((ex, "oppose"))
+                status = 'neutral'
+            per.append((ex, status))
         return agrees, opposes, per
 
-    def _spread_ok(self, ext, t_ns, max_spread_bps=15.0):
-        vals = []
-        for ex, s in ext.items():
-            idx = int(np.searchsorted(s["mono_ns"].values, t_ns)) - 1
-            if 0 <= idx < len(s):
-                vals.append(float(s.iloc[idx]["mid"]))
-        if len(vals) < 2:
+    def _spread_ok(self, ext, t_ns, max_spread_bps=None):
+        values = [self._source_mid(s, t_ns) for s in ext.values()]
+        if len(values) != 3 or any(v is None for v in values):
             return False
-        med = float(np.median(vals))
-        spread = (max(vals) - min(vals)) / med * 1e4
-        return spread <= max_spread_bps
+        limit = self.paper_cfg.get('oracle_dispersion_bps', 15) if max_spread_bps is None else max_spread_bps
+        return (max(values)-min(values))/float(np.median(values))*1e4 <= limit
 
     def _premium_asof(self, t_ns):
-        if self._premium_t is None or len(self._premium_t) == 0:
+        if self._premium_t is None:
             return None, 0
-        idx = int(np.searchsorted(self._premium_t, t_ns)) - 1
-        if idx < 0:
-            return None, 0
-        return float(self._premium_b[idx]), idx + 1
+        age = self.cfg.get('oracle', {}).get('premium_max_age_s', 60)
+        k, b = asof_value(self._premium_t, np.exp(self._premium_b), int(t_ns), age)
+        # asof_value accepts positive values; exp preserves negative/zero premiums.
+        return (math.log(float(b)), k+1) if b is not None else (None, 0)
 
     def set_premium_series(self, t_arr, b_arr):
-        self._premium_t = t_arr
-        self._premium_b = b_arr
+        self._premium_t = np.asarray(t_arr, dtype=np.int64)
+        self._premium_b = np.asarray(b_arr, dtype=float)
 
-    # ================= исполнение (taker/taker) =================
     def run_hypothesis(self, signals, ob_replay, hypo, W_s, D_s, H_s, L_ms_list, sizes_usdt, symbol):
-        trades, stats = [], {"n_signals": len(signals), "n_entries": 0, "n_trades": 0,
-                             "by_L": {L: {"n": 0, "pnl": Decimal(0), "fees": Decimal(0)} for L in L_ms_list}}
-        for sig in signals:
-            # long-only (ревью P2): покупка только на росте
-            if sig.direction != "up":
-                continue
-            for L_ms in L_ms_list:
-                t_entry = sig.t0_ns + D_s * 1e9 + L_ms * 1e6
-                ob = ob_replay.asof_ns(t_entry)
-                if ob is None or not ob.valid:
-                    continue
-                for q_usdt in sizes_usdt:
-                    tr = self._execute_one(sig, ob, ob_replay, hypo, W_s, D_s, H_s, L_ms, q_usdt, symbol)
-                    if tr is None:
+        trades, scenarios = [], {}
+        fee = Decimal(str(self.fees))
+        buffer = Decimal(str(self.paper_cfg.get('buffer_bps', 5)/1e4))
+        for delay in L_ms_list:
+            for size in sizes_usdt:
+                cash = Decimal(str(self.paper_cfg.get('initial_balance_usdt', 100)))
+                busy_until, opened = 0, None
+                reasons = Counter()
+                closed_pnl = fees_paid = Decimal(0)
+                n_entries = n_closed = 0
+                n_unknown_entries = 0
+                for sig in sorted(signals, key=lambda x: x.t0_ns):
+                    decision = int(sig.t0_ns+D_s*1e9)
+                    if sig.direction != 'up':
+                        reasons['long_only'] += 1; continue
+                    if opened is not None or decision < busy_until:
+                        reasons['position_busy'] += 1; continue
+                    if sig.F0 is None:
+                        reasons['premium_unavailable'] += 1; continue
+                    if self._ext is not None:
+                        # D is a persistence check using only data received by decision.
+                        a, o, _ = self._confirm(self._ext, decision, (W_s+D_s)*1e9, 'up', sig.threshold)
+                        if a < self.paper_cfg['confirm_min_sources'] or o or not self._spread_ok(self._ext, decision):
+                            reasons['persistence_failed'] += 1; continue
+                    book = ob_replay.asof_ns(decision)
+                    if book is None:
+                        reasons['decision_book_unusable'] += 1; continue
+                    budget = Decimal(str(size))
+                    if budget > cash:
+                        reasons['insufficient_cash'] += 1; continue
+                    # Predetermined price cap keeps the expected edge positive after fees/buffer.
+                    cap = Decimal(str(sig.F0))*(1-fee)/((1+fee)*(1+buffer))
+                    qty = budget/(cap*(1+fee))
+                    step = self.paper_cfg.get('qty_step')
+                    if step:
+                        unit = Decimal(str(step)); qty = (qty/unit).to_integral_value(rounding=ROUND_DOWN)*unit
+                    price, filled = book.vwap('ask', qty)
+                    if price is None or filled != qty or price >= cap:
+                        reasons['no_decision_edge_or_depth'] += 1; continue
+                    arrival = int(decision+delay*1e6)
+                    actual = ob_replay.asof_ns(arrival) if arrival <= ob_replay.record_end_ns else None
+                    if actual is None:
+                        # The order was already decided. Missing arrival data cannot
+                        # retrospectively cancel it or prove that it was not filled.
+                        n_unknown_entries += 1
+                        opened = {'type': 'entry_unknown', 'requested_qty': str(qty),
+                                  'reserved_budget_usdt': str(budget), 'mark_equity_usdt': None}
+                        trades.append(Trade(symbol, hypo, W_s, D_s, H_s, delay, size,
+                                            sig.signal_utc_ns, arrival, None, None, None, qty,
+                                            Decimal(0), Decimal(0), None, 'entry_unobserved',
+                                            status='entry_unknown', cash_after=cash, equity_after=None))
+                        reasons['entry_unobserved'] += 1
                         continue
+                    price, filled = self._limited_vwap(actual, 'ask', qty, cap)
+                    if price is None or filled != qty:
+                        reasons['entry_unfilled'] += 1; continue
+                    cost = qty*price*(1+fee)
+                    cash -= cost; n_entries += 1
+                    buy_fee = qty*price*fee
+                    fees_paid += buy_fee
+                    exit_decision = int(arrival+H_s*1e9)
+                    exit_arrival = int(exit_decision+delay*1e6)
+                    exit_price, exit_qty = None, Decimal(0)
+                    if exit_arrival <= ob_replay.record_end_ns:
+                        exit_book = ob_replay.asof_ns(exit_arrival)
+                        if exit_book is not None:
+                            exit_price, exit_qty = exit_book.vwap('bid', qty)
+                    closed = exit_price is not None and exit_qty == qty
+                    if closed:
+                        sell_fee = qty*exit_price*fee
+                        proceeds = qty*exit_price*(1-fee)
+                        pnl = proceeds-cost
+                        cash += proceeds; closed_pnl += pnl; fees_paid += sell_fee
+                        n_closed += 1; busy_until = exit_arrival
+                        status, reason, equity = 'closed', 'H_timeout', cash
+                    else:
+                        # Never discard an entry just because its future exit cannot be observed.
+                        sell_fee, pnl = Decimal(0), None
+                        status, reason = 'open_unknown', 'exit_unobserved_or_insufficient_depth'
+                        mark = ob_replay.asof_ns(ob_replay.record_end_ns)
+                        mark_price, mark_qty = mark.vwap('bid', qty) if mark else (None, Decimal(0))
+                        equity = cash+qty*mark_price*(1-fee) if mark_price is not None and mark_qty==qty else None
+                        opened = {'qty': str(qty), 'entry_cost_usdt': str(cost), 'mark_equity_usdt': float(equity) if equity is not None else None}
+                    tr = Trade(symbol, hypo, W_s, D_s, H_s, delay, size, sig.signal_utc_ns,
+                               arrival, exit_arrival if closed else None, price, exit_price if closed else None,
+                               qty, buy_fee, sell_fee, pnl, reason, status=status, cash_after=cash, equity_after=equity,
+                               reach_raw=closed and float(exit_price)>=sig.R0,
+                               reach_adj=closed and float(exit_price)>=sig.F0)
                     trades.append(tr)
-                    stats["n_entries"] += 1
-                    stats["n_trades"] += 1
-                    stats["by_L"][L_ms]["n"] += 1
-                    stats["by_L"][L_ms]["pnl"] += tr.pnl
-                    stats["by_L"][L_ms]["fees"] += (tr.fee_buy + tr.fee_sell)
-        stats["pnl_sum"] = sum(v["pnl"] for v in stats["by_L"].values())
-        stats["fees_sum"] = sum(v["fees"] for v in stats["by_L"].values())
-        return {"hypo": hypo, "stats": stats, "trades": trades}
+                key = f'L{delay}_Q{size}'
+                scenarios[key] = {'L_ms': delay, 'budget_usdt': size, 'n_entries': n_entries,
+                                  'n_closed': n_closed, 'n_open_unknown': int(opened is not None),
+                                  'n_unknown_entries': n_unknown_entries,
+                                  'cash_usdt': float(cash), 'realized_pnl_usdt': float(closed_pnl),
+                                  'available_cash_usdt': float(cash-Decimal(opened.get('reserved_budget_usdt', '0'))) if opened else float(cash),
+                                  'fees_paid_usdt': float(fees_paid), 'open_position': opened,
+                                  'equity_usdt': opened['mark_equity_usdt'] if opened else float(cash),
+                                  'rejections': dict(reasons)}
+        return {'hypo': hypo, 'stats': {'n_signals': len(signals), 'scenarios': scenarios}, 'trades': trades}
 
-    def _execute_one(self, sig, ob_entry, ob_replay, hypo, W_s, D_s, H_s, L_ms, q_usdt, symbol):
-        qty = Decimal(str(q_usdt)) / Decimal(str(sig.R0))
-        f = Decimal(str(self.fees))
-        vwap_buy, filled = ob_entry.vwap("ask", qty)
-        if vwap_buy is None or filled <= 0:
-            return None
-        C_in = qty * vwap_buy * (1 + f)
-        # экономический фильтр (ТЗ п.9): Potential = q*F0*(1-f_sell) - C_in - buffer
-        buffer = Decimal(str(self.paper_cfg["buffer_bps"] / 1e4))
-        F0 = Decimal(str(sig.F0)) if sig.F0 is not None else vwap_buy
-        potential = qty * F0 * (1 - f) - C_in - buffer * C_in
-        if potential <= 0:
-            return None
-        t_exit = sig.t0_ns + D_s * 1e9 + L_ms * 1e6 + H_s * 1e9   # H от фактического входа
-        ob_exit = ob_replay.asof_ns(t_exit)
-        if ob_exit is None or not ob_exit.valid:
-            return None   # TODO P2: неизвестный выход сохранять, а не выбрасывать
-        vwap_sell, filled_sell = ob_exit.vwap("bid", qty)
-        if vwap_sell is None or filled_sell <= 0:
-            return None
-        proceeds = qty * vwap_sell * (1 - f)
-        pnl = proceeds - C_in
-        adverse = None
-        reach_raw = float(vwap_sell) >= float(sig.R0) * (1 - 1e-4)
-        reach_adj = sig.F0 is not None and float(vwap_sell) >= float(sig.F0) * (1 - 1e-4)
-        return Trade(symbol=symbol, hypo=hypo, W_s=W_s, D_s=D_s, H_s=H_s, L_ms=L_ms,
-                     size_usdt=q_usdt, signal_utc_ns=sig.t0_ns,
-                     entry_t_ns=int(sig.t0_ns + D_s * 1e9 + L_ms * 1e6), exit_t_ns=int(t_exit),
-                     entry_vwap=vwap_buy, exit_vwap=vwap_sell, qty=qty,
-                     fee_buy=C_in - qty * vwap_buy, fee_sell=proceeds * f / (1 - f) if False else qty * vwap_sell * f,
-                     pnl=pnl, exit_reason="H_timeout", adverse_bps=adverse,
-                     reach_raw=reach_raw, reach_adj=reach_adj)
+    @staticmethod
+    def _limited_vwap(book, side, qty, cap):
+        if book is None:
+            return None, Decimal(0)
+        remaining, total, filled = qty, Decimal(0), Decimal(0)
+        for price, volume in book.top_levels(side, 100):
+            if side == 'ask' and price > cap:
+                break
+            take = min(volume, remaining)
+            total += take*price; filled += take; remaining -= take
+            if remaining <= 0:
+                break
+        return (total/filled if filled else None), filled

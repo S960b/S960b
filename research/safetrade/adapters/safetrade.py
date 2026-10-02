@@ -1,200 +1,135 @@
-"""SafeTrade adapter v2 (ревью P0-2/P0-3).
-- REST через aiohttp в to_thread — не блокирует event loop.
-- WS depth: delta с sequence; контроль монотонности; gap -> invalid до нового REST-снимка.
-- REST-снимки периодически (rest_snapshot_s) как отдельный источник наблюдений с RTT;
-  книга помечается quality_flags=['rest_provisional'], т.к. доказуемого объединения
-  snapshot+delta без общей seq нет (rev. P0-3: не объявлять synchronized).
-- Health: liveness (recv), subscription, последний снапшот, применяемые дельты, gaps.
-WS: wss://safe.trade/api/v2/websocket/public (Cloudflare флаки — ретраи с Origin)."""
+"""SafeTrade: independent REST observations and raw WS deltas.
+
+No claimed REST/WS sequence synchronisation. REST runs even while WS is unavailable;
+its timestamp is response-receipt, with request time and RTT retained in raw/payload.
+"""
 import asyncio
 import json
 import logging
 import time
 import urllib.request
 
-import aiohttp
-
 from .base import BaseAdapter, UA
 from .events import make_event
 
 log = logging.getLogger(__name__)
-
-REST = "https://safetrade.com/api/v2/trade/public"
-WS = "wss://safe.trade/api/v2/websocket/public"
-REST_MARKETS = "https://safetrade.com/api/v2/trade/public/markets"
+REST = 'https://safetrade.com/api/v2/trade/public'
+WS = 'wss://safe.trade/api/v2/websocket/public'
+REST_MARKETS = REST+'/markets'
 
 
 class SafeTradeAdapter(BaseAdapter):
-    exchange = "safetrade"
+    exchange = 'safetrade'
 
     def __init__(self, markets_cfg=None, channels=None, raw_q=None, rest_snapshot_s=30.0):
         super().__init__(markets_cfg, channels)
         self.raw_q = raw_q
         self.rest_snapshot_s = rest_snapshot_s
-        self._health.update({
-            "last_snapshot_mono_ns": 0, "last_change_mono_ns": 0,
-            "seq": None, "seq_gaps": 0, "deltas_applied": 0, "invalid": False,
-        })
+        self._health.update(last_snapshot_mono_ns=0, last_change_mono_ns=0,
+                            seq=None, seq_gaps=0, deltas_applied=0, invalid=True,
+                            rest_errors=0, rest_snapshots=0)
 
-    # ---------- REST (aiohttp, не блокирует loop) ----------
     def _http(self, url, timeout=15):
-        req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "application/json"})
+        req = urllib.request.Request(url, headers={'User-Agent': UA, 'Accept': 'application/json'})
         with urllib.request.urlopen(req, timeout=timeout) as r:
             return json.loads(r.read())
 
-    async def _http_async(self, url, timeout=15):
-        return await asyncio.to_thread(self._http, url, timeout)
+    def discover_markets(self):
+        return [{'exchange': self.exchange, 'symbol': f"{m['base_unit'].upper()}/{m['quote_unit'].upper()}",
+                 'base': m['base_unit'].upper(), 'quote': m['quote_unit'].upper(), 'native': m['id'],
+                 'type': 'spot', 'status': m.get('state'), 'price_precision': m.get('price_precision'),
+                 'min_qty': m.get('min_amount'), 'amount_precision': m.get('amount_precision')}
+                for m in self._http(REST_MARKETS)]
 
-    def discover_markets(self) -> list:
-        data = self._http(REST_MARKETS)
-        out = []
-        for m in data:
-            out.append({
-                "exchange": "safetrade", "symbol": f"{m['base_unit'].upper()}/{m['quote_unit'].upper()}",
-                "base": m["base_unit"].upper(), "quote": m["quote_unit"].upper(),
-                "native": m["id"], "type": "spot", "status": m.get("state", ""),
-                "price_precision": m.get("price_precision"), "min_qty": m.get("min_amount"),
-                "amount_precision": m.get("amount_precision"),
-            })
-        return out
+    def _depth_observation(self, native, limit):
+        url = f'{REST}/markets/{native}/depth?limit={limit}'
+        req = urllib.request.Request(url, headers={'User-Agent': UA, 'Accept': 'application/json'})
+        request_utc, request_mono = time.time_ns(), time.monotonic_ns()
+        with urllib.request.urlopen(req, timeout=15) as r:
+            raw = r.read().decode('utf-8')
+            recv_utc, recv_mono = time.time_ns(), time.monotonic_ns()
+        return raw, json.loads(raw), recv_utc, recv_mono, request_utc, request_mono
 
-    async def rest_depth(self, native: str, limit: int = 100):
-        return await self._http_async(f"{REST}/markets/{native}/depth?limit={limit}")
+    async def rest_depth(self, native, limit=100):
+        return await asyncio.to_thread(self._depth_observation, native, limit)
 
-    # ---------- WS stream ----------
-    async def stream(self, symbol: str, sink: asyncio.Queue, run_id: str, boot_id: str) -> None:
-        native = symbol.replace("/", "").lower()
-        canon = symbol.replace("/", "")
-        first_snapshot_done = False
-        while True:
-            try:
-                # 1) REST-снимок ДО подписки (стартовое состояние, provisional)
-                snap = await self.rest_depth(native, 100)
-                t_utc, t_mono = time.time_ns(), time.monotonic_ns()
-                await sink.put(make_event(
-                    "safetrade", canon, native, "book_snapshot",
-                    recv_utc=t_utc, recv_mono=t_mono,
-                    bids=snap.get("bids", []), asks=snap.get("asks", []),
-                    run_id=run_id, boot_id=boot_id,
-                    quality_flags=["rest_provisional", "rest_snapshot"],
-                    payload={"rest": True, "limit": 100},
-                ))
-                self._health["last_snapshot_mono_ns"] = t_mono
-                self._mark_msg()
-
-                # 2) WS с ретраями (Cloudflare флаки)
-                ws = await self._connect_ws()
-                self._mark_reconnect()
-                await ws.send(json.dumps({"event": "subscribe", "streams": [f"{native}.depth"]}))
-
-                # 3) периодический REST-снимок (refresh) параллельно с чтением WS
-                refresh_task = asyncio.create_task(self._periodic_snapshot(native, canon, sink, run_id, boot_id))
+    async def stream(self, symbol, sink, run_id, boot_id):
+        native, canon = symbol.replace('/', '').lower(), symbol.replace('/', '')
+        rest = asyncio.create_task(self._periodic_snapshot(native, canon, sink, run_id, boot_id))
+        try:
+            while True:
+                ws = None
                 try:
+                    ws = await self.connect(WS, headers={'Origin': 'https://safetrade.com'})
+                    self._mark_reconnect()
+                    self._health['seq'] = None
+                    await ws.send(json.dumps({'event': 'subscribe', 'streams': [f'{native}.depth']}))
                     while True:
-                        raw, parsed, t_utc, t_mono = await self._ws_recv_msg(ws)
-                        self._push_raw(symbol, raw, t_utc, t_mono)
-                        if not isinstance(parsed, dict) or "success" in parsed:
-                            continue
-                        ev = self._parse_delta(canon, native, parsed, t_utc, t_mono, run_id, boot_id)
+                        raw, parsed, utc, mono = await self._ws_recv_msg(ws)
+                        self._push_raw(symbol, raw, utc, mono)
+                        ev = self._parse_delta(canon, native, parsed, utc, mono, run_id, boot_id)
                         if ev is not None:
-                            if not first_snapshot_done:
-                                ev["quality_flags"].append("after_first_snapshot")
                             await sink.put(ev)
-                            self._mark_msg()
-                            first_snapshot_done = True
+                except asyncio.CancelledError:
+                    raise
+                except Exception as e:
+                    self._mark_error(f'{type(e).__name__}: {str(e)[:100]}')
+                    log.warning('SafeTrade WS %s: %s', symbol, e)
+                    await self._emit_reset(sink, symbol, run_id, boot_id)
+                    await asyncio.sleep(3)
                 finally:
-                    refresh_task.cancel()
-                    try:
-                        await refresh_task
-                    except asyncio.CancelledError:
-                        pass
-                    await ws.close()
-            except asyncio.CancelledError:
-                raise
-            except Exception as e:
-                self._mark_error(f"{type(e).__name__}: {str(e)[:100]}")
-                self._health["connected"] = False
-                log.warning("safetrade %s error: %s", symbol, e)
-                await asyncio.sleep(3)
-
-    async def _connect_ws(self):
-        """Cloudflare: первый коннект иногда таймаутит — ретраи с Origin."""
-        last = None
-        for i in range(4):
-            try:
-                return await self.connect(WS, headers={"Origin": "https://safetrade.com"})
-            except Exception as e:
-                last = e
-                await asyncio.sleep(1.5 + i)
-        raise last
+                    if ws is not None:
+                        await ws.close()
+        finally:
+            rest.cancel()
+            await asyncio.gather(rest, return_exceptions=True)
 
     async def _periodic_snapshot(self, native, canon, sink, run_id, boot_id):
         while True:
-            await asyncio.sleep(self.rest_snapshot_s)
+            start = time.monotonic()
             try:
-                snap = await self.rest_depth(native, 100)
-                t_utc, t_mono = time.time_ns(), time.monotonic_ns()
-                await sink.put(make_event(
-                    "safetrade", canon, native, "book_snapshot",
-                    recv_utc=t_utc, recv_mono=t_mono,
-                    bids=snap.get("bids", []), asks=snap.get("asks", []),
-                    run_id=run_id, boot_id=boot_id,
-                    quality_flags=["rest_provisional", "rest_snapshot"],
-                    payload={"rest": True, "limit": 100},
-                ))
-                self._health["last_snapshot_mono_ns"] = t_mono
-                self._mark_msg()
+                raw, snap, utc, mono, request_utc, request_mono = await self.rest_depth(native)
+                rtt = (mono-request_mono)/1e9
+                if self.raw_q is not None:
+                    self.raw_q.put_nowait({'exchange': self.exchange, 'symbol': canon, 'raw': raw,
+                                          'recv_utc_ns': utc, 'recv_mono_ns': mono,
+                                          'request_utc_ns': request_utc, 'request_mono_ns': request_mono,
+                                          'rtt_s': rtt, 'transport': 'rest'})
+                await sink.put(make_event(self.exchange, canon, native, 'book_snapshot',
+                               recv_utc=utc, recv_mono=mono, bids=snap.get('bids', []), asks=snap.get('asks', []),
+                               run_id=run_id, boot_id=boot_id,
+                               quality_flags=['rest_provisional', 'rest_snapshot', 'observation_only'],
+                               payload={'rest': True, 'request_utc_ns': request_utc,
+                                        'request_mono_ns': request_mono, 'rtt_s': rtt}))
+                self._health['last_snapshot_mono_ns'] = mono
+                self._health['rest_snapshots'] += 1
+            except asyncio.CancelledError:
+                raise
             except Exception as e:
-                self._mark_error(f"snapshot: {type(e).__name__} {str(e)[:80]}")
+                self._health['rest_errors'] += 1
+                self._health['errors'].append(f'REST: {type(e).__name__}: {str(e)[:80]}')
+            await asyncio.sleep(max(.1, self.rest_snapshot_s-(time.monotonic()-start)))
 
     def _parse_delta(self, canon, native, parsed, t_utc, t_mono, run_id, boot_id):
-        """WS delta: {"btcusdt.depth": {"asks":[[p,q]], "bids":[...], "sequence":N}}.
-        sequence монотонный forward; gap/перекос -> invalid (до нового снапшота)."""
-        key = f"{native}.depth"
-        d = parsed.get(key)
+        d = parsed.get(f'{native}.depth') if isinstance(parsed, dict) else None
         if not isinstance(d, dict):
             return None
-        seq = d.get("sequence")
-        prev = self._health["seq"]
-        flags = []
+        seq, prev = d.get('sequence'), self._health['seq']
+        flags = ['unsynchronized_delta', 'observation_only']
         if seq is not None and prev is not None and seq < prev:
-            self._health["seq_gaps"] += 1
-            self._health["invalid"] = True
-            flags.append("sequence_regression")
-        elif seq is not None and prev is not None and seq > prev:
-            self._health["deltas_applied"] += 1
-        elif seq is not None:
-            self._health["deltas_applied"] += 1
-        if seq is not None:
-            self._health["seq"] = seq
-        if self._health["invalid"]:
-            flags.append("book_invalid")
-        self._health["last_change_mono_ns"] = t_mono
-        return make_event(
-            "safetrade", canon, native, "book_delta",
-            recv_utc=t_utc, recv_mono=t_mono,
-            exchange_event_ts=None, sequence=seq,
-            bids=d.get("bids", []), asks=d.get("asks", []),
-            quality_flags=flags, run_id=run_id, boot_id=boot_id, payload=d,
-        )
+            self._health['seq_gaps'] += 1; flags.append('sequence_regression')
+        self._health['seq'] = seq
+        self._health['last_change_mono_ns'] = t_mono
+        return make_event(self.exchange, canon, native, 'book_delta', recv_utc=t_utc, recv_mono=t_mono,
+                          sequence=seq, bids=d.get('bids', []), asks=d.get('asks', []),
+                          quality_flags=flags, run_id=run_id, boot_id=boot_id, payload=d)
 
-    def health(self) -> dict:
+    def health(self):
         h = super().health()
         now = time.monotonic_ns()
-        h.update({
-            "last_snapshot_age_s": None if not self._health["last_snapshot_mono_ns"]
-                                     else (now - self._health["last_snapshot_mono_ns"]) / 1e9,
-            "last_change_age_s": None if not self._health["last_change_mono_ns"]
-                                    else (now - self._health["last_change_mono_ns"]) / 1e9,
-            "seq": self._health["seq"], "seq_gaps": self._health["seq_gaps"],
-            "deltas_applied": self._health["deltas_applied"], "book_invalid": self._health["invalid"],
-        })
+        for key in ('last_snapshot', 'last_change'):
+            ts = self._health[key+'_mono_ns']
+            h[key+'_age_s'] = (now-ts)/1e9 if ts else None
+        h.update({key: self._health[key] for key in ('seq', 'seq_gaps', 'deltas_applied', 'rest_errors', 'rest_snapshots')})
+        h['book_synchronized'] = False
         return h
-
-    def _push_raw(self, symbol, raw, t_utc, t_mono):
-        if self.raw_q is not None:
-            try:
-                self.raw_q.put_nowait({"exchange": "safetrade", "symbol": symbol, "raw": raw,
-                                       "recv_utc_ns": t_utc, "recv_mono_ns": t_mono})
-            except asyncio.QueueFull:
-                pass

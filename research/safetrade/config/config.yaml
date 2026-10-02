@@ -52,6 +52,9 @@ health:
 # Оракул (ТЗ п.7, ревью P1-6: только внешние, 3/3)
 oracle:
   window_min: 30
+  premium_min_points: 10
+  premium_min_span_s: 900
+  premium_max_age_s: 60
   min_sources_for_primary: 3
   min_sources_for_degraded: 2
 
@@ -73,13 +76,15 @@ paper:
   confirm_min_sources: 2
   cooldown_s: 60
   buffer_bps: 5.0
+  oracle_dispersion_bps: 15.0
 
 # Комиссии taker (maker-модель отложена по ТЗ п.10)
 fees:
   safetrade:
     taker_bps: 10.0
     maker_bps: 0.0
-    source: safetrade.com/fees, checked 2026-10-02
+    verified: false
+    source: "модельное допущение; комиссию проверить для рынка и аккаунта"
     note: "значение уточнить по fees-странице"
 
 # Порог пригодности котировок

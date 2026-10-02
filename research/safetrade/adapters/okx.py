@@ -12,7 +12,7 @@ from .events import make_event
 log = logging.getLogger(__name__)
 
 REST = "https://www.okx.com/api/v5"
-WS = "wss://ws.okx.com:8443/ws/v5/public"
+WS = "wss://ws.okx.com/ws/v5/public"
 
 
 class OKXAdapter(BaseAdapter):
@@ -49,6 +49,7 @@ class OKXAdapter(BaseAdapter):
         if not args:
             return
         while True:
+            ws = None
             try:
                 ws = await self.connect(WS)
                 self._mark_reconnect()
@@ -65,20 +66,21 @@ class OKXAdapter(BaseAdapter):
                             # до снапшота дельту не применяем (помечаем quality)
                             ev["quality_flags"].append("no_snapshot_yet")
                         await sink.put(ev)
-                        self._mark_msg()
                         first = False
             except asyncio.CancelledError:
                 raise
             except Exception as e:
                 self._mark_error(f"{type(e).__name__}: {str(e)[:100]}")
                 log.warning("okx %s disconnect: %s", symbol, e)
+                await self._emit_reset(sink, symbol, run_id, boot_id)
                 await asyncio.sleep(3)
+            finally:
+                if ws is not None:
+                    await ws.close()
 
     def _parse(self, symbol, inst, parsed, t_utc, t_mono, run_id, boot_id):
         if not isinstance(parsed, dict):
             return None
-        for arg in parsed.get("arg", []) if isinstance(parsed.get("arg"), list) else []:
-            pass
         ch = parsed.get("arg", {}).get("channel") if isinstance(parsed.get("arg"), dict) else None
         data = parsed.get("data", [])
         if not data:
@@ -98,7 +100,7 @@ class OKXAdapter(BaseAdapter):
             # OKX books5: полный срез top-5 в каждом сообщении; action может отсутствовать
             # (по документации первое — snapshot, далее update с полным списком уровней).
             action = d.get("action", "snapshot")
-            et = "book_snapshot" if action in ("snapshot",) else "book_snapshot"
+            et = "book_snapshot"
             bids = [[p[0], p[1]] for p in d.get("bids", [])]
             asks = [[p[0], p[1]] for p in d.get("asks", [])]
             return make_event(
@@ -108,11 +110,3 @@ class OKXAdapter(BaseAdapter):
                 run_id=run_id, boot_id=boot_id, payload={"action": action, "bids": d.get("bids"), "asks": d.get("asks")},
             )
         return None
-
-    def _push_raw(self, symbol, raw, t_utc, t_mono):
-        if self.raw_q is not None:
-            try:
-                self.raw_q.put_nowait({"exchange": "okx", "symbol": symbol, "raw": raw,
-                                       "recv_utc_ns": t_utc, "recv_mono_ns": t_mono})
-            except asyncio.QueueFull:
-                pass

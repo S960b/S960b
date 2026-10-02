@@ -62,14 +62,36 @@ class BaseAdapter(abc.ABC):
         self._health["reconnects"] += 1
 
     # ---- WS helpers (общие; время фиксируется ДО json.loads) ----
-    async def _ws_recv_msg(self, ws, timeout: float = 30.0):
-        """recv с таймаутом только на сетевой recv; тишина НЕ причина reconnect,
-        если ping/pong живы (ревью P0-3: разделять liveness и отсутствие изменений)."""
-        raw = await asyncio.wait_for(ws.recv(), timeout=timeout)
+    async def _ws_recv_msg(self, ws):
+        """Keep a quiet connection alive; use exchange-specific application heartbeat where required."""
+        if self.exchange in ("okx", "bybit"):
+            try:
+                raw = await asyncio.wait_for(ws.recv(), timeout=20)
+            except asyncio.TimeoutError:
+                await ws.send("ping" if self.exchange == "okx" else json.dumps({"op": "ping"}))
+                raw = await asyncio.wait_for(ws.recv(), timeout=10)
+        else:
+            raw = await ws.recv()  # frame ping/pong detects dead connections, not quiet markets
         t_utc = time.time_ns()
         t_mono = time.monotonic_ns()
-        parsed = json.loads(raw)
+        self._mark_msg()
+        parsed = {"heartbeat": "pong"} if raw == "pong" else json.loads(raw)
         return raw, parsed, t_utc, t_mono
+
+    def _push_raw(self, symbol, raw, t_utc, t_mono):
+        if self.raw_q is not None:
+            try:
+                self.raw_q.put_nowait({"exchange": self.exchange, "symbol": symbol, "raw": raw,
+                                       "recv_utc_ns": t_utc, "recv_mono_ns": t_mono})
+            except asyncio.QueueFull:
+                # CountedQueue marks overflow and stops the collector.
+                pass
+
+    async def _emit_reset(self, sink, symbol, run_id, boot_id):
+        from .events import make_event
+        await sink.put(make_event(self.exchange, symbol.replace("/", ""), symbol,
+                                  "health", run_id=run_id, boot_id=boot_id,
+                                  quality_flags=["connection_reset"], payload={"channel": "ws"}))
 
     @staticmethod
     async def connect(uri: str, headers: Optional[dict] = None, open_timeout: float = 15.0):

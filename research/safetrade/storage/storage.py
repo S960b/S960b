@@ -38,7 +38,7 @@ class JsonlRotator:
     def _open_new(self):
         while True:
             self._seq += 1
-            cand = os.path.join(self.base_dir, f"{utc_date()}_{self.run_id}_{self._seq:04d}.jsonl")
+            cand = os.path.join(self.base_dir, f"{utc_date()}_{self.run_id}_{time.time_ns()}_{uuid.uuid4().hex[:8]}.jsonl")
             try:
                 self._fh = open(cand, "x", buffering=1)   # O_EXCL: никогда не перезапишем
                 self._path = cand
@@ -54,7 +54,7 @@ class JsonlRotator:
         line = json.dumps(obj, ensure_ascii=False, separators=(",", ":"))
         self._fh.write(line + "\n")
         ref = f"{os.path.basename(self._path)}#{self._size}"
-        self._size += len(line) + 1
+        self._size += len((line + "\n").encode("utf-8"))
         if self._size >= self.max_bytes:
             self.rotate()
         return ref
@@ -66,8 +66,9 @@ class JsonlRotator:
         if self._path:
             src = self._path
             if not os.path.exists(src + ".gz"):
-                with open(src, "rb") as f_in, gzip.open(src + ".gz", "wb") as f_out:
+                with open(src, "rb") as f_in, gzip.open(src + ".gz.tmp", "wb") as f_out:
                     shutil.copyfileobj(f_in, f_out)
+                os.replace(src + ".gz.tmp", src + ".gz")
                 os.remove(src)
             self._path = None
             self._size = 0
@@ -116,6 +117,7 @@ class ParquetWriter:
         self.flush_events = flush_events
         self._buffers = {}          # key (date, exchange) -> list[dict]
         self._last_flush = {}       # key -> time.monotonic()
+        self.rows_flushed = 0
         os.makedirs(base_dir, exist_ok=True)
 
     def add(self, ev: dict) -> None:
@@ -123,7 +125,8 @@ class ParquetWriter:
         key = (dt, ev["exchange"])
         self._buffers.setdefault(key, []).append(ev)
         now = time.monotonic()
-        if now - self._last_flush.get(key, 0) >= self.flush_interval_s or \
+        self._last_flush.setdefault(key, now)
+        if now - self._last_flush[key] >= self.flush_interval_s or \
            len(self._buffers[key]) >= self.flush_events:
             self.flush(key)
             self._last_flush[key] = now
@@ -145,7 +148,7 @@ class ParquetWriter:
     def flush(self, key=None):
         keys = [key] if key else list(self._buffers.keys())
         for k in keys:
-            buf = self._buffers.pop(k, None)
+            buf = self._buffers.get(k)
             if not buf:
                 continue
             date, exchange = k
@@ -163,6 +166,15 @@ class ParquetWriter:
             tmp = final + ".tmp"
             pq.write_table(table, tmp)
             os.rename(tmp, final)
+            self._buffers.pop(k, None)
+            self.rows_flushed += len(buf)
+            self._last_flush[k] = time.monotonic()
+
+    def flush_due(self):
+        now = time.monotonic()
+        for key in list(self._buffers):
+            if now - self._last_flush.get(key, now) >= self.flush_interval_s:
+                self.flush(key)
 
     def close(self):
         self.flush()
