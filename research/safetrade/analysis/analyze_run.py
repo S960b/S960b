@@ -233,8 +233,6 @@ def _signal_diag_csv(signals, sim, r, df_safe, cfg, horizons, out_path):
     Отношения из stale-котировки помечаются статусом и не входят в статистику пригодных."""
     import csv as _csv
     import bisect as _bisect
-    if not signals:
-        return 0
     columns = oracle_columns(r) if r is not None else None
     budgets = cfg['paper']['sizes_usdt']
     # снапшоты SafeTrade: (mono, utc, ev) — только book_snapshot с реальным стаканом
