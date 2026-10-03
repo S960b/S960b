@@ -148,8 +148,13 @@ def analyze_run(run_dir, run_id, verbose=False, cutoff_ns=None):
         poll_coverage = []
         for r in tr_by.get(pair, []):
             pc = r.get('coverage')
+            p_ok = r.get('ok', True)
+            p_warm = bool(r.get('warmup', False))
             if pc:
-                poll_coverage.append(pc)
+                poll_coverage.append((p_ok, pc, p_warm))
+            else:
+                # поле coverage отсутствует (старый формат/легаси)
+                poll_coverage.append((p_ok, 'missing', p_warm))
             for t in r.get('trades', []):
                 if not isinstance(t, dict) or 'id' not in t:
                     continue
@@ -162,7 +167,7 @@ def analyze_run(run_dir, run_id, verbose=False, cutoff_ns=None):
                 if ts is None:
                     o['unparsed_ts'] += 1
                 unique[key] = (ts, t)
-        o['poll_statuses'] = poll_coverage
+        o['poll_statuses'] = [c for _, c, _ in poll_coverage]
         o['n_unique_trades'] = len(unique)
         # event time в [start, cutoff]; receive ограничен выше (rcv <= cutoff)
         in_win = {k: (ts, t) for k, (ts, t) in unique.items()
@@ -180,21 +185,39 @@ def analyze_run(run_dir, run_id, verbose=False, cutoff_ns=None):
                 gaps = sorted(ts_list[i] - ts_list[i-1] for i in range(1, len(ts_list)))
                 o['gap_median_s'] = round(gaps[len(gaps)//2], 1)
                 o['gap_p95_s'] = round(gaps[int(len(gaps)*.95)], 1)
-        # coverage: полнота по статусам poll (P0.4 0b71d28): единственный
-        # no_trades при ok=True и coverage=full — real no_trades; любой
-        # failed/truncated/unknown украшает статус
-        if o['n_trade_polls'] == 0:
+        # coverage (92d4079): учитываем ok, наличие coverage, warmup отдельно.
+        # missing/пустой ошибочный poll НЕ доказывает полноту наблюдения.
+        live = [(ok, c) for ok, c, w in poll_coverage if not w]
+        warm = [(ok, c) for ok, c, w in poll_coverage if w]
+        if not poll_coverage:
             o['trade_coverage'] = 'no_polls'
-        elif o['n_trade_records'] == 0 and all(c in ('full', 'full_at_page', 'caught_up')
-                                               for c in poll_coverage):
-            o['trade_coverage'] = 'no_trades_observed'
-        elif any(c in ('request_failed',) for c in poll_coverage):
-            o['trade_coverage'] = 'request_failed'
-        elif any(c in ('history_truncated', 'coverage_unknown', 'pagination_not_advancing')
-                 for c in poll_coverage):
-            o['trade_coverage'] = 'history_truncated'
+        elif any(not ok for ok, _, _ in poll_coverage):
+            o['trade_coverage'] = 'request_failed'      # есть failed poll
+        elif any(c == 'missing' for _, c, _ in poll_coverage):
+            o['trade_coverage'] = 'coverage_unknown'    # легаси без диагностики
+        elif not live:
+            o['trade_coverage'] = 'warmup_only'         # только warmup-поллы
+        elif all(c in ('full', 'full_at_page', 'caught_up') for _, c in live) \
+                and o['n_trade_records'] == 0:
+            o['trade_coverage'] = 'no_trades_observed'  # полные poll'ы, 0 записей
+        elif any(c in ('history_truncated', 'coverage_unknown', 'pagination_not_advancing',
+                       'missing') for _, c in live):
+            o['trade_coverage'] = 'history_truncated'   # live-покрытие не полное
         else:
             o['trade_coverage'] = 'observed_window'
+        o['warmup_truncated'] = any(c in ('history_truncated', 'coverage_unknown',
+                                          'pagination_not_advancing', 'missing', 'request_failed')
+                                    for _, c in warm) if warm else False
+        # покрытие интервала run по live poll'ам — отдельно от исторического warmup
+        if live and all(ok and c in ('full', 'full_at_page', 'caught_up') for ok, c in live):
+            o['interval_coverage'] = 'covered' if o['n_trade_records'] else 'no_trades'
+        elif any(not ok for ok, _ in live):
+            o['interval_coverage'] = 'request_failed'
+        elif any(c in ('history_truncated', 'coverage_unknown', 'pagination_not_advancing', 'missing')
+                 for _, c in live):
+            o['interval_coverage'] = 'incomplete'
+        else:
+            o['interval_coverage'] = 'unknown'
         out['pairs'].append(o)
     return out
 

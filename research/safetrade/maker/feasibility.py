@@ -224,8 +224,11 @@ async def _fetch_trades(adapter, native, limiter, pages=2):
             cov = "coverage_unknown"
             break
         if not batch:
-            cov = "full" if page == 1 else "full_at_page"   # пусто = конец истории
+            # ПУСТАЯ страница — доказанный конец истории API (92d4079):
+            # останавливаемся по нему, а не по числу новых после дедупа
+            cov = "full" if page == 1 else "full_at_page"
             break
+        batch_len = len(batch)
         new = [t for t in batch if isinstance(t, dict) and 'id' in t and t['id'] not in seen]
         if not new:
             # повтор страницы: пагинация не продвигается => НЕ конец истории (P0.1 0b71d28)
@@ -234,7 +237,10 @@ async def _fetch_trades(adapter, native, limiter, pages=2):
         for t in new:
             seen.add(t['id'])
         trades.extend(new)
-        if len(new) < PAGE_LIMIT:
+        if batch_len < PAGE_LIMIT:
+            # Страница короче лимита = последняя страница истории (доказанный конец).
+            # НЕ по len(new): перекрывающийся ID на странице из 100 записей даёт
+            # 99 новых, но история не закончилась (92d4079: 299 unique в mock).
             cov = "full" if page == 1 else "full_at_page"
             break
         if page == pages:

@@ -2,6 +2,7 @@
 import json
 import os
 import sys
+import time
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -176,6 +177,16 @@ def panel():
                 if os.path.exists(ck_path):
                     ck_m = json.load(open(ck_path))
                 status_var = st_m.get('status', 'RUNNING (нет summary)')
+                # heartbeat: age checkpoint (92d4079: возраст определяет STALE)
+                ck_age = None
+                if ck_m.get('checkpoint_utc'):
+                    try:
+                        from maker.util import parse_iso_utc
+                        ck_age = round((time.time() - parse_iso_utc(ck_m['checkpoint_utc'])) / 60.0, 1)
+                    except Exception:
+                        ck_age = None
+                if status_var.startswith('running') and ck_age is not None and ck_age > 40:
+                    status_var = 'STALE'
                 st.json({'run_id': selected, 'status': status_var,
                          'started_utc': latest_m.get('started_utc'),
                          'pairs': latest_m.get('pairs'),

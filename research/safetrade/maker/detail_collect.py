@@ -145,9 +145,14 @@ async def safe_get(adapter, url, limiter, attempts=3):
     for attempt in range(attempts):
         await limiter.wait()
         req = urllib.request.Request(url, headers={'User-Agent': _UA, 'Accept': 'application/json'})
-        try:
+
+        def _open():
             with urllib.request.urlopen(req, timeout=15) as resp:
-                body = resp.read().decode('utf-8')
+                return resp.read().decode('utf-8')
+
+        try:
+            # блокирующий I/O ВНЕ event loop (92d4079: не обещать async-параллельность)
+            body = await asyncio.to_thread(_open)
             try:
                 return {'ok': True, 'data': json.loads(body)}
             except ValueError as e:
@@ -222,11 +227,18 @@ async def _oracle_rows():
 
 async def run_detail(pairs, minutes, rpm, base_dir, verbose=False, segment=1, resume_run_id=None):
     from adapters import get_adapter
+
+    # resume_run_id ЗАПРЕЩЁН (0b71d28/92d4079): дописывание старых JSONL
+    # переписывает manifest и сбрасывает watermark. Отказ ДО любого I/O.
+    if resume_run_id:
+        raise ValueError(
+            'resume_run_id отключён: дописывание старых JSONL ломает целостность. '
+            'Используйте новый segment/run_id.')
+
     adapter = get_adapter('safetrade')
     limiter = RateLimiter(rpm)
 
-    # resume_run_id: продолжение существующего сегмента (дописывание новым поллингом)
-    run_id = resume_run_id or ('mk_' + hex(int(time.time() * 1e9))[2:18])
+    run_id = ('mk_' + hex(int(time.time() * 1e9))[2:18])
     run_dir = os.path.join(base_dir, 'data', 'maker')
     os.makedirs(run_dir, exist_ok=True)
 
@@ -236,11 +248,14 @@ async def run_detail(pairs, minutes, rpm, base_dir, verbose=False, segment=1, re
         'schema_version': 2,
         'run_id': run_id, 'segment': segment,
         'started_utc': started_utc,
+        'started_epoch': started,
         'pairs': pairs, 'params': {'tick_s': TICK_S, 'trades_every': TRADES_EVERY,
                                    'oracle_every': ORACLE_EVERY, 'rpm': rpm,
-                                   'minutes': minutes, 'max_trade_pages': MAX_TRADE_PAGES},
+                                   'minutes': minutes,
+                                   'warmup_pages': WARMUP_PAGES, 'live_pages': LIVE_PAGES},
         'notes': 'rest_provisional; no order execution; '
-                 'trades_page_dedup=until_watermark_overlap',
+                 'confirmed_boundary_advances_only_on_full_poll; '
+                 'target_boundary=run_start',
     }
     try:
         manifest['code_commit'] = subprocess.run(
@@ -256,13 +271,6 @@ async def run_detail(pairs, minutes, rpm, base_dir, verbose=False, segment=1, re
     f_tr = open(os.path.join(run_dir, f'{run_id}_trades.jsonl'), 'a', encoding='utf-8')
     f_or = open(os.path.join(run_dir, f'{run_id}_oracle.jsonl'), 'a', encoding='utf-8')
 
-    # resume_run_id: НЕ применять к старым run (P1 0b71d28) — дописывание файлов
-    # и переписывание manifest с новым стартом ломает целостность; запрещено.
-    if resume_run_id:
-        raise ValueError(
-            'resume_run_id отключён (0b71d28): дописывание старых JSONL переписывает '
-            'manifest и сбрасывает watermark. Используйте новый segment/run_id.')
-
     # per-pair cadence: фактические промежутки depth/trades (P1 0b71d28)
     pair_times = {pair: {'depth': [], 'trades': []} for pair in pairs}
     last_pair_ts = {pair: {'depth': None, 'trades': None} for pair in pairs}
@@ -270,15 +278,20 @@ async def run_detail(pairs, minutes, rpm, base_dir, verbose=False, segment=1, re
     last_depth_ok = {}
     last_trades_ok = {}
 
-    # watermark: САМАЯ НОВАЯ подтверждённая граница прошлого poll (P0.1 0b71d28).
-    # None в начале сегмента -> warmup (первый poll читает историю один раз).
-    watermark = {}
+    # ПОДТВЕРЖДЁННАЯ граница покрытия (92d4079 P0): продвигается ТОЛЬКО при
+    # полном poll (full/full_at_page/caught_up). При truncated/failed/unknown/
+    # pagination_not_advancing НЕ двигается — следующий poll дочитывает с неё.
+    # Начальная целевая граница = время СТАРТА run (не вся история листинга):
+    # первый poll догоняет начало наблюдения и останавливается.
+    boundary = {pair: started for pair in pairs}
+    first_poll = {pair: True for pair in pairs}   # warmup = первый poll на пару
     rows_written = 0
     ticks = 0
     last_poll = {}
     deadline = time.monotonic() + minutes * 60
     tick_dur = []
     lifecycle = {'status': 'running'}
+    CONFIRMED_OK = ('full', 'full_at_page', 'caught_up')
     try:
         while time.monotonic() < deadline:
             tick_start = time.monotonic()
@@ -297,6 +310,8 @@ async def run_detail(pairs, minutes, rpm, base_dir, verbose=False, segment=1, re
                            'bids': snap.get('bids', []), 'asks': snap.get('asks', []), 'ok': True}
                     last_depth_ok[pair] = time.time()
                 except Exception as e:
+                    if getattr(e, 'code', None) == 429:
+                        limiter.blocks_429 += 1
                     row = {'pair': pair, 't': time.time_ns(), 'ok': False,
                            'err': type(e).__name__ + ': ' + str(e)[:80]}
                 f_dep.write(json.dumps(row) + '\n')
@@ -305,25 +320,31 @@ async def run_detail(pairs, minutes, rpm, base_dir, verbose=False, segment=1, re
                 if last_pair_ts[pair]['depth'] is not None:
                     pair_times[pair]['depth'].append(time.monotonic() - last_pair_ts[pair]['depth'])
                 last_pair_ts[pair]['depth'] = time.monotonic()
-                # trades (каждый 3-й тик): пагинация до перекрытия с прошлым poll
+                # trades: live poll до подтверждённой границы; warmup = первый
                 if ticks % TRADES_EVERY == 0:
-                    wm = watermark.get(pair)   # НОВЕЙШАЯ подтверждённая граница
-                    mp = WARMUP_PAGES if wm is None else LIVE_PAGES
+                    wm = boundary.get(pair)          # ПОДТВЕРЖДЁННАЯ граница
+                    is_warm = first_poll.get(pair)
+                    mp = WARMUP_PAGES if is_warm else LIVE_PAGES
                     recs, cov, lo, hi, fts, lts, pages = await _fetch_trades_detailed(
                         adapter, native, limiter, watermark_time=wm, max_pages=mp)
-                    row = {'pair': pair, 't': time.time_ns(), 'ok': True,
-                           'warmup': wm is None, 'coverage': cov,
+                    ok_row = cov not in ('request_failed', 'coverage_unknown')
+                    bnd_after = boundary.get(pair)
+                    if cov in CONFIRMED_OK and fts is not None:
+                        boundary[pair] = fts          # только полный poll продвигает
+                        bnd_after = boundary[pair]
+                    row = {'pair': pair, 't': time.time_ns(), 'ok': ok_row,
+                           'warmup': is_warm, 'coverage': cov,
                            'pages': pages, 'id_range': [lo, hi],
                            'time_range': [fts, lts],
+                           'boundary_before': wm, 'boundary_after': bnd_after,
                            'n_records': len(recs), 'trades': recs}
                     f_tr.write(json.dumps(row) + '\n')
                     rows_written += 1
-                    if recs and fts is not None:
-                        # новая граница = САМОЕ НОВОЕ время в полученном наборе
-                        watermark[pair] = fts
                     last_poll[pair] = {'t': time.time_ns(), 'coverage': cov,
                                        'n_records': len(recs)}
-                    last_trades_ok[pair] = time.time()
+                    if ok_row:
+                        last_trades_ok[pair] = time.time()   # только успешный ответ
+                    first_poll[pair] = False
                     if last_pair_ts[pair]['trades'] is not None:
                         pair_times[pair]['trades'].append(time.monotonic() - last_pair_ts[pair]['trades'])
                     last_pair_ts[pair]['trades'] = time.monotonic()
@@ -387,7 +408,7 @@ async def run_detail(pairs, minutes, rpm, base_dir, verbose=False, segment=1, re
                         'note': 'wall-clock длительность обработки тика (вкл. сеть)'},
             'per_pair': per_pair,
             'trade_poll_state': last_poll,
-            'watermark': watermark,
+            'confirmed_boundary': boundary,
             'notes': 'rest_provisional; no order execution',
         }
         summary_tmp = os.path.join(run_dir, f'{run_id}_summary.json.tmp')

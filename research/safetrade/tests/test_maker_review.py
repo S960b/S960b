@@ -154,7 +154,10 @@ def test_analyzer_unique_and_window_filter(tmp_path):
     ]
     trade = {'id': 1, 'created_at': '2026-10-02T00:00:00Z',
              'price': '100', 'amount': '.01', 'total': '1'}
-    polls = [{'pair': 'PUSDT', 't': t, 'ok': True, 'trades': [trade]} for t in range(3)]
+    # poll'ы с явной диагностикой (warmup=False, coverage) — иначе легаси
+    # без coverage честно даёт coverage_unknown (92d4079)
+    polls = [{'pair': 'PUSDT', 't': t, 'ok': True, 'warmup': False,
+              'coverage': 'caught_up', 'trades': [trade]} for t in range(3)]
     for suffix, rows in [('depth', depth), ('trades', polls)]:
         with open(tmp_path / f'{rid}_{suffix}.jsonl', 'w') as f:
             for row in rows:
