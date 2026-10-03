@@ -153,36 +153,47 @@ def panel():
             else:
                 st.info('reports/pair_screen.csv не найден.')
         else:
-            # детальный сбор: самые свежие данные data/maker/*_summary.json
+            # детальный сбор: manifest/checkpoint (P1.5) + готовый агрегат
             import glob as _glob
-            sums = sorted(_glob.glob(os.path.join(BASE, 'data', 'maker', '*_summary.json')))
-            if sums:
-                latest = json.load(open(sums[-1]))
-                st.json(latest, expanded=False)
-                run_id = latest.get('run_id')
-                dpath = os.path.join(BASE, 'data', 'maker', f'{run_id}_depth.jsonl')
-                if os.path.exists(dpath):
-                    import collections
-                    rows = [json.loads(l) for l in open(dpath) if l.strip()]
-                    per = collections.defaultdict(list)
-                    for r in rows:
-                        if r.get('ok') and r.get('bids') and r.get('asks'):
-                            bb = max(float(p) for p, _ in r['bids'])
-                            ba = min(float(p) for p, _ in r['asks'])
-                            per[r['pair']].append((ba - bb) / ((ba + bb) / 2) * 1e4)
-                    out = []
-                    for pair, spreads in sorted(per.items()):
-                        if spreads:
-                            s = sorted(spreads)
-                            out.append({'pair': pair, 'n_snaps': len(s),
-                                        'spread_min_bps': round(s[0], 1),
-                                        'spread_p50_bps': round(s[len(s)//2], 1),
-                                        'spread_p90_bps': round(s[int(len(s)*.9)], 1)})
-                    if out:
-                        st.dataframe(pd.DataFrame(out), hide_index=True, width='stretch')
-                        st.caption(f'Детальный сбор {run_id}: распределение спреда по снимкам depth. '
-                                   'REST 20с, trades 60с, oracle LTC каждые 5 тиков. БЕЗ ордеров.')
-            else:
+            runs_dir = os.path.join(BASE, 'data', 'maker')
+            agg_path = os.path.join(BASE, 'reports', 'pair_screen_maker_oldrun.json')
+            latest_agg = None
+            if os.path.exists(agg_path):
+                latest_agg = json.load(open(agg_path))
+            manifs = sorted(_glob.glob(os.path.join(runs_dir, '*_manifest.json')))
+            if manifs:
+                latest_m = json.load(open(manifs[-1]))
+                run_id = latest_m.get('run_id')
+                sum_path = os.path.join(runs_dir, f'{run_id}_summary.json')
+                status_var = 'RUNNING' if not os.path.exists(sum_path) else 'COMPLETED'
+                st_m = {}
+                if os.path.exists(sum_path):
+                    st_m = json.load(open(sum_path))
+                st.json({'run_id': run_id, 'status': status_var,
+                         'started_utc': latest_m.get('started_utc'),
+                         'pairs': latest_m.get('pairs'),
+                         'segment': latest_m.get('segment'),
+                         **({k: st_m[k] for k in ('finished_utc', 'ticks', 'rows_written',
+                                                    'api_calls', 'blocks_429', 'cadence')
+                             if k in st_m})}, expanded=False)
+                st.caption(f'Сбор {run_id}: {status_var}. Кэш/координация: summary пишется атомарно по '
+                           f'завершении; во время сбора данные читаются из reports-агрегата.')
+            if latest_agg and latest_agg.get('pairs'):
+                rows = []
+                for p in latest_agg['pairs']:
+                    rows.append({'pair': p['symbol'],
+                                 'n_valid_depth': p.get('n_valid_depth'),
+                                 'spread_p50_bps': p.get('spread_p50_bps'),
+                                 'spread_p90_bps': p.get('spread_p90_bps'),
+                                 'n_unique_trades': p.get('n_unique_trades'),
+                                 'n_trades_in_window': p.get('n_trades_in_window'),
+                                 'trades_per_hour': p.get('trades_per_hour'),
+                                 'coverage': p.get('trade_coverage')})
+                st.dataframe(pd.DataFrame(rows), hide_index=True, width='stretch')
+                st.caption('Агрегат старого run (см. maker_stage1_progress.md): активность по '
+                           'ОКНУ сбора (не по разбросу сделок), дедуп по (pair,id), спред по '
+                           'валидным снимкам. БЕЗ ордеров.')
+            elif not manifs:
                 st.info('Детального сбора ещё нет. Запуск: cli.py maker-collect --pairs PRLUSDT,... --minutes 360')
         diag_path = os.path.join(BASE, 'reports', f'signals_{symbol}.csv')
         if os.path.exists(diag_path):

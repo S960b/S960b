@@ -1,0 +1,6 @@
+symbol,n_valid_depth,spread_p10_bps,spread_p50_bps,spread_p90_bps,spread_max_bps,ask_full_cov_5_pct,ask_full_cov_10_pct,ask_full_cov_25_pct,n_trade_polls,n_trade_records,n_unique_trades,n_duplicates,n_trades_in_window,trades_per_hour,window_span_h,trade_coverage
+LTCUSDT,375,21.4,73.8,134.4,140.1,100.0,100.0,100.0,125,12500,202,12298,102,26.0,3.92,observed_window
+PRLUSDT,375,93.9,93.9,94.8,188.7,100.0,100.0,100.0,125,12500,1662,10838,1569,399.95,3.92,observed_window
+QUANTUSUSDT,375,14.8,87.3,270.5,739.0,100.0,100.0,100.0,125,12500,1754,10746,1656,422.13,3.92,observed_window
+TSCUSDT,375,32.5,94.3,141.2,531.2,100.0,100.0,100.0,125,12500,162,12338,63,16.06,3.92,observed_window
+USDCUSDT,375,22.0,23.0,25.0,25.0,100.0,100.0,100.0,125,12500,155,12345,55,14.02,3.92,observed_window

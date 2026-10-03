@@ -294,6 +294,41 @@ def cmd_maker_collect(args):
     _asyncio.run(run_detail(pairs, args.minutes, args.rpm, base, verbose=args.verbose))
 
 
+def cmd_maker_detail(args):
+    """Анализ детального maker-сбора (спреды/глубина/активность, rev 738de3a P0.2)."""
+    from maker.detail_analyze import analyze_run
+    base = args.data_root or BASE
+    run_id = args.run_id
+    runs_dir = os.path.join(base, 'data', 'maker')
+    if args.latest or not run_id:
+        import glob
+        runs = sorted({os.path.basename(f).replace('_depth.jsonl', '')
+                       for f in glob.glob(os.path.join(runs_dir, '*_depth.jsonl'))})
+        run_id = run_id or (runs[-1] if runs else None)
+    if not run_id:
+        print('нет run: запустите maker-collect')
+        return
+    res = analyze_run(runs_dir, run_id, verbose=args.verbose, cutoff_ns=args.cutoff_ns)
+    import json as _json
+    out = os.path.join(base, 'reports', f'pair_screen_maker_{run_id}.json')
+    with open(out, 'w') as f:
+        _json.dump(res, f, indent=1, ensure_ascii=False)
+    print(f"maker-detail {run_id}: pairs={len(res['pairs'])} -> {out}")
+    if args.csv:
+        csv_path = os.path.join(base, 'reports', f'pair_screen_maker_{run_id}.csv')
+        import csv as _csv
+        cols = ['symbol', 'n_valid_depth', 'spread_p10_bps', 'spread_p50_bps', 'spread_p90_bps',
+                'spread_max_bps', 'ask_full_cov_5_pct', 'ask_full_cov_10_pct', 'ask_full_cov_25_pct',
+                'n_trade_polls', 'n_trade_records', 'n_unique_trades', 'n_duplicates',
+                'n_trades_in_window', 'trades_per_hour', 'window_span_h', 'trade_coverage']
+        with open(csv_path, 'w', newline='', encoding='utf-8') as f:
+            w = _csv.DictWriter(f, fieldnames=cols)
+            w.writeheader()
+            for p in res.get('pairs', []):
+                w.writerow({c: p.get(c) for c in cols})
+        print(f"  csv={csv_path}")
+
+
 def main():
     p = argparse.ArgumentParser(description="SafeTrade research toolkit")
     p.add_argument("--config", default=None)
@@ -348,6 +383,14 @@ def main():
     sp.add_argument("--rpm", type=float, default=20.0, help="общий бюджет запросов SafeTrade/мин")
     sp.add_argument("--verbose", action="store_true")
     sp.set_defaults(fn=cmd_maker_collect)
+
+    sp = sub.add_parser("maker-detail")
+    sp.add_argument("--run-id", default=None)
+    sp.add_argument("--latest", action="store_true")
+    sp.add_argument("--cutoff-ns", type=int, default=None)
+    sp.add_argument("--csv", action="store_true")
+    sp.add_argument("--verbose", action="store_true")
+    sp.set_defaults(fn=cmd_maker_detail)
 
     sp = sub.add_parser("replay")
     sp.add_argument("--symbol", default=None)
