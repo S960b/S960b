@@ -245,7 +245,7 @@ def test_next_poll_uses_newest_confirmed_boundary_not_oldest_tail(monkeypatch, t
     setup_collector(monkeypatch)
     observed = []
 
-    async def fetch(adapter, native, limiter, watermark_time=None):
+    async def fetch(adapter, native, limiter, watermark_time=None, max_pages=3):
         observed.append(watermark_time)
         if len(observed) > 1:
             raise ProbeStop("stop after boundary observation")

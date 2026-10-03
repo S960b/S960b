@@ -29,7 +29,9 @@ PAGE_LIMIT = 100
 TICK_S = 20.0          # целевой такт на пару (depth)
 TRADES_EVERY = 3       # trades каждый 3-й такт (60с)
 ORACLE_EVERY = 5       # внешние BBO каждые 5-й такт (100с)
-MAX_TRADE_PAGES = 40   # предельные страницы на один poll (не тратить весь бюджет)
+MAX_TRADE_PAGES = 40   # абсолютный потолок страниц на один poll (защита)
+WARMUP_PAGES = 6       # первый (warmup) poll: 600 последних сделок — достаточно
+LIVE_PAGES = 3         # live poll: до границы прошлого полла (обычно 1-2 страницы)
 CHECKPOINT_EVERY = 30  # атомарный checkpoint каждые 30 тиков (~10 мин)
 
 
@@ -64,7 +66,7 @@ class SegmentMeta:
     params: dict
 
 
-async def _fetch_trades_detailed(adapter, native, limiter, watermark_time=None):
+async def _fetch_trades_detailed(adapter, native, limiter, watermark_time=None, max_pages=LIVE_PAGES):
     """Страницы trades ДО подтверждённого перекрытия с прошлым poll.
 
     watermark_time — САМОЕ НОВОЕ событие, подтверждённое прошлым poll'ом
@@ -72,6 +74,9 @@ async def _fetch_trades_detailed(adapter, native, limiter, watermark_time=None):
     записей строго СТАРШЕ watermark (earliest_ts < watermark) — поток догнан.
     Записи с РАВНЫМ временем НЕ считаются покрытыми (новые ID с тем же ts
     сохраняются; повторы потом убирает дедуп).
+
+    max_pages: лимит страниц НА POLL (warmup 6 / live 3) — чтобы догрузка
+    истории одной пары не блокировала стаканы остальных (P0.1 0b71d28).
 
     Возвращает (records, coverage, lo, hi, first_ts, last_ts, pages).
     coverage: caught_up / full / full_at_page / pagination_not_advancing /
@@ -84,7 +89,7 @@ async def _fetch_trades_detailed(adapter, native, limiter, watermark_time=None):
     coverage = 'coverage_unknown'
     first_id = last_id = None
     first_ts = last_ts = None
-    for page in range(1, MAX_TRADE_PAGES + 1):
+    for page in range(1, max_pages + 1):
         url = f'{_REST}/markets/{native}/trades?limit={PAGE_LIMIT}&page={page}'
         t0 = time.monotonic()
         r = await safe_get(adapter, url, limiter)
@@ -107,8 +112,12 @@ async def _fetch_trades_detailed(adapter, native, limiter, watermark_time=None):
             last_id = max(last_id or 0, max(ids))
         good_ts = [x for x in ts if x is not None]
         if good_ts:
-            first_ts = first_ts or min(good_ts)
-            last_ts = max(last_ts or 0, max(good_ts))
+            # first_ts = НОВЕЙШЕЕ (front), last_ts = СТАРЕЙШЕЕ (tail) — контракт
+            # watermark: следующая граница = самый свежий подтверждённый фронт
+            if first_ts is None or max(good_ts) > first_ts:
+                first_ts = max(good_ts)
+            if last_ts is None or min(good_ts) < last_ts:
+                last_ts = min(good_ts)
         new = [t for t in batch if isinstance(t, dict) and t.get('id') not in seen_ids]
         if not new:
             # вся страница уже видна: повтор страницы != конец истории
@@ -123,7 +132,7 @@ async def _fetch_trades_detailed(adapter, native, limiter, watermark_time=None):
         for t in new:
             seen_ids.add(t.get('id'))
         records.extend(new)
-        if page == MAX_TRADE_PAGES:
+        if page == max_pages:
             coverage = 'history_truncated'
     return records, coverage, first_id, last_id, first_ts, last_ts, pages_read
 
@@ -299,8 +308,9 @@ async def run_detail(pairs, minutes, rpm, base_dir, verbose=False, segment=1, re
                 # trades (каждый 3-й тик): пагинация до перекрытия с прошлым poll
                 if ticks % TRADES_EVERY == 0:
                     wm = watermark.get(pair)   # НОВЕЙШАЯ подтверждённая граница
+                    mp = WARMUP_PAGES if wm is None else LIVE_PAGES
                     recs, cov, lo, hi, fts, lts, pages = await _fetch_trades_detailed(
-                        adapter, native, limiter, watermark_time=wm)
+                        adapter, native, limiter, watermark_time=wm, max_pages=mp)
                     row = {'pair': pair, 't': time.time_ns(), 'ok': True,
                            'warmup': wm is None, 'coverage': cov,
                            'pages': pages, 'id_range': [lo, hi],

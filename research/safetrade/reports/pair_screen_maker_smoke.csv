@@ -1,0 +1,6 @@
+symbol,n_valid_depth,spread_p10_bps,spread_p50_bps,spread_p90_bps,spread_max_bps,ask_full_cov_5_pct,ask_full_cov_10_pct,ask_full_cov_25_pct,n_trade_polls,n_trade_records,n_unique_trades,n_duplicates,n_trades_in_window,trades_per_hour,window_span_h,trade_coverage
+LTCUSDT,96,34.1,62.8,367.3,367.3,100.0,100.0,100.0,31,3600,633,2967,33,44.0071,0.7499,history_truncated
+PRLUSDT,96,94.8,94.8,95.7,188.7,100.0,100.0,100.0,32,3699,899,2800,320,426.7355,0.7499,history_truncated
+QUANTUSUSDT,96,13.7,117.4,356.4,653.1,100.0,100.0,100.0,32,3693,847,2846,278,370.7265,0.7499,history_truncated
+TSCUSDT,96,0.2,667.4,691.4,696.8,100.0,100.0,100.0,32,3700,615,3085,15,20.0032,0.7499,history_truncated
+USDCUSDT,96,24.0,35.0,38.0,38.0,100.0,100.0,100.0,32,3700,604,3096,5,6.6677,0.7499,history_truncated
