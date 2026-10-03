@@ -258,11 +258,20 @@ async def run_detail(pairs, minutes, rpm, base_dir, verbose=False, segment=1, re
                  'target_boundary=run_start',
     }
     try:
-        manifest['code_commit'] = subprocess.run(
-            ['git', 'rev-parse', '--short', 'HEAD'], capture_output=True, text=True,
-            cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        ).stdout.strip()[:12]
+        # commit берём из ПУБЛИКУЕМОЙ git-копии (~/S960b): рабочий каталог
+        # safetrade-research git-репозиторием не является (92d4079: manifest
+        # указывал f1c94cc — посторонний HEAD выше по дереву)
+        import subprocess as _sp
+        _pub = os.path.expanduser('~/S960b')
+        if os.path.isdir(os.path.join(_pub, '.git')):
+            manifest['code_commit'] = _sp.run(
+                ['git', '-C', _pub, 'rev-parse', '--short', 'HEAD'],
+                capture_output=True, text=True).stdout.strip()[:12]
+        else:
+            manifest['code_commit'] = 'unknown-no-S960b'
     except Exception:
+        manifest['code_commit'] = 'unknown'
+    if not manifest.get('code_commit'):
         manifest['code_commit'] = 'unknown'
     with open(os.path.join(run_dir, f'{run_id}_manifest.json'), 'w') as f:
         json.dump(manifest, f, indent=1)

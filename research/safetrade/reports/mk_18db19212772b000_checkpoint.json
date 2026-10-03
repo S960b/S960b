@@ -1,0 +1,30 @@
+{
+ "schema_version": 2,
+ "run_id": "mk_18db19212772b000",
+ "segment": 1,
+ "started_utc": "2026-10-03T18:41:46Z",
+ "checkpoint_utc": "2026-10-03T19:02:47Z",
+ "status": "running",
+ "ticks": 60,
+ "rows_written": 276,
+ "api_calls": 289,
+ "blocks_429": 0,
+ "cadence_median_s": 9.0,
+ "trade_poll_state": {
+  "PRLUSDT": {
+   "t": 1791054147797332642,
+   "coverage": "caught_up",
+   "n_records": 100
+  },
+  "QUANTUSUSDT": {
+   "t": 1791054156675338007,
+   "coverage": "caught_up",
+   "n_records": 100
+  },
+  "LTCUSDT": {
+   "t": 1791054165674582081,
+   "coverage": "caught_up",
+   "n_records": 100
+  }
+ }
+}

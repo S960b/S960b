@@ -1,0 +1,24 @@
+{
+ "schema_version": 2,
+ "run_id": "mk_18db19212772b000",
+ "segment": 1,
+ "started_utc": "2026-10-03T18:41:46Z",
+ "started_epoch": 1791052906.9963818,
+ "pairs": [
+  "PRLUSDT",
+  "QUANTUSUSDT",
+  "LTCUSDT"
+ ],
+ "params": {
+  "tick_s": 20.0,
+  "trades_every": 3,
+  "oracle_every": 5,
+  "rpm": 20.0,
+  "minutes": 2640.0,
+  "warmup_pages": 6,
+  "live_pages": 3
+ },
+ "notes": "rest_provisional; no order execution; confirmed_boundary_advances_only_on_full_poll; target_boundary=run_start; code_commit \u0438\u0441\u043f\u0440\u0430\u0432\u043b\u0435\u043d \u0432\u0440\u0443\u0447\u043d\u0443\u044e (73c1370, \u0440\u0430\u0431\u043e\u0447\u0438\u0439 \u043a\u043e\u0434)",
+ "code_commit": "73c1370",
+ "code_commit_fixed": true
+}
