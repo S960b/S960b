@@ -159,17 +159,29 @@ async def run_detail(pairs, minutes, rpm, base_dir, verbose=False):
 
 
 async def _oracle_rows():
-    """Внешние BBO для LTC (binance/okx/bybit) — лёгкий цикл, без SafeTrade-бюджета."""
+    """Внешние BBO для LTC (binance/okx/bybit) — прямые REST, без SafeTrade-бюджета."""
+    import urllib.request
+    from adapters.base import UA as _UA
     rows = []
-    for ex_name, native in (('binance', 'ltcusdt'), ('okx', 'ltc-usdt'), ('bybit', 'ltcusdt')):
+    endpoints = (
+        ('binance', 'https://api.binance.com/api/v3/depth?symbol=LTCUSDT&limit=10',
+         lambda j: (j.get('bids', []), j.get('asks', []))),
+        ('okx', 'https://www.okx.com/api/v5/market/books?instId=LTC-USDT&sz=10',
+         lambda j: ([(b[0], b[1]) for b in j['data'][0]['bids']],
+                    [(b[0], b[1]) for b in j['data'][0]['asks']])),
+        ('bybit', 'https://api.bybit.com/v5/market/orderbook?category=spot&symbol=LTCUSDT&limit=10',
+         lambda j: (j['result']['b'], j['result']['a'])),
+    )
+    for ex_name, url, parse in endpoints:
         try:
-            from adapters import get_adapter
-            a = get_adapter(ex_name)
             t0 = time.time()
-            raw, snap, utc, mono, req_utc, req_mono = await a.rest_depth(native, limit=20)
-            rows.append({'ex': ex_name, 'sym': 'LTC', 't': utc,
-                         'rtt_s': round((mono - req_mono) / 1e9, 4),
-                         'bids': snap.get('bids', []), 'asks': snap.get('asks', [])})
+            req = urllib.request.Request(url, headers={'User-Agent': _UA, 'Accept': 'application/json'})
+            with urllib.request.urlopen(req, timeout=10) as r:
+                j = json.loads(r.read())
+            bids, asks = parse(j)
+            rows.append({'ex': ex_name, 'sym': 'LTC', 't': time.time_ns(),
+                         'rtt_s': round(time.time() - t0, 4),
+                         'bids': bids, 'asks': asks, 'ok': True})
         except Exception as e:
             rows.append({'ex': ex_name, 'sym': 'LTC', 't': time.time_ns(), 'ok': False,
                          'err': type(e).__name__ + ': ' + str(e)[:80]})
