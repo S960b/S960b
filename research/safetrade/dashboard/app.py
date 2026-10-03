@@ -127,23 +127,71 @@ def panel():
         st.json(state.get('counters', state.get('last_run', {})), expanded=False)
         st.caption('Возраст котировки и работоспособность соединения — разные показатели. events_flushed — строки уже в закрытых Parquet-файлах.')
     with tabs[5]:
-        # Скрининг общих пар (ревью next_steps P1): одна таблица, без новой инфраструктуры
-        screen_path = os.path.join(BASE, 'reports', 'pair_screen.csv')
-        if os.path.exists(screen_path):
-            screen = pd.read_csv(screen_path, comment='#')
-            st.dataframe(screen, hide_index=True, width='stretch')
-            st.caption('Один живой REST-снимок на пару (2026-10-02). Спред — это разница bid/ask одного снимка; для кандидатов нужна запись 30–60 мин. '
-                       'protocol_status для всех пар unverified (см. safetrade_protocol_findings.md): execution coverage=0, даже если raw WS идёт часто.')
+        # Пары: скрининг (lag) / maker-отбор / детальный сбор (поправка пользователя:
+        # расширить вкладку, добавить выбор режима исследования)
+        mode = st.radio('Режим исследования', ['Maker-отбор (этап 1)', 'Lag-скрининг (закрыт)', 'Детальный сбор'],
+                        horizontal=True, label_visibility='collapsed')
+        if mode == 'Maker-отбор (этап 1)':
+            maker_path = os.path.join(BASE, 'reports', 'pair_screen_maker.csv')
+            if os.path.exists(maker_path):
+                maker = pd.read_csv(maker_path)
+                st.dataframe(maker, hide_index=True, width='stretch')
+                st.caption('Широкий отбор всех USDT-пар SafeTrade (100). Широкий спред НЕ исключает пару '
+                           '(поправка 1: для maker это повод проверить встречную торговлю). '
+                           'Активность — по временному покрытию сделок (trades_per_hour, last_trade_age), '
+                           'а не по числу прочитанных страниц. Широкий спред — повод проверить встречную торговлю, '
+                           'а не исключить пару (поправки 2-6).')
+            else:
+                st.info('reports/pair_screen_maker.csv не найден. Запуск: cli.py maker-screen')
+        elif mode == 'Lag-скрининг (закрыт)':
+            screen_path = os.path.join(BASE, 'reports', 'pair_screen.csv')
+            if os.path.exists(screen_path):
+                screen = pd.read_csv(screen_path, comment='#')
+                st.dataframe(screen, hide_index=True, width='stretch')
+                st.caption('Lag-скрининг закрыт (2026-10-03): гипотеза запаздывания не подтвердилась. '
+                           'Таблица оставлена как референс.')
+            else:
+                st.info('reports/pair_screen.csv не найден.')
         else:
-            st.info('reports/pair_screen.csv не найден.')
+            # детальный сбор: самые свежие данные data/maker/*_summary.json
+            import glob as _glob
+            sums = sorted(_glob.glob(os.path.join(BASE, 'data', 'maker', '*_summary.json')))
+            if sums:
+                latest = json.load(open(sums[-1]))
+                st.json(latest, expanded=False)
+                run_id = latest.get('run_id')
+                dpath = os.path.join(BASE, 'data', 'maker', f'{run_id}_depth.jsonl')
+                if os.path.exists(dpath):
+                    import collections
+                    rows = [json.loads(l) for l in open(dpath) if l.strip()]
+                    per = collections.defaultdict(list)
+                    for r in rows:
+                        if r.get('ok') and r.get('bids') and r.get('asks'):
+                            bb = max(float(p) for p, _ in r['bids'])
+                            ba = min(float(p) for p, _ in r['asks'])
+                            per[r['pair']].append((ba - bb) / ((ba + bb) / 2) * 1e4)
+                    out = []
+                    for pair, spreads in sorted(per.items()):
+                        if spreads:
+                            s = sorted(spreads)
+                            out.append({'pair': pair, 'n_snaps': len(s),
+                                        'spread_min_bps': round(s[0], 1),
+                                        'spread_p50_bps': round(s[len(s)//2], 1),
+                                        'spread_p90_bps': round(s[int(len(s)*.9)], 1)})
+                    if out:
+                        st.dataframe(pd.DataFrame(out), hide_index=True, width='stretch')
+                        st.caption(f'Детальный сбор {run_id}: распределение спреда по снимкам depth. '
+                                   'REST 20с, trades 60с, oracle LTC каждые 5 тиков. БЕЗ ордеров.')
+            else:
+                st.info('Детального сбора ещё нет. Запуск: cli.py maker-collect --pairs PRLUSDT,... --minutes 360')
         diag_path = os.path.join(BASE, 'reports', f'signals_{symbol}.csv')
         if os.path.exists(diag_path):
             with st.expander(f'Диагностика сигналов ({symbol})'):
                 sig = pd.read_csv(diag_path)
                 st.dataframe(sig, hide_index=True, width='stretch')
-                st.caption('Для каждого сигнала: возраст предыдущего снимка SafeTrade, число будущих снимков на горизонтах, '
-                           'ask_R_ratio/ask_F0_ratio, spread, VWAP-статусы бюджетов 10/25/50 USDT. '
-                           'baseline_unknown ≠ «нет будущих данных» — будущие наблюдения перечислены в колонках n_future_*s.')
+                st.caption('Для каждого сигнала (lag-стратегия, закрыта): возраст предыдущего снимка SafeTrade, '
+                           'число будущих снимков на горизонтах, ask_R_ratio/ask_F0_ratio, spread, '
+                           'VWAP-статусы бюджетов 10/25/50 USDT.')
 
 
 panel()
