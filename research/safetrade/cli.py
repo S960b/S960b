@@ -329,6 +329,35 @@ def cmd_maker_detail(args):
         print(f"  csv={csv_path}")
 
 
+def cmd_maker_econ(args):
+    """Экономический анализ maker-сбора (оборот, выход, движение после касания)."""
+    from maker.econ import econ_report
+    base = args.data_root or BASE
+    runs_dir = os.path.join(base, 'data', 'maker')
+    run_id = args.run_id
+    if args.latest or not run_id:
+        import glob
+        runs = sorted({os.path.basename(f).replace('_depth.jsonl', '')
+                       for f in glob.glob(os.path.join(runs_dir, '*_depth.jsonl'))})
+        run_id = run_id or (runs[-1] if runs else None)
+    if not run_id:
+        print('нет run: запустите maker-collect')
+        return
+    res = econ_report(runs_dir, run_id, cutoff_ns=args.cutoff_ns)
+    out = os.path.join(base, 'reports', f'econ_{run_id}.json')
+    import json as _json
+    with open(out, 'w') as f:
+        _json.dump(res, f, indent=1, ensure_ascii=False)
+    print(f"maker-econ {run_id}: window_h={res['window_h']} -> {out}")
+    for p in res['pairs']:
+        e = p.get('exit_by_budget', {})
+        print(f"  {p['symbol']:<13} n={p.get('n_trades')} notional={p.get('notional_usdt')} USDT "
+              f"({p.get('notional_per_hour')}/ч) buy={p.get('n_buy')} sell={p.get('n_sell')} "
+              f"exit5/10/25="
+              f"{e.get('5',{}).get('full_exit_pct')}/{e.get('10',{}).get('full_exit_pct')}/"
+              f"{e.get('25',{}).get('full_exit_pct')}%")
+
+
 def main():
     p = argparse.ArgumentParser(description="SafeTrade research toolkit")
     p.add_argument("--config", default=None)
@@ -391,6 +420,12 @@ def main():
     sp.add_argument("--csv", action="store_true")
     sp.add_argument("--verbose", action="store_true")
     sp.set_defaults(fn=cmd_maker_detail)
+
+    sp = sub.add_parser("maker-econ")
+    sp.add_argument("--run-id", default=None)
+    sp.add_argument("--latest", action="store_true")
+    sp.add_argument("--cutoff-ns", type=int, default=None)
+    sp.set_defaults(fn=cmd_maker_econ)
 
     sp = sub.add_parser("replay")
     sp.add_argument("--symbol", default=None)
