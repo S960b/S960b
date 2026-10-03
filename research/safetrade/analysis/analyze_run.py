@@ -179,7 +179,9 @@ def run_full_analysis(cfg, base_dir, df_all, symbol, args=None):
     df_safe = df[df.exchange == cfg['target']]
     n_csv = _signal_diag_csv(signals, sim, r, df_safe, cfg, horizons,
                              os.path.join(base_dir, 'reports', f"signals_{symbol}_{report['run_id']}.csv"))
-    if n_csv:
+    # ревью next_steps: копируем alias всегда (при 0 сигналов файл содержит свежий заголовок),
+    # чтобы панель не показывала данные предыдущего run
+    if os.path.exists(os.path.join(base_dir, 'reports', f"signals_{symbol}_{report['run_id']}.csv")):
         shutil.copyfile(os.path.join(base_dir, 'reports', f"signals_{symbol}_{report['run_id']}.csv"),
                         os.path.join(base_dir, 'reports', f'signals_{symbol}.csv'))
     report['signals_csv'] = {'n_rows': n_csv, 'path': f'reports/signals_{symbol}.csv'}
@@ -259,9 +261,13 @@ def _signal_diag_csv(signals, sim, r, df_safe, cfg, horizons, out_path):
               'bid_R_ratio', 'ask_R_ratio', 'bid_F0_ratio', 'ask_F0_ratio',
               'premium_available', 'next_snap_utc'] + \
              [f'n_future_{int(h)}s' for h in horizons] + \
-             [f'ask_vwap_{b}_filled' for b in budgets] + \
+             [f'ask_vwap_{b}_price' for b in budgets] + \
+             [f'ask_vwap_{b}_qty' for b in budgets] + \
+             [f'ask_vwap_{b}_cost' for b in budgets] + \
              [f'ask_vwap_{b}_status' for b in budgets] + \
-             [f'bid_vwap_{b}_filled' for b in budgets] + \
+             [f'bid_vwap_{b}_price' for b in budgets] + \
+             [f'bid_vwap_{b}_qty' for b in budgets] + \
+             [f'bid_vwap_{b}_cost' for b in budgets] + \
              [f'bid_vwap_{b}_status' for b in budgets]
     ext_age = cfg['fitness']['max_bbo_age_s']
     safe_age = cfg['fitness']['max_book_age_s']
@@ -272,6 +278,11 @@ def _signal_diag_csv(signals, sim, r, df_safe, cfg, horizons, out_path):
     with open(out_path + '.tmp', 'w', newline='', encoding='utf-8') as f:
         w = _csv.DictWriter(f, fieldnames=fields)
         w.writeheader()
+        if not signals:
+            # ревью: при нуле сигналов всё равно пишем свежий заголовок; файл
+            # перезаписывает старый alias, панель не показывает предыдущий run
+            os.replace(out_path + '.tmp', out_path)
+            return 0
         for sig in sorted(signals, key=lambda s: s.t0_ns):
             t0 = int(sig.t0_ns)
             row = {'run_id': run_id, 'boot_id': boot_id,
@@ -306,15 +317,25 @@ def _signal_diag_csv(signals, sim, r, df_safe, cfg, horizons, out_path):
                             'ask_F0_ratio': round(float(ask) / float(sig.F0), 6) if sig.F0 else '',
                             'safe_baseline_usable': age <= safe_age and bid is not None and ask is not None,
                             'safe_quote_status': 'fresh' if age <= safe_age else 'stale'})
-                # VWAP по бюджетам (полная глубина; filled < budget => insufficient)
+                # VWAP по бюджетам (quote-budget: лимит СТОИМОСТИ, не qty; при ask>mid
+                # qty=budget/mid превысил бы бюджет — считаем по цене уровня, ревью next_steps)
                 for b in budgets:
-                    qty = Decimal(str(b)) / Decimal(str(mid))
-                    ap, af = ob.vwap('ask', qty)
-                    bp, bf = ob.vwap('bid', qty)
-                    row[f'ask_vwap_{b}_filled'] = str(af)
-                    row[f'ask_vwap_{b}_status'] = 'ok' if af >= qty else 'insufficient_depth'
-                    row[f'bid_vwap_{b}_filled'] = str(bf)
-                    row[f'bid_vwap_{b}_status'] = 'ok' if bf >= qty else 'insufficient_depth'
+                    row[f'ask_vwap_{b}_price'] = row[f'ask_vwap_{b}_qty'] = \
+                        row[f'ask_vwap_{b}_cost'] = row[f'ask_vwap_{b}_status'] = ''
+                    row[f'bid_vwap_{b}_price'] = row[f'bid_vwap_{b}_qty'] = \
+                        row[f'bid_vwap_{b}_cost'] = row[f'bid_vwap_{b}_status'] = ''
+                    ap, af = ob.vwap_cost('ask', Decimal(str(b)))
+                    bp, bf = ob.vwap_cost('bid', Decimal(str(b)))
+                    if ap is not None:
+                        row[f'ask_vwap_{b}_price'] = round(float(ap), 6)
+                        row[f'ask_vwap_{b}_qty'] = str(af)
+                        row[f'ask_vwap_{b}_cost'] = round(float(af) * float(ap), 2)
+                        row[f'ask_vwap_{b}_status'] = 'ok' if float(af) * float(ap) >= float(b) * 0.99 else 'insufficient_depth'
+                    if bp is not None:
+                        row[f'bid_vwap_{b}_price'] = round(float(bp), 6)
+                        row[f'bid_vwap_{b}_qty'] = str(bf)
+                        row[f'bid_vwap_{b}_cost'] = round(float(bf) * float(bp), 2)
+                        row[f'bid_vwap_{b}_status'] = 'ok' if float(bf) * float(bp) >= float(b) * 0.99 else 'insufficient_depth'
                 if k + 1 < len(snaps):
                     row['next_snap_utc'] = _utc(snaps[k + 1][1])
             # будущие наблюдения на горизонтах (число снапшотов SafeTrade)

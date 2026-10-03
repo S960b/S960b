@@ -130,7 +130,7 @@ def panel():
         # Скрининг общих пар (ревью next_steps P1): одна таблица, без новой инфраструктуры
         screen_path = os.path.join(BASE, 'reports', 'pair_screen.csv')
         if os.path.exists(screen_path):
-            screen = pd.read_csv(screen_path)
+            screen = pd.read_csv(screen_path, comment='#')
             st.dataframe(screen, hide_index=True, width='stretch')
             st.caption('Один живой REST-снимок на пару (2026-10-02). Спред — это разница bid/ask одного снимка; для кандидатов нужна запись 30–60 мин. '
                        'protocol_status для всех пар unverified (см. safetrade_protocol_findings.md): execution coverage=0, даже если raw WS идёт часто.')

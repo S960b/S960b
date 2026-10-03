@@ -230,6 +230,41 @@ class OrderBook:
             return None, Decimal(0)
         return cost / filled, filled
 
+    def vwap_cost(self, side: str, budget: Decimal, max_levels: int = 100):
+        """VWAP по лимиту СТОИМОСТИ в quote (USDT): берём уровни, пока цена уровней
+        не превысит budget. Возвращает (vwap_price, qty_filled). qty = cost/price,
+        где cost ≤ budget (ревью next_steps: qty=budget/mid при ask>mid превышает бюджет)."""
+        if not self.valid or budget <= 0:
+            return None, Decimal(0)
+        m = self.bids if side == "bid" else self.asks
+        if not m:
+            return None, Decimal(0)
+        ordered = sorted(m.items(), reverse=(side == "bid"))[:max_levels]
+        remaining = budget
+        cost = Decimal(0)
+        filled = Decimal(0)
+        for price, q in ordered:
+            if q <= 0:
+                continue
+            # стоимость уровня = price*qty; берём целиком, пока влезает в бюджет
+            level_cost = price * q
+            if level_cost <= remaining:
+                cost += level_cost
+                filled += q
+                remaining -= level_cost
+            else:
+                # частичный уровень: тратим остаток бюджета
+                take = remaining / price
+                cost += take * price
+                filled += take
+                remaining = Decimal(0)
+                break
+            if remaining <= 0:
+                break
+        if filled <= 0:
+            return None, Decimal(0)
+        return cost / filled, filled
+
 
 def bbo_series(df: pd.DataFrame) -> pd.DataFrame:
     """BBO-ряд из событий: mid для каждого события (bbo или изменение стакана)."""
