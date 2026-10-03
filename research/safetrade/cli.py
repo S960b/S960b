@@ -253,6 +253,37 @@ def subprocess_streamlit(cfg, args):
     raise SystemExit(subprocess.call(cmd, env=env))
 
 
+def cmd_maker_screen(args):
+    """Этап 1 maker-отбора: широкий скрининг всех USDT-пар SafeTrade БЕЗ ордеров."""
+    import asyncio as _asyncio
+    from maker.feasibility import run_screen, screen_to_csv, screen_to_json
+    import pandas as pd
+
+    # общие пары с внешними биржами (для external_reference финалистов)
+    common = ({}, {}, {})
+    try:
+        from common_pairs import load_exchange_usdt
+        common = load_exchange_usdt()
+    except Exception as e:
+        print(f"common pairs: не загружены ({e}) — external_reference=missing для всех")
+
+    res = _asyncio.run(run_screen(usdt_only=True, depth_snaps=args.depth_snaps,
+                                  trade_pages=args.trade_pages, rpm=args.rpm,
+                                  common=common, verbose=args.verbose))
+    base = args.data_root or BASE
+    csv_path = os.path.join(base, 'reports', 'pair_screen_maker.csv')
+    json_path = os.path.join(base, 'reports', 'pair_screen_maker.json')
+    screen_to_csv(res, csv_path)
+    screen_to_json(res, json_path)
+    print(f"maker-screen: пар={len(res.pairs)} api_calls={res.api_calls} 429={res.blocks_429}")
+    print(f"  csv={csv_path} json={json_path}")
+    df = pd.DataFrame([p.to_row() for p in res.pairs])
+    for st in ('pass', 'insufficient_evidence', 'fail'):
+        sub = df[df.candidate_status == st]
+        if not sub.empty:
+            print(f"  {st}: {len(sub)} — {', '.join(sub.symbol.head(8))}{'...' if len(sub) > 8 else ''}")
+
+
 def main():
     p = argparse.ArgumentParser(description="SafeTrade research toolkit")
     p.add_argument("--config", default=None)
@@ -293,6 +324,13 @@ def main():
     sp = sub.add_parser("dashboard")
     sp.add_argument("--port", type=int, default=8501)
     sp.set_defaults(fn=cmd_dashboard)
+
+    sp = sub.add_parser("maker-screen")
+    sp.add_argument("--depth-snaps", type=int, default=2, help="снимков depth на пару")
+    sp.add_argument("--trade-pages", type=int, default=2, help="страниц public trades на пару")
+    sp.add_argument("--rpm", type=float, default=20.0, help="общий бюджет запросов SafeTrade/мин")
+    sp.add_argument("--verbose", action="store_true")
+    sp.set_defaults(fn=cmd_maker_screen)
 
     sp = sub.add_parser("replay")
     sp.add_argument("--symbol", default=None)
