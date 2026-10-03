@@ -284,6 +284,16 @@ def cmd_maker_screen(args):
             print(f"  {st}: {len(sub)} — {', '.join(sub.symbol.head(8))}{'...' if len(sub) > 8 else ''}")
 
 
+def cmd_maker_collect(args):
+    """Детальный сбор финалистов maker-отбора (этап 1.3, БЕЗ ордеров)."""
+    import asyncio as _asyncio
+    from maker.detail_collect import run_detail
+    pairs = [p.upper() for p in (args.pairs or 'PRLUSDT,QUANTUSUSDT,TSCUSDT,USDCUSDT,LTCUSDT').split(',')]
+    base = args.data_root or BASE
+    print(f"maker-collect: pairs={pairs} minutes={args.minutes} rpm={args.rpm}")
+    _asyncio.run(run_detail(pairs, args.minutes, args.rpm, base, verbose=args.verbose))
+
+
 def main():
     p = argparse.ArgumentParser(description="SafeTrade research toolkit")
     p.add_argument("--config", default=None)
@@ -331,6 +341,13 @@ def main():
     sp.add_argument("--rpm", type=float, default=20.0, help="общий бюджет запросов SafeTrade/мин")
     sp.add_argument("--verbose", action="store_true")
     sp.set_defaults(fn=cmd_maker_screen)
+
+    sp = sub.add_parser("maker-collect")
+    sp.add_argument("--pairs", default=None, help="список пар через запятую (по умолчанию финалисты)")
+    sp.add_argument("--minutes", type=float, default=360.0, help="длительность сбора (по умолчанию 6ч)")
+    sp.add_argument("--rpm", type=float, default=20.0, help="общий бюджет запросов SafeTrade/мин")
+    sp.add_argument("--verbose", action="store_true")
+    sp.set_defaults(fn=cmd_maker_collect)
 
     sp = sub.add_parser("replay")
     sp.add_argument("--symbol", default=None)
