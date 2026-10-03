@@ -1,9 +1,9 @@
 {
   "report_type": "research",
-  "generated_utc": "2026-10-03T08:34:55.160430+00:00",
+  "generated_utc": "2026-10-03T08:30:15.350494+00:00",
   "symbol": "BTCUSDT",
-  "run_id": "st_059dff501f0b",
-  "boot_id": "36e803127568",
+  "run_id": "st_1035fd0f5bef",
+  "boot_id": "2a4318ebf675",
   "code_revision": "f1c94ccb6b4fe873251ab85d93b8084e4e86c6a5",
   "code_dirty": true,
   "config_hash": "1c6a693775bd459962bde9aabd77e1ff58bb04928b1d9624fd0c77809aebdc5b",
@@ -140,12 +140,12 @@
     "timezone_display": "Europe/Moscow",
     "allow_trading": false
   },
-  "n_events": 1882487,
+  "n_events": 198452,
   "ready_for_live_trading": false,
   "period": {
-    "start_utc": "2026-10-02T14:47:15.884968+00:00",
-    "end_utc": "2026-10-02T16:32:26.278332+00:00",
-    "span_s": 6310.393362532
+    "start_utc": "2026-10-03T07:08:40.546676+00:00",
+    "end_utc": "2026-10-03T08:08:40.835226+00:00",
+    "span_s": 3600.288548944
   },
   "limitations": [
     "Offline research; no orders sent",
@@ -158,32 +158,32 @@
   "synthetic": false,
   "coverage": {
     "binance": {
-      "message_bin_occupancy": 1.0,
-      "coverage": 1.0,
-      "n": 1363050,
-      "grid_cells": 6310
+      "message_bin_occupancy": 0.9855515420950264,
+      "coverage": 0.9855515420950264,
+      "n": 147538,
+      "grid_cells": 3599
     },
     "okx": {
-      "message_bin_occupancy": 0.9993660855784469,
-      "coverage": 0.9993660855784469,
-      "n": 40002,
-      "grid_cells": 6310
+      "message_bin_occupancy": 0.9994442900805779,
+      "coverage": 0.9994442900805779,
+      "n": 22513,
+      "grid_cells": 3599
     },
     "bybit": {
-      "message_bin_occupancy": 0.9952456418383518,
-      "coverage": 0.9952456418383518,
-      "n": 119506,
-      "grid_cells": 6310
+      "message_bin_occupancy": 0.8644444444444445,
+      "coverage": 0.8644444444444445,
+      "n": 26493,
+      "grid_cells": 3600
     },
     "safetrade": {
-      "message_bin_occupancy": 0.03276081424936387,
-      "coverage": 0.03276081424936387,
-      "n": 206,
-      "grid_cells": 6288
+      "message_bin_occupancy": 0.03360177728408775,
+      "coverage": 0.03360177728408775,
+      "n": 121,
+      "grid_cells": 3601
     }
   },
   "oracle": {
-    "n_R_points": 1521788,
+    "n_R_points": 193863,
     "sources": [
       "binance",
       "okx",
@@ -192,31 +192,31 @@
     "min_sources": 3
   },
   "premium": {
-    "n_points": 174,
+    "n_points": 88,
     "warmup_ok": true,
-    "median_b": -0.0024505793894431804,
-    "p10_b": -0.0032164602967090987,
-    "p90_b": 0.00017727908943993974,
+    "median_b": 0.005311467907244331,
+    "p10_b": 0.005199176272408206,
+    "p90_b": 0.005673685214699916,
     "side_ratios": {
-      "n": 205,
-      "bid_R_min": 0.9856854818719515,
-      "bid_R_p10": 0.9878233413092581,
-      "bid_R_p50": 0.9908725123302846,
-      "bid_R_p90": 0.9997447348818685,
-      "ask_R_min": 0.9984641013704807,
-      "ask_R_p10": 1.0039207448246341,
-      "ask_R_p50": 1.0052527225118937,
-      "ask_R_p90": 1.0061638781357116,
-      "mid_R_min": 0.9940227017879781,
-      "mid_R_p10": 0.9958751504636563,
-      "mid_R_p50": 0.9979463486512228,
-      "mid_R_p90": 1.0028315108086037,
-      "spread_mid_min": 0.001997628982422698,
-      "spread_mid_p10": 0.005868253317515998,
-      "spread_mid_p50": 0.013162012310359468,
-      "spread_mid_p90": 0.018142019845281257,
-      "ask_below_R_count": 11,
-      "ask_below_R_pct": 5.37
+      "n": 114,
+      "bid_R_min": 0.9947679600004962,
+      "bid_R_p10": 0.9950141829369018,
+      "bid_R_p50": 0.995442738300014,
+      "bid_R_p90": 0.9957428490594497,
+      "ask_R_min": 1.0102087216060829,
+      "ask_R_p10": 1.010704729503289,
+      "ask_R_p50": 1.0152200176640347,
+      "ask_R_p90": 1.0174010234239015,
+      "mid_R_min": 1.0026113905496645,
+      "mid_R_p10": 1.0031036681918044,
+      "mid_R_p50": 1.0053255987603558,
+      "mid_R_p90": 1.006505741123392,
+      "spread_mid_min": 0.015059921518718846,
+      "spread_mid_p10": 0.015155086263788064,
+      "spread_mid_p50": 0.02004566787056642,
+      "spread_mid_p90": 0.02177975248786451,
+      "ask_below_R_count": 0,
+      "ask_below_R_pct": 0.0
     }
   },
   "lead_lag_W5": {
@@ -227,39 +227,35 @@
     },
     "meta": {
       "binance": {
-        "n_external_events": 1362026
+        "n_external_events": 147509
       },
       "okx": {
-        "n_external_events": 39959
+        "n_external_events": 22480
       },
       "bybit": {
-        "n_external_events": 119410
+        "n_external_events": 26313
       }
     }
   },
   "reach_A": {
     "summary": {
       "1": {
-        "n_events": 93,
-        "n_observed_outcomes": 3,
+        "n_events": 8,
+        "n_observed_outcomes": 0,
         "by_status": {
-          "baseline_unknown": 85,
-          "timeout": 3,
-          "already_at_target": 5
+          "baseline_unknown": 8
         },
         "reached_pct": 0.0,
-        "reached_observed_pct": 0.0,
+        "reached_observed_pct": null,
         "median_s": null,
         "p90_s": null,
         "reached_times_list": []
       },
       "5": {
-        "n_events": 93,
+        "n_events": 8,
         "n_observed_outcomes": 0,
         "by_status": {
-          "baseline_unknown": 85,
-          "unknown": 3,
-          "already_at_target": 5
+          "baseline_unknown": 8
         },
         "reached_pct": 0.0,
         "reached_observed_pct": null,
@@ -268,12 +264,10 @@
         "reached_times_list": []
       },
       "15": {
-        "n_events": 93,
+        "n_events": 8,
         "n_observed_outcomes": 0,
         "by_status": {
-          "baseline_unknown": 85,
-          "unknown": 3,
-          "already_at_target": 5
+          "baseline_unknown": 8
         },
         "reached_pct": 0.0,
         "reached_observed_pct": null,
@@ -282,12 +276,10 @@
         "reached_times_list": []
       },
       "30": {
-        "n_events": 93,
+        "n_events": 8,
         "n_observed_outcomes": 0,
         "by_status": {
-          "baseline_unknown": 85,
-          "unknown": 3,
-          "already_at_target": 5
+          "baseline_unknown": 8
         },
         "reached_pct": 0.0,
         "reached_observed_pct": null,
@@ -296,12 +288,10 @@
         "reached_times_list": []
       },
       "60": {
-        "n_events": 93,
+        "n_events": 8,
         "n_observed_outcomes": 0,
         "by_status": {
-          "baseline_unknown": 85,
-          "unknown": 3,
-          "already_at_target": 5
+          "baseline_unknown": 8
         },
         "reached_pct": 0.0,
         "reached_observed_pct": null,
@@ -310,66 +300,50 @@
         "reached_times_list": []
       },
       "180": {
-        "n_events": 93,
-        "n_observed_outcomes": 1,
+        "n_events": 8,
+        "n_observed_outcomes": 0,
         "by_status": {
-          "baseline_unknown": 85,
-          "reached": 1,
-          "already_at_target": 5,
-          "unknown": 2
+          "baseline_unknown": 8
         },
-        "reached_pct": 1.1,
-        "reached_observed_pct": 100.0,
-        "median_s": 89.622670501,
-        "p90_s": 89.622670501,
-        "reached_times_list": [
-          89.62
-        ],
-        "p90_note": "p90 по 1 наблюдениям; времена: [89.62]"
+        "reached_pct": 0.0,
+        "reached_observed_pct": null,
+        "median_s": null,
+        "p90_s": null,
+        "reached_times_list": []
       },
       "300": {
-        "n_events": 93,
-        "n_observed_outcomes": 1,
+        "n_events": 8,
+        "n_observed_outcomes": 0,
         "by_status": {
-          "baseline_unknown": 85,
-          "reached": 1,
-          "already_at_target": 5,
-          "unknown": 2
+          "baseline_unknown": 8
         },
-        "reached_pct": 1.1,
-        "reached_observed_pct": 100.0,
-        "median_s": 89.622670501,
-        "p90_s": 89.622670501,
-        "reached_times_list": [
-          89.62
-        ],
-        "p90_note": "p90 по 1 наблюдениям; времена: [89.62]"
+        "reached_pct": 0.0,
+        "reached_observed_pct": null,
+        "median_s": null,
+        "p90_s": null,
+        "reached_times_list": []
       }
     },
     "summary_adj": {
       "1": {
-        "n_events": 93,
-        "n_observed_outcomes": 4,
+        "n_events": 8,
+        "n_observed_outcomes": 0,
         "by_status": {
-          "unavailable": 15,
-          "baseline_unknown": 70,
-          "timeout": 4,
-          "already_at_target": 4
+          "unavailable": 1,
+          "baseline_unknown": 7
         },
         "reached_pct": 0.0,
-        "reached_observed_pct": 0.0,
+        "reached_observed_pct": null,
         "median_s": null,
         "p90_s": null,
         "reached_times_list": []
       },
       "5": {
-        "n_events": 93,
+        "n_events": 8,
         "n_observed_outcomes": 0,
         "by_status": {
-          "unavailable": 15,
-          "baseline_unknown": 70,
-          "unknown": 4,
-          "already_at_target": 4
+          "unavailable": 1,
+          "baseline_unknown": 7
         },
         "reached_pct": 0.0,
         "reached_observed_pct": null,
@@ -378,13 +352,11 @@
         "reached_times_list": []
       },
       "15": {
-        "n_events": 93,
+        "n_events": 8,
         "n_observed_outcomes": 0,
         "by_status": {
-          "unavailable": 15,
-          "baseline_unknown": 70,
-          "unknown": 4,
-          "already_at_target": 4
+          "unavailable": 1,
+          "baseline_unknown": 7
         },
         "reached_pct": 0.0,
         "reached_observed_pct": null,
@@ -393,13 +365,11 @@
         "reached_times_list": []
       },
       "30": {
-        "n_events": 93,
+        "n_events": 8,
         "n_observed_outcomes": 0,
         "by_status": {
-          "unavailable": 15,
-          "baseline_unknown": 70,
-          "unknown": 4,
-          "already_at_target": 4
+          "unavailable": 1,
+          "baseline_unknown": 7
         },
         "reached_pct": 0.0,
         "reached_observed_pct": null,
@@ -408,13 +378,11 @@
         "reached_times_list": []
       },
       "60": {
-        "n_events": 93,
+        "n_events": 8,
         "n_observed_outcomes": 0,
         "by_status": {
-          "unavailable": 15,
-          "baseline_unknown": 70,
-          "unknown": 4,
-          "already_at_target": 4
+          "unavailable": 1,
+          "baseline_unknown": 7
         },
         "reached_pct": 0.0,
         "reached_observed_pct": null,
@@ -423,63 +391,49 @@
         "reached_times_list": []
       },
       "180": {
-        "n_events": 93,
-        "n_observed_outcomes": 2,
+        "n_events": 8,
+        "n_observed_outcomes": 0,
         "by_status": {
-          "unavailable": 15,
-          "baseline_unknown": 70,
-          "reached": 2,
-          "already_at_target": 4,
-          "unknown": 2
+          "unavailable": 1,
+          "baseline_unknown": 7
         },
-        "reached_pct": 2.2,
-        "reached_observed_pct": 100.0,
-        "median_s": 104.84870243750001,
-        "p90_s": 117.0295279867,
-        "reached_times_list": [
-          89.62,
-          120.07
-        ],
-        "p90_note": "p90 по 2 наблюдениям; времена: [89.62, 120.07]"
+        "reached_pct": 0.0,
+        "reached_observed_pct": null,
+        "median_s": null,
+        "p90_s": null,
+        "reached_times_list": []
       },
       "300": {
-        "n_events": 93,
-        "n_observed_outcomes": 2,
+        "n_events": 8,
+        "n_observed_outcomes": 0,
         "by_status": {
-          "unavailable": 15,
-          "baseline_unknown": 70,
-          "reached": 2,
-          "already_at_target": 4,
-          "unknown": 2
+          "unavailable": 1,
+          "baseline_unknown": 7
         },
-        "reached_pct": 2.2,
-        "reached_observed_pct": 100.0,
-        "median_s": 104.84870243750001,
-        "p90_s": 117.0295279867,
-        "reached_times_list": [
-          89.62,
-          120.07
-        ],
-        "p90_note": "p90 по 2 наблюдениям; времена: [89.62, 120.07]"
+        "reached_pct": 0.0,
+        "reached_observed_pct": null,
+        "median_s": null,
+        "p90_s": null,
+        "reached_times_list": []
       }
     },
     "time_meaning": "First observed hit, not exact crossing time between messages"
   },
   "signals_meta": {
-    "n_signals": 93,
-    "n_evaluated": 93
+    "n_signals": 8,
+    "n_evaluated": 8
   },
   "funnel": {
-    "sources_stale": 34,
-    "external_history_missing": 1298,
-    "weak_move": 137262,
-    "disagree": 242,
+    "sources_stale": 2428,
+    "external_history_missing": 3754,
+    "weak_move": 159022,
+    "disagree": 264,
     "oracle_dispersion": 0,
-    "cooldown_skipped": 1383629,
-    "signal": 93
+    "cooldown_skipped": 31068,
+    "signal": 8
   },
   "signals_csv": {
-    "n_rows": 93,
+    "n_rows": 8,
     "path": "reports/signals_BTCUSDT.csv"
   },
   "result": "research_only"

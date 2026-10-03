@@ -322,18 +322,25 @@ def _signal_diag_csv(signals, sim, r, df_safe, cfg, horizons, out_path):
                         row[f'ask_vwap_{b}_cost'] = row[f'ask_vwap_{b}_status'] = ''
                     row[f'bid_vwap_{b}_price'] = row[f'bid_vwap_{b}_qty'] = \
                         row[f'bid_vwap_{b}_cost'] = row[f'bid_vwap_{b}_status'] = ''
-                    ap, af = ob.vwap_cost('ask', Decimal(str(b)))
-                    bp, bf = ob.vwap_cost('bid', Decimal(str(b)))
+                    budget = Decimal(str(b))
+                    ap, af = ob.vwap_cost('ask', budget)
+                    # Sell the BTC bought with this budget, preserving inventory.
+                    # A second quote-budget calculation would use a different qty.
+                    bp, bf = ob.vwap('bid', af) if af > 0 else (None, Decimal(0))
+                    ask_cost = af * ap if ap is not None else Decimal(0)
+                    tolerance = Decimal('1e-12') * max(Decimal(1), budget)
+                    entry_complete = ap is not None and ask_cost >= budget - tolerance
                     if ap is not None:
                         row[f'ask_vwap_{b}_price'] = round(float(ap), 6)
                         row[f'ask_vwap_{b}_qty'] = str(af)
                         row[f'ask_vwap_{b}_cost'] = round(float(af) * float(ap), 2)
-                        row[f'ask_vwap_{b}_status'] = 'ok' if float(af) * float(ap) >= float(b) * 0.99 else 'insufficient_depth'
+                        row[f'ask_vwap_{b}_status'] = 'ok' if entry_complete else 'insufficient_depth'
                     if bp is not None:
                         row[f'bid_vwap_{b}_price'] = round(float(bp), 6)
                         row[f'bid_vwap_{b}_qty'] = str(bf)
                         row[f'bid_vwap_{b}_cost'] = round(float(bf) * float(bp), 2)
-                        row[f'bid_vwap_{b}_status'] = 'ok' if float(bf) * float(bp) >= float(b) * 0.99 else 'insufficient_depth'
+                        row[f'bid_vwap_{b}_status'] = ('entry_incomplete' if not entry_complete else
+                                                     'ok' if bf == af else 'insufficient_depth')
                 if k + 1 < len(snaps):
                     row['next_snap_utc'] = _utc(snaps[k + 1][1])
             # будущие наблюдения на горизонтах (число снапшотов SafeTrade)
