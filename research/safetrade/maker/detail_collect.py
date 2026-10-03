@@ -30,6 +30,7 @@ TICK_S = 20.0          # целевой такт на пару (depth)
 TRADES_EVERY = 3       # trades каждый 3-й такт (60с)
 ORACLE_EVERY = 5       # внешние BBO каждые 5-й такт (100с)
 MAX_TRADE_PAGES = 40   # предельные страницы на один poll (не тратить весь бюджет)
+CHECKPOINT_EVERY = 30  # атомарный checkpoint каждые 30 тиков (~10 мин)
 
 
 class RateLimiter:
@@ -64,13 +65,17 @@ class SegmentMeta:
 
 
 async def _fetch_trades_detailed(adapter, native, limiter, watermark_time=None):
-    """Страницы trades ДО перекрытия с watermark (сделки старше watermark —
-    уже видели в прошлом poll) или достижения локального лимита страниц.
+    """Страницы trades ДО подтверждённого перекрытия с прошлым poll.
 
-    watermark_time — oldest event time прошлого poll (включительно): как только
-    страница целиком состоит из сделок <= watermark — поток догнан.
+    watermark_time — САМОЕ НОВОЕ событие, подтверждённое прошлым poll'ом
+    (граница уже покрытого интервала). Как только страница целиком состоит из
+    записей строго СТАРШЕ watermark (earliest_ts < watermark) — поток догнан.
+    Записи с РАВНЫМ временем НЕ считаются покрытыми (новые ID с тем же ts
+    сохраняются; повторы потом убирает дедуп).
 
-    Возвращает (records, coverage, first_id, last_id, first_ts, last_ts, pages).
+    Возвращает (records, coverage, lo, hi, first_ts, last_ts, pages).
+    coverage: caught_up / full / full_at_page / pagination_not_advancing /
+              history_truncated / request_failed / coverage_unknown.
     """
     from adapters.safetrade import REST as _REST
     records = []
@@ -79,7 +84,6 @@ async def _fetch_trades_detailed(adapter, native, limiter, watermark_time=None):
     coverage = 'coverage_unknown'
     first_id = last_id = None
     first_ts = last_ts = None
-    lo = hi = None
     for page in range(1, MAX_TRADE_PAGES + 1):
         url = f'{_REST}/markets/{native}/trades?limit={PAGE_LIMIT}&page={page}'
         t0 = time.monotonic()
@@ -94,35 +98,34 @@ async def _fetch_trades_detailed(adapter, native, limiter, watermark_time=None):
             break
         pages_read += 1
         if not batch:
-            coverage = 'full'
-            break
-        # диапазон ID/времени
-        ids = [t.get('id') for t in batch if isinstance(t, dict)]
-        ts = [t.get('created_at') for t in batch if isinstance(t, dict)]
-        if ids:
-            lo = min(ids); hi = max(ids)
-        if ts and all(parse_ts(x) is not None for x in ts):
-            mi = min(parse_ts(x) for x in ts)
-            ma = max(parse_ts(x) for x in ts)
-            first_ts = ma if first_ts is None else max(first_ts, ma)
-            last_ts = mi if last_ts is None else min(last_ts, mi)
-        new = [t for t in batch if isinstance(t, dict) and t.get('id') not in seen_ids]
-        if not new:
             coverage = 'full' if pages_read == 1 else 'full_at_page'
             break
-        # перекрытие с watermark: страница целиком старше watermark — поток догнан
-        if watermark_time is not None:
-            all_old = all(parse_ts(t.get('created_at')) is not None and
-                          parse_ts(t.get('created_at')) <= watermark_time for t in batch)
-            if all_old:
-                coverage = 'caught_up'
-                break
+        ids = [t.get('id') for t in batch if isinstance(t, dict)]
+        ts = [parse_ts(t.get('created_at')) for t in batch if isinstance(t, dict)]
+        if ids:
+            first_id = first_id or min(ids)          # границы ВСЕГО сохранённого набора
+            last_id = max(last_id or 0, max(ids))
+        good_ts = [x for x in ts if x is not None]
+        if good_ts:
+            first_ts = first_ts or min(good_ts)
+            last_ts = max(last_ts or 0, max(good_ts))
+        new = [t for t in batch if isinstance(t, dict) and t.get('id') not in seen_ids]
+        if not new:
+            # вся страница уже видна: повтор страницы != конец истории
+            coverage = 'pagination_not_advancing'
+            break
+        # пересечение с watermark: страница целиком СТРОГО старше watermark
+        if watermark_time is not None and all(
+                parse_ts(t.get('created_at')) is not None and
+                parse_ts(t.get('created_at')) < watermark_time for t in batch):
+            coverage = 'caught_up'
+            break
         for t in new:
             seen_ids.add(t.get('id'))
         records.extend(new)
         if page == MAX_TRADE_PAGES:
             coverage = 'history_truncated'
-    return records, coverage, lo, hi, first_ts, last_ts, pages_read
+    return records, coverage, first_id, last_id, first_ts, last_ts, pages_read
 
 
 async def safe_get(adapter, url, limiter, attempts=3):
@@ -156,6 +159,25 @@ async def safe_get(adapter, url, limiter, attempts=3):
 def parse_ts(s):
     from maker.util import parse_iso_utc
     return parse_iso_utc(s)
+
+
+def _write_checkpoint(run_dir, run_id, segment, started_utc, ticks, rows_written,
+                      limiter, tick_dur, last_poll, status):
+    """Атомарный периодический checkpoint (P0.3 0b71d28): heartbeat + прогресс."""
+    gaps = sorted(tick_dur) if tick_dur else []
+    ck = {
+        'schema_version': 2, 'run_id': run_id, 'segment': segment,
+        'started_utc': started_utc, 'checkpoint_utc': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
+        'status': status,
+        'ticks': ticks, 'rows_written': rows_written,
+        'api_calls': limiter.calls, 'blocks_429': limiter.blocks_429,
+        'cadence_median_s': round(gaps[len(gaps)//2], 2) if gaps else None,
+        'trade_poll_state': last_poll,
+    }
+    tmp = os.path.join(run_dir, f'{run_id}_checkpoint.json.tmp')
+    with open(tmp, 'w') as f:
+        json.dump(ck, f, indent=1)
+    os.replace(tmp, os.path.join(run_dir, f'{run_id}_checkpoint.json'))
 
 
 async def _oracle_rows():
@@ -225,36 +247,58 @@ async def run_detail(pairs, minutes, rpm, base_dir, verbose=False, segment=1, re
     f_tr = open(os.path.join(run_dir, f'{run_id}_trades.jsonl'), 'a', encoding='utf-8')
     f_or = open(os.path.join(run_dir, f'{run_id}_oracle.jsonl'), 'a', encoding='utf-8')
 
-    # watermark по времени прошлого poll (для trades) — None в начале сегмента
+    # resume_run_id: НЕ применять к старым run (P1 0b71d28) — дописывание файлов
+    # и переписывание manifest с новым стартом ломает целостность; запрещено.
+    if resume_run_id:
+        raise ValueError(
+            'resume_run_id отключён (0b71d28): дописывание старых JSONL переписывает '
+            'manifest и сбрасывает watermark. Используйте новый segment/run_id.')
+
+    # per-pair cadence: фактические промежутки depth/trades (P1 0b71d28)
+    pair_times = {pair: {'depth': [], 'trades': []} for pair in pairs}
+    last_pair_ts = {pair: {'depth': None, 'trades': None} for pair in pairs}
+    waiting = {pair: 0 for pair in pairs}   # суммарное ожидание лимитера (очередь)
+    last_depth_ok = {}
+    last_trades_ok = {}
+
+    # watermark: САМАЯ НОВАЯ подтверждённая граница прошлого poll (P0.1 0b71d28).
+    # None в начале сегмента -> warmup (первый poll читает историю один раз).
     watermark = {}
     rows_written = 0
     ticks = 0
-    last_poll = {}          # pair -> dict(последний poll: время, ids)
+    last_poll = {}
     deadline = time.monotonic() + minutes * 60
     tick_dur = []
+    lifecycle = {'status': 'running'}
     try:
         while time.monotonic() < deadline:
             tick_start = time.monotonic()
             ticks += 1
             for pair in pairs:
                 native = pair.lower().replace('/', '')
-                # depth (каждый тик)
+                # depth (каждый тик): ОБЯЗАТЕЛЬНО через общий лимитер (P0.2 0b71d28)
                 t0 = time.monotonic()
+                await limiter.wait()
+                w0 = time.monotonic()
+                waiting[pair] += (w0 - t0)
                 try:
                     raw, snap, utc, mono, req_utc, req_mono = await adapter.rest_depth(native, limit=100)
-                    # limiter для depth тоже учитываем (rate limiter внутри collect_pair вынесен сюда)
-                    limiter.record_rtt(time.monotonic() - t0)
+                    limiter.record_rtt(time.monotonic() - w0)
                     row = {'pair': pair, 't': utc, 'rtt_s': round((mono - req_mono) / 1e9, 4),
                            'bids': snap.get('bids', []), 'asks': snap.get('asks', []), 'ok': True}
-                    f_dep.write(json.dumps(row) + '\n')
-                    rows_written += 1
+                    last_depth_ok[pair] = time.time()
                 except Exception as e:
-                    f_dep.write(json.dumps({'pair': pair, 't': time.time_ns(), 'ok': False,
-                                            'err': type(e).__name__ + ': ' + str(e)[:80]}) + '\n')
-                    rows_written += 1
+                    row = {'pair': pair, 't': time.time_ns(), 'ok': False,
+                           'err': type(e).__name__ + ': ' + str(e)[:80]}
+                f_dep.write(json.dumps(row) + '\n')
+                rows_written += 1
+                # per-pair depth gap (между началами успешных запросов)
+                if last_pair_ts[pair]['depth'] is not None:
+                    pair_times[pair]['depth'].append(time.monotonic() - last_pair_ts[pair]['depth'])
+                last_pair_ts[pair]['depth'] = time.monotonic()
                 # trades (каждый 3-й тик): пагинация до перекрытия с прошлым poll
                 if ticks % TRADES_EVERY == 0:
-                    wm = watermark.get(pair)   # oldest ts прошлого poll
+                    wm = watermark.get(pair)   # НОВЕЙШАЯ подтверждённая граница
                     recs, cov, lo, hi, fts, lts, pages = await _fetch_trades_detailed(
                         adapter, native, limiter, watermark_time=wm)
                     row = {'pair': pair, 't': time.time_ns(), 'ok': True,
@@ -264,10 +308,15 @@ async def run_detail(pairs, minutes, rpm, base_dir, verbose=False, segment=1, re
                            'n_records': len(recs), 'trades': recs}
                     f_tr.write(json.dumps(row) + '\n')
                     rows_written += 1
-                    if recs and lts is not None:
-                        watermark[pair] = lts   # старейшая полученная сделка
+                    if recs and fts is not None:
+                        # новая граница = САМОЕ НОВОЕ время в полученном наборе
+                        watermark[pair] = fts
                     last_poll[pair] = {'t': time.time_ns(), 'coverage': cov,
                                        'n_records': len(recs)}
+                    last_trades_ok[pair] = time.time()
+                    if last_pair_ts[pair]['trades'] is not None:
+                        pair_times[pair]['trades'].append(time.monotonic() - last_pair_ts[pair]['trades'])
+                    last_pair_ts[pair]['trades'] = time.monotonic()
             # oracle
             if ticks % ORACLE_EVERY == 0:
                 for row in await _oracle_rows():
@@ -275,6 +324,10 @@ async def run_detail(pairs, minutes, rpm, base_dir, verbose=False, segment=1, re
                     rows_written += 1
             f_dep.flush(); f_tr.flush(); f_or.flush()
             tick_dur.append(time.monotonic() - tick_start)
+            # периодический атомарный checkpoint (P0.3 0b71d28)
+            if ticks % CHECKPOINT_EVERY == 0:
+                _write_checkpoint(run_dir, run_id, segment, started_utc, ticks, rows_written,
+                                  limiter, tick_dur, last_poll, 'running')
             if verbose and ticks % 6 == 0:
                 print(f"[{time.strftime('%H:%M:%S', time.gmtime())}] ticks={ticks} "
                       f"rows={rows_written} api={limiter.calls} 429={limiter.blocks_429}", flush=True)
@@ -283,25 +336,54 @@ async def run_detail(pairs, minutes, rpm, base_dir, verbose=False, segment=1, re
             wait = next_tick - time.monotonic()
             if wait > 0:
                 await asyncio.sleep(wait)
+        lifecycle['status'] = 'completed'
+    except asyncio.CancelledError:
+        lifecycle['status'] = 'cancelled'
+        raise
+    except Exception as e:
+        lifecycle['status'] = 'failed'
+        lifecycle['error'] = f'{type(e).__name__}: {str(e)[:200]}'
+        raise
     finally:
         f_dep.close(); f_tr.close(); f_or.close()
-        finished_utc = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+        # атомарный summary: tmp + os.replace (P0.3/P1 0b71d28)
         gaps = sorted(tick_dur) if tick_dur else []
+        per_pair = {}
+        for pair in pairs:
+            dd = sorted(pair_times[pair]['depth'])
+            tt = sorted(pair_times[pair]['trades'])
+            def _q(xs, q):
+                if not xs:
+                    return None
+                return round(xs[min(len(xs)-1, int(len(xs)*q))], 2)
+            per_pair[pair] = {
+                'depth_gap_s': {'median': _q(dd, .5), 'p95': _q(dd, .95), 'max': _q(dd, 1.0), 'n': len(dd)},
+                'trades_gap_s': {'median': _q(tt, .5), 'p95': _q(tt, .95), 'max': _q(tt, 1.0), 'n': len(tt)},
+                'depth_age_s': round(time.time() - last_depth_ok[pair], 1) if pair in last_depth_ok else None,
+                'trades_age_s': round(time.time() - last_trades_ok[pair], 1) if pair in last_trades_ok else None,
+                'limiter_wait_s': round(waiting[pair], 1),
+            }
         summary = {
             'schema_version': 2, 'run_id': run_id, 'segment': segment,
-            'started_utc': started_utc, 'finished_utc': finished_utc,
+            'started_utc': started_utc, 'finished_utc': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
             'elapsed_s': round(time.time() - started, 1),
+            'status': lifecycle.get('status'),
+            **({'error': lifecycle['error']} if 'error' in lifecycle else {}),
             'ticks': ticks, 'rows_written': rows_written,
             'api_calls': limiter.calls, 'blocks_429': limiter.blocks_429,
             'cadence': {'tick_median_s': round(gaps[len(gaps)//2], 2) if gaps else None,
                         'tick_p95_s': round(gaps[int(len(gaps)*.95)], 2) if gaps else None,
                         'tick_max_s': round(gaps[-1], 2) if gaps else None,
-                        'note': 'wall-clock между begin тиков (вкл. обработку пары)'},
+                        'note': 'wall-clock длительность обработки тика (вкл. сеть)'},
+            'per_pair': per_pair,
             'trade_poll_state': last_poll,
+            'watermark': watermark,
             'notes': 'rest_provisional; no order execution',
         }
-        with open(os.path.join(run_dir, f'{run_id}_summary.json'), 'w') as f:
+        summary_tmp = os.path.join(run_dir, f'{run_id}_summary.json.tmp')
+        with open(summary_tmp, 'w') as f:
             json.dump(summary, f, indent=1)
-        print(f"detail: run={run_id} seg={segment} ticks={ticks} rows={rows_written} "
-              f"api={limiter.calls} 429={limiter.blocks_429}")
-        return summary
+        os.replace(summary_tmp, os.path.join(run_dir, f'{run_id}_summary.json'))
+        print(f"detail: run={run_id} seg={segment} status={lifecycle.get('status')} ticks={ticks} "
+              f"rows={rows_written} api={limiter.calls} 429={limiter.blocks_429}")
+    return summary

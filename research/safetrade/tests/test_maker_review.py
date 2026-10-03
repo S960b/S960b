@@ -72,13 +72,16 @@ def test_partial_depth_not_full_coverage():
 
 
 def test_repeated_page_not_false_full():
+    """Повтор всей страницы НЕ доказывает конец истории (P0.1 0b71d28)."""
     trades, cov, failed = asyncio.run(_fetch_trades(RepeatedPages(), 'p', ImmediateLimiter(), pages=3))
-    assert cov in ('full', 'full_at_page')
     assert failed is False
     assert len(trades) == 100           # повторы не попали в unique
+    assert cov not in {'full', 'full_at_page', 'caught_up'}, cov
 
 
 def test_overlapping_pages_records_199():
+    """Частичное перекрытие страниц: новые записи сохраняются (199), состояние
+    пагинации честное (полный повтор всей страницы = не конец истории)."""
     trades, cov, failed = asyncio.run(_fetch_trades(OverlappingPages(), 'p', ImmediateLimiter(), pages=3))
     assert len(trades) == 199
     assert not failed

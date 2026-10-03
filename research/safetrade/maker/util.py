@@ -48,24 +48,39 @@ def age_minutes(ts_epoch, now_epoch):
 
 
 def valid_book(bids, asks):
-    """Двусторонний валидный стакан: непустые стороны, положительные конечные
-    цены/объёмы, bid <= ask (не crossed). Возвращает (ok, best_bid, best_ask)."""
+    """Двусторонний валидный стакан: непустые стороны, конечные ПОЛОЖИТЕЛЬНЫЕ
+    цены/объёмы, bid <= ask (не crossed). Возвращает (ok, best_bid, best_ask).
+
+    P1 (ревью 0b71d28): отклоняет inf/nan цены и объёмы, нулевые объёмы;
+    BBO выбирается только из положительных активных уровней.
+    """
+    import math
     if not bids or not asks:
         return False, None, None
+
+    def _level_ok(price, qty):
+        try:
+            p = float(price)
+            q = float(qty)
+        except (TypeError, ValueError):
+            return False
+        if not math.isfinite(p) or not math.isfinite(q):
+            return False
+        return p > 0 and q > 0
+
+    # BBO только из активных уровней (qty > 0)
     try:
-        bb = max(float(p) for p, _ in bids)
-        ba = min(float(p) for p, _ in asks)
-    except (TypeError, ValueError):
+        bb = max(float(p) for p, q in bids if _level_ok(p, q))
+        ba = min(float(p) for p, q in asks if _level_ok(p, q))
+    except ValueError:
         return False, None, None
-    for side in (bids, asks):
-        for p, q in side:
-            try:
-                if not (float(p) > 0 and float(q) >= 0):
-                    return False, None, None
-            except (TypeError, ValueError):
-                return False, None, None
     if not (bb > 0 and ba > 0 and bb <= ba):
         return False, bb, ba
+    # все уровни должны быть валидными (повреждённые отклоняем целиком)
+    for side in (bids, asks):
+        for p, q in side:
+            if not _level_ok(p, q):
+                return False, None, None
     return True, bb, ba
 
 

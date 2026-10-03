@@ -227,13 +227,16 @@ async def _fetch_trades(adapter, native, limiter, pages=2):
             cov = "full" if page == 1 else "full_at_page"   # пусто = конец истории
             break
         new = [t for t in batch if isinstance(t, dict) and 'id' in t and t['id'] not in seen]
-        if len(new) < PAGE_LIMIT and all(isinstance(t, dict) and t.get('id') in seen for t in batch):
-            # вся страница уже видна => перекрытие достигнуто, история кончилась
-            cov = "full" if page == 1 else "full_at_page"
+        if not new:
+            # повтор страницы: пагинация не продвигается => НЕ конец истории (P0.1 0b71d28)
+            cov = "pagination_not_advancing"
             break
         for t in new:
             seen.add(t['id'])
         trades.extend(new)
+        if len(new) < PAGE_LIMIT:
+            cov = "full" if page == 1 else "full_at_page"
+            break
         if page == pages:
             cov = "history_truncated"
     return trades, cov, request_failed
@@ -328,12 +331,17 @@ async def screen_pair(adapter, native, symbol, base, meta, limiter, depth_snaps=
         av = _vwap_for_budget(bids, asks, 10)
         if av['ask_price'] and av['ask_cov'] == 'full':
             from decimal import Decimal
-            qty10 = Decimal('10') / Decimal(str(av['ask_price']))
+            qty_bought = Decimal('10') / Decimal(str(av['ask_price']))
             ob = _order_book(bids, asks)
-            bp_exit, _ = ob.vwap('bid', qty10)
+            bp_exit, qty_sold = ob.vwap('bid', qty_bought)
             if bp_exit is not None:
                 p.bid_vwap_exit_10 = float(bp_exit)
-                p.bid_vwap_exit_10_cov = 'full'
+                # full только если проданное >= купленного (допуск округления 1e-6)
+                tol = Decimal(str(float(qty_sold) * 1e-6))
+                if Decimal(str(float(qty_sold))) + tol >= qty_bought:
+                    p.bid_vwap_exit_10_cov = 'full'
+                else:
+                    p.bid_vwap_exit_10_cov = 'partial'
             else:
                 p.bid_vwap_exit_10_cov = 'none'
         elif av['ask_price'] is not None:
@@ -444,9 +452,10 @@ async def run_screen(usdt_only=True, depth_snaps=2, trade_pages=2, rpm=DEFAULT_R
 
 
 def _classify(p: PairFeasibility, budget_usdt=BUDGET_USDT, min_tph=MIN_TPH):
-    """P0.6: pass требует валидного двухстороннего стакана, известных размеров,
-    разобранных timestamps и измеренной активности. Недостаток данных —
-    insufficient_evidence с причинами."""
+    """P0.6 (+0b71d28): pass требует валидного двустороннего стакана, известных
+    размеров, разобранных timestamps и ИЗМЕРЕННОЙ активности. trade_count==0
+    не может дать pass даже при coverage=full (пустой рынок не кандидат);
+    неизвестная активность — insufficient_evidence."""
     reasons = []
     if p.candidate_status == 'fail':
         return
@@ -458,17 +467,21 @@ def _classify(p: PairFeasibility, budget_usdt=BUDGET_USDT, min_tph=MIN_TPH):
         reasons.append('min_notional_unknown')
     elif p.min_notional_est > budget_usdt:
         reasons.append(f'min_notional={p.min_notional_est:.2f} USDT > budget {budget_usdt}')
-    if p.trade_count == 0 and p.trade_coverage == 'request_failed':
-        reasons.append('trade_request_failed')
-    if p.trade_count == 0 and p.trade_coverage == 'no_trades_observed':
-        reasons.append('no_trades_observed')
-    if p.trade_coverage in ('coverage_unknown', 'history_truncated'):
+    if p.trade_count == 0:
+        # подтверждённое отсутствие сделок или 0 записей: не кандидат
+        if p.trade_coverage == 'no_trades_observed':
+            reasons.append('no_trades_observed')
+        elif p.trade_coverage == 'request_failed':
+            reasons.append('trade_request_failed')
+        else:
+            reasons.append(f'trade_count=0 (coverage={p.trade_coverage})')
+    if p.trade_coverage in ('coverage_unknown', 'history_truncated', 'pagination_not_advancing'):
         reasons.append(f'trade_coverage={p.trade_coverage}')
-    if p.last_trade_age_min is None and p.trade_count:
+    if p.trade_count and p.last_trade_age_min is None:
         reasons.append('trade_timestamps_unparsed')
     if p.last_trade_age_min is not None and p.last_trade_age_min > 24 * 60:
         reasons.append(f'last_trade_older_than_24h ({p.trade_history_end})')
-    if p.trades_per_hour is None and p.trade_count:
+    if p.trade_count and p.trades_per_hour is None:
         reasons.append('activity_unmeasured')
     if p.trades_per_hour is not None and p.trades_per_hour < min_tph:
         reasons.append(f'trades_per_hour={p.trades_per_hour} < {min_tph}')

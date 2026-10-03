@@ -153,48 +153,76 @@ def panel():
             else:
                 st.info('reports/pair_screen.csv не найден.')
         else:
-            # детальный сбор: manifest/checkpoint (P1.5) + готовый агрегат
+            # детальный сбор: выбор run + manifest/checkpoint + агрегат (P1 0b71d28)
             import glob as _glob
             runs_dir = os.path.join(BASE, 'data', 'maker')
-            agg_path = os.path.join(BASE, 'reports', 'pair_screen_maker_oldrun.json')
-            latest_agg = None
-            if os.path.exists(agg_path):
-                latest_agg = json.load(open(agg_path))
             manifs = sorted(_glob.glob(os.path.join(runs_dir, '*_manifest.json')))
-            if manifs:
-                latest_m = json.load(open(manifs[-1]))
-                run_id = latest_m.get('run_id')
-                sum_path = os.path.join(runs_dir, f'{run_id}_summary.json')
-                status_var = 'RUNNING' if not os.path.exists(sum_path) else 'COMPLETED'
-                st_m = {}
+            if not manifs:
+                st.info('Детального сбора ещё нет. Запуск: cli.py maker-collect --pairs PRLUSDT,... --minutes 360')
+            else:
+                run_ids = sorted({json.load(open(m)).get('run_id') for m in manifs if os.path.exists(m)})
+                selected = st.selectbox('Run детального сбора',
+                                        run_ids, index=len(run_ids)-1 if run_ids else 0)
+                mpath = os.path.join(runs_dir, f'{selected}_manifest.json')
+                if os.path.exists(mpath):
+                    latest_m = json.load(open(mpath))
+                else:
+                    latest_m = {}
+                sum_path = os.path.join(runs_dir, f'{selected}_summary.json')
+                ck_path = os.path.join(runs_dir, f'{selected}_checkpoint.json')
+                st_m, ck_m = {}, {}
                 if os.path.exists(sum_path):
                     st_m = json.load(open(sum_path))
-                st.json({'run_id': run_id, 'status': status_var,
+                if os.path.exists(ck_path):
+                    ck_m = json.load(open(ck_path))
+                status_var = st_m.get('status', 'RUNNING (нет summary)')
+                st.json({'run_id': selected, 'status': status_var,
                          'started_utc': latest_m.get('started_utc'),
                          'pairs': latest_m.get('pairs'),
                          'segment': latest_m.get('segment'),
+                         'checkpoint_utc': ck_m.get('checkpoint_utc'),
+                         'cutoff_utc': st_m.get('finished_utc'),
                          **({k: st_m[k] for k in ('finished_utc', 'ticks', 'rows_written',
-                                                    'api_calls', 'blocks_429', 'cadence')
+                                                    'api_calls', 'blocks_429', 'cadence', 'error')
                              if k in st_m})}, expanded=False)
-                st.caption(f'Сбор {run_id}: {status_var}. Кэш/координация: summary пишется атомарно по '
-                           f'завершении; во время сбора данные читаются из reports-агрегата.')
-            if latest_agg and latest_agg.get('pairs'):
-                rows = []
-                for p in latest_agg['pairs']:
-                    rows.append({'pair': p['symbol'],
-                                 'n_valid_depth': p.get('n_valid_depth'),
+                st.caption(f'Статус {status_var}: absence of summary означает НЕТ данные '
+                           f'о завершении (не доказывает RUNNING); наличие summary — '
+                           f'не доказывает успех (см. status/error).')
+                # готовый агрегат (json рядом с run, иначе reports/)
+                agg_candidates = [os.path.join(runs_dir, f'{selected}_aggregate.json'),
+                                  os.path.join(BASE, 'reports', f'pair_screen_maker_{selected}.json')]
+                agg_path = next((p for p in agg_candidates if os.path.exists(p)), None)
+                latest_agg = None
+                if agg_path:
+                    latest_agg = json.load(open(agg_path))
+                    st.caption(f'Агрегат: {os.path.basename(agg_path)}')
+                if latest_agg and latest_agg.get('pairs'):
+                    rows = []
+                    for p in latest_agg['pairs']:
+                        rows.append({'pair': p['symbol'],
+                                     'n_valid_depth': p.get('n_valid_depth'),
+                                     'spread_p50_bps': p.get('spread_p50_bps'),
+                                     'spread_p90_bps': p.get('spread_p90_bps'),
+                                     'n_unique_trades': p.get('n_unique_trades'),
+                                     'n_trades_in_window': p.get('n_trades_in_window'),
+                                     'trades_per_hour': p.get('trades_per_hour'),
+                                     'coverage': p.get('trade_coverage')})
+                    st.dataframe(pd.DataFrame(rows), hide_index=True, width='stretch')
+                    st.caption('Активность по ОКНУ сбора (не по разбросу сделок), дедуп по '
+                               '(pair,id), спред по валидным снимкам. БЕЗ ордеров.')
+                elif os.path.exists(os.path.join(BASE, 'reports', 'pair_screen_maker_oldrun.json')):
+                    latest_agg = json.load(open(os.path.join(BASE, 'reports', 'pair_screen_maker_oldrun.json')))
+                    if latest_agg.get('pairs'):
+                        rows = [{'pair': p['symbol'], 'n_valid_depth': p.get('n_valid_depth'),
                                  'spread_p50_bps': p.get('spread_p50_bps'),
                                  'spread_p90_bps': p.get('spread_p90_bps'),
                                  'n_unique_trades': p.get('n_unique_trades'),
                                  'n_trades_in_window': p.get('n_trades_in_window'),
                                  'trades_per_hour': p.get('trades_per_hour'),
-                                 'coverage': p.get('trade_coverage')})
-                st.dataframe(pd.DataFrame(rows), hide_index=True, width='stretch')
-                st.caption('Агрегат старого run (см. maker_stage1_progress.md): активность по '
-                           'ОКНУ сбора (не по разбросу сделок), дедуп по (pair,id), спред по '
-                           'валидным снимкам. БЕЗ ордеров.')
-            elif not manifs:
-                st.info('Детального сбора ещё нет. Запуск: cli.py maker-collect --pairs PRLUSDT,... --minutes 360')
+                                 'coverage': p.get('trade_coverage')}
+                                for p in latest_agg['pairs']]
+                        st.dataframe(pd.DataFrame(rows), hide_index=True, width='stretch')
+                        st.caption('Агрегат старого run (см. maker_stage1_progress.md).')
         diag_path = os.path.join(BASE, 'reports', f'signals_{symbol}.csv')
         if os.path.exists(diag_path):
             with st.expander(f'Диагностика сигналов ({symbol})'):

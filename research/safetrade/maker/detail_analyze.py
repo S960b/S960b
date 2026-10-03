@@ -66,7 +66,9 @@ def analyze_run(run_dir, run_id, verbose=False, cutoff_ns=None):
     if os.path.exists(mp):
         manifest = json.load(open(mp))
     started_ts = parse_iso_utc(manifest.get('started_utc'))
-    # cutoff: явный или конец последней валидной строки (согласованный срез)
+    if started_ts is None:
+        started_ts = 0.0
+    # cutoff: явный или конец последней строки depth, ПОЛУЧЕННОЙ до воспроизв. среза
     if cutoff_ns is None:
         last_ts = None
         for r in reversed(depth):
@@ -74,71 +76,80 @@ def analyze_run(run_dir, run_id, verbose=False, cutoff_ns=None):
             if t is not None:
                 last_ts = float(t) / 1e9
                 break
-        cutoff_ts = last_ts
+        cutoff_ts = last_ts if last_ts is not None else time.time()
     else:
         cutoff_ts = float(cutoff_ns) / 1e9
 
     out = {'run_id': run_id, 'n_depth_rows': len(depth), 'n_trade_rows': len(tr_rows),
            'n_oracle_rows': len(or_rows), 'bad_lines': {'depth': bad_d, 'trades': bad_t, 'oracle': bad_o},
-           'window': {'started_utc': manifest.get('started_utc'), 'cutoff_epoch': cutoff_ts,
-                      'ends_at_utc': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(cutoff_ts)) if cutoff_ts else None},
+           'window': {'started_utc': manifest.get('started_utc'),
+                      'started_epoch': started_ts, 'cutoff_ns': int(cutoff_ts * 1e9),
+                      'cutoff_utc': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(cutoff_ts)),
+                      'span_h': round((cutoff_ts - started_ts) / 3600.0, 4),
+                      'note': 'ОКНО БЕЗ скрытых допусков: event time в [start, cutoff] '
+                              'И receive time <= cutoff'},
            'pairs': []}
 
-    # --- depth по парам
+    # --- depth по парам: только снимки, полученные ВНУТРИ среза (receive t <= cutoff)
     depth_by = defaultdict(list)
     for r in depth:
         if isinstance(r, dict) and r.get('pair'):
-            depth_by[r['pair']].append(r)
+            rcv = (r.get('t') or 0) / 1e9
+            if rcv <= cutoff_ts:
+                depth_by[r['pair']].append(r)
 
-    # --- trades по парам: dedup (pair,id), unique, in-window
+    # --- trades по парам: poll-записи получены внутри среза
     tr_by = defaultdict(list)
     for r in tr_rows:
         if isinstance(r, dict) and r.get('pair') and isinstance(r.get('trades'), list):
-            tr_by[r['pair']].append(r)
+            rcv = (r.get('t') or 0) / 1e9
+            if rcv <= cutoff_ts:
+                tr_by[r['pair']].append(r)
 
     for pair in sorted(set(list(depth_by) + list(tr_by))):
         o = {'symbol': pair, 'n_depth': len(depth_by.get(pair, [])),
              'n_trade_polls': len(tr_by.get(pair, [])),
              'n_trade_records': 0, 'n_unique_trades': 0, 'n_duplicates': 0,
              'n_trades_in_window': 0, 'trade_coverage': 'coverage_unknown',
-             'unparsed_ts': 0}
-        # dest стаканы
+             'unparsed_ts': 0, 'poll_statuses': []}
+        # стаканы: только валидные (finite, положительные, не crossed)
         snaps = []
         for r in depth_by.get(pair, []):
             b, a = r.get('bids'), r.get('asks')
             if b is None or a is None:
                 continue
             ok, bb, ba = valid_book(b, a)
-            o['n_valid_depth'] = o.get('n_valid_depth', 0) + (1 if ok else 0)
             if ok:
                 snaps.append((r.get('t'), b, a))
-        o['n_valid_depth'] = o.get('n_valid_depth', 0)
+        o['n_valid_depth'] = len(snaps)
         spreads = []
         for t, b, a in snaps:
             bb = max(float(p) for p, _ in b)
             ba = min(float(p) for p, _ in a)
-            if ba > bb:
-                spreads.append((ba - bb) / ((ba + bb) / 2) * 1e4)
+            sp = (ba - bb) / ((ba + bb) / 2) * 1e4
+            if sp < 0:
+                continue      # crossed снимки уже отсеяны valid_book; защита
+            spreads.append(sp)
         if spreads:
             s = sorted(spreads)
+            # включём нулевой spread (locked book) в распределение (P1 0b71d28)
             o['spread_min_bps'] = round(s[0], 1)
             o['spread_p10_bps'] = round(s[len(s)//10], 1)
             o['spread_p50_bps'] = round(s[len(s)//2], 1)
             o['spread_p90_bps'] = round(s[int(len(s)*.9)], 1)
             o['spread_max_bps'] = round(s[-1], 1)
-        # full coverage доля для бюджетов 5/10/25
         for b_usdt in (5, 10, 25):
-            full = 0
-            for t, b, a in snaps:
-                _, _, acov = _vwap((b, a), 'ask', b_usdt)
-                if acov == 'full':
-                    full += 1
+            full = sum(1 for t, b, a in snaps
+                       if _vwap((b, a), 'ask', b_usdt)[2] == 'full')
             o[f'ask_full_cov_{b_usdt}_pct'] = round(100.0 * full / len(snaps), 1) if snaps else None
 
-        # --- trades: uniquификация (pair, id)
+        # --- trades: дедуп (pair,id); окно [start, cutoff] без допусков
         unique = {}
-        first_ts = started_ts or 0
+        poll_coverage = []
         for r in tr_by.get(pair, []):
+            pc = r.get('coverage')
+            if pc:
+                poll_coverage.append(pc)
             for t in r.get('trades', []):
                 if not isinstance(t, dict) or 'id' not in t:
                     continue
@@ -151,28 +162,39 @@ def analyze_run(run_dir, run_id, verbose=False, cutoff_ns=None):
                 if ts is None:
                     o['unparsed_ts'] += 1
                 unique[key] = (ts, t)
+        o['poll_statuses'] = poll_coverage
         o['n_unique_trades'] = len(unique)
-        ts_list = sorted(x[0] for x in unique.values() if x[0] is not None)
-        if ts_list and cutoff_ts:
-            # только сделки в окне наблюдения (после старта run, до cutoff)
-            in_win = [x for x in ts_list if x >= first_ts - 60 and x <= cutoff_ts + 300]
-            o['n_trades_in_window'] = len(in_win)
-            span_h = max(1e-9, (cutoff_ts - max(first_ts, ts_list[0])) / 3600.0)
-            o['window_span_h'] = round(span_h, 2)
-            o['trades_per_hour'] = round(len(in_win) / span_h, 2) if in_win else 0.0
-            o['trades_per_hour_unique'] = round(len(ts_list) / span_h, 2) if ts_list else 0.0
+        # event time в [start, cutoff]; receive ограничен выше (rcv <= cutoff)
+        in_win = {k: (ts, t) for k, (ts, t) in unique.items()
+                  if ts is not None and started_ts <= ts <= cutoff_ts}
+        o['n_trades_in_window'] = len(in_win)
+        span_h = max(1e-9, (cutoff_ts - started_ts) / 3600.0)
+        o['window_span_h'] = round(span_h, 4)
+        if in_win:
+            o['trades_per_hour'] = round(len(in_win) / span_h, 4)
+            ts_list = sorted(ts for ts, _ in in_win.values())
             o['trade_first'] = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(ts_list[0]))
             o['trade_last'] = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(ts_list[-1]))
             if len(ts_list) >= 2:
-                gaps = sorted([ts_list[i-1] - ts_list[i] for i in range(1, len(ts_list))])
+                # gaps = разность СОСЕДНИХ в возрастающей сортировке (неотрицательна)
+                gaps = sorted(ts_list[i] - ts_list[i-1] for i in range(1, len(ts_list)))
                 o['gap_median_s'] = round(gaps[len(gaps)//2], 1)
                 o['gap_p95_s'] = round(gaps[int(len(gaps)*.95)], 1)
-        if o['n_unique_trades'] == 0 and o['n_trade_polls'] > 0:
-            o['trade_coverage'] = 'no_trades_observed'
-        elif o['n_trade_polls'] == 0:
+        # coverage: полнота по статусам poll (P0.4 0b71d28): единственный
+        # no_trades при ok=True и coverage=full — real no_trades; любой
+        # failed/truncated/unknown украшает статус
+        if o['n_trade_polls'] == 0:
             o['trade_coverage'] = 'no_polls'
+        elif o['n_trade_records'] == 0 and all(c in ('full', 'full_at_page', 'caught_up')
+                                               for c in poll_coverage):
+            o['trade_coverage'] = 'no_trades_observed'
+        elif any(c in ('request_failed',) for c in poll_coverage):
+            o['trade_coverage'] = 'request_failed'
+        elif any(c in ('history_truncated', 'coverage_unknown', 'pagination_not_advancing')
+                 for c in poll_coverage):
+            o['trade_coverage'] = 'history_truncated'
         else:
-            o['trade_coverage'] = 'observed_window'  # полнота требует пагинации (см. коллектор)
+            o['trade_coverage'] = 'observed_window'
         out['pairs'].append(o)
     return out
 
