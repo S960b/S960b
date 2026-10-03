@@ -1,0 +1,23 @@
+{
+ "schema_version": 2,
+ "run_id": "mk_18db1867c88f8000",
+ "segment": 1,
+ "started_utc": "2026-10-03T18:28:30Z",
+ "started_epoch": 1791052110.835489,
+ "pairs": [
+  "PRLUSDT",
+  "QUANTUSUSDT",
+  "LTCUSDT"
+ ],
+ "params": {
+  "tick_s": 20.0,
+  "trades_every": 3,
+  "oracle_every": 5,
+  "rpm": 20.0,
+  "minutes": 12.0,
+  "warmup_pages": 6,
+  "live_pages": 3
+ },
+ "notes": "rest_provisional; no order execution; confirmed_boundary_advances_only_on_full_poll; target_boundary=run_start",
+ "code_commit": "f1c94cc"
+}

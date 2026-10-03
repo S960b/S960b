@@ -1,0 +1,95 @@
+{
+ "schema_version": 2,
+ "run_id": "mk_18db1867c88f8000",
+ "segment": 1,
+ "started_utc": "2026-10-03T18:28:30Z",
+ "finished_utc": "2026-10-03T18:40:47Z",
+ "elapsed_s": 736.8,
+ "status": "completed",
+ "ticks": 35,
+ "rows_written": 159,
+ "api_calls": 166,
+ "blocks_429": 0,
+ "cadence": {
+  "tick_median_s": 8.99,
+  "tick_p95_s": 24.37,
+  "tick_max_s": 26.24,
+  "note": "wall-clock \u0434\u043b\u0438\u0442\u0435\u043b\u044c\u043d\u043e\u0441\u0442\u044c \u043e\u0431\u0440\u0430\u0431\u043e\u0442\u043a\u0438 \u0442\u0438\u043a\u0430 (\u0432\u043a\u043b. \u0441\u0435\u0442\u044c)"
+ },
+ "per_pair": {
+  "PRLUSDT": {
+   "depth_gap_s": {
+    "median": 20.01,
+    "p95": 27.05,
+    "max": 27.1,
+    "n": 34
+   },
+   "trades_gap_s": {
+    "median": 63.88,
+    "p95": 66.22,
+    "max": 66.22,
+    "n": 10
+   },
+   "depth_age_s": 19.7,
+   "trades_age_s": 58.0,
+   "limiter_wait_s": 28.8
+  },
+  "QUANTUSUSDT": {
+   "depth_gap_s": {
+    "median": 20.78,
+    "p95": 26.06,
+    "max": 26.27,
+    "n": 34
+   },
+   "trades_gap_s": {
+    "median": 64.0,
+    "p95": 66.29,
+    "max": 66.29,
+    "n": 10
+   },
+   "depth_age_s": 16.7,
+   "trades_age_s": 49.1,
+   "limiter_wait_s": 90.5
+  },
+  "LTCUSDT": {
+   "depth_gap_s": {
+    "median": 17.34,
+    "p95": 32.08,
+    "max": 32.15,
+    "n": 34
+   },
+   "trades_gap_s": {
+    "median": 64.34,
+    "p95": 66.31,
+    "max": 66.31,
+    "n": 10
+   },
+   "depth_age_s": 13.7,
+   "trades_age_s": 40.0,
+   "limiter_wait_s": 94.3
+  }
+ },
+ "trade_poll_state": {
+  "PRLUSDT": {
+   "t": 1791052789675806499,
+   "coverage": "caught_up",
+   "n_records": 100
+  },
+  "QUANTUSUSDT": {
+   "t": 1791052798567022500,
+   "coverage": "caught_up",
+   "n_records": 100
+  },
+  "LTCUSDT": {
+   "t": 1791052807612832648,
+   "coverage": "caught_up",
+   "n_records": 100
+  }
+ },
+ "confirmed_boundary": {
+  "PRLUSDT": 1791052787.0,
+  "QUANTUSUSDT": 1791052770.0,
+  "LTCUSDT": 1791052475.0
+ },
+ "notes": "rest_provisional; no order execution"
+}

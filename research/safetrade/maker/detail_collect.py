@@ -330,7 +330,11 @@ async def run_detail(pairs, minutes, rpm, base_dir, verbose=False, segment=1, re
                     ok_row = cov not in ('request_failed', 'coverage_unknown')
                     bnd_after = boundary.get(pair)
                     if cov in CONFIRMED_OK and fts is not None:
-                        boundary[pair] = fts          # только полный poll продвигает
+                        # подтверждённая граница продвигается только ВПЕРЁД:
+                        # если новых сделок нет, загрузчик вернёт время старой
+                        # сделки (fts < wm); max(wm, fts) не позволяет границе
+                        # сдвинуться назад и вызвать лишнее перечитывание истории.
+                        boundary[pair] = max(wm, fts)
                         bnd_after = boundary[pair]
                     row = {'pair': pair, 't': time.time_ns(), 'ok': ok_row,
                            'warmup': is_warm, 'coverage': cov,

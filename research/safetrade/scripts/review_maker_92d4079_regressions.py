@@ -108,3 +108,31 @@ def test_missing_coverage_is_not_proof_of_complete_observation(tmp_path, ok, rec
     result = analyze_run(str(tmp_path), rid, cutoff_ns=END * 10**9)["pairs"][0]
     assert result["trade_coverage"] not in {"observed_window", "no_trades_observed", "full"}, result
 
+
+def test_full_poll_with_older_trades_does_not_decrease_boundary(monkeypatch, tmp_path):
+    """Полный poll, вернувший сделки СТАРШЕ подтверждённой границы (новых нет),
+    не должен сдвигать границу назад: boundary = max(wm, fts)."""
+    collector_fixture(monkeypatch)
+    watermarks = []
+    clock = [START]
+    monkeypatch.setattr(collect.time, "time", lambda: clock[0])
+    monkeypatch.setattr(collect.time, "time_ns", lambda: clock[0] * 10**9)
+
+    async def fetch(adapter, native, limiter, watermark_time=None, max_pages=3):
+        watermarks.append(watermark_time)
+        if len(watermarks) == 1:
+            clock[0] = START + 200
+            # первый poll: свежие сделки, граница двигается вперёд
+            return [trade(1, START + 100)], "full", 1, 1, START + 100, START + 100, 1
+        if len(watermarks) == 2:
+            clock[0] = START + 300
+            # второй poll: ПОЛНЫЙ, но новых сделок нет — fts (START+90) старше
+            # подтверждённой границы (START+100). Граница НЕ должна уменьшиться.
+            return [trade(2, START + 90)], "full", 1, 1, START + 90, START + 90, 1
+        raise ProbeStop("boundary captured")
+
+    monkeypatch.setattr(collect, "_fetch_trades_detailed", fetch)
+    collect_until_stop(tmp_path)
+    assert len(watermarks) == 3
+    assert watermarks[2] == START + 100, watermarks   # max(wm, fts) = START+100
+

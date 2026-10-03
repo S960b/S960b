@@ -243,6 +243,11 @@ def test_depth_request_uses_shared_limiter(monkeypatch, tmp_path):
 
 def test_next_poll_uses_newest_confirmed_boundary_not_oldest_tail(monkeypatch, tmp_path):
     setup_collector(monkeypatch)
+    # фиксируем время старта run = START: с max(wm, fts) первый poll
+    # (fts=START+100 > wm=START) продвигает границу до START+100
+    clock = [START]
+    monkeypatch.setattr(collect.time, "time", lambda: clock[0])
+    monkeypatch.setattr(collect.time, "time_ns", lambda: clock[0] * 10**9)
     observed = []
 
     async def fetch(adapter, native, limiter, watermark_time=None, max_pages=3):
