@@ -410,6 +410,7 @@ def main():
     sp.add_argument("--pairs", default=None, help="список пар через запятую (по умолчанию финалисты)")
     sp.add_argument("--minutes", type=float, default=360.0, help="длительность сбора (по умолчанию 6ч)")
     sp.add_argument("--rpm", type=float, default=20.0, help="общий бюджет запросов SafeTrade/мин")
+    sp.add_argument("--data-root", default=None, help="корень данных (для тестов/изол. прогонов)")
     sp.add_argument("--verbose", action="store_true")
     sp.set_defaults(fn=cmd_maker_collect)
 

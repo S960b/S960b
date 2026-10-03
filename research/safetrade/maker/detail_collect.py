@@ -300,9 +300,23 @@ async def run_detail(pairs, minutes, rpm, base_dir, verbose=False, segment=1, re
     deadline = time.monotonic() + minutes * 60
     tick_dur = []
     lifecycle = {'status': 'running'}
+
+    # SIGTERM => контролируемое завершение с flush/summary (d891422 ревью п.6):
+    # обычный kill не выполняет finally; перехватываем и бросаем исключение.
+    _sig_ctx = {'stop': False}
+    try:
+        import signal as _signal
+        def _on_term(signum, frame):
+            _sig_ctx['stop'] = True
+        _signal.signal(_signal.SIGTERM, _on_term)
+    except (ValueError, OSError):
+        pass   # вне main-thread (тесты): сигналы не перехватываем
+
     CONFIRMED_OK = ('full', 'full_at_page', 'caught_up')
     try:
         while time.monotonic() < deadline:
+            if _sig_ctx['stop']:
+                raise asyncio.CancelledError('SIGTERM: контролируемая остановка')
             tick_start = time.monotonic()
             ticks += 1
             for pair in pairs:

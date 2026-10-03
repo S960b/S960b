@@ -1,18 +1,17 @@
 """Экономический анализ maker-сбора (этап 1.4+, БЕЗ ордеров).
 
-Ответы на экономические вопросы (ревью 92d4079, задание «внимание на экономику»):
-
-1. Оборот в USDT: сумма total уникальных сделок в окне [start, cutoff].
-2. Размеры и направление сделок: распределение total/amount, доля buy/sell.
-3. Подтверждённые комиссии: fee_unverified (не подтверждены) — расчёт при
-   явных допущениях, пометка качества.
-4. Возможность выхода тем же количеством: bid-depth достаточен для продажи
-   qty, купленного на бюджеты 5/10/25 USDT — доля снимков с полным покрытием.
-5. Движение цены после потенциального исполнения: касание котировки —
-   ТОЛЬКО opportunity (потенциальная встреча цены с заявкой), НЕ fill и НЕ
-   прибыль (ТЗ: public replay даёт opportunity). Горизонты 10/30/60/300с.
-
-Всё считается по raw JSONL; никаких ордеров/ключей не используется.
+Ревью d891422 исправлено:
+1. Полный оборот бюджета = полный ВХОД + полный ВЫХОД тем же количеством.
+   Частичная покупка НЕ выдаётся за полный бюджет; допуск 99.99% убран —
+   сравнивается проданное количество с купленным (остаток остаётся).
+2. Окно по умолчанию = конец доступных данных (последний валидный снимок/
+   poll), НЕ start+1ч. Скорость = по точной длительности окна.
+3. Отсутствие будущего снимка = censored (n_unobserved), НЕ «цена не
+   изменилась». Статистика только по наблюдаемым случаям; допуск запаздывания.
+4. touch_after — ДИАГНОСТИКА пересечения фиксированной цены, не экономический
+   вердикт (maker: сторона/цена/время и срок каждой котировки неизвестны).
+5. Счётчики качества: повреждённые строки, неразобранные timestamps,
+   неизвестная сторона, покрытие интервала, неполные poll'ы.
 """
 import argparse
 import glob
@@ -28,11 +27,15 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from analysis.book import OrderBook
 from maker.util import parse_iso_utc, valid_book
 
+NONFULL_POLL = ('request_failed', 'history_truncated', 'coverage_unknown',
+                'pagination_not_advancing')
+MAX_DELAY_FRAC = 0.25     # допустимое запаздывание будущего снимка: 25% горизонта
+
 
 def _read_jsonl(path):
-    rows = []
+    rows, bad = [], 0
     if not os.path.exists(path):
-        return rows
+        return rows, 0
     with open(path) as fh:
         for line in fh:
             line = line.strip()
@@ -41,61 +44,92 @@ def _read_jsonl(path):
             try:
                 rows.append(json.loads(line))
             except ValueError:
-                pass
-    return rows
+                bad += 1
+    return rows, bad
 
 
-def _ask_quote(bids, asks, budget):
+def _entry_quote(bids, asks, budget):
+    """Вход: ask-VWAP на бюджет. Возвращает (price, qty, cov) где cov:
+    full (весь бюджет потрачен) / partial / none."""
     ob = OrderBook()
     ob.apply({'event_type': 'book_snapshot', 'exchange': 'safetrade', 'canonical_symbol': 'x',
               'bids': bids, 'asks': asks, 'quality_flags': [], 'recv_monotonic_ns': 1})
     price, qty = ob.vwap_cost('ask', Decimal(str(budget)))
     if price is None:
-        return None, 0.0
-    return float(price), float(qty)
+        return None, 0.0, 'none'
+    cost = float(qty) * float(price)
+    tol = max(1e-6, float(budget) * 1e-9)
+    if cost >= float(budget) - tol:
+        return float(price), float(qty), 'full'
+    return float(price), float(qty), 'partial'
 
 
-def _bid_qty(bids, asks, qty):
-    """Максимально продаваемое количество по bid-глубине (для выхода тем же qty)."""
+def _sell_qty(bids, qty):
+    """Максимально продаваемое количество по bid-глубине (для выхода)."""
     ob = OrderBook()
     ob.apply({'event_type': 'book_snapshot', 'exchange': 'safetrade', 'canonical_symbol': 'x',
-              'bids': bids, 'asks': asks, 'quality_flags': [], 'recv_monotonic_ns': 1})
+              'bids': bids, 'asks': [], 'quality_flags': [], 'recv_monotonic_ns': 1})
     filled = 0.0
     for px, q in sorted(bids, key=lambda x: -float(x[0])):
         need = float(qty) - filled
         if need <= 0:
             break
-        take = min(need, float(q))
-        filled += take
+        filled += min(need, float(q))
     return filled
 
 
 def econ_report(run_dir, run_id, cutoff_ns=None, budgets=(5, 10, 25),
                 horizons=(10, 30, 60, 300)):
     """Экономический отчёт по run. Возвращает dict с агрегатами по парам."""
-    depth, bad_d = _read_jsonl(os.path.join(run_dir, f'{run_id}_depth.jsonl')), 0
-    tr_rows = _read_jsonl(os.path.join(run_dir, f'{run_id}_trades.jsonl'))
+    depth, bad_d = _read_jsonl(os.path.join(run_dir, f'{run_id}_depth.jsonl'))
+    tr_rows, bad_t = _read_jsonl(os.path.join(run_dir, f'{run_id}_trades.jsonl'))
+    or_rows, bad_o = _read_jsonl(os.path.join(run_dir, f'{run_id}_oracle.jsonl'))
     manifest = {}
     mp = os.path.join(run_dir, f'{run_id}_manifest.json')
     if os.path.exists(mp):
         manifest = json.load(open(mp))
-    started_ts = parse_iso_utc(manifest.get('started_utc')) or 0.0
+    started_ts = parse_iso_utc(manifest.get('started_utc'))
+    if started_ts is None:
+        started_ts = float(manifest.get('started_epoch') or 0.0)
+    if started_ts <= 0:
+        raise ValueError(f'econ: manifest {run_id} без started_utc/started_epoch')
+
+    # cutoff: явный ИЛИ конец доступных данных (последний валидный снимок/poll)
     if cutoff_ns is None:
-        cutoff_ts = started_ts + 3600.0   # по умолчанию: первый час
+        last = started_ts
+        for r in reversed(depth):
+            if isinstance(r, dict) and r.get('t'):
+                last = float(r['t']) / 1e9
+                break
+        for r in reversed(tr_rows):
+            if isinstance(r, dict) and r.get('t'):
+                last = max(last, float(r['t']) / 1e9)
+                break
+        cutoff_ts = last
     else:
         cutoff_ts = float(cutoff_ns) / 1e9
+    if cutoff_ts <= started_ts:
+        raise ValueError(f'econ: cutoff {cutoff_ts} <= start {started_ts} для {run_id}')
+    window_h = (cutoff_ts - started_ts) / 3600.0
 
     out = {
         'run_id': run_id, 'started_utc': manifest.get('started_utc'),
+        'started_epoch': started_ts,
+        'cutoff_ns': int(cutoff_ts * 1e9),
         'cutoff_utc': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(cutoff_ts)),
-        'window_h': round((cutoff_ts - started_ts) / 3600.0, 3),
+        'window_h': round(window_h, 4),
+        'window_h_exact': window_h,
+        'window_sources': 'cutoff=явный' if cutoff_ns is not None else 'cutoff=конец данных',
         'fee_status': 'fee_unverified',
         'fee_maker_bps': None, 'fee_taker_bps': None,
-        'note': 'касание котировки = opportunity (потенциальная встреча), НЕ fill и НЕ прибыль',
+        'bad_lines': {'depth': bad_d, 'trades': bad_t, 'oracle': bad_o},
+        'note': ('касание котировки = opportunity (потенциальная встреча), НЕ fill '
+                 'и НЕ прибыль; touch_after — ДИАГНОСТИКА пересечения, не '
+                 'экономический вердикт'),
         'pairs': [],
     }
 
-    # --- depth: серия валидных снимков по парам (для выхода и движения цены)
+    # --- depth: валидные снимки по парам
     depth_by = defaultdict(list)
     for r in depth:
         if not isinstance(r, dict) or not r.get('pair'):
@@ -110,8 +144,11 @@ def econ_report(run_dir, run_id, cutoff_ns=None, budgets=(5, 10, 25),
         if ok:
             depth_by[r['pair']].append((rcv, b, a))
 
-    # --- trades: уникальные сделки в окне по парам
+    # --- trades: уникальные в окне + статусы poll
     trades_by = defaultdict(list)
+    poll_status = defaultdict(list)
+    unparsed = defaultdict(int)
+    unknown_side = defaultdict(int)
     seen = set()
     for r in tr_rows:
         if not isinstance(r, dict) or not r.get('pair'):
@@ -119,6 +156,10 @@ def econ_report(run_dir, run_id, cutoff_ns=None, budgets=(5, 10, 25),
         rcv = (r.get('t') or 0) / 1e9
         if rcv > cutoff_ts:
             continue
+        pc = r.get('coverage') or 'missing'
+        p_ok = r.get('ok', True)
+        p_warm = bool(r.get('warmup', False))
+        poll_status[r['pair']].append((p_ok, pc, p_warm))
         for t in r.get('trades', []):
             if not isinstance(t, dict) or 'id' not in t:
                 continue
@@ -127,20 +168,42 @@ def econ_report(run_dir, run_id, cutoff_ns=None, budgets=(5, 10, 25),
                 continue
             seen.add(key)
             ts = parse_iso_utc(t.get('created_at'))
-            if ts is None or not (started_ts <= ts <= cutoff_ts):
+            if ts is None:
+                unparsed[r['pair']] += 1
                 continue
+            if not (started_ts <= ts <= cutoff_ts):
+                continue
+            if not t.get('side'):
+                unknown_side[r['pair']] += 1
             trades_by[r['pair']].append((ts, t))
 
     for pair in sorted(set(list(depth_by) + list(trades_by))):
         o = {'symbol': pair}
 
-        # --- 1/2. оборот и направление по уникальным сделкам окна
+        # --- качество данных (d891422 п.5)
+        o['unparsed_ts'] = unparsed.get(pair, 0)
+        o['unknown_side'] = unknown_side.get(pair, 0)
+        st = poll_status.get(pair, [])
+        o['poll_n'] = len(st)
+        o['poll_nonfull'] = sum(1 for ok, pc, w in st if not ok or pc in NONFULL_POLL)
+        o['poll_warmup'] = sum(1 for ok, pc, w in st if w)
+        live = [pc for ok, pc, w in st if not w]
+        if st and all(ok and pc in ('full', 'full_at_page', 'caught_up') for ok, pc, w in st if not w) \
+                and any(not w for ok, pc, w in st):
+            o['interval_coverage'] = 'covered'
+        elif any(not ok for ok, pc, w in st):
+            o['interval_coverage'] = 'request_failed'
+        elif any(pc in NONFULL_POLL for ok, pc, w in st if not w):
+            o['interval_coverage'] = 'incomplete'
+        else:
+            o['interval_coverage'] = 'unknown'
+
+        # --- 1/2. оборот и направление (уникальные сделки окна)
         tr = trades_by.get(pair, [])
         o['n_trades'] = len(tr)
-        totals = [float(t.get('total') or 0) for _, t in tr]
+        totals = [float(t.get('total') or 0) for _, t in tr if t.get('total') is not None]
         o['notional_usdt'] = round(sum(totals), 2)
-        window_h = out['window_h']
-        o['notional_per_hour'] = round(sum(totals) / max(1e-9, window_h), 2)
+        o['notional_per_hour'] = round(sum(totals) / window_h, 2) if totals else 0.0
         sides = [t.get('side') for _, t in tr]
         o['n_buy'] = sides.count('buy')
         o['n_sell'] = sides.count('sell')
@@ -152,56 +215,77 @@ def econ_report(run_dir, run_id, cutoff_ns=None, budgets=(5, 10, 25),
             o['notional_p90'] = round(s[int(len(s)*.9)], 4)
             o['notional_max'] = round(s[-1], 4)
 
-        # --- 4. выход тем же количеством (по глубине снимков)
+        # --- 4. возможности по глубине: ВХОД полного бюджета И выход тем же qty
         snaps = depth_by.get(pair, [])
         o['n_depth_snaps'] = len(snaps)
+        o['roundtrip_by_budget'] = {}
+        o['entry_by_budget'] = {}
+        # exit_by_budget: полный оборот бюджета = полный ВХОД и выход тем же qty
         o['exit_by_budget'] = {}
         for b_usdt in budgets:
-            full_exit = 0
+            full_entry = full_rt = 0
             for _, b, a in snaps:
-                ask_px, buy_qty = _ask_quote(b, a, b_usdt)
-                if ask_px is None or buy_qty <= 0:
-                    continue
-                sell_qty = _bid_qty(b, a, buy_qty)
-                # допуск округления: >= 99.99% купленного
-                if sell_qty >= buy_qty * 0.9999:
-                    full_exit += 1
+                ask_px, buy_qty, cov = _entry_quote(b, a, b_usdt)
+                o_entry = {'entry_cov': cov}
+                if cov == 'full' and ask_px is not None:
+                    full_entry += 1
+                    sold = _sell_qty(b, buy_qty)
+                    # точное сравнение: остаток остаётся, допуск только на погрешность
+                    remain = buy_qty - sold
+                    if remain <= max(buy_qty * 1e-9, 1e-12):
+                        full_rt += 1
+            o['entry_by_budget'][str(b_usdt)] = {
+                'full_entry_pct': round(100.0 * full_entry / len(snaps), 1) if snaps else None,
+                'n_full_entry': full_entry, 'n_snaps': len(snaps),
+            }
+            o['roundtrip_by_budget'][str(b_usdt)] = {
+                'full_rt_pct': round(100.0 * full_rt / len(snaps), 1) if snaps else None,
+                'n_full_rt': full_rt, 'n_snaps': len(snaps),
+            }
             o['exit_by_budget'][str(b_usdt)] = {
-                'full_exit_pct': round(100.0 * full_exit / len(snaps), 1) if snaps else None,
-                'n_full': full_exit, 'n_snaps': len(snaps),
+                'full_exit_pct': round(100.0 * full_rt / len(snaps), 1) if snaps else None,
+                'n_full': full_rt, 'n_snaps': len(snaps),
+                'note': 'полный оборот бюджета: полный вход И выход тем же qty',
             }
 
-        # --- 5. движение цены после касания (opportunity, горизонты)
+        # --- 5. диагностика пересечения фиксированной цены (НЕ вердикт)
         o['touch_after'] = {}
         if len(snaps) >= 2:
-            # стартовый ask = min ask первого снимка окна (предполагаемая лимитка)
             start_ask = min(float(x[0]) for _, _, a in snaps[:1] for x in a)
             for h in horizons:
-                n_touch = 0
-                up = 0      # mid вырос после касания
-                down = 0
+                n_touch = n_obs = 0
+                up = down = unchanged = 0
+                tol = max(5.0, h * MAX_DELAY_FRAC)   # допустимое запаздывание
                 for i, (rcv, b, a) in enumerate(snaps):
                     bb = max(float(x[0]) for x in b)
-                    if bb >= start_ask:
-                        n_touch += 1
-                        # mid через H секунд
-                        target = rcv + h
-                        j = i
-                        while j < len(snaps) and snaps[j][0] < target:
-                            j += 1
-                        if j < len(snaps):
-                            _, bj, aj = snaps[j]
-                            mid_j = (max(float(x[0]) for x in bj) +
-                                     min(float(x[0]) for x in aj)) / 2
-                            mid_i = (bb + min(float(x[0]) for x in a)) / 2
-                            if mid_j > mid_i:
-                                up += 1
-                            elif mid_j < mid_i:
-                                down += 1
+                    if bb < start_ask:
+                        continue
+                    n_touch += 1
+                    target = rcv + h
+                    j = i
+                    while j < len(snaps) and snaps[j][0] < target - tol:
+                        j += 1
+                    if j >= len(snaps):
+                        continue                  # будущего наблюдения нет: censored
+                    delay = abs(snaps[j][0] - target)
+                    if delay > tol:
+                        continue                  # слишком поздний снимок: не наблюдение
+                    n_obs += 1
+                    _, bj, aj = snaps[j]
+                    mid_j = (max(float(x[0]) for x in bj) + min(float(x[0]) for x in aj)) / 2
+                    mid_i = (bb + min(float(x[0]) for x in a)) / 2
+                    if mid_j > mid_i:
+                        up += 1
+                    elif mid_j < mid_i:
+                        down += 1
+                    else:
+                        unchanged += 1
                 o['touch_after'][str(h)] = {
                     'n_touch': n_touch,
-                    'mid_up': up, 'mid_down': down,
-                    'mid_unchanged': n_touch - up - down,
+                    'n_observed': n_obs,
+                    'n_unobserved': n_touch - n_obs,
+                    'mid_up': up, 'mid_down': down, 'mid_unchanged': unchanged,
+                    'note': 'диагностика пересечения фиксированной цены (не вердикт)',
                 }
             o['touch_start_ask'] = round(start_ask, 6)
         out['pairs'].append(o)
@@ -231,13 +315,17 @@ def main():
     os.makedirs(os.path.dirname(jout), exist_ok=True)
     with open(jout, 'w') as f:
         json.dump(res, f, indent=1, ensure_ascii=False)
-    print(f"econ {run_id}: window_h={res['window_h']}")
+    print(f"econ {run_id}: window_h={res['window_h']} ({res['window_sources']})")
     for p in res['pairs']:
+        rt = p.get('roundtrip_by_budget', {})
+        en = p.get('entry_by_budget', {})
         print(f"  {p['symbol']:<13} n={p.get('n_trades')} notional={p.get('notional_usdt')} "
               f"USDT ({p.get('notional_per_hour')}/ч) buy={p.get('n_buy')} sell={p.get('n_sell')} "
-              f"exit5/10/25={p.get('exit_by_budget',{}).get('5',{}).get('full_exit_pct')}"
-              f"/{p.get('exit_by_budget',{}).get('10',{}).get('full_exit_pct')}"
-              f"/{p.get('exit_by_budget',{}).get('25',{}).get('full_exit_pct')}%")
+              f"entry5/10/25={en.get('5',{}).get('full_entry_pct')}/"
+              f"{en.get('10',{}).get('full_entry_pct')}/{en.get('25',{}).get('full_entry_pct')}% "
+              f"rt5/10/25={rt.get('5',{}).get('full_rt_pct')}/"
+              f"{rt.get('10',{}).get('full_rt_pct')}/{rt.get('25',{}).get('full_rt_pct')}% "
+              f"bad={res['bad_lines']} unparsed={p.get('unparsed_ts')}")
     print(f"  -> {jout}")
 
 
