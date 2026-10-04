@@ -8,3 +8,9 @@ __pycache__/
 .env.*
 cloudflared
 sdk_examples/
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+*.pilot.lock

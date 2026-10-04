@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "/tmp/bridge-adfe711-baseline-O7z2TL/scripts/verify_pilot_startup.py", line 126, in <module>
+    main()
+    ~~~~^^
+  File "/tmp/bridge-adfe711-baseline-O7z2TL/scripts/verify_pilot_startup.py", line 85, in main
+    rejected(dict(env), 'missing explicit DB path rejected')
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/bridge-adfe711-baseline-O7z2TL/scripts/verify_pilot_startup.py", line 78, in rejected
+    assert kind == 'exited' and info != 0, f'{label}: unsafe startup accepted ({kind})'
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: missing explicit DB path rejected: unsafe startup accepted (ready)

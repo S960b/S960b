@@ -1,0 +1,11 @@
+F.                                                                       [100%]
+=================================== FAILURES ===================================
+_______________________ test_mcp_reports_actual_version ________________________
+tests/test_pilot_adfe711.py:119: in test_mcp_reports_actual_version
+    assert response['result']['_meta']['io.modelcontextprotocol/serverInfo']['version'] == bs.VERSION
+E   AssertionError: assert '' == '0.2.0'
+E     
+E     - 0.2.0
+=========================== short test summary info ============================
+FAILED tests/test_pilot_adfe711.py::test_mcp_reports_actual_version - Asserti...
+1 failed, 1 passed in 0.78s

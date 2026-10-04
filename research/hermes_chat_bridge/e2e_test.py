@@ -162,8 +162,9 @@ def main():
         'arguments': {'queue': 'test'},
         'delivery': {'mode': 'webhook', 'url': 'http://127.0.0.1:9999/hook', 'secret': bad_secret}},
         token=at)
-    check('subscribe: приватный callback заблокирован',
-          body is not None and ('invalid_callback' in body or 'CallbackEndpointError' in body), (body or err)[:140])
+    payload = json.loads(body) if body else {}
+    check('subscribe: приватный callback заблокирован (top-level error)',
+          payload.get('error', {}).get('code') == -32015 and 'result' not in payload, (body or err)[:140])
 
     print()
     print(f'ИТОГ: {len(passed)} passed, {len(failed)} failed')

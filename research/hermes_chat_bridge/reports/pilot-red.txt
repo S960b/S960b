@@ -1,0 +1,114 @@
+FFFFFFFFF                                                                [100%]
+=================================== FAILURES ===================================
+_______________________ test_explicit_database_required ________________________
+tests/test_pilot_adfe711.py:16: in test_explicit_database_required
+    bs.build_app(BASE)
+bridge_server.py:810: in build_app
+    bridge = BridgeApp(base_url)
+             ^^^^^^^^^^^^^^^^^^^
+bridge_server.py:432: in __init__
+    self.queue = Queue(DB_PATH)
+                 ^^^^^^^^^^^^^^
+bridge_queue.py:26: in __init__
+    os.makedirs(os.path.dirname(db_path) or '.', exist_ok=True)
+                ^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen posixpath>:178: in dirname
+    ???
+E   TypeError: expected str, bytes or os.PathLike object, not NoneType
+____________________ test_unsafe_path_rejected[relative.db] ____________________
+tests/test_pilot_adfe711.py:24: in test_unsafe_path_rejected
+    bs.build_app(BASE)
+bridge_server.py:810: in build_app
+    bridge = BridgeApp(base_url)
+             ^^^^^^^^^^^^^^^^^^^
+bridge_server.py:432: in __init__
+    self.queue = Queue(DB_PATH)
+                 ^^^^^^^^^^^^^^
+bridge_queue.py:27: in __init__
+    self._conn = sqlite3.connect(db_path, check_same_thread=False)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/conftest.py:13: in temporary_database
+    raise AssertionError('test attempted a non-temporary SQLite database')
+E   AssertionError: test attempted a non-temporary SQLite database
+_______________ test_unsafe_path_rejected[/tmp/../tmp/pilot.db] ________________
+tests/test_pilot_adfe711.py:24: in test_unsafe_path_rejected
+    bs.build_app(BASE)
+bridge_server.py:810: in build_app
+    bridge = BridgeApp(base_url)
+             ^^^^^^^^^^^^^^^^^^^
+bridge_server.py:432: in __init__
+    self.queue = Queue(DB_PATH)
+                 ^^^^^^^^^^^^^^
+bridge_queue.py:27: in __init__
+    self._conn = sqlite3.connect(db_path, check_same_thread=False)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/conftest.py:13: in temporary_database
+    raise AssertionError('test attempted a non-temporary SQLite database')
+E   AssertionError: test attempted a non-temporary SQLite database
+__________________ test_legacy_startup_refused_without_change __________________
+tests/test_pilot_adfe711.py:36: in test_legacy_startup_refused_without_change
+    with pytest.raises(RuntimeError, match='unversioned'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE RuntimeError
+_____________________ test_pilot_lock_and_versioned_reopen _____________________
+tests/test_pilot_adfe711.py:46: in test_pilot_lock_and_versioned_reopen
+    with pytest.raises(RuntimeError, match='process'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE RuntimeError
+____________ test_reverse_completion_latest_generation_wins[False] _____________
+tests/test_pilot_adfe711.py:89: in test_reverse_completion_latest_generation_wins
+    asyncio.run(scenario())
+/usr/lib/python3.13/asyncio/runners.py:195: in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+/usr/lib/python3.13/asyncio/runners.py:118: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.13/asyncio/base_events.py:719: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+tests/test_pilot_adfe711.py:88: in scenario
+    assert saved['secret'] == second_params['delivery']['secret']
+E   AssertionError: assert 'whsec_QUFBQU...BQUFBQUFBQUE=' == 'whsec_QkJCQk...CQkJCQkJCQkI='
+E     
+E     - whsec_QkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkI=
+E     + whsec_QUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUE=
+_____________ test_reverse_completion_latest_generation_wins[True] _____________
+tests/test_pilot_adfe711.py:89: in test_reverse_completion_latest_generation_wins
+    asyncio.run(scenario())
+/usr/lib/python3.13/asyncio/runners.py:195: in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+/usr/lib/python3.13/asyncio/runners.py:118: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.13/asyncio/base_events.py:719: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+tests/test_pilot_adfe711.py:88: in scenario
+    assert saved['secret'] == second_params['delivery']['secret']
+E   AssertionError: assert 'whsec_QUFBQU...BQUFBQUFBQUE=' == 'whsec_QkJCQk...CQkJCQkJCQkI='
+E     
+E     - whsec_QkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkI=
+E     + whsec_QUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUE=
+_____ test_revoke_metadata_idempotency_wrong_client_and_mcp[access_token] ______
+tests/test_pilot_adfe711.py:101: in test_revoke_metadata_idempotency_wrong_client_and_mcp
+    assert metadata['revocation_endpoint'] == BASE+'/revoke'
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   KeyError: 'revocation_endpoint'
+_____ test_revoke_metadata_idempotency_wrong_client_and_mcp[refresh_token] _____
+tests/test_pilot_adfe711.py:101: in test_revoke_metadata_idempotency_wrong_client_and_mcp
+    assert metadata['revocation_endpoint'] == BASE+'/revoke'
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   KeyError: 'revocation_endpoint'
+=========================== short test summary info ============================
+FAILED tests/test_pilot_adfe711.py::test_explicit_database_required - TypeErr...
+FAILED tests/test_pilot_adfe711.py::test_unsafe_path_rejected[relative.db] - ...
+FAILED tests/test_pilot_adfe711.py::test_unsafe_path_rejected[/tmp/../tmp/pilot.db]
+FAILED tests/test_pilot_adfe711.py::test_legacy_startup_refused_without_change
+FAILED tests/test_pilot_adfe711.py::test_pilot_lock_and_versioned_reopen - Fa...
+FAILED tests/test_pilot_adfe711.py::test_reverse_completion_latest_generation_wins[False]
+FAILED tests/test_pilot_adfe711.py::test_reverse_completion_latest_generation_wins[True]
+FAILED tests/test_pilot_adfe711.py::test_revoke_metadata_idempotency_wrong_client_and_mcp[access_token]
+FAILED tests/test_pilot_adfe711.py::test_revoke_metadata_idempotency_wrong_client_and_mcp[refresh_token]
+9 failed in 0.90s

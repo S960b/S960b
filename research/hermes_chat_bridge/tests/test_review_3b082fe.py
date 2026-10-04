@@ -17,6 +17,7 @@ from pathlib import Path
 from threading import Barrier
 
 import pytest
+from mcp.shared.exceptions import MCPError
 from starlette.testclient import TestClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -94,8 +95,9 @@ def test_failed_challenge_leaves_no_active_subscription(bridge, monkeypatch):
     async def fail(sub):
         return False
     monkeypatch.setattr(bridge, "verify_callback", fail)
-    result = asyncio.run(bridge.events_subscribe(None, sub_params()))
-    assert result["resultType"] == "error"
+    with pytest.raises(MCPError) as error:
+        asyncio.run(bridge.events_subscribe(None, sub_params()))
+    assert error.value.code == -32015
     assert bridge.store.active_subscriptions() == []
 
 
@@ -106,10 +108,10 @@ def test_failed_challenge_rechecked_on_repeat(bridge, monkeypatch):
         calls.append(sub["id"])
         return False
     monkeypatch.setattr(bridge, "verify_callback", fail)
-    first = asyncio.run(bridge.events_subscribe(None, sub_params()))
-    second = asyncio.run(bridge.events_subscribe(None, sub_params()))
-    assert first["resultType"] == "error"
-    assert second["resultType"] == "error"
+    for _ in range(2):
+        with pytest.raises(MCPError) as error:
+            asyncio.run(bridge.events_subscribe(None, sub_params()))
+        assert error.value.code == -32015
     assert len(calls) == 2
 
 
@@ -252,14 +254,6 @@ def test_queue_concurrent_reply_cannot_silently_overwrite(tmp_path):
     job = q1.put_message("fixture")["job_id"]
     barrier = Barrier(2, timeout=3)
 
-    class Cursor:
-        def __init__(self, c):
-            self.c = c
-        def fetchone(self):
-            row = self.c.fetchone()
-            barrier.wait()
-            return row
-
     class Connection:
         def __init__(self, c):
             self.c = c
@@ -267,8 +261,6 @@ def test_queue_concurrent_reply_cannot_silently_overwrite(tmp_path):
             if sql.startswith("UPDATE jobs SET"):
                 barrier.wait()
             cur = self.c.execute(sql, *args)
-            if False:
-                return Cursor(cur)
             return cur
         def commit(self):
             return self.c.commit()

@@ -10,6 +10,8 @@ from starlette.testclient import TestClient
 from starlette.applications import Starlette
 from starlette.routing import Route
 import base64
+import pytest
+from mcp.shared.exceptions import MCPError
 
 def test_extra_event_arguments_rejected(tmp_path,monkeypatch):
     monkeypatch.setattr(bs,'DB_PATH',str(tmp_path/'bridge.db'))
@@ -23,8 +25,9 @@ def test_extra_event_arguments_rejected(tmp_path,monkeypatch):
     async def accept(sub): callbacks.append(sub);return True
     monkeypatch.setattr(b,'verify_callback',accept)
     try:
-        result=asyncio.run(b.events_subscribe(None,{'name':'hermes.message.created','arguments':{'queue':'test','unexpected':'field'},'delivery':{'mode':'webhook','url':'https://callback.example/hook','secret':'whsec_'+base64.b64encode(b'x'*32).decode()}}))
-        assert result['resultType']=='error'
+        with pytest.raises(MCPError) as error:
+            asyncio.run(b.events_subscribe(None,{'name':'hermes.message.created','arguments':{'queue':'test','unexpected':'field'},'delivery':{'mode':'webhook','url':'https://callback.example/hook','secret':'whsec_'+base64.b64encode(b'x'*32).decode()}}))
+        assert error.value.code == -32602
         assert callbacks==[]
     finally:
         auth_context_var.reset(context);b.store.conn.close();b.queue._conn.close()

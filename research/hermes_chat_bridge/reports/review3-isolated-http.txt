@@ -1,0 +1,20 @@
+PASS public /ping | {'ok': 'ok', 'version': '0.2.0', 'git_revision': 'unknown', 'process_mode': 'single-process-pilot'}
+PASS mcp без токена -> 401 | HTTP 401: {"error": "invalid_token", "error_description": "Authentication required"}
+PASS DCR register | client_id=ffefdceb...
+PASS authorize -> login form
+PASS OAuth state distinct from internal login state
+PASS login callback -> code
+PASS token exchange | scope=bridge
+PASS tools/list (2 инструмента) | ['bridge_get_message', 'bridge_put_reply']
+PASS discover: 2026-07-28 + events capability | {'tools': {}, 'events': {}}
+PASS events/list: hermes.message.created | ['hermes.message.created']
+PASS get несуществующий job -> not_found | {
+  "job_id": "job_nonexistent",
+  "status": "not_found"
+}
+PASS subscribe: приватный callback заблокирован (top-level error) | {"jsonrpc":"2.0","id":1,"error":{"code":-32015,"message":"CallbackEndpointError","data":{"reason":"invalid_callback: ValueError"}}}
+
+ИТОГ: 12 passed, 0 failed
+
+
+ISOLATED_HTTP_E2E_EXIT= 0

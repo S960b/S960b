@@ -1,0 +1,28 @@
+{
+  "commit": "adfe711c91cd35a1c1d5c4ca4ce572a52f8f19ef",
+  "python": "3.12.14",
+  "locked_packages_verified": 34,
+  "pytest": {
+    "existing": {
+      "tests": 45,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "independent": {
+      "tests": 17,
+      "failures": 13,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "isolated_http_runner": {
+    "passed": 12,
+    "failed": 0,
+    "exit_code": 0
+  },
+  "chatgpt_ui_tested": false,
+  "production_code_modified": false,
+  "user_vm_accessed": false,
+  "note": "ASGI/temp DB checks; separate loopback runner. Some failing tests cover explicitly optional extended concurrency."
+}

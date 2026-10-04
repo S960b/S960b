@@ -7,7 +7,7 @@ with tempfile.TemporaryDirectory(prefix='bridge-runtime-home-') as home:
         sock.bind(('127.0.0.1',0));port=sock.getsockname()[1]
     base=f'http://127.0.0.1:{port}'
     password=secrets.token_urlsafe(24)
-    env=dict(os.environ,HOME=home,BRIDGE_HOST='127.0.0.1',BRIDGE_PORT=str(port),BRIDGE_BASE=base,BRIDGE_USER='owner',BRIDGE_PASS=password,BRIDGE_E2E_BASE=base,BRIDGE_E2E_PASS=password)
+    env=dict(os.environ,HOME=home,BRIDGE_DB_PATH=str(Path(home)/'pilot.db'),BRIDGE_HOST='127.0.0.1',BRIDGE_PORT=str(port),BRIDGE_BASE=base,BRIDGE_USER='owner',BRIDGE_PASS=password,BRIDGE_E2E_BASE=base,BRIDGE_E2E_PASS=password)
     with tempfile.TemporaryFile(mode='w+') as log:
         process=subprocess.Popen([python,str(root/'bridge_server.py')],cwd=root,env=env,stdout=log,stderr=subprocess.STDOUT)
         try:

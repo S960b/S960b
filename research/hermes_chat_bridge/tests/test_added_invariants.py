@@ -5,6 +5,7 @@ import socket
 import time
 from urllib.parse import parse_qs, urlparse
 import pytest
+from mcp.shared.exceptions import MCPError
 from mcp.server.auth.provider import AuthorizationParams
 from mcp.shared.auth import OAuthClientInformationFull
 from starlette.testclient import TestClient
@@ -72,6 +73,7 @@ def test_callback_pin_rebinding_no_proxy(bridge, monkeypatch):
     class Conn:
         def __init__(self, host, address, port, timeout):
             calls.append((host, address, port))
+        def connect(self): pass
         def request(self, *a, **k): pass
         def getresponse(self): return self
         status = 302
@@ -120,7 +122,9 @@ def test_ttl_and_failed_rotation_preserves_working(bridge, monkeypatch):
         async def fail(s): return False
         monkeypatch.setattr(bridge, 'verify_callback', fail)
         p['delivery']['secret'] = 'whsec_' + base64.b64encode(b'Z'*32).decode()
-        assert asyncio.run(bridge.events_subscribe(None, p))['resultType'] == 'error'
+        with pytest.raises(MCPError) as error:
+            asyncio.run(bridge.events_subscribe(None, p))
+        assert error.value.code == -32015
         assert bridge.store.load_sub(s['id'])['secret'] == SECRET
     finally: auth_context_var.reset(t)
 
@@ -145,6 +149,6 @@ def test_revocation_stops_delivery(bridge):
     bridge.store.save_access(AccessToken(token='a', client_id='c', scopes=['bridge'], subject='owner', resource=BASE+'/mcp'))
     stored_sub(bridge)
     bridge.emit_test_event('job_x')
-    asyncio.run(bridge.provider.revoke_token('a'))
+    asyncio.run(bridge.provider.revoke_token(bridge.store.load_access('a')))
     assert bridge.store.active_subscriptions() == []
     assert bridge.store.conn.execute('SELECT done FROM deliveries').fetchone()[0] == 1

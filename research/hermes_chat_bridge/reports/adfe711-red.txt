@@ -1,0 +1,164 @@
+FFFFFF.F.FFFF..FF                                                        [100%]
+=================================== FAILURES ===================================
+_______ test_real_revoke_endpoint_accepts_sdk_token_model[access_token] ________
+tests/test_review_adfe711.py:66: in test_real_revoke_endpoint_accepts_sdk_token_model
+    assert response.status_code == 200, response.text
+E   AssertionError: Not Found
+E   assert 404 == 200
+E    +  where 404 = <Response [404 Not Found]>.status_code
+_______ test_real_revoke_endpoint_accepts_sdk_token_model[refresh_token] _______
+tests/test_review_adfe711.py:66: in test_real_revoke_endpoint_accepts_sdk_token_model
+    assert response.status_code == 200, response.text
+E   AssertionError: Not Found
+E   assert 404 == 200
+E    +  where 404 = <Response [404 Not Found]>.status_code
+__________ test_provider_revocation_accepts_sdk_object[access_token] ___________
+tests/test_review_adfe711.py:84: in test_provider_revocation_accepts_sdk_object
+    asyncio.run(bridge.provider.revoke_token(token))
+/usr/lib/python3.13/asyncio/runners.py:195: in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+/usr/lib/python3.13/asyncio/runners.py:118: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.13/asyncio/base_events.py:719: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+bridge_server.py:398: in revoke_token
+    principal = self.store.load_access(token) or self.store.load_refresh(token)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+bridge_server.py:219: in load_access
+    row = self.conn.execute('SELECT * FROM access_tokens WHERE token=?', (token,)).fetchone()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   sqlite3.ProgrammingError: Error binding parameter 1: type 'AccessToken' is not supported
+__________ test_provider_revocation_accepts_sdk_object[refresh_token] __________
+tests/test_review_adfe711.py:84: in test_provider_revocation_accepts_sdk_object
+    asyncio.run(bridge.provider.revoke_token(token))
+/usr/lib/python3.13/asyncio/runners.py:195: in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+/usr/lib/python3.13/asyncio/runners.py:118: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.13/asyncio/base_events.py:719: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+bridge_server.py:398: in revoke_token
+    principal = self.store.load_access(token) or self.store.load_refresh(token)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+bridge_server.py:219: in load_access
+    row = self.conn.execute('SELECT * FROM access_tokens WHERE token=?', (token,)).fetchone()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   sqlite3.ProgrammingError: Error binding parameter 1: type 'RefreshToken' is not supported
+_______________ test_callback_failure_is_top_level_jsonrpc_error _______________
+tests/test_review_adfe711.py:101: in test_callback_failure_is_top_level_jsonrpc_error
+    assert payload.get('error', {}).get('code') == -32015, payload
+E   AssertionError: {'jsonrpc': '2.0', 'id': 1, 'result': {'resultType': 'error', 'error': {'code': -32015, 'message': 'CallbackEndpointEr...son': 'challenge_failed'}}, '_meta': {'io.modelcontextprotocol/serverInfo': {'name': 'Hermes Bridge', 'version': ''}}}}
+E   assert None == -32015
+E    +  where None = <built-in method get of dict object at 0x7f4ba20baec0>('code')
+E    +    where <built-in method get of dict object at 0x7f4ba20baec0> = {}.get
+E    +      where {} = <built-in method get of dict object at 0x7f4ba2030040>('error', {})
+E    +        where <built-in method get of dict object at 0x7f4ba2030040> = {'jsonrpc': '2.0', 'id': 1, 'result': {'resultType': 'error', 'error': {'code': -32015, 'message': 'CallbackEndpointEr...son': 'challenge_failed'}}, '_meta': {'io.modelcontextprotocol/serverInfo': {'name': 'Hermes Bridge', 'version': ''}}}}.get
+________________ test_unsubscribe_during_pending_challenge_wins ________________
+tests/test_review_adfe711.py:122: in test_unsubscribe_during_pending_challenge_wins
+    asyncio.run(scenario())
+/usr/lib/python3.13/asyncio/runners.py:195: in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+/usr/lib/python3.13/asyncio/runners.py:118: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.13/asyncio/base_events.py:719: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+tests/test_review_adfe711.py:121: in scenario
+    assert bridge.store.active_subscriptions() == [], 'late challenge resurrected cancelled subscription'
+E   AssertionError: late challenge resurrected cancelled subscription
+E   assert [{'id': 'sub_...'test'}, ...}] == []
+E     
+E     Left contains one more item: {'id': 'sub_18431959f06862d24bead836', 'owner': 'owner', 'event': 'hermes.message.created', 'arguments': {'queue': 'test'}, ...}
+E     Use -v to get more diff
+________ test_legacy_active_flag_is_not_proof_of_callback_verification _________
+tests/test_review_adfe711.py:171: in test_legacy_active_flag_is_not_proof_of_callback_verification
+    assert b.store.active_subscriptions() == [], 'legacy unverified row remained active after migration'
+E   AssertionError: legacy unverified row remained active after migration
+E   assert [{'id': 'sub_...'test'}, ...}] == []
+E     
+E     Left contains one more item: {'id': 'sub_18431959f06862d24bead836', 'owner': 'owner', 'event': 'hermes.message.created', 'arguments': {'queue': 'test'}, ...}
+E     Use -v to get more diff
+_____________ test_overlapping_delivery_loops_claim_single_attempt _____________
+tests/test_review_adfe711.py:222: in test_overlapping_delivery_loops_claim_single_attempt
+    asyncio.run(scenario())
+/usr/lib/python3.13/asyncio/runners.py:195: in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+/usr/lib/python3.13/asyncio/runners.py:118: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.13/asyncio/base_events.py:719: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+tests/test_review_adfe711.py:221: in scenario
+    assert count == 1, f'{count} concurrent HTTP attempts for same outbox row'
+E   AssertionError: 2 concurrent HTTP attempts for same outbox row
+E   assert 2 == 1
+_______ test_successful_delivery_cannot_be_rescheduled_by_stale_failure ________
+tests/test_review_adfe711.py:249: in test_successful_delivery_cannot_be_rescheduled_by_stale_failure
+    asyncio.run(scenario())
+/usr/lib/python3.13/asyncio/runners.py:195: in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+/usr/lib/python3.13/asyncio/runners.py:118: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.13/asyncio/base_events.py:719: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+tests/test_review_adfe711.py:248: in scenario
+    assert tuple(row) == (1, 'delivered'), 'late 503 changed delivered row back to pending'
+E   AssertionError: late 503 changed delivered row back to pending
+E   assert (0, None) == (1, 'delivered')
+E     
+E     At index 0 diff: 0 != 1
+E     Use -v to get more diff
+_____________ test_single_delivery_loop_cannot_reopen_revoked_row ______________
+tests/test_review_adfe711.py:263: in test_single_delivery_loop_cannot_reopen_revoked_row
+    assert tuple(row) == (1, 'access_revoked'), 'late failure reopened an explicitly revoked delivery'
+E   AssertionError: late failure reopened an explicitly revoked delivery
+E   assert (0, None) == (1, 'access_revoked')
+E     
+E     At index 0 diff: 0 != 1
+E     Use -v to get more diff
+____________ test_access_revocation_before_tcp_write_prevents_send _____________
+tests/test_review_adfe711.py:291: in test_access_revocation_before_tcp_write_prevents_send
+    assert calls == [], (calls, result)
+E   AssertionError: (['request-written'], (200, b'{}'))
+E   assert ['request-written'] == []
+E     
+E     Left contains one more item: 'request-written'
+E     Use -v to get more diff
+________ test_stale_loaded_oauth_grant_cannot_be_exchanged_twice[code] _________
+tests/test_review_adfe711.py:342: in test_stale_loaded_oauth_grant_cannot_be_exchanged_twice
+    with pytest.raises(TokenError):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE TokenError
+_______ test_stale_loaded_oauth_grant_cannot_be_exchanged_twice[refresh] _______
+tests/test_review_adfe711.py:342: in test_stale_loaded_oauth_grant_cannot_be_exchanged_twice
+    with pytest.raises(TokenError):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE TokenError
+=========================== short test summary info ============================
+FAILED tests/test_review_adfe711.py::test_real_revoke_endpoint_accepts_sdk_token_model[access_token]
+FAILED tests/test_review_adfe711.py::test_real_revoke_endpoint_accepts_sdk_token_model[refresh_token]
+FAILED tests/test_review_adfe711.py::test_provider_revocation_accepts_sdk_object[access_token]
+FAILED tests/test_review_adfe711.py::test_provider_revocation_accepts_sdk_object[refresh_token]
+FAILED tests/test_review_adfe711.py::test_callback_failure_is_top_level_jsonrpc_error
+FAILED tests/test_review_adfe711.py::test_unsubscribe_during_pending_challenge_wins
+FAILED tests/test_review_adfe711.py::test_legacy_active_flag_is_not_proof_of_callback_verification
+FAILED tests/test_review_adfe711.py::test_overlapping_delivery_loops_claim_single_attempt
+FAILED tests/test_review_adfe711.py::test_successful_delivery_cannot_be_rescheduled_by_stale_failure
+FAILED tests/test_review_adfe711.py::test_single_delivery_loop_cannot_reopen_revoked_row
+FAILED tests/test_review_adfe711.py::test_access_revocation_before_tcp_write_prevents_send
+FAILED tests/test_review_adfe711.py::test_stale_loaded_oauth_grant_cannot_be_exchanged_twice[code]
+FAILED tests/test_review_adfe711.py::test_stale_loaded_oauth_grant_cannot_be_exchanged_twice[refresh]
+13 failed, 4 passed in 1.12s

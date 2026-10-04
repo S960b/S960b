@@ -1,0 +1,7 @@
+.....................................................x.......xx......... [ 98%]
+.                                                                        [100%]
+=========================== short test summary info ============================
+XFAIL tests/test_review_adfe711.py::test_legacy_active_flag_is_not_proof_of_callback_verification - Known limitation: legacy migration not implemented; startup refuses old DB, pilot requires NEW explicitly selected DB
+XFAIL tests/test_review_adfe711.py::test_stale_loaded_oauth_grant_cannot_be_exchanged_twice[code] - Known P2: stale loaded grants lack transactional consume; only one pilot process enforced
+XFAIL tests/test_review_adfe711.py::test_stale_loaded_oauth_grant_cannot_be_exchanged_twice[refresh] - Known P2: stale loaded grants lack transactional consume; only one pilot process enforced
+70 passed, 3 xfailed in 1.87s

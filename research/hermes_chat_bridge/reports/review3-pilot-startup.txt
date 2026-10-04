@@ -1,0 +1,7 @@
+PASS missing explicit DB path rejected
+PASS unversioned legacy DB rejected
+PROCESS_BUILD= {"git_revision": "unknown", "ok": "ok", "process_mode": "single-process-pilot", "version": "0.2.0"}
+PASS fresh explicit pilot DB selected
+PASS second process on same DB rejected
+PASS pilot DB reopened after lock release
+PILOT_STARTUP_CHECKS= 5

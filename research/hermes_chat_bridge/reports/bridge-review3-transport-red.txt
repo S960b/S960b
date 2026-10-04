@@ -1,0 +1,10 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+________ test_tls_cancellation_prevents_request_bytes_and_closes_socket ________
+tests/test_review3_transport_sequence.py:44: in test_tls_cancellation_prevents_request_bytes_and_closes_socket
+    assert 'request_bytes_written' not in calls, calls
+E   AssertionError: ['tls_connected', 'request_bytes_written', 'closed']
+E   assert 'request_bytes_written' not in ['tls_connected', 'request_bytes_written', 'closed']
+=========================== short test summary info ============================
+FAILED tests/test_review3_transport_sequence.py::test_tls_cancellation_prevents_request_bytes_and_closes_socket
+1 failed in 0.71s

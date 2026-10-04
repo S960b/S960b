@@ -1,0 +1,32 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+_ test_stale_failure_cannot_change_terminal_row_from_another_connection[delivered-200] _
+tests/test_review3_terminal_cas.py:19: in test_stale_failure_cannot_change_terminal_row_from_another_connection
+    assert after == before, 'late retry changed terminal status, reason or attempt metadata'
+E   AssertionError: late retry changed terminal status, reason or attempt metadata
+E   assert {'id': 1, 'su...d': '{}', ...} == {'id': 1, 'su...d': '{}', ...}
+E     
+E     Omitting 7 identical items, use -vv to show
+E     Differing items:
+E     {'done': 0} != {'done': 1}
+E     {'terminal_reason': None} != {'terminal_reason': 'delivered'}
+E     {'last_status': 503} != {'last_status': 200}
+E     {'attempts': 2} != {'attempts': 1}
+E     Use -v to get more diff
+_ test_stale_failure_cannot_change_terminal_row_from_another_connection[access_revoked-410] _
+tests/test_review3_terminal_cas.py:19: in test_stale_failure_cannot_change_terminal_row_from_another_connection
+    assert after == before, 'late retry changed terminal status, reason or attempt metadata'
+E   AssertionError: late retry changed terminal status, reason or attempt metadata
+E   assert {'id': 1, 'su...d': '{}', ...} == {'id': 1, 'su...d': '{}', ...}
+E     
+E     Omitting 7 identical items, use -vv to show
+E     Differing items:
+E     {'done': 0} != {'done': 1}
+E     {'terminal_reason': None} != {'terminal_reason': 'access_revoked'}
+E     {'last_status': 503} != {'last_status': 410}
+E     {'attempts': 2} != {'attempts': 1}
+E     Use -v to get more diff
+=========================== short test summary info ============================
+FAILED tests/test_review3_terminal_cas.py::test_stale_failure_cannot_change_terminal_row_from_another_connection[delivered-200]
+FAILED tests/test_review3_terminal_cas.py::test_stale_failure_cannot_change_terminal_row_from_another_connection[access_revoked-410]
+2 failed in 0.71s

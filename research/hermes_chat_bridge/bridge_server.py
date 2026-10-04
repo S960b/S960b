@@ -27,6 +27,10 @@ import http.client
 import socket
 import ssl
 import threading
+import fcntl
+import subprocess
+from pathlib import Path
+from contextlib import asynccontextmanager
 from concurrent.futures import ThreadPoolExecutor
 import os
 import secrets
@@ -44,8 +48,9 @@ from mcp.server.auth.provider import (
     OAuthAuthorizationServerProvider, RefreshToken, construct_redirect_uri,
 )
 from mcp.server.auth.routes import create_auth_routes
-from mcp.server.auth.settings import AuthSettings, ClientRegistrationOptions
+from mcp.server.auth.settings import AuthSettings, ClientRegistrationOptions, RevocationOptions
 from mcp.server.mcpserver import MCPServer
+from mcp.shared.exceptions import MCPError
 from mcp.shared.auth import OAuthClientInformationFull, OAuthToken
 from mcp.types import RequestParams as MCPRequestParams, ToolAnnotations
 from mcp.server.auth.middleware.auth_context import get_access_token
@@ -61,11 +66,12 @@ from bridge_queue import Queue
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger('bridge')
 
-VERSION = '0.1.0'
+VERSION = '0.2.0'
+PILOT_SCHEMA_VERSION = 3
 BRIDGE_HOST = os.environ.get('BRIDGE_HOST', '127.0.0.1')
 BRIDGE_PORT = int(os.environ.get('BRIDGE_PORT', '8765'))
 STATE_DIR = os.path.expanduser('~/hermes-chat-bridge/data')
-DB_PATH = os.path.join(STATE_DIR, 'bridge.db')
+DB_PATH = os.environ.get('BRIDGE_DB_PATH')
 SCOPE = 'bridge'
 # Логин владельца (env; дефолт только для локальной проверки — сменить на продакшне)
 OWNER_USER = os.environ.get('BRIDGE_USER', 'owner')
@@ -106,6 +112,57 @@ def utc_iso() -> str:
     return datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
 
 
+def process_build() -> dict:
+    """Capture build identity once per app; never guess a revision from a report."""
+    revision = 'unknown'
+    try:
+        root = str(Path(__file__).resolve().parent)
+        git = subprocess.run(['git', '-C', root, 'rev-parse', 'HEAD'], capture_output=True, text=True, timeout=2)
+        dirty = subprocess.run(['git', '-C', root, 'status', '--porcelain'], capture_output=True, text=True, timeout=2)
+        candidate = git.stdout.strip()
+        if git.returncode == dirty.returncode == 0 and not dirty.stdout.strip() and len(candidate) == 40:
+            revision = candidate
+    except (OSError, subprocess.TimeoutExpired):
+        pass
+    return {'version': VERSION, 'git_revision': revision, 'process_mode': 'single-process-pilot'}
+
+
+def pilot_database_lock(path):
+    """Explicit fresh pilot only. Lock precedes schema inspection/creation."""
+    if not path:
+        raise RuntimeError('BRIDGE_DB_PATH must explicitly select a new pilot database')
+    p = Path(path)
+    if not p.is_absolute() or '..' in p.parts or str(p) != str(path):
+        raise RuntimeError('unsafe database path: require canonical absolute path')
+    if any(part.is_symlink() for part in (p, *p.parents)):
+        raise RuntimeError('unsafe database path: symlinks forbidden')
+    if p.exists() and not p.is_file():
+        raise RuntimeError('unsafe database path: regular file required')
+    p.parent.mkdir(parents=True, exist_ok=True)
+    lockpath = str(p) + '.pilot.lock'
+    fd = os.open(lockpath, os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        os.close(fd)
+        raise RuntimeError('only one pilot process may use this database') from None
+    lock = os.fdopen(fd, 'a')
+    try:
+        if p.exists():
+            # Read-only inspection: never mutate an old/unversioned database.
+            conn = sqlite3.connect(p.as_uri() + '?mode=ro', uri=True)
+            try:
+                version = conn.execute('PRAGMA user_version').fetchone()[0]
+            finally:
+                conn.close()
+            if version != PILOT_SCHEMA_VERSION:
+                raise RuntimeError('unversioned/unsupported database: select a NEW pilot path; legacy migration is not implemented')
+        return lock
+    except BaseException:
+        lock.close()
+        raise
+
+
 class Store:
     """SQLite-хранилище: клиенты, auth-коды, токены, подписки, состояния."""
 
@@ -113,6 +170,7 @@ class Store:
         os.makedirs(os.path.dirname(path) or '.', exist_ok=True)
         self.conn = sqlite3.connect(path, check_same_thread=False)
         self.conn.row_factory = sqlite3.Row
+        fresh = not self.conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchone()
         self.conn.executescript('''
         CREATE TABLE IF NOT EXISTS clients(
           client_id TEXT PRIMARY KEY, info TEXT NOT NULL, created_at TEXT);
@@ -141,6 +199,8 @@ class Store:
         ''')
         # Schema upgrade runs only when the new application is explicitly started.
         for table, column, definition in [
+            ('subs', 'generation', 'INTEGER NOT NULL DEFAULT 0'),
+            ('subs', 'pending_generation', 'INTEGER'),
             ('state_map', 'attempts', 'INTEGER NOT NULL DEFAULT 0'),
             ('state_map', 'expires_at', 'REAL'),
             ('deliveries', 'created_at', 'REAL'),
@@ -153,6 +213,8 @@ class Store:
         self.conn.execute("UPDATE deliveries SET done=1, terminal_reason='duplicate' WHERE id NOT IN (SELECT min(id) FROM deliveries GROUP BY sub_id,event_id)")
         self.conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS delivery_event_unique ON deliveries(sub_id,event_id) WHERE terminal_reason IS NULL OR terminal_reason != 'duplicate'")
         self.conn.execute('UPDATE deliveries SET created_at=? WHERE created_at IS NULL', (time.time(),))
+        if fresh:
+            self.conn.execute(f'PRAGMA user_version={PILOT_SCHEMA_VERSION}')
         self.conn.commit()
 
     def save_client(self, client: OAuthClientInformationFull):
@@ -268,10 +330,34 @@ class Store:
     def save_sub(self, sub: dict):
         self.conn.execute(
             'INSERT OR REPLACE INTO subs(sub_id, owner, event, arguments, callback_url, secret,'
-            ' expires_at, active, created_at) VALUES(?,?,?,?,?,?,?,?,?)',
+            ' expires_at, active, created_at, generation) VALUES(?,?,?,?,?,?,?,?,?,?)',
             (sub['id'], sub['owner'], sub['event'], json.dumps(sub['arguments']),
              sub['callback_url'], sub['secret'], sub['expires_at'], 1 if sub['active'] else 0,
-             sub.get('created_at', utc_iso())))
+             sub.get('created_at', utc_iso()), sub.get('generation', 0)))
+        self.conn.commit()
+
+    def begin_sub(self, sub: dict) -> int:
+        existing = self.load_sub(sub['id'])
+        if existing is None:
+            self.save_sub(sub)
+        row = self.conn.execute(
+            'UPDATE subs SET generation=generation+1,pending_generation=generation+1 '
+            'WHERE sub_id=? RETURNING generation', (sub['id'],)).fetchone()
+        self.conn.commit()
+        return row[0]
+
+    def activate_sub(self, sub: dict, generation: int) -> bool:
+        cur = self.conn.execute(
+            'UPDATE subs SET owner=?,event=?,arguments=?,callback_url=?,secret=?,expires_at=?,active=1,pending_generation=NULL '
+            'WHERE sub_id=? AND generation=? AND pending_generation=?',
+            (sub['owner'], sub['event'], json.dumps(sub['arguments']), sub['callback_url'], sub['secret'], sub['expires_at'],
+             sub['id'], generation, generation))
+        self.conn.commit()
+        return cur.rowcount == 1
+
+    def fail_sub(self, sub_id: str, generation: int):
+        self.conn.execute('UPDATE subs SET pending_generation=NULL WHERE sub_id=? AND generation=? AND pending_generation=?',
+                          (sub_id, generation, generation))
         self.conn.commit()
 
     def load_sub(self, sub_id: str) -> dict | None:
@@ -280,7 +366,7 @@ class Store:
             return None
         return {'id': row['sub_id'], 'owner': row['owner'], 'event': row['event'],
                 'arguments': json.loads(row['arguments']), 'callback_url': row['callback_url'],
-                'secret': row['secret'], 'expires_at': row['expires_at'], 'active': bool(row['active'])}
+                'secret': row['secret'], 'expires_at': row['expires_at'], 'active': bool(row['active']), 'generation': row['generation']}
 
     def find_sub(self, owner: str, event: str, arguments: dict, callback_url: str) -> dict | None:
         rows = self.conn.execute(
@@ -290,7 +376,7 @@ class Store:
             if json.loads(r['arguments']) == arguments:
                 return {'id': r['sub_id'], 'owner': r['owner'], 'event': r['event'],
                         'arguments': json.loads(r['arguments']), 'callback_url': r['callback_url'],
-                        'secret': r['secret'], 'expires_at': r['expires_at'], 'active': True}
+                        'secret': r['secret'], 'expires_at': r['expires_at'], 'active': True, 'generation': r['generation']}
         return None
 
     def active_subscriptions(self) -> list[dict]:
@@ -298,10 +384,10 @@ class Store:
             'SELECT * FROM subs WHERE active=1 AND expires_at > ?', (time.time(),)).fetchall()
         return [{'id': r['sub_id'], 'owner': r['owner'], 'event': r['event'],
                  'arguments': json.loads(r['arguments']), 'callback_url': r['callback_url'],
-                 'secret': r['secret'], 'expires_at': r['expires_at'], 'active': True} for r in rows]
+                 'secret': r['secret'], 'expires_at': r['expires_at'], 'active': True, 'generation': r['generation']} for r in rows]
 
     def deactivate_sub(self, sub_id: str):
-        self.conn.execute('UPDATE subs SET active=0 WHERE sub_id=?', (sub_id,)); self.conn.commit()
+        self.conn.execute('UPDATE subs SET active=0,generation=generation+1,pending_generation=NULL WHERE sub_id=?', (sub_id,)); self.conn.commit()
 
     def enqueue_delivery(self, sub_id: str, event_id: str, payload: dict):
         sub = self.load_sub(sub_id)
@@ -321,7 +407,7 @@ class Store:
 
     def mark_delivery(self, d_id: int, status: int, done: bool, next_attempt: float, reason=None):
         self.conn.execute(
-            'UPDATE deliveries SET last_status=?,done=?,attempts=attempts+1,next_attempt=?,terminal_reason=? WHERE id=?',
+            'UPDATE deliveries SET last_status=?,done=?,attempts=attempts+1,next_attempt=?,terminal_reason=? WHERE id=? AND done=0',
             (status, int(done), next_attempt, reason, d_id))
         self.conn.commit()
 
@@ -394,16 +480,19 @@ class BridgeOAuthProvider(OAuthAuthorizationServerProvider[AuthorizationCode, Re
             return None
         return t if t and t.subject == OWNER_USER else None
 
-    async def revoke_token(self, token: str, token_type_hint: str | None = None) -> None:
-        principal = self.store.load_access(token) or self.store.load_refresh(token)
+    async def revoke_token(self, token: AccessToken | RefreshToken) -> None:
+        token_value = token.token
+        principal = self.store.load_access(token_value) or self.store.load_refresh(token_value)
+        if principal and principal.client_id != token.client_id:
+            return
         if principal:
             # Single-owner bridge: conservatively revoke all this subject's subscriptions.
-            self.store.conn.execute('UPDATE subs SET active=0 WHERE owner=?', (principal.subject,))
+            self.store.conn.execute('UPDATE subs SET active=0,generation=generation+1,pending_generation=NULL WHERE owner=?', (principal.subject,))
             self.store.conn.execute("UPDATE deliveries SET done=1,terminal_reason='access_revoked' WHERE done=0 AND sub_id IN (SELECT sub_id FROM subs WHERE owner=?)", (principal.subject,))
             self.store.conn.execute('DELETE FROM access_tokens WHERE subject=? AND client_id=?', (principal.subject, principal.client_id))
             self.store.conn.execute('DELETE FROM refresh_tokens WHERE subject=? AND client_id=?', (principal.subject, principal.client_id))
-        self.store.conn.execute('DELETE FROM access_tokens WHERE token=?', (token,))
-        self.store.conn.execute('DELETE FROM refresh_tokens WHERE token=?', (token,))
+        self.store.conn.execute('DELETE FROM access_tokens WHERE token=?', (token_value,))
+        self.store.conn.execute('DELETE FROM refresh_tokens WHERE token=?', (token_value,))
         self.store.conn.commit()
 
 
@@ -429,8 +518,10 @@ input{{width:100%;padding:8px;margin-top:6px;box-sizing:border-box}}button{{marg
 class BridgeApp:
     def __init__(self, base_url: str):
         self.base_url = base_url.rstrip('/')
-        self.queue = Queue(DB_PATH)
         self.store = Store(DB_PATH)
+        self.queue = Queue(DB_PATH)
+        self._delivery_lock = threading.Lock()
+        self.build = process_build()
         os.chmod(DB_PATH, 0o600) if os.path.exists(DB_PATH) else None
         self.provider = BridgeOAuthProvider(self.store, self.base_url)
 
@@ -469,7 +560,7 @@ class BridgeApp:
 
     # --- публичный ping ---
     async def ping(self, request: Request) -> Response:
-        return JSONResponse({'ok': 'ok', 'version': VERSION})
+        return JSONResponse({'ok': 'ok', **self.build})
 
     # --- events: стандартная верификация callback и доставка (Standard Webhooks) ---
     def require_owner(self) -> str:
@@ -510,13 +601,16 @@ class BridgeApp:
             if not sub_id:
                 return True
             sub = self.store.load_sub(sub_id)
-            return bool(sub and sub['active'] and sub['expires_at'] > time.time())
+            return bool(sub and sub['active'] and sub['expires_at'] > time.time()
+                        and (headers.get('X-MCP-Subscription-Generation') is None
+                             or str(sub['generation']) == headers['X-MCP-Subscription-Generation']))
         if not allowed():
             return 410, b'{}'
         conn = PinnedHTTPSConnection(host, address, port, timeout)
         p = urlparse(url)
         target = (p.path or '/') + ('?' + p.query if p.query else '')
         try:
+            conn.connect()  # TCP/TLS first; request() must not hide a slow connect after the fence.
             if not allowed():
                 return 410, b'{}'
             conn.request('POST', target, body=body, headers={'Content-Type': 'application/json', **headers})
@@ -590,19 +684,16 @@ class BridgeApp:
         arguments = p.get('arguments') or {}
         delivery = p.get('delivery') or {}
         if name != 'hermes.message.created':
-            return {'resultType': 'error', 'error': {'code': -32602,
-                    'message': f'unknown event {name}'}}
+            raise MCPError(code=-32602, message=f'unknown event {name}')
         if not isinstance(arguments, dict) or arguments != {'queue': 'test'}:
-            return {'resultType': 'error', 'error': {'code': -32602,
-                    'message': 'arguments must match queue=test schema without extra fields'}}
+            raise MCPError(code=-32602, message='arguments must match queue=test schema without extra fields')
         if not isinstance(delivery, dict):
-            return {'resultType': 'error', 'error': {'code': -32602, 'message': 'delivery must be an object'}}
+            raise MCPError(code=-32602, message='delivery must be an object')
         url = delivery.get('url', '')
         secret = delivery.get('secret', '')
         if (delivery.get('mode') != 'webhook' or not isinstance(url, str) or not url
                 or not isinstance(secret, str) or not secret.startswith('whsec_')):
-            return {'resultType': 'error', 'error': {'code': -32602,
-                    'message': 'delivery mode=webhook with whsec_ secret required'}}
+            raise MCPError(code=-32602, message='delivery mode=webhook with whsec_ secret required')
         try:
             b64 = secret.removeprefix('whsec_')
             raw = base64.b64decode(b64, validate=True)
@@ -610,27 +701,25 @@ class BridgeApp:
                 raise ValueError('bad secret length')
             await self._callback_worker(self._validate_callback_url, url)
         except Exception as e:
-            return {'resultType': 'error', 'error': {'code': -32015,
-                    'message': f'CallbackEndpointError', 'data': {'reason': f'invalid_callback: {type(e).__name__}'}}}
+            raise MCPError(code=-32015, message='CallbackEndpointError', data={'reason': f'invalid_callback: {type(e).__name__}'})
         sub_id = self._sub_id(owner, name, arguments, url)
         existing = self.store.load_sub(sub_id)
         ttl_ms = p.get('ttlMs', SUBSCRIPTION_TTL_S * 1000)
         if isinstance(ttl_ms, bool) or not isinstance(ttl_ms, (int, float)) or not 0 < ttl_ms <= SUBSCRIPTION_TTL_S * 1000:
-            return {'resultType': 'error', 'error': {'code': -32602, 'message': 'invalid ttlMs'}}
+            raise MCPError(code=-32602, message='invalid ttlMs')
         sub = {'id': sub_id, 'owner': owner, 'event': name, 'arguments': arguments,
                'callback_url': url, 'secret': secret,
                'expires_at': time.time() + ttl_ms / 1000, 'active': False}
         verified = existing and existing['active'] and existing['expires_at'] > time.time() and existing['secret'] == secret
+        generation = self.store.begin_sub(sub)
+        sub['generation'] = generation
         if not verified:
-            # Preserve existing verified parameters during a failed rotation.
-            if existing is None or not existing['active']:
-                self.store.save_sub(sub)
             if not await self.verify_callback(sub):
-                return {'resultType': 'error', 'error': {'code': -32015,
-                        'message': 'CallbackEndpointError', 'data': {'reason': 'challenge_failed'}}}
-        self.require_owner()  # Token may have been revoked during callback verification.
-        sub['active'] = True
-        self.store.save_sub(sub)
+                self.store.fail_sub(sub_id, generation)
+                raise MCPError(code=-32015, message='CallbackEndpointError', data={'reason': 'challenge_failed'})
+        self.require_owner()  # Revocation while challenge was awaiting must still win.
+        # A stale success is acknowledged but cannot overwrite cancellation/newer parameters.
+        self.store.activate_sub(sub, generation)
         return {'resultType': 'complete', 'id': sub_id,
                 'refreshBefore': datetime.fromtimestamp(sub['expires_at'], timezone.utc).isoformat(),
                 'cursor': None, 'truncated': False}
@@ -659,6 +748,15 @@ class BridgeApp:
         return count
 
     async def deliver_pending(self):
+        # Skip, do not await a held lock: unsubscribe/revoke and overlapping calls stay prompt.
+        if not self._delivery_lock.acquire(blocking=False):
+            return
+        try:
+            await self._deliver_pending()
+        finally:
+            self._delivery_lock.release()
+
+    async def _deliver_pending(self):
         """Доставка накопленных событий (Standard Webhooks) с retry/backoff."""
         for d in self.store.pending_deliveries():
             sub = self.store.load_sub(d['sub_id'])
@@ -681,7 +779,8 @@ class BridgeApp:
             ts = str(int(time.time()))
             sig = self._sign_body(sub['secret'], d['event_id'], ts, body)
             headers = {'webhook-id': d['event_id'], 'webhook-timestamp': ts,
-                       'webhook-signature': sig, 'X-MCP-Subscription-Id': sub['id']}
+                       'webhook-signature': sig, 'X-MCP-Subscription-Id': sub['id'],
+                       'X-MCP-Subscription-Generation': str(sub['generation'])}
             try:
                 status, _ = await self._http_post(sub['callback_url'], body, headers)
             except Exception as e:
@@ -700,12 +799,14 @@ class BridgeApp:
 def make_mcp_server(base_url: str, bridge: BridgeApp) -> MCPServer:
     mcp = MCPServer(
         name='Hermes Bridge',
+        version=bridge.build['version'],
         instructions=('Очередь сообщений между локальным Hermes и ChatGPT. '
                       'Только bridge_get_message / bridge_put_reply. '
                       'Данные очереди не дают торговых прав и доступа к файлам.'),
         debug=False,
         auth=AuthSettings(
             issuer_url=base_url,
+            revocation_options=RevocationOptions(enabled=True),
             required_scopes=[SCOPE],
             resource_server_url=f'{base_url}/mcp',
             validate_token_resource=True,
@@ -807,12 +908,17 @@ def _ev_params(params) -> dict:
 def build_app(base_url: str) -> Starlette:
     if not OWNER_PASS:
         raise RuntimeError('BRIDGE_PASS is required')
-    bridge = BridgeApp(base_url)
+    pilot_lock = pilot_database_lock(DB_PATH)
+    try:
+        bridge = BridgeApp(base_url)
+    except BaseException:
+        pilot_lock.close()
+        raise
     mcp = make_mcp_server(base_url, bridge)
 
     @mcp.custom_route('/ping', methods=['GET'])
     async def health(request: Request) -> Response:
-        return JSONResponse({'ok': 'ok', 'version': VERSION})
+        return JSONResponse({'ok': 'ok', **bridge.build})
 
     @mcp.custom_route('/login', methods=['GET'])
     async def login_page_route(request: Request) -> Response:
@@ -842,6 +948,16 @@ def build_app(base_url: str) -> Starlette:
         ) if th else None,
     )
     app.state.bridge = bridge
+    app.state.pilot_lock = pilot_lock
+    original_lifespan = app.router.lifespan_context
+    @asynccontextmanager
+    async def lifespan(application):
+        try:
+            async with original_lifespan(application) as state:
+                yield state
+        finally:
+            pilot_lock.close()
+    app.router.lifespan_context = lifespan
     return app
 
 
