@@ -16,6 +16,11 @@ idle -> report_pending -> waiting_reply -> running -> report_pending
 - wait -> waiting_external (пауза без вызова модели) -> waiting_reply.
 - Повторная доставка saved report idempotентна: тот же report_job_id,
   событие пере-эмитится, второй job не создаётся.
+- Бюджет итераций: WORKER_MAX_ITERATIONS (по умолчанию 10000, было 300).
+  Длительный многошаговый цикл с ожиданием ответов ChatGPT (~1-2 мин на
+  шаг) при 300×2с суммарного ожидания исчерпывал бюджет (exit 4) во время
+  waiting_reply; resume перезапуском с тем же state дорабатывал цикл.
+  Worker переживает исчерпание бюджета без потери состояния.
 
 ## Контракт сообщений (8 KiB лимит очереди)
 
