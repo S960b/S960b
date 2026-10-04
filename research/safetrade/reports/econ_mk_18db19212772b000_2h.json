@@ -2,10 +2,10 @@
  "run_id": "mk_18db19212772b000",
  "started_utc": "2026-10-03T18:41:46Z",
  "started_epoch": 1791052906.0,
- "cutoff_ns": 1791074506996381696,
- "cutoff_utc": "2026-10-04T00:41:46Z",
- "window_h": 6.0003,
- "window_h_exact": 6.000276772711012,
+ "cutoff_ns": 1791084582094274304,
+ "cutoff_utc": "2026-10-04T03:29:42Z",
+ "window_h": 8.7989,
+ "window_h_exact": 8.798915076189571,
  "window_sources": "cutoff=явный",
  "fee_status": "fee_unverified",
  "fee_maker_bps": null,
@@ -21,110 +21,110 @@
    "symbol": "LTCUSDT",
    "unparsed_ts": 0,
    "unknown_side": 0,
-   "poll_n": 334,
+   "poll_n": 490,
    "poll_nonfull": 0,
    "poll_warmup": 1,
    "interval_coverage": "covered",
-   "n_trades": 65,
-   "notional_usdt": 2031.88,
-   "notional_per_hour": 338.63,
-   "n_buy": 49,
-   "n_sell": 16,
-   "buy_fraction": 0.754,
+   "n_trades": 92,
+   "notional_usdt": 2842.97,
+   "notional_per_hour": 323.1,
+   "n_buy": 70,
+   "n_sell": 22,
+   "buy_fraction": 0.761,
    "notional_min": 0.0007,
    "notional_p50": 12.73,
-   "notional_p90": 105.6969,
+   "notional_p90": 87.9191,
    "notional_max": 272.8778,
-   "n_depth_snaps": 1004,
+   "n_depth_snaps": 1472,
    "roundtrip_by_budget": {
     "5": {
      "full_rt_pct": 100.0,
-     "n_full_rt": 1004,
-     "n_snaps": 1004
+     "n_full_rt": 1472,
+     "n_snaps": 1472
     },
     "10": {
      "full_rt_pct": 100.0,
-     "n_full_rt": 1004,
-     "n_snaps": 1004
+     "n_full_rt": 1472,
+     "n_snaps": 1472
     },
     "25": {
      "full_rt_pct": 100.0,
-     "n_full_rt": 1004,
-     "n_snaps": 1004
+     "n_full_rt": 1472,
+     "n_snaps": 1472
     }
    },
    "entry_by_budget": {
     "5": {
      "full_entry_pct": 100.0,
-     "n_full_entry": 1004,
-     "n_snaps": 1004
+     "n_full_entry": 1472,
+     "n_snaps": 1472
     },
     "10": {
      "full_entry_pct": 100.0,
-     "n_full_entry": 1004,
-     "n_snaps": 1004
+     "n_full_entry": 1472,
+     "n_snaps": 1472
     },
     "25": {
      "full_entry_pct": 100.0,
-     "n_full_entry": 1004,
-     "n_snaps": 1004
+     "n_full_entry": 1472,
+     "n_snaps": 1472
     }
    },
    "exit_by_budget": {
     "5": {
      "full_exit_pct": 100.0,
-     "n_full": 1004,
-     "n_snaps": 1004,
+     "n_full": 1472,
+     "n_snaps": 1472,
      "note": "полный оборот бюджета: полный вход И выход тем же qty"
     },
     "10": {
      "full_exit_pct": 100.0,
-     "n_full": 1004,
-     "n_snaps": 1004,
+     "n_full": 1472,
+     "n_snaps": 1472,
      "note": "полный оборот бюджета: полный вход И выход тем же qty"
     },
     "25": {
      "full_exit_pct": 100.0,
-     "n_full": 1004,
-     "n_snaps": 1004,
+     "n_full": 1472,
+     "n_snaps": 1472,
      "note": "полный оборот бюджета: полный вход И выход тем же qty"
     }
    },
    "touch_after": {
     "10": {
-     "n_touch": 351,
-     "n_observed": 11,
-     "n_unobserved": 340,
-     "mid_up": 4,
-     "mid_down": 5,
-     "mid_unchanged": 2,
+     "n_touch": 812,
+     "n_observed": 24,
+     "n_unobserved": 788,
+     "mid_up": 8,
+     "mid_down": 11,
+     "mid_unchanged": 5,
      "note": "диагностика пересечения фиксированной цены (не вердикт)"
     },
     "30": {
-     "n_touch": 351,
-     "n_observed": 233,
-     "n_unobserved": 118,
-     "mid_up": 88,
-     "mid_down": 99,
-     "mid_unchanged": 46,
+     "n_touch": 812,
+     "n_observed": 540,
+     "n_unobserved": 272,
+     "mid_up": 210,
+     "mid_down": 231,
+     "mid_unchanged": 99,
      "note": "диагностика пересечения фиксированной цены (не вердикт)"
     },
     "60": {
-     "n_touch": 351,
-     "n_observed": 348,
+     "n_touch": 812,
+     "n_observed": 809,
      "n_unobserved": 3,
-     "mid_up": 152,
-     "mid_down": 143,
-     "mid_unchanged": 53,
+     "mid_up": 344,
+     "mid_down": 353,
+     "mid_unchanged": 112,
      "note": "диагностика пересечения фиксированной цены (не вердикт)"
     },
     "300": {
-     "n_touch": 351,
-     "n_observed": 340,
+     "n_touch": 812,
+     "n_observed": 801,
      "n_unobserved": 11,
-     "mid_up": 168,
-     "mid_down": 141,
-     "mid_unchanged": 31,
+     "mid_up": 376,
+     "mid_down": 374,
+     "mid_unchanged": 51,
      "note": "диагностика пересечения фиксированной цены (не вердикт)"
     }
    },
@@ -134,110 +134,110 @@
    "symbol": "PRLUSDT",
    "unparsed_ts": 0,
    "unknown_side": 0,
-   "poll_n": 334,
+   "poll_n": 490,
    "poll_nonfull": 0,
    "poll_warmup": 1,
    "interval_coverage": "covered",
-   "n_trades": 2276,
-   "notional_usdt": 220320.27,
-   "notional_per_hour": 36718.35,
-   "n_buy": 658,
-   "n_sell": 1618,
-   "buy_fraction": 0.289,
-   "notional_min": 0.0039,
-   "notional_p50": 19.452,
-   "notional_p90": 182.2874,
+   "n_trades": 3413,
+   "notional_usdt": 344440.64,
+   "notional_per_hour": 39145.81,
+   "n_buy": 1010,
+   "n_sell": 2403,
+   "buy_fraction": 0.296,
+   "notional_min": 0.0023,
+   "notional_p50": 18.4287,
+   "notional_p90": 192.7618,
    "notional_max": 9350.0,
-   "n_depth_snaps": 1004,
+   "n_depth_snaps": 1472,
    "roundtrip_by_budget": {
     "5": {
      "full_rt_pct": 100.0,
-     "n_full_rt": 1004,
-     "n_snaps": 1004
+     "n_full_rt": 1472,
+     "n_snaps": 1472
     },
     "10": {
      "full_rt_pct": 100.0,
-     "n_full_rt": 1004,
-     "n_snaps": 1004
+     "n_full_rt": 1472,
+     "n_snaps": 1472
     },
     "25": {
      "full_rt_pct": 100.0,
-     "n_full_rt": 1004,
-     "n_snaps": 1004
+     "n_full_rt": 1472,
+     "n_snaps": 1472
     }
    },
    "entry_by_budget": {
     "5": {
      "full_entry_pct": 100.0,
-     "n_full_entry": 1004,
-     "n_snaps": 1004
+     "n_full_entry": 1472,
+     "n_snaps": 1472
     },
     "10": {
      "full_entry_pct": 100.0,
-     "n_full_entry": 1004,
-     "n_snaps": 1004
+     "n_full_entry": 1472,
+     "n_snaps": 1472
     },
     "25": {
      "full_entry_pct": 100.0,
-     "n_full_entry": 1004,
-     "n_snaps": 1004
+     "n_full_entry": 1472,
+     "n_snaps": 1472
     }
    },
    "exit_by_budget": {
     "5": {
      "full_exit_pct": 100.0,
-     "n_full": 1004,
-     "n_snaps": 1004,
+     "n_full": 1472,
+     "n_snaps": 1472,
      "note": "полный оборот бюджета: полный вход И выход тем же qty"
     },
     "10": {
      "full_exit_pct": 100.0,
-     "n_full": 1004,
-     "n_snaps": 1004,
+     "n_full": 1472,
+     "n_snaps": 1472,
      "note": "полный оборот бюджета: полный вход И выход тем же qty"
     },
     "25": {
      "full_exit_pct": 100.0,
-     "n_full": 1004,
-     "n_snaps": 1004,
+     "n_full": 1472,
+     "n_snaps": 1472,
      "note": "полный оборот бюджета: полный вход И выход тем же qty"
     }
    },
    "touch_after": {
     "10": {
-     "n_touch": 903,
+     "n_touch": 1094,
      "n_observed": 0,
-     "n_unobserved": 903,
+     "n_unobserved": 1094,
      "mid_up": 0,
      "mid_down": 0,
      "mid_unchanged": 0,
      "note": "диагностика пересечения фиксированной цены (не вердикт)"
     },
     "30": {
-     "n_touch": 903,
-     "n_observed": 516,
-     "n_unobserved": 387,
-     "mid_up": 17,
-     "mid_down": 20,
-     "mid_unchanged": 479,
+     "n_touch": 1094,
+     "n_observed": 630,
+     "n_unobserved": 464,
+     "mid_up": 19,
+     "mid_down": 33,
+     "mid_unchanged": 578,
      "note": "диагностика пересечения фиксированной цены (не вердикт)"
     },
     "60": {
-     "n_touch": 903,
-     "n_observed": 900,
-     "n_unobserved": 3,
-     "mid_up": 39,
-     "mid_down": 44,
-     "mid_unchanged": 817,
+     "n_touch": 1094,
+     "n_observed": 1094,
+     "n_unobserved": 0,
+     "mid_up": 40,
+     "mid_down": 72,
+     "mid_unchanged": 982,
      "note": "диагностика пересечения фиксированной цены (не вердикт)"
     },
     "300": {
-     "n_touch": 903,
-     "n_observed": 892,
-     "n_unobserved": 11,
-     "mid_up": 86,
-     "mid_down": 112,
-     "mid_unchanged": 694,
+     "n_touch": 1094,
+     "n_observed": 1094,
+     "n_unobserved": 0,
+     "mid_up": 87,
+     "mid_down": 166,
+     "mid_unchanged": 841,
      "note": "диагностика пересечения фиксированной цены (не вердикт)"
     }
    },
@@ -247,110 +247,110 @@
    "symbol": "QUANTUSUSDT",
    "unparsed_ts": 0,
    "unknown_side": 0,
-   "poll_n": 334,
+   "poll_n": 490,
    "poll_nonfull": 0,
    "poll_warmup": 1,
    "interval_coverage": "covered",
-   "n_trades": 1384,
-   "notional_usdt": 178329.6,
-   "notional_per_hour": 29720.23,
-   "n_buy": 710,
-   "n_sell": 674,
-   "buy_fraction": 0.513,
+   "n_trades": 1682,
+   "notional_usdt": 201268.53,
+   "notional_per_hour": 22874.24,
+   "n_buy": 777,
+   "n_sell": 905,
+   "buy_fraction": 0.462,
    "notional_min": 0.1254,
-   "notional_p50": 17.2602,
-   "notional_p90": 338.625,
+   "notional_p50": 17.5577,
+   "notional_p90": 298.848,
    "notional_max": 7637.466,
-   "n_depth_snaps": 1004,
+   "n_depth_snaps": 1472,
    "roundtrip_by_budget": {
     "5": {
      "full_rt_pct": 100.0,
-     "n_full_rt": 1004,
-     "n_snaps": 1004
+     "n_full_rt": 1472,
+     "n_snaps": 1472
     },
     "10": {
      "full_rt_pct": 100.0,
-     "n_full_rt": 1004,
-     "n_snaps": 1004
+     "n_full_rt": 1472,
+     "n_snaps": 1472
     },
     "25": {
      "full_rt_pct": 100.0,
-     "n_full_rt": 1004,
-     "n_snaps": 1004
+     "n_full_rt": 1472,
+     "n_snaps": 1472
     }
    },
    "entry_by_budget": {
     "5": {
      "full_entry_pct": 100.0,
-     "n_full_entry": 1004,
-     "n_snaps": 1004
+     "n_full_entry": 1472,
+     "n_snaps": 1472
     },
     "10": {
      "full_entry_pct": 100.0,
-     "n_full_entry": 1004,
-     "n_snaps": 1004
+     "n_full_entry": 1472,
+     "n_snaps": 1472
     },
     "25": {
      "full_entry_pct": 100.0,
-     "n_full_entry": 1004,
-     "n_snaps": 1004
+     "n_full_entry": 1472,
+     "n_snaps": 1472
     }
    },
    "exit_by_budget": {
     "5": {
      "full_exit_pct": 100.0,
-     "n_full": 1004,
-     "n_snaps": 1004,
+     "n_full": 1472,
+     "n_snaps": 1472,
      "note": "полный оборот бюджета: полный вход И выход тем же qty"
     },
     "10": {
      "full_exit_pct": 100.0,
-     "n_full": 1004,
-     "n_snaps": 1004,
+     "n_full": 1472,
+     "n_snaps": 1472,
      "note": "полный оборот бюджета: полный вход И выход тем же qty"
     },
     "25": {
      "full_exit_pct": 100.0,
-     "n_full": 1004,
-     "n_snaps": 1004,
+     "n_full": 1472,
+     "n_snaps": 1472,
      "note": "полный оборот бюджета: полный вход И выход тем же qty"
     }
    },
    "touch_after": {
     "10": {
-     "n_touch": 975,
+     "n_touch": 1443,
      "n_observed": 0,
-     "n_unobserved": 975,
+     "n_unobserved": 1443,
      "mid_up": 0,
      "mid_down": 0,
      "mid_unchanged": 0,
      "note": "диагностика пересечения фиксированной цены (не вердикт)"
     },
     "30": {
-     "n_touch": 975,
-     "n_observed": 335,
-     "n_unobserved": 640,
-     "mid_up": 79,
-     "mid_down": 85,
-     "mid_unchanged": 171,
+     "n_touch": 1443,
+     "n_observed": 491,
+     "n_unobserved": 952,
+     "mid_up": 102,
+     "mid_down": 125,
+     "mid_unchanged": 264,
      "note": "диагностика пересечения фиксированной цены (не вердикт)"
     },
     "60": {
-     "n_touch": 975,
-     "n_observed": 972,
+     "n_touch": 1443,
+     "n_observed": 1440,
      "n_unobserved": 3,
-     "mid_up": 324,
-     "mid_down": 369,
-     "mid_unchanged": 279,
+     "mid_up": 407,
+     "mid_down": 550,
+     "mid_unchanged": 483,
      "note": "диагностика пересечения фиксированной цены (не вердикт)"
     },
     "300": {
-     "n_touch": 975,
-     "n_observed": 964,
+     "n_touch": 1443,
+     "n_observed": 1432,
      "n_unobserved": 11,
-     "mid_up": 440,
-     "mid_down": 500,
-     "mid_unchanged": 24,
+     "mid_up": 566,
+     "mid_down": 773,
+     "mid_unchanged": 93,
      "note": "диагностика пересечения фиксированной цены (не вердикт)"
     }
    },
