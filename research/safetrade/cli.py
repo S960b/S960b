@@ -358,6 +358,36 @@ def cmd_maker_econ(args):
               f"{e.get('25',{}).get('full_exit_pct')}%")
 
 
+def cmd_maker_opp(args):
+    """Opportunity-анализ гипотетических maker-котировок 5/10 USDT."""
+    from maker.opportunity import opportunity_report
+    base = args.data_root or BASE
+    runs_dir = os.path.join(base, 'data', 'maker')
+    run_id = args.run_id
+    if args.latest or not run_id:
+        import glob
+        runs = sorted({os.path.basename(f).replace('_depth.jsonl', '')
+                       for f in glob.glob(os.path.join(runs_dir, '*_depth.jsonl'))})
+        run_id = run_id or (runs[-1] if runs else None)
+    if not run_id:
+        print('нет run: запустите maker-collect')
+        return
+    res = opportunity_report(runs_dir, run_id, cutoff_ns=args.cutoff_ns)
+    out = os.path.join(base, 'reports', f'opp_{run_id}.json')
+    import json as _json
+    with open(out, 'w') as f:
+        _json.dump(res, f, indent=1, ensure_ascii=False)
+    print(f"maker-opp {run_id}: window_h={res['window_h']} -> {out}")
+    for p in res['pairs']:
+        for B in ('5', '10'):
+            b = p['by_budget'].get(B, {})
+            mk = {h: (round(sum(v)/len(v), 2) if v else None) for h, v in b.get('markout', {}).items()}
+            print(f"  {p['symbol']:<13} B={B}USDT quotes={b.get('n_quotes')} strong_touch={b.get('n_touch')} "
+                  f"(buy={b.get('n_buy_touch')} sell={b.get('n_sell_touch')}) "
+                  f"improved={b.get('n_improved')} queued={b.get('n_queued')} "
+                  f"markout_bps={mk} exit_mm={b.get('forced_exit_mm_bps')} exit_mt={b.get('forced_exit_mt_bps')}")
+
+
 def main():
     p = argparse.ArgumentParser(description="SafeTrade research toolkit")
     p.add_argument("--config", default=None)
@@ -427,6 +457,12 @@ def main():
     sp.add_argument("--latest", action="store_true")
     sp.add_argument("--cutoff-ns", type=int, default=None)
     sp.set_defaults(fn=cmd_maker_econ)
+
+    sp = sub.add_parser("maker-opp")
+    sp.add_argument("--run-id", default=None)
+    sp.add_argument("--latest", action="store_true")
+    sp.add_argument("--cutoff-ns", type=int, default=None)
+    sp.set_defaults(fn=cmd_maker_opp)
 
     sp = sub.add_parser("replay")
     sp.add_argument("--symbol", default=None)
