@@ -22,11 +22,7 @@ def main():
 
     from bridge_queue import Queue as Q
     # чтобы не дублировать константы сервера — импортируем из bridge_server
-    import importlib.util
-    spec = importlib.util.spec_from_file_location(
-        'bridge_server', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'bridge_server.py'))
-    bs = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(bs)
+    import bridge_server as bs
 
     q = Q(bs.DB_PATH)
     cmd = sys.argv[1] if len(sys.argv) > 1 else 'help'
@@ -52,14 +48,16 @@ def main():
 
     elif cmd == 'list':
         for j in q.list_jobs():
-            print(j); return 0
+            print(j)
+        return 0
 
     elif cmd == 'subs':
         rows = bs.Store(bs.DB_PATH).conn.execute(
             'SELECT sub_id, owner, event, callback_url, expires_at, active FROM subs').fetchall()
         for r in rows:
             d = dict(r)
-            print(d); return 0
+            print(d)
+        return 0
 
     elif cmd == 'verify':
         # самопроверка подписи Standard Webhooks (фиксированный вектор)
@@ -67,8 +65,9 @@ def main():
         ts = '1700000000'
         body = b'{"a":1}'
         bridge = bs.BridgeApp('http://127.0.0.1:8765')
-        sig = bridge._sign_body(secret, ts, body)
-        assert sig.startswith('v1,'), sig
+        sig = bridge._sign_body(secret, 'msg_test', ts, body)
+        expected = 'v1,' + base64.b64encode(hmac.new(b'x'*32, b'msg_test.' + ts.encode() + b'.' + body, hashlib.sha256).digest()).decode()
+        assert hmac.compare_digest(sig, expected)
         print(f'signature_ok prefix=v1, len={len(sig)}')
         return 0
 

@@ -10,11 +10,13 @@ import json
 import re
 import secrets
 import sys
+import os
+import html as html_lib
 import urllib.error
 import urllib.parse
 import urllib.request
 
-BASE = 'http://127.0.0.1:8765'
+BASE = os.environ.get('BRIDGE_E2E_BASE', '').rstrip('/')
 RES = BASE + '/mcp'
 META = {'io.modelcontextprotocol/protocolVersion': '2026-07-28',
         'io.modelcontextprotocol/clientCapabilities': {}}
@@ -29,6 +31,12 @@ def check(name, cond, detail=''):
 
 
 def main():
+    password = os.environ.get('BRIDGE_E2E_PASS')
+    parsed = urllib.parse.urlparse(BASE)
+    if (not password or parsed.scheme != 'http'
+            or parsed.hostname not in ('127.0.0.1', '::1', 'localhost')):
+        print('Set explicit loopback BRIDGE_E2E_BASE and synthetic BRIDGE_E2E_PASS; never target the production database.', file=sys.stderr)
+        return 2
     cj = http.cookiejar.CookieJar()
     op = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cj))
 
@@ -44,6 +52,8 @@ def main():
         body = json.dumps({'jsonrpc': '2.0', 'id': 1, 'method': method, 'params': p}).encode()
         h = {'Content-Type': 'application/json', 'Accept': 'application/json, text/event-stream',
              'MCP-Protocol-Version': '2026-07-28', 'Mcp-Method': method, 'User-Agent': 'Mozilla/5.0'}
+        if 'name' in p:
+            h['Mcp-Name'] = str(p['name'])
         if token:
             h['Authorization'] = 'Bearer ' + token
         if headers_extra:
@@ -85,7 +95,13 @@ def main():
     html = op.open(urllib.request.Request(au, headers={'User-Agent': 'Mozilla/5.0'})).read().decode()
     check('authorize -> login form', '<form' in html)
 
-    data = urllib.parse.urlencode({'username': 'owner', 'password': 'testpass123', 'state': state}).encode()
+    state_match = re.search(r'name="state" value="([^"]+)"', html)
+    if not state_match:
+        print('Missing internal login state', file=sys.stderr)
+        return 1
+    internal_state = html_lib.unescape(state_match.group(1))
+    check('OAuth state distinct from internal login state', internal_state != state)
+    data = urllib.parse.urlencode({'username': os.environ.get('BRIDGE_E2E_USER', 'owner'), 'password': password, 'state': internal_state}).encode()
 
     class NoRedirect(urllib.request.HTTPRedirectHandler):
         def redirect_request(self, req, fp, code, msg, headers, newurl):
@@ -115,6 +131,8 @@ def main():
 
     # 3. MCP методы с токеном
     body, err = mcp('tools/list', token=at)
+    if err:
+        raise RuntimeError(err)
     tl = json.loads(body)
     names = [t['name'] for t in tl.get('result', {}).get('tools', [])]
     check('tools/list (2 инструмента)', 'bridge_get_message' in names and 'bridge_put_reply' in names, str(names))

@@ -1,0 +1,2 @@
+# Fully pinned runtime + regression-test environment, Python 3.13 / Linux.
+-r requirements.lock

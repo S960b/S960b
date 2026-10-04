@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="12" skipped="0" tests="16" time="0.866" timestamp="2026-10-04T15:15:19.249351+03:00" hostname="kali"><testcase classname="tests.test_review_3b082fe" name="test_verification_accepted_by_independent_standard_webhooks_verifier" time="0.004"><failure message="AssertionError: assert False is True&#10; +  where False = &lt;function run at 0x7fee6c7771a0&gt;(&lt;coroutine object BridgeApp.verify_callback at 0x7fee6c8b8cc0&gt;)&#10; +    where &lt;function run at 0x7fee6c7771a0&gt; = asyncio.run&#10; +    and   &lt;coroutine object BridgeApp.verify_callback at 0x7fee6c8b8cc0&gt; = verify_callback({'id': 'sub_review', 'owner': 'owner', 'event': 'hermes.message.created', 'arguments': {'queue': 'test'}, ...})&#10; +      where verify_callback = &lt;bridge_server.BridgeApp object at 0x7fee6c892510&gt;.verify_callback&#10; +      and   {'id': 'sub_review', 'owner': 'owner', 'event': 'hermes.message.created', 'arguments': {'queue': 'test'}, ...} = stored_sub(&lt;bridge_server.BridgeApp object at 0x7fee6c892510&gt;)">tests/test_review_3b082fe.py:70: in test_verification_accepted_by_independent_standard_webhooks_verifier
+    assert asyncio.run(bridge.verify_callback(stored_sub(bridge))) is True
+E   AssertionError: assert False is True
+E    +  where False = &lt;function run at 0x7fee6c7771a0&gt;(&lt;coroutine object BridgeApp.verify_callback at 0x7fee6c8b8cc0&gt;)
+E    +    where &lt;function run at 0x7fee6c7771a0&gt; = asyncio.run
+E    +    and   &lt;coroutine object BridgeApp.verify_callback at 0x7fee6c8b8cc0&gt; = verify_callback({'id': 'sub_review', 'owner': 'owner', 'event': 'hermes.message.created', 'arguments': {'queue': 'test'}, ...})
+E    +      where verify_callback = &lt;bridge_server.BridgeApp object at 0x7fee6c892510&gt;.verify_callback
+E    +      and   {'id': 'sub_review', 'owner': 'owner', 'event': 'hermes.message.created', 'arguments': {'queue': 'test'}, ...} = stored_sub(&lt;bridge_server.BridgeApp object at 0x7fee6c892510&gt;)</failure></testcase><testcase classname="tests.test_review_3b082fe" name="test_delivery_signed_with_id_and_exact_body" time="0.003"><failure message="AssertionError: assert 'v1,r0zLYbw/1...V6WwG9Lh4sOs=' == 'v1,XAVgDcmek...Zn0OR7+El5jc='&#10;  &#10;  - v1,XAVgDcmekVQeTXUOxa3OzwTZYvz7YiMZn0OR7+El5jc=&#10;  + v1,r0zLYbw/1lnElZD2PmZu+ZmdXwARBQjV6WwG9Lh4sOs=">tests/test_review_3b082fe.py:83: in test_delivery_signed_with_id_and_exact_body
+    assert headers["webhook-signature"] == canonical_signature(SECRET, headers, body)
+E   AssertionError: assert 'v1,r0zLYbw/1...V6WwG9Lh4sOs=' == 'v1,XAVgDcmek...Zn0OR7+El5jc='
+E     
+E     - v1,XAVgDcmekVQeTXUOxa3OzwTZYvz7YiMZn0OR7+El5jc=
+E     + v1,r0zLYbw/1lnElZD2PmZu+ZmdXwARBQjV6WwG9Lh4sOs=</failure></testcase><testcase classname="tests.test_review_3b082fe" name="test_failed_challenge_leaves_no_active_subscription" time="0.005"><failure message="AssertionError: assert [{'id': 'sub_...'test'}, ...}] == []&#10;  &#10;  Left contains one more item: {'id': 'sub_18431959f06862d24bead836', 'owner': 'owner', 'event': 'hermes.message.created', 'arguments': {'queue': 'test'}, ...}&#10;  Use -v to get more diff">tests/test_review_3b082fe.py:93: in test_failed_challenge_leaves_no_active_subscription
+    assert bridge.store.active_subscriptions() == []
+E   AssertionError: assert [{'id': 'sub_...'test'}, ...}] == []
+E     
+E     Left contains one more item: {'id': 'sub_18431959f06862d24bead836', 'owner': 'owner', 'event': 'hermes.message.created', 'arguments': {'queue': 'test'}, ...}
+E     Use -v to get more diff</failure></testcase><testcase classname="tests.test_review_3b082fe" name="test_failed_challenge_rechecked_on_repeat" time="0.003"><failure message="AssertionError: assert 'complete' == 'error'&#10;  &#10;  - error&#10;  + complete">tests/test_review_3b082fe.py:106: in test_failed_challenge_rechecked_on_repeat
+    assert second["resultType"] == "error"
+E   AssertionError: assert 'complete' == 'error'
+E     
+E     - error
+E     + complete</failure></testcase><testcase classname="tests.test_review_3b082fe" name="test_refresh_before_is_timezone_aware_iso_string" time="0.006"><failure message="AssertionError: 1791720919.995573&#10;assert False&#10; +  where False = isinstance(1791720919.995573, str)">tests/test_review_3b082fe.py:116: in test_refresh_before_is_timezone_aware_iso_string
+    assert isinstance(result["refreshBefore"], str), result["refreshBefore"]
+E   AssertionError: 1791720919.995573
+E   assert False
+E    +  where False = isinstance(1791720919.995573, str)</failure></testcase><testcase classname="tests.test_review_3b082fe" name="test_no_delivery_after_subscription_expiry" time="0.003"><failure message="AssertionError: assert ['https://cal...example/hook'] == []&#10;  &#10;  Left contains one more item: 'https://callback.example/hook'&#10;  Use -v to get more diff">tests/test_review_3b082fe.py:129: in test_no_delivery_after_subscription_expiry
+    assert calls == []
+E   AssertionError: assert ['https://cal...example/hook'] == []
+E     
+E     Left contains one more item: 'https://callback.example/hook'
+E     Use -v to get more diff</failure></testcase><testcase classname="tests.test_review_3b082fe" name="test_retries_eventually_become_terminal" time="0.003"><failure message="AssertionError: {'id': 1, 'sub_id': 'sub_review', 'event_id': 'evt_review', 'payload': '{&quot;job_id&quot;: &quot;job_fixture&quot;, &quot;queue&quot;: &quot;test&quot;}', ...}&#10;assert 0 == 1">tests/test_review_3b082fe.py:142: in test_retries_eventually_become_terminal
+    assert row["done"] == 1, dict(row)
+E   AssertionError: {'id': 1, 'sub_id': 'sub_review', 'event_id': 'evt_review', 'payload': '{"job_id": "job_fixture", "queue": "test"}', ...}
+E   assert 0 == 1</failure></testcase><testcase classname="tests.test_review_3b082fe" name="test_body_and_occurrence_timestamp_stable_across_retry" time="0.003"><failure message="assert b'{&quot;eventId&quot;:...ursor&quot;: null}' == b'{&quot;eventId&quot;:...ursor&quot;: null}'&#10;  &#10;  At index 91 diff: b'0' != b'1'&#10;  Use -v to get more diff">tests/test_review_3b082fe.py:159: in test_body_and_occurrence_timestamp_stable_across_retry
+    assert calls[0] == calls[1]
+E   assert b'{"eventId":...ursor": null}' == b'{"eventId":...ursor": null}'
+E     
+E     At index 91 diff: b'0' != b'1'
+E     Use -v to get more diff</failure></testcase><testcase classname="tests.test_review_3b082fe" name="test_public_login_does_not_interpret_state_as_html" time="0.000"><failure message="assert b'&lt;span id=&quot;review-sentinel&quot;&gt;' not in b'&lt;!DOCTYPE html&gt;&lt;html&gt;&lt;head&gt;&lt;meta charset=&quot;utf-8&quot;&gt;&lt;title&gt;Hermes Bridge \xe2\x80\x94 \xd0\xb2\xd1\x85\xd0\xbe\xd0\xb4&lt;...lete=&quot;current-password&quot;&gt;\n&lt;button type=&quot;submit&quot;&gt;\xd0\x92\xd0\xbe\xd0\xb9\xd1\x82\xd0\xb8&lt;/button&gt;&lt;/form&gt;&lt;/body&gt;&lt;/html&gt;'&#10; +  where b'&lt;!DOCTYPE html&gt;&lt;html&gt;&lt;head&gt;&lt;meta charset=&quot;utf-8&quot;&gt;&lt;title&gt;Hermes Bridge \xe2\x80\x94 \xd0\xb2\xd1\x85\xd0\xbe\xd0\xb4&lt;...lete=&quot;current-password&quot;&gt;\n&lt;button type=&quot;submit&quot;&gt;\xd0\x92\xd0\xbe\xd0\xb9\xd1\x82\xd0\xb8&lt;/button&gt;&lt;/form&gt;&lt;/body&gt;&lt;/html&gt;' = &lt;starlette.responses.HTMLResponse object at 0x7fee696b86e0&gt;.body">tests/test_review_3b082fe.py:166: in test_public_login_does_not_interpret_state_as_html
+    assert b'&lt;span id="review-sentinel"&gt;' not in response.body
+E   assert b'&lt;span id="review-sentinel"&gt;' not in b'&lt;!DOCTYPE html&gt;&lt;html&gt;&lt;head&gt;&lt;meta charset="utf-8"&gt;&lt;title&gt;Hermes Bridge \xe2\x80\x94 \xd0\xb2\xd1\x85\xd0\xbe\xd0\xb4&lt;...lete="current-password"&gt;\n&lt;button type="submit"&gt;\xd0\x92\xd0\xbe\xd0\xb9\xd1\x82\xd0\xb8&lt;/button&gt;&lt;/form&gt;&lt;/body&gt;&lt;/html&gt;'
+E    +  where b'&lt;!DOCTYPE html&gt;&lt;html&gt;&lt;head&gt;&lt;meta charset="utf-8"&gt;&lt;title&gt;Hermes Bridge \xe2\x80\x94 \xd0\xb2\xd1\x85\xd0\xbe\xd0\xb4&lt;...lete="current-password"&gt;\n&lt;button type="submit"&gt;\xd0\x92\xd0\xbe\xd0\xb9\xd1\x82\xd0\xb8&lt;/button&gt;&lt;/form&gt;&lt;/body&gt;&lt;/html&gt;' = &lt;starlette.responses.HTMLResponse object at 0x7fee696b86e0&gt;.body</failure></testcase><testcase classname="tests.test_review_3b082fe" name="test_old_login_state_rejected" time="0.017"><failure message="AssertionError: 302&#10;assert 302 == 400&#10; +  where 302 = &lt;Response [302 Found]&gt;.status_code">tests/test_review_3b082fe.py:183: in test_old_login_state_rejected
+    assert r.status_code == 400, r.status_code
+E   AssertionError: 302
+E   assert 302 == 400
+E    +  where 302 = &lt;Response [302 Found]&gt;.status_code</failure></testcase><testcase classname="tests.test_review_3b082fe" name="test_discover_events_on_actual_http_response" time="0.023"><failure message="AssertionError: {'jsonrpc': '2.0', 'id': 1, 'result': {'cacheScope': 'private', 'capabilities': {'tools': {}}, 'instructions': 'Очередь сообщений Hermes&lt;-&gt;ChatGPT (read/write через инструменты).', 'resultType': 'complete', ...}}&#10;assert 'events' in {'tools': {}}">tests/test_review_3b082fe.py:213: in test_discover_events_on_actual_http_response
+    assert "events" in response.json()["result"]["capabilities"], response.json()
+E   AssertionError: {'jsonrpc': '2.0', 'id': 1, 'result': {'cacheScope': 'private', 'capabilities': {'tools': {}}, 'instructions': 'Очередь сообщений Hermes&lt;-&gt;ChatGPT (read/write через инструменты).', 'resultType': 'complete', ...}}
+E   assert 'events' in {'tools': {}}</failure></testcase><testcase classname="tests.test_review_3b082fe" name="test_mcp_rejects_missing_token" time="0.009" /><testcase classname="tests.test_review_3b082fe" name="test_mcp_rejects_wrong_resource_token" time="0.009" /><testcase classname="tests.test_review_3b082fe" name="test_queue_happy_path_and_no_unknown_creation" time="0.002" /><testcase classname="tests.test_review_3b082fe" name="test_queue_utf8_byte_limit" time="0.002" /><testcase classname="tests.test_review_3b082fe" name="test_queue_concurrent_reply_cannot_silently_overwrite" time="0.005"><failure message="AssertionError: [{'job_id': 'job_7605effb0ffe9c0942111f5d', 'status': 'replied', 'reply': 'FIRST', 'idempotent': False}, {'job_id': 'job_7605effb0ffe9c0942111f5d', 'status': 'replied', 'reply': 'SECOND', 'idempotent': False}]&#10;assert ['replied', 'replied'] == ['conflict', 'replied']&#10;  &#10;  At index 0 diff: 'replied' != 'conflict'&#10;  Use -v to get more diff">tests/test_review_3b082fe.py:275: in test_queue_concurrent_reply_cannot_silently_overwrite
+    assert sorted(r["status"] for r in results) == ["conflict", "replied"], results
+E   AssertionError: [{'job_id': 'job_7605effb0ffe9c0942111f5d', 'status': 'replied', 'reply': 'FIRST', 'idempotent': False}, {'job_id': 'job_7605effb0ffe9c0942111f5d', 'status': 'replied', 'reply': 'SECOND', 'idempotent': False}]
+E   assert ['replied', 'replied'] == ['conflict', 'replied']
+E     
+E     At index 0 diff: 'replied' != 'conflict'
+E     Use -v to get more diff</failure></testcase></testsuite></testsuites>

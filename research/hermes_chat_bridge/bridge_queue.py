@@ -71,24 +71,22 @@ class Queue:
         другой ответ на отвеченную задачу — конфликт ('conflict')."""
         if len(text.encode('utf-8')) > max_bytes:
             raise ValueError(f'reply > {max_bytes} bytes')
+        now = utc_now_iso()
+        # Conditional UPDATE is the compare-and-swap. SQLite serializes writers.
+        cur = self._conn.execute(
+            'UPDATE jobs SET status=?,reply=?,updated_at_utc=? WHERE job_id=? AND reply IS NULL',
+            ('replied', text, now, job_id))
+        changed = cur.rowcount
+        self._conn.commit()
+        if changed:
+            return {'job_id': job_id, 'status': 'replied', 'reply': text, 'idempotent': False}
         row = self._conn.execute('SELECT * FROM jobs WHERE job_id=?', (job_id,)).fetchone()
         if row is None:
             return {'job_id': job_id, 'status': 'not_found', 'reason': 'unknown job'}
-        now = utc_now_iso()
-        if row['reply'] is not None:
-            if row['reply'] == text:
-                return {'job_id': job_id, 'status': 'replied', 'reply': text, 'idempotent': True}
-            self._conn.execute(
-                'UPDATE jobs SET status=?, updated_at_utc=? WHERE job_id=?',
-                ('conflict', now, job_id))
-            self._conn.commit()
-            return {'job_id': job_id, 'status': 'conflict',
-                    'reason': 'different reply to answered job'}
-        self._conn.execute(
-            'UPDATE jobs SET status=?, reply=?, updated_at_utc=? WHERE job_id=?',
-            ('replied', text, now, job_id))
-        self._conn.commit()
-        return {'job_id': job_id, 'status': 'replied', 'reply': text, 'idempotent': False}
+        if row['reply'] == text:
+            return {'job_id': job_id, 'status': 'replied', 'reply': text, 'idempotent': True}
+        return {'job_id': job_id, 'status': 'conflict', 'reason': 'different reply to answered job'}
+
 
 
 if __name__ == '__main__':

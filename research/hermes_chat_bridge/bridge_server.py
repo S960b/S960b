@@ -22,6 +22,12 @@ import hashlib
 import hmac
 import json
 import logging
+import html
+import http.client
+import socket
+import ssl
+import threading
+from concurrent.futures import ThreadPoolExecutor
 import os
 import secrets
 import sqlite3
@@ -41,7 +47,9 @@ from mcp.server.auth.routes import create_auth_routes
 from mcp.server.auth.settings import AuthSettings, ClientRegistrationOptions
 from mcp.server.mcpserver import MCPServer
 from mcp.shared.auth import OAuthClientInformationFull, OAuthToken
-from mcp.types import RequestParams as MCPRequestParams
+from mcp.types import RequestParams as MCPRequestParams, ToolAnnotations
+from mcp.server.auth.middleware.auth_context import get_access_token
+from discover_events_compat_poc import install_discover_events_compat
 from starlette.applications import Starlette
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
@@ -61,9 +69,37 @@ DB_PATH = os.path.join(STATE_DIR, 'bridge.db')
 SCOPE = 'bridge'
 # Логин владельца (env; дефолт только для локальной проверки — сменить на продакшне)
 OWNER_USER = os.environ.get('BRIDGE_USER', 'owner')
-OWNER_PASS = os.environ.get('BRIDGE_PASS', secrets.token_urlsafe(12))
+OWNER_PASS = os.environ.get('BRIDGE_PASS')
 SUBSCRIPTION_TTL_S = int(os.environ.get('BRIDGE_SUB_TTL_S', str(7 * 24 * 3600)))
 MAX_WEBHOOK_BYTES = 256 * 1024
+LOGIN_TTL_S = 600
+LOGIN_MAX_ATTEMPTS = 5
+LOGIN_GLOBAL_MAX_ATTEMPTS = 20
+LOGIN_GLOBAL_WINDOW_S = 600
+MAX_DELIVERY_ATTEMPTS = 8
+MAX_DELIVERY_AGE_S = 86400
+CALLBACK_POOL = ThreadPoolExecutor(max_workers=4, thread_name_prefix='bridge-callback')
+CALLBACK_SLOTS = threading.BoundedSemaphore(4)
+
+
+class PinnedHTTPSConnection(http.client.HTTPSConnection):
+    """No proxy, no second DNS lookup; TLS verifies the original hostname."""
+    def __init__(self, host, address, port, timeout):
+        super().__init__(host, port=port, timeout=timeout, context=ssl.create_default_context())
+        self.address = address
+
+    def connect(self):
+        address = ip_address(self.address)
+        family = socket.AF_INET6 if address.version == 6 else socket.AF_INET
+        raw = socket.socket(family, socket.SOCK_STREAM)
+        raw.settimeout(self.timeout)
+        try:
+            raw.connect((str(address), self.port))
+            self.sock = self._context.wrap_socket(raw, server_hostname=self.host)
+        except BaseException:
+            raw.close()
+            raise
+
 
 
 def utc_iso() -> str:
@@ -92,6 +128,8 @@ class Store:
           expires_at REAL, resource TEXT, subject TEXT);
         CREATE TABLE IF NOT EXISTS state_map(
           state TEXT PRIMARY KEY, data TEXT NOT NULL, created_at REAL);
+        CREATE TABLE IF NOT EXISTS login_budget(
+          owner TEXT PRIMARY KEY, window_start REAL NOT NULL, attempts INTEGER NOT NULL);
         CREATE TABLE IF NOT EXISTS subs(
           sub_id TEXT PRIMARY KEY, owner TEXT, event TEXT, arguments TEXT,
           callback_url TEXT, secret TEXT, expires_at REAL, active INTEGER,
@@ -101,6 +139,20 @@ class Store:
           payload TEXT, attempts INTEGER DEFAULT 0, next_attempt REAL,
           last_status INTEGER, done INTEGER DEFAULT 0);
         ''')
+        # Schema upgrade runs only when the new application is explicitly started.
+        for table, column, definition in [
+            ('state_map', 'attempts', 'INTEGER NOT NULL DEFAULT 0'),
+            ('state_map', 'expires_at', 'REAL'),
+            ('deliveries', 'created_at', 'REAL'),
+            ('deliveries', 'body', 'BLOB'),
+            ('deliveries', 'terminal_reason', 'TEXT')]:
+            columns = {r[1] for r in self.conn.execute(f'PRAGMA table_info({table})')}
+            if column not in columns:
+                self.conn.execute(f'ALTER TABLE {table} ADD COLUMN {column} {definition}')
+        # Old duplicate outbox rows are explicitly terminated, not silently retried.
+        self.conn.execute("UPDATE deliveries SET done=1, terminal_reason='duplicate' WHERE id NOT IN (SELECT min(id) FROM deliveries GROUP BY sub_id,event_id)")
+        self.conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS delivery_event_unique ON deliveries(sub_id,event_id) WHERE terminal_reason IS NULL OR terminal_reason != 'duplicate'")
+        self.conn.execute('UPDATE deliveries SET created_at=? WHERE created_at IS NULL', (time.time(),))
         self.conn.commit()
 
     def save_client(self, client: OAuthClientInformationFull):
@@ -171,14 +223,42 @@ class Store:
                            scopes=json.loads(row['scopes']), expires_at=row['expires_at'],
                            resource=row['resource'], subject=row['subject'])
 
-    def save_state(self, state: str, data: dict, ttl: float = 600):
-        self.conn.execute('INSERT OR REPLACE INTO state_map(state, data, created_at) VALUES(?,?,?)',
-                          (state, json.dumps(data), time.time()))
-        self.conn.execute('DELETE FROM state_map WHERE created_at < ?', (time.time() - ttl,))
+    def save_state(self, state: str, data: dict, ttl: float = LOGIN_TTL_S):
+        now = time.time()
+        self.conn.execute('INSERT INTO state_map(state,data,created_at,expires_at,attempts) VALUES(?,?,?,?,0)',
+                          (state, json.dumps(data), now, now + min(ttl, LOGIN_TTL_S)))
+        self.conn.execute('DELETE FROM state_map WHERE created_at < ?', (now - LOGIN_TTL_S,))
         self.conn.commit()
 
     def load_state(self, state: str) -> dict | None:
-        row = self.conn.execute('SELECT data FROM state_map WHERE state=?', (state,)).fetchone()
+        row = self.conn.execute('SELECT data FROM state_map WHERE state=? AND created_at>? AND expires_at>? AND attempts<?',
+                                (state, time.time()-LOGIN_TTL_S, time.time(), LOGIN_MAX_ATTEMPTS)).fetchone()
+        return json.loads(row['data']) if row else None
+
+    def reserve_login_attempt(self, owner: str) -> bool:
+        """Persistent account-wide budget; fresh OAuth states cannot reset it."""
+        now = time.time()
+        cutoff = now - LOGIN_GLOBAL_WINDOW_S
+        row = self.conn.execute(
+            'INSERT INTO login_budget(owner,window_start,attempts) VALUES(?,?,1) '
+            'ON CONFLICT(owner) DO UPDATE SET '
+            'attempts=CASE WHEN login_budget.window_start<=? THEN 1 ELSE login_budget.attempts+1 END, '
+            'window_start=CASE WHEN login_budget.window_start<=? THEN excluded.window_start ELSE login_budget.window_start END '
+            'WHERE login_budget.window_start<=? OR login_budget.attempts<? RETURNING attempts',
+            (owner, now, cutoff, cutoff, cutoff, LOGIN_GLOBAL_MAX_ATTEMPTS)).fetchone()
+        self.conn.commit()
+        return row is not None
+
+    def attempt_state(self, state: str, valid: bool) -> dict | None:
+        # One atomic statement, safe even across distinct SQLite connections.
+        now = time.time()
+        if valid:
+            row = self.conn.execute('DELETE FROM state_map WHERE state=? AND created_at>? AND expires_at>? AND attempts<? RETURNING data',
+                                    (state, now-LOGIN_TTL_S, now, LOGIN_MAX_ATTEMPTS)).fetchone()
+        else:
+            row = self.conn.execute('UPDATE state_map SET attempts=attempts+1 WHERE state=? AND created_at>? AND expires_at>? AND attempts<? RETURNING data',
+                                    (state, now-LOGIN_TTL_S, now, LOGIN_MAX_ATTEMPTS)).fetchone()
+        self.conn.commit()
         return json.loads(row['data']) if row else None
 
     def del_state(self, state: str):
@@ -224,10 +304,14 @@ class Store:
         self.conn.execute('UPDATE subs SET active=0 WHERE sub_id=?', (sub_id,)); self.conn.commit()
 
     def enqueue_delivery(self, sub_id: str, event_id: str, payload: dict):
-        self.conn.execute(
-            'INSERT INTO deliveries(sub_id, event_id, payload, next_attempt) VALUES(?,?,?,?)',
-            (sub_id, event_id, json.dumps(payload), time.time()))
+        sub = self.load_sub(sub_id)
+        event = {'eventId': event_id, 'name': sub['event'], 'timestamp': utc_iso(), 'data': payload, 'cursor': None}
+        body = json.dumps(event, ensure_ascii=False, separators=(',', ':')).encode('utf-8')
+        cur = self.conn.execute(
+            'INSERT OR IGNORE INTO deliveries(sub_id,event_id,payload,next_attempt,created_at,body) VALUES(?,?,?,?,?,?)',
+            (sub_id, event_id, json.dumps(payload), time.time(), time.time(), body))
         self.conn.commit()
+        return cur.rowcount
 
     def pending_deliveries(self) -> list[dict]:
         rows = self.conn.execute(
@@ -235,10 +319,10 @@ class Store:
             (time.time(),)).fetchall()
         return [dict(r) for r in rows]
 
-    def mark_delivery(self, d_id: int, status: int, done: bool, next_attempt: float):
+    def mark_delivery(self, d_id: int, status: int, done: bool, next_attempt: float, reason=None):
         self.conn.execute(
-            'UPDATE deliveries SET last_status=?, done=?, attempts=attempts+1, next_attempt=?'
-            ' WHERE id=?', (status, 1 if done else 0, next_attempt, d_id))
+            'UPDATE deliveries SET last_status=?,done=?,attempts=attempts+1,next_attempt=?,terminal_reason=? WHERE id=?',
+            (status, int(done), next_attempt, reason, d_id))
         self.conn.commit()
 
 
@@ -257,15 +341,16 @@ class BridgeOAuthProvider(OAuthAuthorizationServerProvider[AuthorizationCode, Re
         self.store.save_client(client_info)
 
     async def authorize(self, client: OAuthClientInformationFull, params: AuthorizationParams) -> str:
-        state = params.state or secrets.token_hex(16)
+        state = secrets.token_urlsafe(32)
         self.store.save_state(state, {
             'redirect_uri': str(params.redirect_uri),
             'code_challenge': params.code_challenge,
             'redirect_uri_provided_explicitly': params.redirect_uri_provided_explicitly,
             'client_id': client.client_id,
             'resource': params.resource,
+            'client_state': params.state,
         })
-        return f'{self.base}/login?state={state}&client_id={client.client_id}'
+        return f'{self.base}/login?state={state}'
 
     async def load_authorization_code(self, client, code: str) -> AuthorizationCode | None:
         c = self.store.load_code(code)
@@ -307,9 +392,16 @@ class BridgeOAuthProvider(OAuthAuthorizationServerProvider[AuthorizationCode, Re
         t = self.store.load_access(token)
         if t and t.expires_at and t.expires_at < time.time():
             return None
-        return t
+        return t if t and t.subject == OWNER_USER else None
 
     async def revoke_token(self, token: str, token_type_hint: str | None = None) -> None:
+        principal = self.store.load_access(token) or self.store.load_refresh(token)
+        if principal:
+            # Single-owner bridge: conservatively revoke all this subject's subscriptions.
+            self.store.conn.execute('UPDATE subs SET active=0 WHERE owner=?', (principal.subject,))
+            self.store.conn.execute("UPDATE deliveries SET done=1,terminal_reason='access_revoked' WHERE done=0 AND sub_id IN (SELECT sub_id FROM subs WHERE owner=?)", (principal.subject,))
+            self.store.conn.execute('DELETE FROM access_tokens WHERE subject=? AND client_id=?', (principal.subject, principal.client_id))
+            self.store.conn.execute('DELETE FROM refresh_tokens WHERE subject=? AND client_id=?', (principal.subject, principal.client_id))
         self.store.conn.execute('DELETE FROM access_tokens WHERE token=?', (token,))
         self.store.conn.execute('DELETE FROM refresh_tokens WHERE token=?', (token,))
         self.store.conn.commit()
@@ -319,6 +411,8 @@ class BridgeOAuthProvider(OAuthAuthorizationServerProvider[AuthorizationCode, Re
 # Login-форма владельца (обёртка SimpleAuth: form -> auth code)
 # ---------------------------------------------------------------------------
 def login_page(state: str, server_base: str) -> HTMLResponse:
+    state = html.escape(state, quote=True)
+    server_base = html.escape(server_base, quote=True)
     return HTMLResponse(f'''<!DOCTYPE html><html><head><meta charset="utf-8"><title>Hermes Bridge — вход</title>
 <style>body{{font-family:system-ui;max-width:420px;margin:40px auto;padding:0 16px}}
 input{{width:100%;padding:8px;margin-top:6px;box-sizing:border-box}}button{{margin-top:14px;padding:8px 16px}}</style>
@@ -343,8 +437,8 @@ class BridgeApp:
     # --- login flow ---
     async def login_handler(self, request: Request) -> Response:
         state = request.query_params.get('state')
-        if not state:
-            raise HTTPException(400, 'Missing state')
+        if not state or self.store.load_state(state) is None:
+            raise HTTPException(400, 'Invalid state')
         return login_page(state, self.base_url)
 
     async def login_callback(self, request: Request) -> Response:
@@ -352,11 +446,16 @@ class BridgeApp:
         user = str(form.get('username') or '')
         pwd = str(form.get('password') or '')
         state = str(form.get('state') or '')
-        if user != OWNER_USER or pwd != OWNER_PASS:
-            raise HTTPException(401, 'Invalid credentials')
-        sd = self.store.load_state(state)
-        if not sd:
+        if self.store.load_state(state) is None:
             raise HTTPException(400, 'Invalid state')
+        if not self.store.reserve_login_attempt(OWNER_USER):
+            raise HTTPException(429, 'Login attempt budget exhausted', headers={'Retry-After': str(LOGIN_GLOBAL_WINDOW_S)})
+        valid = hmac.compare_digest(user.encode(), OWNER_USER.encode()) and bool(OWNER_PASS) and hmac.compare_digest(pwd.encode(), OWNER_PASS.encode())
+        sd = self.store.attempt_state(state, bool(valid))
+        if sd is None:
+            raise HTTPException(400, 'Invalid state')
+        if not valid:
+            raise HTTPException(401, 'Invalid credentials')
         code = f'code_{secrets.token_urlsafe(24)}'
         self.store.save_code(AuthorizationCode(
             code=code, client_id=sd['client_id'],
@@ -366,55 +465,88 @@ class BridgeApp:
             code_challenge=sd['code_challenge'], resource=sd.get('resource'), subject=user))
         self.store.del_state(state)
         return RedirectResponse(
-            url=construct_redirect_uri(sd['redirect_uri'], code=code, state=state), status_code=302)
+            url=construct_redirect_uri(sd['redirect_uri'], code=code, state=sd.get('client_state')), status_code=302)
 
     # --- публичный ping ---
     async def ping(self, request: Request) -> Response:
         return JSONResponse({'ok': 'ok', 'version': VERSION})
 
     # --- events: стандартная верификация callback и доставка (Standard Webhooks) ---
-    def _nonces(self, timestamp: str, body: bytes) -> str:
-        return f'{timestamp}.{body.decode()}'
+    def require_owner(self) -> str:
+        token = get_access_token()
+        if (token is None or token.subject != OWNER_USER or SCOPE not in token.scopes
+                or token.resource != self.base_url + '/mcp'
+                or (token.expires_at is not None and token.expires_at <= time.time())
+                or self.store.load_access(token.token) is None):
+            raise PermissionError('Authenticated owner required')
+        return token.subject
 
-    def _sign_body(self, secret: str, ts: str, body: bytes) -> str:
-        """Standard Webhooks: v1,<base64(HMAC-SHA256(secret, ts+'.'+body))>."""
-        key = base64.b64decode(secret.removeprefix('whsec_'))
-        msg = f'{ts}.{body.decode()}'.encode()
-        sig = hmac.new(key, msg, hashlib.sha256).digest()
-        return 'v1,' + base64.b64encode(sig).decode()
+    def _sign_body(self, secret: str, webhook_id: str, ts: str, body: bytes) -> str:
+        key = base64.b64decode(secret.removeprefix('whsec_'), validate=True)
+        msg = webhook_id.encode() + b'.' + ts.encode() + b'.' + body
+        return 'v1,' + base64.b64encode(hmac.new(key, msg, hashlib.sha256).digest()).decode()
 
     def _validate_callback_url(self, url: str):
         p = urlparse(url)
-        if p.scheme != 'https':
-            raise ValueError('callback must be HTTPS')
+        if p.scheme != 'https' or not p.hostname or p.username is not None or p.password is not None or p.fragment:
+            raise ValueError('callback must be HTTPS without credentials or fragment')
         host = p.hostname
         try:
-            addr = ip_address(host)
-            is_private = not addr.is_global
+            addresses = [ip_address(host)]
         except ValueError:
-            try:
-                import socket
-                addrs = {ip_address(a[4][0]) for a in socket.getaddrinfo(host, None)}
-                is_private = any(not a.is_global for a in addrs)
-            except Exception:
-                is_private = True
-        if is_private:
+            addresses = [ip_address(a[4][0]) for a in socket.getaddrinfo(host, p.port or 443, type=socket.SOCK_STREAM)]
+        if not addresses or any(not a.is_global for a in addresses):
             raise ValueError('callback must not be a private/local address')
+        return host, str(addresses[0]), p.port or 443
+
+    def _post_pinned(self, url: str, body: bytes, headers: dict, timeout: float):
+        host, address, port = self._validate_callback_url(url)
+        def allowed():
+            # Recheck after DNS and again immediately before writing the request.
+            # Verification challenges intentionally target pending subscriptions.
+            if headers.get('webhook-id', '').startswith('msg_verification_'):
+                return True
+            sub_id = headers.get('X-MCP-Subscription-Id')
+            if not sub_id:
+                return True
+            sub = self.store.load_sub(sub_id)
+            return bool(sub and sub['active'] and sub['expires_at'] > time.time())
+        if not allowed():
+            return 410, b'{}'
+        conn = PinnedHTTPSConnection(host, address, port, timeout)
+        p = urlparse(url)
+        target = (p.path or '/') + ('?' + p.query if p.query else '')
+        try:
+            if not allowed():
+                return 410, b'{}'
+            conn.request('POST', target, body=body, headers={'Content-Type': 'application/json', **headers})
+            response = conn.getresponse()
+            # Never follow redirects. http.client does not consult environment proxies.
+            data = response.read(MAX_WEBHOOK_BYTES + 1)
+            if len(data) > MAX_WEBHOOK_BYTES:
+                raise ValueError('callback response too large')
+            return response.status, data
+        finally:
+            conn.close()
+
+    async def _callback_worker(self, function, *args):
+        # No unbounded executor queue. Slot remains held until worker really finishes.
+        if not CALLBACK_SLOTS.acquire(blocking=False):
+            raise RuntimeError('callback workers busy')
+        def work():
+            try:
+                return function(*args)
+            finally:
+                CALLBACK_SLOTS.release()
+        try:
+            future = CALLBACK_POOL.submit(work)
+        except BaseException:
+            CALLBACK_SLOTS.release()
+            raise
+        return await asyncio.shield(asyncio.wrap_future(future))
 
     async def _http_post(self, url: str, body: bytes, headers: dict, timeout: float = 10.0):
-        """POST без редиректов (redirect=error), HTTPS-only, блокировка private."""
-        import urllib.request
-        self._validate_callback_url(url)
-        req = urllib.request.Request(url, data=body, headers={'Content-Type': 'application/json', **headers})
-        class NoRedirect(urllib.request.HTTPRedirectHandler):
-            def redirect_request(self, *a, **k):
-                raise urllib.error.HTTPError(req.full_url, 3, 'redirect blocked', {}, None)
-        opener = urllib.request.build_opener(NoRedirect)
-        try:
-            with opener.open(req, timeout=timeout) as r:
-                return r.status, r.read()
-        except urllib.error.HTTPError as e:
-            return e.code, e.read()
+        return await self._callback_worker(self._post_pinned, url, body, headers, min(timeout, 10.0))
 
     async def verify_callback(self, sub: dict) -> bool:
         """Верификация callback (план §«Событие»): signed challenge, 2xx + echo."""
@@ -422,9 +554,10 @@ class BridgeApp:
         payload = {'type': 'verification', 'challenge': challenge}
         body = json.dumps(payload).encode()
         ts = str(int(time.time()))
-        sig = self._sign_body(sub['secret'], ts, body)
+        webhook_id = 'msg_verification_' + secrets.token_urlsafe(16)
+        sig = self._sign_body(sub['secret'], webhook_id, ts, body)
         headers = {
-            'webhook-id': f'msg_verification_{sub["id"]}',
+            'webhook-id': webhook_id,
             'webhook-timestamp': ts,
             'webhook-signature': sig,
             'X-MCP-Subscription-Id': sub['id'],
@@ -451,6 +584,7 @@ class BridgeApp:
 
     async def events_subscribe(self, ctx, params) -> dict:
         """events/subscribe: проверить аргументы, whsec, callback URL; верифицировать."""
+        owner = self.require_owner()
         p = _ev_params(params)
         name = p.get('name') or p.get('event') or ''
         arguments = p.get('arguments') or {}
@@ -458,57 +592,56 @@ class BridgeApp:
         if name != 'hermes.message.created':
             return {'resultType': 'error', 'error': {'code': -32602,
                     'message': f'unknown event {name}'}}
-        if arguments.get('queue') != 'test':
+        if not isinstance(arguments, dict) or arguments != {'queue': 'test'}:
             return {'resultType': 'error', 'error': {'code': -32602,
-                    'message': 'filter queue=test required for this stage'}}
+                    'message': 'arguments must match queue=test schema without extra fields'}}
+        if not isinstance(delivery, dict):
+            return {'resultType': 'error', 'error': {'code': -32602, 'message': 'delivery must be an object'}}
         url = delivery.get('url', '')
         secret = delivery.get('secret', '')
-        if delivery.get('mode') != 'webhook' or not url or not secret.startswith('whsec_'):
+        if (delivery.get('mode') != 'webhook' or not isinstance(url, str) or not url
+                or not isinstance(secret, str) or not secret.startswith('whsec_')):
             return {'resultType': 'error', 'error': {'code': -32602,
                     'message': 'delivery mode=webhook with whsec_ secret required'}}
         try:
             b64 = secret.removeprefix('whsec_')
-            raw = base64.b64decode(b64)
+            raw = base64.b64decode(b64, validate=True)
             if not (24 <= len(raw) <= 64):
                 raise ValueError('bad secret length')
-            self._validate_callback_url(url)
+            await self._callback_worker(self._validate_callback_url, url)
         except Exception as e:
             return {'resultType': 'error', 'error': {'code': -32015,
                     'message': f'CallbackEndpointError', 'data': {'reason': f'invalid_callback: {type(e).__name__}'}}}
-        owner = 'owner'  # SDK проверил токен; principal резолвим из ctx (см. ниже)
-        try:
-            subj = getattr(ctx, 'request_state', None)
-            if subj is not None:
-                owner = str(getattr(subj, 'subject', None) or 'owner')
-        except Exception:
-            pass
         sub_id = self._sub_id(owner, name, arguments, url)
         existing = self.store.load_sub(sub_id)
+        ttl_ms = p.get('ttlMs', SUBSCRIPTION_TTL_S * 1000)
+        if isinstance(ttl_ms, bool) or not isinstance(ttl_ms, (int, float)) or not 0 < ttl_ms <= SUBSCRIPTION_TTL_S * 1000:
+            return {'resultType': 'error', 'error': {'code': -32602, 'message': 'invalid ttlMs'}}
         sub = {'id': sub_id, 'owner': owner, 'event': name, 'arguments': arguments,
                'callback_url': url, 'secret': secret,
-               'expires_at': time.time() + SUBSCRIPTION_TTL_S, 'active': True}
-        self.store.save_sub(sub)
-        if existing is None:
-            ok = await self.verify_callback(sub)
-            if not ok:
+               'expires_at': time.time() + ttl_ms / 1000, 'active': False}
+        verified = existing and existing['active'] and existing['expires_at'] > time.time() and existing['secret'] == secret
+        if not verified:
+            # Preserve existing verified parameters during a failed rotation.
+            if existing is None or not existing['active']:
+                self.store.save_sub(sub)
+            if not await self.verify_callback(sub):
                 return {'resultType': 'error', 'error': {'code': -32015,
                         'message': 'CallbackEndpointError', 'data': {'reason': 'challenge_failed'}}}
-        return {'resultType': 'complete', 'id': sub_id, 'refreshBefore': sub['expires_at'],
+        self.require_owner()  # Token may have been revoked during callback verification.
+        sub['active'] = True
+        self.store.save_sub(sub)
+        return {'resultType': 'complete', 'id': sub_id,
+                'refreshBefore': datetime.fromtimestamp(sub['expires_at'], timezone.utc).isoformat(),
                 'cursor': None, 'truncated': False}
 
     async def events_unsubscribe(self, ctx, params) -> dict:
+        owner = self.require_owner()
         p = _ev_params(params)
         name = p.get('name') or p.get('event') or ''
         arguments = p.get('arguments') or {}
         delivery = p.get('delivery') or {}
         url = delivery.get('url', '')
-        owner = 'owner'
-        try:
-            subj = getattr(ctx, 'request_state', None)
-            if subj is not None:
-                owner = str(getattr(subj, 'subject', None) or 'owner')
-        except Exception:
-            pass
         sub_id = self._sub_id(owner, name, arguments, url)
         if self.store.load_sub(sub_id):
             self.store.deactivate_sub(sub_id)
@@ -519,27 +652,34 @@ class BridgeApp:
         subs = [s for s in self.store.active_subscriptions()
                 if s['event'] == 'hermes.message.created'
                 and s['arguments'].get('queue') == queue]
+        count = 0
         for s in subs:
-            self.store.enqueue_delivery(s['id'], 'evt_' + secrets.token_urlsafe(12),
+            count += self.store.enqueue_delivery(s['id'], 'evt_' + hashlib.sha256((queue + ':' + job_id).encode()).hexdigest()[:32],
                                         {'job_id': job_id, 'queue': queue})
-        return len(subs)
+        return count
 
     async def deliver_pending(self):
         """Доставка накопленных событий (Standard Webhooks) с retry/backoff."""
         for d in self.store.pending_deliveries():
             sub = self.store.load_sub(d['sub_id'])
-            if sub is None or not sub['active']:
-                self.store.mark_delivery(d['id'], 0, True, 0)
+            if sub is None or not sub['active'] or sub['expires_at'] <= time.time():
+                self.store.mark_delivery(d['id'], 0, True, 0, 'subscription_inactive_or_expired')
                 continue
-            payload = json.loads(d['payload'])
-            event = {'eventId': d['event_id'], 'name': sub['event'],
-                     'timestamp': utc_iso(), 'data': payload, 'cursor': None}
-            body = json.dumps(event).encode()
+            if d['attempts'] >= MAX_DELIVERY_ATTEMPTS or time.time() - d['created_at'] >= MAX_DELIVERY_AGE_S:
+                self.store.mark_delivery(d['id'], 0, True, 0, 'retry_budget_exhausted')
+                continue
+            body = d['body']
+            if body is None:
+                # Legacy outbox: freeze once on migration/first use; then reuse bytes.
+                event = {'eventId': d['event_id'], 'name': sub['event'], 'timestamp': datetime.fromtimestamp(d['created_at'], timezone.utc).isoformat(), 'data': json.loads(d['payload']), 'cursor': None}
+                body = json.dumps(event).encode()
+                self.store.conn.execute('UPDATE deliveries SET body=? WHERE id=? AND body IS NULL', (body, d['id']))
+                self.store.conn.commit()
             if len(body) > MAX_WEBHOOK_BYTES:
-                self.store.mark_delivery(d['id'], 413, True, 0)
+                self.store.mark_delivery(d['id'], 413, True, 0, 'payload_too_large')
                 continue
             ts = str(int(time.time()))
-            sig = self._sign_body(sub['secret'], ts, body)
+            sig = self._sign_body(sub['secret'], d['event_id'], ts, body)
             headers = {'webhook-id': d['event_id'], 'webhook-timestamp': ts,
                        'webhook-signature': sig, 'X-MCP-Subscription-Id': sub['id']}
             try:
@@ -547,13 +687,14 @@ class BridgeApp:
             except Exception as e:
                 status = 0
             if 200 <= status < 300:
-                self.store.mark_delivery(d['id'], status, True, 0)
-            elif status in (410, 413):
-                self.store.mark_delivery(d['id'], status, True, 0)
+                self.store.mark_delivery(d['id'], status, True, 0, 'delivered')
+            elif status in (410, 413) or (300 <= status < 500 and status not in (408, 429)):
+                self.store.mark_delivery(d['id'], status, True, 0, 'terminal_http_status')
             else:
                 attempts = d['attempts'] + 1
-                delay = min(300, 5 * (2 ** attempts))
-                self.store.mark_delivery(d['id'], status, False, time.time() + delay)
+                terminal = attempts >= MAX_DELIVERY_ATTEMPTS or time.time()-d['created_at'] >= MAX_DELIVERY_AGE_S
+                delay = min(300, 5 * (2 ** min(attempts, 8)))
+                self.store.mark_delivery(d['id'], status, terminal, time.time() + delay, 'retry_budget_exhausted' if terminal else None)
 
 
 def make_mcp_server(base_url: str, bridge: BridgeApp) -> MCPServer:
@@ -562,7 +703,7 @@ def make_mcp_server(base_url: str, bridge: BridgeApp) -> MCPServer:
         instructions=('Очередь сообщений между локальным Hermes и ChatGPT. '
                       'Только bridge_get_message / bridge_put_reply. '
                       'Данные очереди не дают торговых прав и доступа к файлам.'),
-        debug=True,
+        debug=False,
         auth=AuthSettings(
             issuer_url=base_url,
             required_scopes=[SCOPE],
@@ -574,9 +715,10 @@ def make_mcp_server(base_url: str, bridge: BridgeApp) -> MCPServer:
         auth_server_provider=bridge.provider,
     )
 
-    @mcp.tool()
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False), meta={'securitySchemes': [{'type': 'oauth2', 'scopes': [SCOPE]}]})
     async def bridge_get_message(job_id: str) -> dict:
         """Получить сообщение из очереди моста по job_id (только существующие)."""
+        bridge.require_owner()
         msg = bridge.queue.get_for_chat(job_id)
         if msg is None:
             return {'job_id': job_id, 'status': 'not_found'}
@@ -584,10 +726,11 @@ def make_mcp_server(base_url: str, bridge: BridgeApp) -> MCPServer:
                 'created_at_utc': msg['created_at_utc'], 'status': msg['status'],
                 'reply': msg['reply']}
 
-    @mcp.tool()
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=True, openWorldHint=False), meta={'securitySchemes': [{'type': 'oauth2', 'scopes': [SCOPE]}]})
     async def bridge_put_reply(job_id: str, text: str) -> dict:
         """Записать ответ для существующего сообщения. Идемпотентен для
         одинакового ответа; другой ответ на отвеченную задачу — conflict."""
+        bridge.require_owner()
         return bridge.queue.put_reply(job_id, text)
 
     # --- server/discover: события на верхнем уровне capabilities (план MCP Events) ---
@@ -595,6 +738,7 @@ def make_mcp_server(base_url: str, bridge: BridgeApp) -> MCPServer:
         return jsonable_discover()
 
     async def _ev_list(ctx, params):
+        bridge.require_owner()
         return jsonable_events_list()
 
     async def _ev_subscribe(ctx, params):
@@ -607,6 +751,7 @@ def make_mcp_server(base_url: str, bridge: BridgeApp) -> MCPServer:
     mcp._lowlevel_server.add_request_handler('events/list', MCPRequestParams, _ev_list)
     mcp._lowlevel_server.add_request_handler('events/subscribe', EventsSubscribeParams, _ev_subscribe)
     mcp._lowlevel_server.add_request_handler('events/unsubscribe', EventsSubscribeParams, _ev_unsubscribe)
+    install_discover_events_compat(mcp)
     return mcp
 
 
@@ -660,6 +805,8 @@ def _ev_params(params) -> dict:
 
 # ---------------------------------------------------------------------------
 def build_app(base_url: str) -> Starlette:
+    if not OWNER_PASS:
+        raise RuntimeError('BRIDGE_PASS is required')
     bridge = BridgeApp(base_url)
     mcp = make_mcp_server(base_url, bridge)
 
@@ -690,7 +837,7 @@ def build_app(base_url: str) -> Starlette:
         host=BRIDGE_HOST,
         transport_security=TSS(
             enable_dns_rebinding_protection=True,
-            allowed_hosts=[th] if th else [],
+            allowed_hosts=[_up(base_url).netloc] if th else [],
             allowed_origins=[],
         ) if th else None,
     )
