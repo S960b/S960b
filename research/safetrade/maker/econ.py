@@ -132,12 +132,13 @@ def econ_report(run_dir, run_id, cutoff_ns=None, budgets=(5, 10, 25),
         'window_h_exact': window_h_exact,
         'window_sources': 'cutoff=явный' if cutoff_ns is not None else 'cutoff=конец данных',
         'fee_status': 'confirmed_from_api',
-                'fee_source': 'GET /api/v2/trade/public/trading_fees (2026-10-04): '
-                              'maker=0.001 taker=0.001, market_id=any, group=any',
-                'fee_maker_bps': 10.0, 'fee_taker_bps': 10.0,
-                'note': ('комиссии подтверждены API trading_fees: maker=0.1% taker=0.1% '
-                         '(одинаковые — maker-скидки НЕТ); касание котировки = opportunity, '
-                         'НЕ fill; touch_after — диагностика, не вердикт'),
+        'fee_source': 'GET /api/v2/trade/public/trading_fees (2026-10-04): '
+                      'maker=0.001 taker=0.001, market_id=any, group=any',
+        'fee_maker_bps': 10.0, 'fee_taker_bps': 10.0,
+        'note': ('комиссии подтверждены API trading_fees: maker=0.1% taker=0.1% '
+                 '(одинаковые — maker-скидки НЕТ); касание котировки = opportunity, '
+                 'НЕ fill; touch_after — диагностика, не вердикт'),
+        'bad_lines': {'depth': bad_d, 'trades': bad_t, 'oracle': bad_o},
         'pairs': [],
     }
 
