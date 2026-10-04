@@ -3,26 +3,26 @@
  "run_id": "mk_18db19212772b000",
  "segment": 1,
  "started_utc": "2026-10-03T18:41:46Z",
- "checkpoint_utc": "2026-10-04T04:23:08Z",
+ "checkpoint_utc": "2026-10-04T06:21:40Z",
  "status": "running",
- "ticks": 1620,
- "rows_written": 7452,
- "api_calls": 8090,
+ "ticks": 1950,
+ "rows_written": 8970,
+ "api_calls": 9741,
  "blocks_429": 0,
  "cadence_median_s": 8.99,
  "trade_poll_state": {
   "PRLUSDT": {
-   "t": 1791087769038453996,
+   "t": 1791094881016034392,
    "coverage": "caught_up",
    "n_records": 100
   },
   "QUANTUSUSDT": {
-   "t": 1791087777932937131,
+   "t": 1791094889894990330,
    "coverage": "caught_up",
    "n_records": 100
   },
   "LTCUSDT": {
-   "t": 1791087786914418606,
+   "t": 1791094898922483229,
    "coverage": "caught_up",
    "n_records": 100
   }

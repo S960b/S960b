@@ -88,37 +88,48 @@ def econ_report(run_dir, run_id, cutoff_ns=None, budgets=(5, 10, 25),
     mp = os.path.join(run_dir, f'{run_id}_manifest.json')
     if os.path.exists(mp):
         manifest = json.load(open(mp))
-    started_ts = parse_iso_utc(manifest.get('started_utc'))
-    if started_ts is None:
-        started_ts = float(manifest.get('started_epoch') or 0.0)
+    # started_epoch ТОЧНЕЕ ISO (секундная точность) — приоритет ему (4a3dc86 п.4)
+    started_ts = float(manifest.get('started_epoch') or 0.0)
     if started_ts <= 0:
-        raise ValueError(f'econ: manifest {run_id} без started_utc/started_epoch')
+        started_ts = parse_iso_utc(manifest.get('started_utc')) or 0.0
+    if started_ts <= 0:
+        raise ValueError(f'econ: manifest {run_id} без started_epoch/started_utc')
 
     # cutoff: явный ИЛИ конец доступных данных (последний валидный снимок/poll)
-    if cutoff_ns is None:
+    if cutoff_ns is not None:
+        cutoff_ns = int(cutoff_ns)
+        cutoff_ts = float(cutoff_ns) / 1e9
+    else:
         last = started_ts
         for r in reversed(depth):
             if isinstance(r, dict) and r.get('t'):
-                last = float(r['t']) / 1e9
+                last = max(last, float(r['t']) / 1e9)
                 break
         for r in reversed(tr_rows):
             if isinstance(r, dict) and r.get('t'):
                 last = max(last, float(r['t']) / 1e9)
                 break
         cutoff_ts = last
-    else:
-        cutoff_ts = float(cutoff_ns) / 1e9
+        cutoff_ns = int(round(cutoff_ts * 1e9))
     if cutoff_ts <= started_ts:
         raise ValueError(f'econ: cutoff {cutoff_ts} <= start {started_ts} для {run_id}')
-    window_h = (cutoff_ts - started_ts) / 3600.0
+    # длительность окна: от ТОЧНОГО started_epoch (не усечённого ISO),
+    # арифметика в целых микросекундах через Decimal — float-шум ~1e-7с
+    # из cutoff_ns и секундная точность ISO не должны искажать окно
+    # (4a3dc86 п.4/п.5: 6h-срез обязан быть ровно 6.000000ч).
+    _started_us = int((Decimal(str(started_ts)) * 1_000_000).to_integral_value())
+    _cutoff_us = int((Decimal(cutoff_ns) / 1_000).to_integral_value())
+    window_us = Decimal(_cutoff_us) - Decimal(_started_us)
+    window_h_exact = float(window_us / Decimal(3.6e9))
+    window_h = round(window_h_exact, 4)
 
     out = {
         'run_id': run_id, 'started_utc': manifest.get('started_utc'),
         'started_epoch': started_ts,
-        'cutoff_ns': int(cutoff_ts * 1e9),
+        'cutoff_ns': cutoff_ns,   # исходное целое НАНОСЕКУНД (не float-пересчёт!)
         'cutoff_utc': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(cutoff_ts)),
-        'window_h': round(window_h, 4),
-        'window_h_exact': window_h,
+        'window_h': round(window_h_exact, 4),
+        'window_h_exact': window_h_exact,
         'window_sources': 'cutoff=явный' if cutoff_ns is not None else 'cutoff=конец данных',
         'fee_status': 'fee_unverified',
         'fee_maker_bps': None, 'fee_taker_bps': None,
@@ -203,7 +214,7 @@ def econ_report(run_dir, run_id, cutoff_ns=None, budgets=(5, 10, 25),
         o['n_trades'] = len(tr)
         totals = [float(t.get('total') or 0) for _, t in tr if t.get('total') is not None]
         o['notional_usdt'] = round(sum(totals), 2)
-        o['notional_per_hour'] = round(sum(totals) / window_h, 2) if totals else 0.0
+        o['notional_per_hour'] = round(sum(totals) / window_h_exact, 2) if totals else 0.0
         sides = [t.get('side') for _, t in tr]
         o['n_buy'] = sides.count('buy')
         o['n_sell'] = sides.count('sell')
