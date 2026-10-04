@@ -52,8 +52,10 @@ invalid_model НЕ задаётся безусловно; decision_ready=False �
 """
 import argparse
 import glob
+import hashlib
 import json
 import os
+import subprocess
 import sys
 import time
 from collections import defaultdict
@@ -76,6 +78,32 @@ FEE_SOURCE = ('GET /api/v2/trade/public/trading_fees (2026-10-04): maker=0.001 '
 MAX_DELAY_FRAC = 0.25
 DEFAULT_TTL_S = 20.0
 DEFAULT_MAX_EXIT_DELAY_S = 60.0
+CONFIRMED_SIDE_STATUSES = frozenset({'confirmed', 'verified', 'fixture_verified'})
+
+
+def _analyzer_provenance():
+    """Identify this source file; do not reuse the collector's manifest commit."""
+    source = os.path.realpath(__file__)
+    with open(source, 'rb') as fh:
+        source_hash = hashlib.sha256(fh.read()).hexdigest()
+    info = {'analyzer_commit': 'unknown', 'analyzer_dirty': None,
+            'analyzer_source_sha256': source_hash}
+    git = ['git', '-C', os.path.dirname(source)]
+    try:
+        tracked = subprocess.run(git + ['ls-files', '--error-unmatch', os.path.basename(source)],
+                                 capture_output=True, text=True, timeout=2)
+        if tracked.returncode == 0:
+            head = subprocess.run(git + ['rev-parse', 'HEAD'],
+                                  capture_output=True, text=True, timeout=2)
+            if head.returncode == 0 and head.stdout.strip():
+                info['analyzer_commit'] = head.stdout.strip()
+            dirty = subprocess.run(git + ['diff', '--quiet', 'HEAD', '--', os.path.basename(source)],
+                                   capture_output=True, timeout=2)
+            if dirty.returncode in (0, 1):
+                info['analyzer_dirty'] = dirty.returncode == 1
+    except (OSError, subprocess.TimeoutExpired):
+        pass  # A copied deployment still has an exact source hash.
+    return info
 
 
 def _qty_for_budget(pair, price, budget):
@@ -208,8 +236,8 @@ def opportunity_report(run_dir, run_id, cutoff_ns=None, budgets=(5.0, 10.0),
 
     sem = manifest.get('trade_side_semantics')
     st = manifest.get('trade_side_status')
-    side_confirmed = (sem == 'aggressor' and st is not None
-                      and str(st) != 'unverified')
+    side_confirmed = (sem == 'aggressor' and isinstance(st, str)
+                      and st in CONFIRMED_SIDE_STATUSES)
     side_desc = (f'semantics={sem!r} status={st!r} -> '
                  + ('confirmed(aggressor)' if side_confirmed
                     else 'UNVERIFIED: только price matches + side_unverified'))
@@ -218,7 +246,8 @@ def opportunity_report(run_dir, run_id, cutoff_ns=None, budgets=(5.0, 10.0),
         'cutoff_ns': cutoff_ns,
         'window_h': round(window_h, 4),
         'schema_version': 3,
-        'analyzer_commit': manifest.get('code_commit') or manifest.get('code_commit_fixed'),
+        **_analyzer_provenance(),
+        'collector_commit': manifest.get('code_commit') or 'unknown',
         'source_manifest': f'{run_id}_manifest.json',
         'generated_at_utc': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
         'policy': {
@@ -327,6 +356,13 @@ def opportunity_report(run_dir, run_id, cutoff_ns=None, budgets=(5.0, 10.0),
                         if (side_confirmed and tamt > 0 and side == 'sell'
                                 and tid not in used):
                             used.add(tid)
+                            audit_context = {
+                                'trade_id': tid, 'trade_timestamp': ts,
+                                'trade_side': side, 'trade_price': t['price'],
+                                'trade_amount': tamt, 'created_at': rcv, 'expires_at': expires,
+                                'queue_before': str(q_rem_buy),
+                                'order_remaining_before': str(ord_rem_buy),
+                            }
                             # FIFO: сначала очередь, остаток — нам, лимит наша qty
                             consume = min(Decimal(str(tamt)), q_rem_buy)
                             q_rem_buy -= consume
@@ -337,8 +373,11 @@ def opportunity_report(run_dir, run_id, cutoff_ns=None, budgets=(5.0, 10.0),
                                 bres['n_touch'] += 1
                                 bres['n_buy_touch'] += 1
                                 bres['potential_qty'].append(float(potential))
+                                audit_context.update(queue_after=str(q_rem_buy),
+                                                     order_remaining_after=str(ord_rem_buy))
                                 _record_exit(bres, potential, qty, buy_px, ts, snaps, idx,
-                                             horizons, 'buy')
+                                             horizons, 'buy', max_exit_delay_s=max_exit_delay_s,
+                                             audit_context=audit_context)
                             else:
                                 bres['n_zero_potential'] += 1
                     # --- sell-котировка: встречная сторона = buy
@@ -350,6 +389,13 @@ def opportunity_report(run_dir, run_id, cutoff_ns=None, budgets=(5.0, 10.0),
                         if (side_confirmed and tamt > 0 and side == 'buy'
                                 and tid not in used):
                             used.add(tid)
+                            audit_context = {
+                                'trade_id': tid, 'trade_timestamp': ts,
+                                'trade_side': side, 'trade_price': t['price'],
+                                'trade_amount': tamt, 'created_at': rcv, 'expires_at': expires,
+                                'queue_before': str(q_rem_sell),
+                                'order_remaining_before': str(ord_rem_sell),
+                            }
                             consume = min(Decimal(str(tamt)), q_rem_sell)
                             q_rem_sell -= consume
                             avail = Decimal(str(tamt)) - consume
@@ -359,8 +405,11 @@ def opportunity_report(run_dir, run_id, cutoff_ns=None, budgets=(5.0, 10.0),
                                 bres['n_touch'] += 1
                                 bres['n_sell_touch'] += 1
                                 bres['potential_qty'].append(float(potential))
+                                audit_context.update(queue_after=str(q_rem_sell),
+                                                     order_remaining_after=str(ord_rem_sell))
                                 _record_exit_sell(bres, potential, qty, sell_px, ts, snaps,
-                                                  idx, horizons, 'sell')
+                                                  idx, horizons, 'sell',
+                                                  audit_context=audit_context)
                             else:
                                 bres['n_zero_potential'] += 1
             bres['forced_exit_mt_bps'] = _avg(bres['forced_exit_mt_bps_raw'])
@@ -386,9 +435,18 @@ def _exit_snapshot(snaps, idx, ts, max_delay_s):
 
 
 def _record_exit(bres, potential, nominal_qty, entry_px, ts, snaps, idx,
-                 horizons, side):
+                 horizons, side, max_exit_delay_s=DEFAULT_MAX_EXIT_DELAY_S,
+                 audit_context=None):
     """Условный maker->taker exit после касания, ПО ПОТЕНЦИАЛЬНОМУ объёму.
     Signed cost: forced_exit_mt_bps = -net_pnl_bps (прибыль -> отрицательный cost)."""
+    audit = {
+        'quote_idx': idx, 'side': side, 'entry_price': float(entry_px),
+        'qty': float(nominal_qty), 'potential_qty': float(potential),
+        'exit_qty': None, 'exit_snapshot_ts': None,
+        'exit_snapshot_delay_s': None, 'exit_status': 'unobserved',
+        **(audit_context or {}),
+    }
+    bres['audit'].append(audit)
     # markout от цены котировки (диагностика, только для направленных)
     for H in horizons:
         target = ts + H
@@ -404,18 +462,22 @@ def _record_exit(bres, potential, nominal_qty, entry_px, ts, snaps, idx,
         else:
             bres['unobserved'][str(H)] = bres['unobserved'].get(str(H), 0) + 1
     # exit: первый будущий снимок в пределах max_exit_delay_s
-    j, delay = _exit_snapshot(snaps, idx, ts, DEFAULT_MAX_EXIT_DELAY_S)
+    j, delay = _exit_snapshot(snaps, idx, ts, max_exit_delay_s)
     if j is None:
         bres['exit_qty_unobserved'] += 1
         bres['forced_exit_mt_bps_raw'].append(None)
         return
     _, bj, _aj = snaps[j]
+    audit.update(exit_snapshot_ts=snaps[j][0], exit_snapshot_delay_s=round(delay, 3))
     avg_px, filled = _taker_exit(bj, potential)
+    audit['exit_qty'] = float(filled)
     if avg_px is None:
+        audit['exit_status'] = 'none'
         bres['exit_qty_none'] += 1
         bres['forced_exit_mt_bps_raw'].append(None)
         return
     if filled >= float(potential) - 1e-12:
+        audit['exit_status'] = 'full'
         bres['exit_qty_full'] += 1
         entry_notional = float(potential) * float(entry_px)
         exit_notional = float(potential) * avg_px
@@ -426,27 +488,14 @@ def _record_exit(bres, potential, nominal_qty, entry_px, ts, snaps, idx,
         # SIGNED cost: прибыльный выход -> отрицательный расход (ba9f1cb п.5)
         bres['forced_exit_mt_bps_raw'].append(round(-net_bps, 2))
         bres['net_pnl_mt_bps_raw'].append(round(net_bps, 2))
-        bres['audit'].append({
-            'quote_idx': idx, 'side': side, 'entry_price': float(entry_px),
-            'qty': float(nominal_qty), 'potential_qty': float(potential),
-            'exit_qty': filled,
-            'exit_snapshot_delay_s': round(delay, 3),
-            'exit_status': 'full', 'trade_id_marker': 'see_audit',
-        })
     else:
+        audit['exit_status'] = 'partial'
         bres['exit_qty_partial'] += 1
         bres['forced_exit_mt_bps_raw'].append(None)
-        bres['audit'].append({
-            'quote_idx': idx, 'side': side, 'entry_price': float(entry_px),
-            'qty': float(nominal_qty), 'potential_qty': float(potential),
-            'exit_qty': filled,
-            'exit_snapshot_delay_s': round(delay, 3),
-            'exit_status': 'partial', 'trade_id_marker': 'see_audit',
-        })
 
 
 def _record_exit_sell(bres, potential, nominal_qty, entry_px, ts, snaps, idx,
-                      horizons, side):
+                      horizons, side, audit_context=None):
     """Sell-диагностика: markout симметрично; exit не считается (bid-глубина
     не применима к продаже; maker->maker не моделируется)."""
     for H in horizons:
@@ -467,7 +516,7 @@ def _record_exit_sell(bres, potential, nominal_qty, entry_px, ts, snaps, idx,
         'qty': float(nominal_qty), 'potential_qty': float(potential),
         'exit_qty': None,
         'exit_snapshot_delay_s': None, 'exit_status': 'not_modelled',
-        'trade_id_marker': 'see_audit',
+        **(audit_context or {}),
     })
 
 
