@@ -96,6 +96,7 @@ def econ_report(run_dir, run_id, cutoff_ns=None, budgets=(5, 10, 25),
         raise ValueError(f'econ: manifest {run_id} без started_epoch/started_utc')
 
     # cutoff: явный ИЛИ конец доступных данных (последний валидный снимок/poll)
+    _explicit_cutoff = cutoff_ns is not None
     if cutoff_ns is not None:
         cutoff_ns = int(cutoff_ns)
         cutoff_ts = float(cutoff_ns) / 1e9
@@ -130,7 +131,7 @@ def econ_report(run_dir, run_id, cutoff_ns=None, budgets=(5, 10, 25),
         'cutoff_utc': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(cutoff_ts)),
         'window_h': round(window_h_exact, 4),
         'window_h_exact': window_h_exact,
-        'window_sources': 'cutoff=явный' if cutoff_ns is not None else 'cutoff=конец данных',
+        'window_sources': 'cutoff=явный' if _explicit_cutoff else 'cutoff=конец данных',
         'fee_status': 'confirmed_from_api',
         'fee_source': 'GET /api/v2/trade/public/trading_fees (2026-10-04): '
                       'maker=0.001 taker=0.001, market_id=any, group=any',

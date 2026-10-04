@@ -1,31 +1,44 @@
-"""Opportunity-анализ гипотетических maker-котировок (ревью 4a3dc86 п.3-5).
+"""Opportunity-анализ гипотетических maker-котировок (ревью 2467cb2).
 
-БЕЗ ордеров. На уже собранных JSONL (depth + trades) моделирует ПРИЧИННУЮ
-политику котировок и считает потенциальное исполнение (opportunity), НЕ fill:
+МОДЕЛЬ (всё offline, БЕЗ ордеров; opportunity, НЕ fill):
 
-Политика (фиксированная до оценки, не подбирается по данным):
-- каждые DEPTH_TICK (появлении валидного снимка пары) выставляется котировка:
-  buy-maker на цене max(bid) + tick_size  (в очередь впереди лучшего bid),
-  sell-maker на цене min(ask) - tick_size (в очередь впереди лучшего ask);
-- размер по бюджету B: qty = B / цена, с ограничением min_amount и шагом;
-- срок жизни котировки = DEPTH_TICK (по следующему снимку переставляем);
-  объём конкурентов впереди на нашем уровне — из снимка (доля очереди).
+Политика котировок (фиксированная до оценки):
+- на каждом валидном снимке пары выставляется buy и sell на бюджет B;
+- buy:  best_bid + tick, если НЕ пересекает ask (improved), иначе best_bid (queued);
+  sell: best_ask - tick, если НЕ пересекает bid (improved), иначе best_ask (queued);
+- ЗАПРЕТ self-cross: buy < sell обязателен; если улучшение обеих сторон даёт
+  buy >= sell — sell остаётся queued (n_improved <= 1 на снимок);
+- qty: Decimal, округление ВНИЗ по amount_precision (шагу количества);
+  стоимость qty*price <= budget; при qty < min_amount котировка отклонена
+  (в отчёт с причиной); НЕ увеличиваем qty до минимума;
+- TTL котировки: min(created_at + ttl, момент замены следующим снимком, cutoff);
+  интервал активности [created_at, expires_at).
 
-Opportunity исполнения (касание):
-- buy-maker: встречная СДЕЛКА с price <= нашей bid-цены (агрессор продаёт);
-- sell-maker: встречная сделка с price >= нашей ask-цены;
-- каждый trade ID засчитывается ОДНОЙ котировке (не повторно);
-- касание = возможность исполнения, НЕ подтверждённый fill (очередь,
-  частичное исполнение, приоритет неизвестны).
+Касание и opportunity (единая дедупликация по trade-id):
+- price match: уникальный trade-id пересёк цену активной котировки
+  (buy: trade.price <= buy_px; sell: trade.price >= sell_px) — диагностический факт;
+- directed opportunity: ПОЛОЖИТЕЛЬНЫЙ объём сделки И сторона агрессора
+  подтверждена; для buy-котировки встречная сторона = sell, для sell = buy;
+  без подтверждённого side — только price match (side_unverified), без счёта;
+- queue scenario (явная статическая FIFO-гипотеза): встречный объём сначала
+  погашает объём впереди (queue_ahead), остаток — потенциальный объём нашей
+  заявки: potential_qty = max(0, trade_volume - queue_ahead); partial/full
+  относительно our_qty; исчезновение/добавление чужих заявок неизвестно —
+  это НЕ подтверждённый fill;
+- один trade-id засчитывается один раз: markout/unobserved пишутся единожды.
 
-Markout: mid через H секунд после касания (10/30/60/300с); нет будущего
-снимка в допуске => unobserved (не unchanged).
-
-Вынужденный выход (если бы мы исполнились целиком и должны выйти):
-- вариант maker->maker: продать по bid-глубине того же снимка (котировкой в
-  очередь) — цена входа и выхода по уровням стакана;
-- вариант maker->taker: немедленно продать по bid (taker) — худший случай;
-- комиссии: maker 0.1% + maker 0.1% либо + taker 0.1% (подтверждены API).
+Экономика выхода (после opportunity, условно):
+- exit оценивается по стакану ПОСЛЕ касания (ближайший валидный снимок >= ts
+  с ограничением задержки), не по стакану до котировки;
+- maker->taker: VWAP продажи всей нашей qty по bid-уровням (все уровни, не
+  только best); при нехватке всего bid-стакана — exit_qty < qty (не полный);
+- maker->maker: НЕ моделируется как рыночная продажа; остается None/не
+  подтверждён до контракта отдельной лимитной котировки (явно помечен);
+- net_pnl = exit_notional - entry_notional - fee_entry - fee_exit;
+  cost_bps = 10000 * (entry_px - exit_vwap) * qty + fee* (в валюте) /
+             entry_notional  — ПОЛОЖИТЕЛЬНАЯ стоимость потери;
+  поля forced_exit_*_bps — положительный расход; net_pnl_*_bps — со знаком.
+- комиссии: maker=taker=0.001 (10 bps), источник в отчёте (fee_source).
 """
 import argparse
 import glob
@@ -34,28 +47,77 @@ import os
 import sys
 import time
 from collections import defaultdict
-from decimal import Decimal
+from decimal import Decimal, ROUND_DOWN
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from maker.util import parse_iso_utc, valid_book
 
-TICK_DEFAULT = {'PRLUSDT': 0.01, 'QUANTUSUSDT': 0.001, 'LTCUSDT': 0.00001}  # price_precision из markets
-MIN_AMOUNT = {'PRLUSDT': 2.0, 'QUANTUSUSDT': 0.01, 'LTCUSDT': 0.0001}
-AMOUNT_PREC = {'PRLUSDT': 4, 'QUANTUSUSDT': 3, 'LTCUSDT': 5}
+TICK_DEFAULT = {'PRLUSDT': Decimal('0.01'), 'QUANTUSUSDT': Decimal('0.001'),
+                'LTCUSDT': Decimal('0.00001')}
+MIN_AMOUNT = {'PRLUSDT': Decimal('2'), 'QUANTUSUSDT': Decimal('0.01'),
+              'LTCUSDT': Decimal('0.0001')}
+AMOUNT_PREC = {'PRLUSDT': Decimal('0.0001'), 'QUANTUSUSDT': Decimal('0.001'),
+               'LTCUSDT': Decimal('0.00001')}
+FEE = Decimal('0.001')          # maker = taker = 10 bps (подтверждено API)
+FEE_SOURCE = ('GET /api/v2/trade/public/trading_fees (2026-10-04): maker=0.001 '
+              'taker=0.001, market_id=any; подтверждено сделками аккаунта (10 bps)')
 MAX_DELAY_FRAC = 0.25
-BUDGETS = (5.0, 10.0)
-HORIZONS = (10, 30, 60, 300)
+DEFAULT_TTL_S = 20.0
+
+
+def _qty_for_budget(pair, price, budget, fee_bps=FEE):
+    """qty = floor(budget/price) по шагу количества; None если < min_amount.
+    Цена/бюджет — Decimal; стоимость qty*price <= budget (округление вниз)."""
+    step = AMOUNT_PREC.get(pair)
+    if step is None:
+        return None
+    raw = Decimal(str(budget)) / Decimal(str(price))
+    qty = (raw / step).to_integral_value(rounding=ROUND_DOWN) * step
+    if qty < MIN_AMOUNT.get(pair, Decimal('0')):
+        return None
+    return qty
 
 
 def _round_amount(pair, qty):
-    prec = AMOUNT_PREC.get(pair, 4)
-    q = round(qty, prec)
-    return max(q, MIN_AMOUNT.get(pair, 0.0))
+    """Совместимая обёртка: округление вниз по шагу (тесты ревью 2467cb2)."""
+    step = AMOUNT_PREC.get(pair)
+    if step is None:
+        return None
+    q = (Decimal(str(qty)) / step).to_integral_value(rounding=ROUND_DOWN) * step
+    if q <= 0:
+        return None
+    return float(q)
 
 
-def opportunity_report(run_dir, run_id, cutoff_ns=None, budgets=BUDGETS,
-                       horizons=HORIZONS, tick_size=None, depth_tick_s=20.0):
+def _mid(bids, asks):
+    bb = max(float(x[0]) for x in bids)
+    ba = min(float(x[0]) for x in asks)
+    return (bb + ba) / 2.0
+
+
+def _taker_exit(bids, qty):
+    """VWAP всей qty по bid-уровням (все уровни). Возвращает (avg_px, filled) или (None, filled)."""
+    filled = Decimal('0')
+    cost = Decimal('0')
+    for px, q in sorted(bids, key=lambda x: -Decimal(str(x[0]))):
+        need = qty - filled
+        if need <= 0:
+            break
+        take = min(need, Decimal(str(q)))
+        cost += take * Decimal(str(px))
+        filled += take
+    if filled <= 0:
+        return None, filled
+    return float(cost / filled), float(filled)
+
+
+def opportunity_report(run_dir, run_id, cutoff_ns=None, budgets=(5.0, 10.0),
+                       horizons=(10, 30, 60, 300), tick_size=None, ttl_s=DEFAULT_TTL_S,
+                       depth_tick_s=None):
+    # совместимость: ревью-фикстуры передают depth_tick_s (прежнее имя TTL)
+    if depth_tick_s is not None:
+        ttl_s = depth_tick_s
     depth, bad_d = [], 0
     tr_rows, bad_t = [], 0
     with open(os.path.join(run_dir, f'{run_id}_depth.jsonl')) as fh:
@@ -90,11 +152,11 @@ def opportunity_report(run_dir, run_id, cutoff_ns=None, budgets=BUDGETS,
                 last = max(last, float(r['t']) / 1e9)
                 break
         cutoff_ts = last
+        cutoff_ns = int(round(cutoff_ts * 1e9))
     else:
         cutoff_ts = float(cutoff_ns) / 1e9
     window_h = (cutoff_ts - started_ts) / 3600.0
 
-    # снимки по парам (валидные), отсортированы по времени
     snaps_by = defaultdict(list)
     for r in depth:
         if not isinstance(r, dict) or not r.get('pair'):
@@ -105,7 +167,6 @@ def opportunity_report(run_dir, run_id, cutoff_ns=None, budgets=BUDGETS,
         ok, bb, ba = valid_book(r.get('bids'), r.get('asks'))
         if ok:
             snaps_by[r['pair']].append((rcv, r['bids'], r['asks']))
-    # сделки по парам (уникальные id, строго в окне)
     tr_by = defaultdict(list)
     seen = set()
     for r in tr_rows:
@@ -128,125 +189,190 @@ def opportunity_report(run_dir, run_id, cutoff_ns=None, budgets=BUDGETS,
                 tpx = float(t.get('price'))
             except (TypeError, ValueError):
                 continue
-            tr_by[r['pair']].append((ts, tpx, float(t.get('amount') or 0), t['id']))
+            try:
+                tamt = float(t.get('amount') or 0)
+            except (TypeError, ValueError):
+                tamt = 0.0
+            tr_by[r['pair']].append({'ts': ts, 'price': tpx, 'amount': tamt,
+                                     'id': t['id'], 'side': t.get('side')})
 
     out = {
         'run_id': run_id, 'started_utc': manifest.get('started_utc'),
-        'cutoff_ns': int(cutoff_ts * 1e9),
+        'cutoff_ns': cutoff_ns,
         'window_h': round(window_h, 4),
         'policy': {
-            'side': 'maker buy на best_bid+tick, sell на best_ask-tick',
-            'life': f'{depth_tick_s}с (перестановка на каждом снимке)',
+            'side': 'maker buy на best_bid+tick (или очереди), sell на best_ask-tick (или очереди), buy<sell',
+            'ttl_s': ttl_s,
             'budgets': list(budgets), 'horizons': list(horizons),
-            'note': ('касание = opportunity, НЕ fill; очередь/приоритет/частичное '
-                     'исполнение неизвестны; fee maker=0.1% taker=0.1% (API)'),
+            'queue': 'статическая FIFO-гипотеза: встречный объём гасит queue_ahead, '
+                     'остаток potential_qty; НЕ подтверждённый fill',
+            'side_semantics': manifest.get('trade_side_semantics', 'unverified'),
+            'side_status': manifest.get('trade_side_status', 'unverified'),
+            'fee_maker_bps': float(FEE * Decimal('1e4')), 'fee_taker_bps': float(FEE * Decimal('1e4')),
+            'fee_source': FEE_SOURCE,
+            'invalid_model': False,
         },
         'bad_lines': {'depth': bad_d, 'trades': bad_t},
         'pairs': [],
     }
     for pair in sorted(set(list(snaps_by) + list(tr_by))):
         snaps = snaps_by.get(pair, [])
-        trades = tr_by.get(pair, [])
+        trades = sorted(tr_by.get(pair, []), key=lambda x: x['ts'])
         o = {'symbol': pair, 'n_snaps': len(snaps), 'n_trades': len(trades)}
-        tick = (tick_size or {}).get(pair) or TICK_DEFAULT.get(pair, 0.01)
-        o['tick_size'] = tick
+        tick = (tick_size or {}).get(pair)
+        if tick is None:
+            tick = TICK_DEFAULT.get(pair)
+        tick_d = Decimal(str(tick)) if tick is not None else Decimal('0.01')
+        o['tick_size'] = float(tick_d)
         o['by_budget'] = {}
         for B in budgets:
-            used_trade = set()   # сделка = касание один раз ДЛЯ ЭТОГО бюджета
-            bres = {'n_quotes': 0, 'n_touch': 0, 'n_buy_touch': 0, 'n_sell_touch': 0,
-                    'touch_trades': 0, 'markout': {}, 'unobserved': {},
-                    'forced_exit_mm': [], 'forced_exit_mt': []}
-            # политика: на каждом снимке котировка buy и sell на бюджет B
-            for i, (rcv, bids, asks) in enumerate(snaps):
-                best_bid = max(float(x[0]) for x in bids)
-                best_ask = min(float(x[0]) for x in asks)
-                # buy-maker: улучшаем лучший bid на tick ЕСЛИ не пересекаем ask,
-                # иначе встаём в очередь на СУЩЕСТВУЮЩЕМ уровне bid (спред = 1 шаг)
-                buy_px = best_bid + tick
-                buy_improved = buy_px < best_ask - 1e-12
+            used = set()          # trade-id, засчитанные в направленные opportunity
+            used_match = set()    # trade-id, засчитанные в price match (markout)
+            bres = {'n_quotes': 0, 'n_rejected': 0, 'rejected_reasons': {},
+                    'n_price_match': 0, 'n_buy_match': 0, 'n_sell_match': 0,
+                    'n_touch': 0, 'n_buy_touch': 0, 'n_sell_touch': 0,
+                    'potential_qty': [], 'queue_ahead': [], 'markout': {},
+                    'markout_sell': {}, 'unobserved': {}, 'unobserved_sell': {},
+                    'forced_exit_mt_bps_raw': [], 'net_pnl_mt_bps_raw': [],
+                    'exit_qty_full': 0, 'exit_qty_partial': 0, 'exit_qty_none': 0,
+                    'n_improved': 0, 'n_queued': 0, 'audit': []}
+            for idx, (rcv, bids, asks) in enumerate(snaps):
+                best_bid = max(Decimal(str(x[0])) for x in bids)
+                best_ask = min(Decimal(str(x[0])) for x in asks)
+                buy_px = best_bid + tick_d
+                buy_improved = buy_px < best_ask - Decimal('1e-9')
                 if not buy_improved:
                     buy_px = best_bid
-                # sell-maker: улучшаем лучший ask на tick, иначе очередь на ask
-                sell_px = best_ask - tick
-                sell_improved = sell_px > best_bid + 1e-12
+                sell_px = best_ask - tick_d
+                sell_improved = sell_px > best_bid + Decimal('1e-9')
                 if not sell_improved:
                     sell_px = best_ask
-                qty = _round_amount(pair, B / buy_px)
+                # запрет self-cross: если улучшенные стороны пересеклись — sell в очередь
+                if buy_improved and sell_improved and buy_px >= sell_px:
+                    sell_px = best_ask
+                    sell_improved = False
+                # активность истекает: TTL или замена следующим снимком
+                expires = min(rcv + ttl_s,
+                              snaps[idx + 1][0] if idx + 1 < len(snaps) else cutoff_ts)
+                qty = _qty_for_budget(pair, buy_px, Decimal(str(B)))
+                if qty is None:
+                    bres['n_rejected'] += 1
+                    bres['rejected_reasons']['below_min'] = bres['rejected_reasons'].get('below_min', 0) + 1
+                    continue
                 bres['n_quotes'] += 2
-                bres['n_improved'] = bres.get('n_improved', 0) + (1 if buy_improved else 0) + (1 if sell_improved else 0)
-                bres['n_queued'] = bres.get('n_queued', 0) + (0 if buy_improved else 1) + (0 if sell_improved else 1)
-                # очередь конкурентов на нашем buy-уровне: объём bid по цене >= buy_px
-                q_buy = sum(float(q) for px, q in bids if float(px) >= buy_px - 1e-12)
-                q_sell = sum(float(q) for px, q in asks if float(px) <= sell_px + 1e-12)
-                bres.setdefault('queue_buy', []).append(q_buy)
-                bres.setdefault('queue_sell', []).append(q_sell)
-                # Для queued-котировки конкурирующий объём на нашем уровне:
-                # в очереди мы ПОСЛЕ q_buy (при buy_px==best_bid q_buy включ. нас нет —
-                # это объём чужих заявок на уровне; своя qty добавляется сверху).
-                # Касание = opportunity ТОЛЬКО если конкурирующий объём < наша qty
-                # (иначе очередь впереди нас съедает встречный поток — слабый сигнал).
-                buy_strong = buy_improved or q_buy < qty
-                sell_strong = sell_improved or q_sell < qty
-                bres.setdefault('_strong', []).append((buy_strong, sell_strong))
-                # противоположный поток в срок жизни котировки (до след. снимка)
-                t_end = snaps[i + 1][0] if i + 1 < len(snaps) else cutoff_ts
-                # встречные сделки в [rcv, t_end] на нашей цене
-                for ts, tpx, tamt, tid in trades:
-                    if not (rcv - 1e-9 <= ts <= t_end):
+                bres['n_improved'] += (1 if buy_improved else 0) + (1 if sell_improved else 0)
+                bres['n_queued'] += (0 if buy_improved else 1) + (0 if sell_improved else 1)
+                q_ahead = sum(Decimal(str(q)) for px, q in bids if Decimal(str(px)) >= buy_px - Decimal('1e-9'))
+                bres['queue_ahead'].append(float(q_ahead))
+                # направленные opportunity: только активные котировки
+                for t in trades:
+                    ts = t['ts']
+                    if not (rcv - 1e-9 <= ts < expires):
                         continue
-                    # buy-maker исполняется сделкой price <= buy_px (агрессор продаёт)
-                    if tpx <= buy_px + 1e-9 and buy_strong:
-                        if tid not in used_trade:
-                            used_trade.add(tid)
+                    tpx_d = Decimal(str(t['price']))
+                    tamt = t['amount']
+                    tid = t['id']
+                    side = t['side']
+                    # buy-котировка: встречная сторона = sell
+                    if tpx_d <= buy_px + Decimal('1e-9'):
+                        # price match — диагностический факт, независимо от стороны/объёма
+                        if tid not in used_match:
+                            used_match.add(tid)
+                            bres['n_price_match'] += 1
+                            bres['n_buy_match'] += 1
+                        # directed: положительный объём И подтверждённая встречная сторона
+                        if tamt > 0 and side == 'sell' and tid not in used:
+                            used.add(tid)
+                            bres['n_touch'] += 1
                             bres['n_buy_touch'] += 1
-                            bres['touch_trades'] += 1
-                        # markout: mid через H (по уникальной касательной сделке)
-                        for H in horizons:
-                            j = i
-                            while j < len(snaps) and snaps[j][0] < ts + H - max(5.0, H * MAX_DELAY_FRAC):
+                            # потенциальный объём нашей заявки: остаток после очереди
+                            potential = max(Decimal('0'),
+                                            Decimal(str(tamt)) - q_ahead)
+                            bres['potential_qty'].append(float(min(potential, qty)))
+                            # markout от цены котировки buy_px
+                            for H in horizons:
+                                target = ts + H
+                                tol = max(5.0, H * MAX_DELAY_FRAC)
+                                j = idx
+                                while j < len(snaps) and snaps[j][0] < target - tol:
+                                    j += 1
+                                if j < len(snaps) and abs(snaps[j][0] - target) <= tol:
+                                    _, bj, aj = snaps[j]
+                                    mf = _mid(bj, aj)
+                                    bres['markout'].setdefault(str(H), []).append(
+                                        round((mf - float(buy_px)) / float(buy_px) * 1e4, 2))
+                                else:
+                                    bres['unobserved'][str(H)] = bres['unobserved'].get(str(H), 0) + 1
+                            # условный выход ПОСЛЕ касания: ближайший снимок >= ts
+                            j = idx
+                            while j < len(snaps) and snaps[j][0] < ts:
                                 j += 1
-                            if j < len(snaps) and abs(snaps[j][0] - (ts + H)) <= max(5.0, H * MAX_DELAY_FRAC):
-                                _, bj, aj = snaps[j]
-                                mid_f = (max(float(x[0]) for x in bj) + min(float(x[0]) for x in aj)) / 2
-                                bres['markout'].setdefault(str(H), []).append(round((mid_f - buy_px) / buy_px * 1e4, 2))
+                            if j < len(snaps):
+                                _, bj, _aj = snaps[j]
+                                avg_px, filled = _taker_exit(bj, qty)
+                                if avg_px is not None and filled >= float(qty) - 1e-9:
+                                    bres['exit_qty_full'] += 1
+                                    entry_notional = float(qty) * float(buy_px)
+                                    exit_notional = float(qty) * avg_px
+                                    fee_entry = float(FEE) * entry_notional
+                                    fee_exit = float(FEE) * exit_notional
+                                    net_pnl = exit_notional - entry_notional - fee_entry - fee_exit
+                                    net_bps = net_pnl / entry_notional * 1e4
+                                    cost_bps = -net_bps if net_pnl < 0 else net_bps
+                                    bres['forced_exit_mt_bps_raw'].append(round(cost_bps, 2))
+                                    bres['net_pnl_mt_bps_raw'].append(round(net_bps, 2))
+                                elif avg_px is not None:
+                                    bres['exit_qty_partial'] += 1
+                                    bres['forced_exit_mt_bps_raw'].append(None)
+                                else:
+                                    bres['exit_qty_none'] += 1
+                                    bres['forced_exit_mt_bps_raw'].append(None)
                             else:
-                                bres['unobserved'][str(H)] = bres['unobserved'].get(str(H), 0) + 1
-                        # вынужденный выход: продать qty (для каждой касательной сделки
-                        # только один раз — по первому касанию сделки в этом снимке)
-                        if tid not in [x[0] for x in bres.get('_exited', [])]:
-                            bres.setdefault('_exited', []).append((tid, qty, bids, best_bid, buy_px))
-                    # sell-maker: сделка price >= sell_px (агрессор покупает)
-                    elif tpx >= sell_px - 1e-9 and sell_strong:
-                        if tid not in used_trade:
-                            used_trade.add(tid)
+                                bres['exit_qty_none'] += 1
+                                bres['forced_exit_mt_bps_raw'].append(None)
+                            bres['audit'].append({
+                                'quote_idx': idx, 'side': 'buy', 'price': float(buy_px),
+                                'qty': float(qty), 'created_at': rcv, 'expires_at': expires,
+                                'trade_id': tid, 'trade_side': side, 'trade_price': t['price'],
+                                'trade_amount': tamt,
+                            })
+                    # sell-котировка: встречная сторона = buy
+                    elif tpx_d >= sell_px - Decimal('1e-9'):
+                        if tid not in used_match:
+                            used_match.add(tid)
+                            bres['n_price_match'] += 1
+                            bres['n_sell_match'] += 1
+                        if tamt > 0 and side == 'buy' and tid not in used:
+                            used.add(tid)
+                            bres['n_touch'] += 1
                             bres['n_sell_touch'] += 1
-                            bres['touch_trades'] += 1
-            # стоимость вынужденного выхода по сохранённым касаниям
-            for tid, qty, bids, best_bid, buy_px in bres.get('_exited', []):
-                filled = 0.0; avg_px = 0.0
-                for px, q in sorted(bids, key=lambda x: -float(x[0])):
-                    need = qty - filled
-                    if need <= 0:
-                        break
-                    take = min(need, float(q))
-                    avg_px = (avg_px * filled + take * float(px)) / (filled + take)
-                    filled += take
-                if filled >= qty * 0.9999:
-                    cost_mm = (avg_px - buy_px) * qty
-                    fee_mm = 0.001 * (buy_px * qty + avg_px * qty)
-                    bres['forced_exit_mm'].append(round((cost_mm + fee_mm) / (buy_px * qty) * 1e4, 2))
-                else:
-                    bres['forced_exit_mm'].append(None)
-                cost_mt = (best_bid - buy_px) * qty
-                fee_mt = 0.001 * (buy_px * qty + best_bid * qty)
-                bres['forced_exit_mt'].append(round((cost_mt + fee_mt) / (buy_px * qty) * 1e4, 2))
-            # убрать служебное
-            bres.pop('_exited', None)
-            bres['n_touch'] = bres['n_buy_touch'] + bres['n_sell_touch']
-            bres['queue_buy_avg'] = round(sum(bres.get('queue_buy', [])) / len(bres.get('queue_buy', [])), 4) if bres.get('queue_buy') else None
-            bres['queue_sell_avg'] = round(sum(bres.get('queue_sell', [])) / len(bres.get('queue_sell', [])), 4) if bres.get('queue_sell') else None
-            bres['forced_exit_mm_bps'] = _avg(bres['forced_exit_mm'])
-            bres['forced_exit_mt_bps'] = _avg(bres['forced_exit_mt'])
+                            potential = max(Decimal('0'),
+                                            Decimal(str(tamt)) - q_ahead)
+                            bres['potential_qty'].append(float(min(potential, qty)))
+                            for H in horizons:
+                                target = ts + H
+                                tol = max(5.0, H * MAX_DELAY_FRAC)
+                                j = idx
+                                while j < len(snaps) and snaps[j][0] < target - tol:
+                                    j += 1
+                                if j < len(snaps) and abs(snaps[j][0] - target) <= tol:
+                                    _, bj, aj = snaps[j]
+                                    mf = _mid(bj, aj)
+                                    bres['markout_sell'].setdefault(str(H), []).append(
+                                        round((float(sell_px) - mf) / float(sell_px) * 1e4, 2))
+                                else:
+                                    bres['unobserved_sell'][str(H)] = bres['unobserved_sell'].get(str(H), 0) + 1
+                            bres['audit'].append({
+                                'quote_idx': idx, 'side': 'sell', 'price': float(sell_px),
+                                'qty': float(qty), 'created_at': rcv, 'expires_at': expires,
+                                'trade_id': tid, 'trade_side': side, 'trade_price': t['price'],
+                                'trade_amount': tamt,
+                            })
+            # агрегаты
+            bres['forced_exit_mt_bps'] = _avg(bres['forced_exit_mt_bps_raw'])
+            bres['net_pnl_mt_bps'] = _avg(bres['net_pnl_mt_bps_raw'])
+            bres['queue_ahead_avg'] = _avg(bres['queue_ahead'])
+            bres['potential_qty_avg'] = _avg(bres['potential_qty'])
             o['by_budget'][str(int(B))] = bres
         out['pairs'].append(o)
     return out
@@ -280,14 +406,15 @@ def main():
     os.makedirs(os.path.dirname(jout), exist_ok=True)
     with open(jout, 'w') as f:
         json.dump(res, f, indent=1, ensure_ascii=False)
-    print(f"opp {run_id}: window_h={res['window_h']} (политика: {res['policy']['side']})")
+    print(f"opp {run_id}: window_h={res['window_h']} (invalid_model=False)")
     for p in res['pairs']:
         for B in ('5', '10'):
             b = p['by_budget'].get(B, {})
             mk = {h: (round(sum(v)/len(v), 2) if v else None) for h, v in b.get('markout', {}).items()}
-            print(f"  {p['symbol']:<13} B={B}USDT котировок={b.get('n_quotes')} касаний={b.get('n_touch')} "
-                  f"(buy={b.get('n_buy_touch')} sell={b.get('n_sell_touch')}) markout_bps={mk} "
-                  f"exit_mm={b.get('forced_exit_mm_bps')}bps exit_mt={b.get('forced_exit_mt_bps')}bps")
+            print(f"  {p['symbol']:<13} B={B}USDT quotes={b.get('n_quotes')} rejected={b.get('n_rejected')} "
+                  f"match={b.get('n_price_match')} touch={b.get('n_touch')} (buy={b.get('n_buy_touch')} sell={b.get('n_sell_touch')}) "
+                  f"improved={b.get('n_improved')} queued={b.get('n_queued')} "
+                  f"markout_bps={mk} exit_mt={b.get('forced_exit_mt_bps')} net_pnl={b.get('net_pnl_mt_bps')}")
     print(f"  -> {jout}")
 
 

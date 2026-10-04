@@ -60,13 +60,15 @@ NOW_EPOCH=$(date +%s)
 ELAPSED_MIN=$(( (NOW_EPOCH - START_EPOCH) / 60 ))
 
 # --- привязка PID: только python-процесс коллектора (не zsh-обёртка),
-# стартовавший около started_epoch (допуск 600с) и с тем же data-dir.
-# Команда не содержит run_id (генерится внутри), поэтому проверяем start time.
+# стартовавший ОКОЛО started_epoch (окно [start-600, start+600]с): коллектор
+# стартует вместе с run; процесс, начатый позже на часы — НЕ наш (2467cb2,
+# верхняя граница; cwd/run_id по /proc недоступны без записи владельца).
 COLL_PROC=""
 for pid in $(pgrep -f "venv/bin/python cli.py maker-collect --pairs PRLUSDT,QUANTUSUSDT,LTCUSDT" 2>/dev/null); do
     ps_start=$(ps -o lstart= -p "$pid" 2>/dev/null)
     ps_epoch=$(date -d "$ps_start" +%s 2>/dev/null) || continue
-    if [ "$ps_epoch" -ge "$((START_EPOCH - 600))" ]; then
+    ps_delta=$(( ps_epoch - START_EPOCH ))
+    if [ "$ps_delta" -ge -600 ] && [ "$ps_delta" -le 600 ]; then
         COLL_PROC="$pid"
         break
     fi
