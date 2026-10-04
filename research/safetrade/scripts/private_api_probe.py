@@ -118,7 +118,8 @@ def api_get(path, apikey, secret, params=None, attempts=MAX_ATTEMPTS):
 
 def show_anonymized(label, code, body, max_show=240):
     """Обезличенный показ: статус, тип ответа, схема полей, агрегаты.
-    Содержимое ордеров/сделок (даты, цены, количества) НЕ печатается."""
+    Значения (балансы, ордера, тексты) НЕ печатаются ни в какой форме
+    (ревью 1fa1d2b: dict и non-JSON тоже обязаны быть безопасными)."""
     print(f'{label}: HTTP {code}')
     if body is None:
         print('  (нет тела)')
@@ -126,7 +127,7 @@ def show_anonymized(label, code, body, max_show=240):
     try:
         obj = json.loads(body)
     except ValueError:
-        print(f'  сырое: {body[:max_show]}')
+        print(f'  non-JSON ответ ({len(body)} байт, значения скрыты)')
         return
     if isinstance(obj, list):
         print(f'  список из {len(obj)} элементов; поля первой записи: '
@@ -141,9 +142,13 @@ def show_anonymized(label, code, body, max_show=240):
             print(f'  type: {dict(types)}')
         return
     if isinstance(obj, dict) and obj.get('errors'):
-        print(f'  errors: {obj["errors"]}')
+        errs = obj['errors']
+        print(f'  errors[{len(errs)}]: ' + ', '.join(str(e) for e in errs))
         return
-    print('  ' + json.dumps(obj, ensure_ascii=False)[:max_show])
+    if isinstance(obj, dict):
+        print(f'  dict: {len(obj)} ключей, значения скрыты')
+        return
+    print(f'  {type(obj).__name__} (значения скрыты)')
 
 
 def run_probe():
