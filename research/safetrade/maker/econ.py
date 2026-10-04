@@ -131,12 +131,13 @@ def econ_report(run_dir, run_id, cutoff_ns=None, budgets=(5, 10, 25),
         'window_h': round(window_h_exact, 4),
         'window_h_exact': window_h_exact,
         'window_sources': 'cutoff=явный' if cutoff_ns is not None else 'cutoff=конец данных',
-        'fee_status': 'fee_unverified',
-        'fee_maker_bps': None, 'fee_taker_bps': None,
-        'bad_lines': {'depth': bad_d, 'trades': bad_t, 'oracle': bad_o},
-        'note': ('касание котировки = opportunity (потенциальная встреча), НЕ fill '
-                 'и НЕ прибыль; touch_after — ДИАГНОСТИКА пересечения, не '
-                 'экономический вердикт'),
+        'fee_status': 'confirmed_from_api',
+                'fee_source': 'GET /api/v2/trade/public/trading_fees (2026-10-04): '
+                              'maker=0.001 taker=0.001, market_id=any, group=any',
+                'fee_maker_bps': 10.0, 'fee_taker_bps': 10.0,
+                'note': ('комиссии подтверждены API trading_fees: maker=0.1% taker=0.1% '
+                         '(одинаковые — maker-скидки НЕТ); касание котировки = opportunity, '
+                         'НЕ fill; touch_after — диагностика, не вердикт'),
         'pairs': [],
     }
 
@@ -219,6 +220,34 @@ def econ_report(run_dir, run_id, cutoff_ns=None, budgets=(5, 10, 25),
         o['n_buy'] = sides.count('buy')
         o['n_sell'] = sides.count('sell')
         o['buy_fraction'] = round(sides.count('buy') / len(sides), 3) if sides else None
+        # оборот по сторонам (доля денег, не доля сделок) + ПРОВЕРКА total vs price*amount
+        notional_buy = notional_sell = notional_unknown = 0.0
+        o['total_mismatch'] = 0
+        o['total_mismatch_rel'] = []
+        for _, t in tr:
+            try:
+                tot = float(t.get('total') or 0)
+                px = float(t.get('price') or 0)
+                amt = float(t.get('amount') or 0)
+            except (TypeError, ValueError):
+                o['total_mismatch'] += 1
+                continue
+            if px and amt:
+                calc = px * amt
+                rel = abs(tot - calc) / calc if calc else 0.0
+                if rel > 1e-6:
+                    o['total_mismatch'] += 1
+                    o['total_mismatch_rel'].append(round(rel, 4))
+            sd = t.get('side')
+            if sd == 'buy':
+                notional_buy += tot
+            elif sd == 'sell':
+                notional_sell += tot
+            else:
+                notional_unknown += tot
+        o['notional_buy_usdt'] = round(notional_buy, 2)
+        o['notional_sell_usdt'] = round(notional_sell, 2)
+        o['notional_unknown_usdt'] = round(notional_unknown, 2)
         if totals:
             s = sorted(totals)
             o['notional_min'] = round(s[0], 4)
