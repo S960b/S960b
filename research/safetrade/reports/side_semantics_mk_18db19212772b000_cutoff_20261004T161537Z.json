@@ -1,0 +1,215 @@
+{
+  "cutoff_epoch": 1791130537.0,
+  "cutoff_utc": "2026-10-04T16:15:37Z",
+  "generated_at_utc": "2026-10-04T16:35:19.557490+00:00",
+  "inputs": {
+    "depth": {
+      "path": "/home/kali/side_semantics_snapshot_20261004T1916/mk_18db19212772b000_depth.jsonl",
+      "rows_dropped_by_cutoff": 0,
+      "rows_in_window": 10806,
+      "rows_total": 10806,
+      "sha256": "1e7f6dafe2bef1157e1b6e1085f983c1982975f51c2fda4101e1bd20f57c31b9"
+    },
+    "trades": {
+      "path": "/home/kali/side_semantics_snapshot_20261004T1916/mk_18db19212772b000_trades.jsonl",
+      "poll_rows_kept": 3600,
+      "poll_rows_total": 3600,
+      "sha256": "c71ef6e1bfa15cd1f846c9574c436f90167083c7fc43394bfed43f82e13899cb",
+      "trades_dropped_by_cutoff": 0,
+      "trades_in_window": 359196,
+      "trades_total": 359196
+    }
+  },
+  "invariants": {
+    "checks": {
+      "classified_breakdown": {
+        "all_hold": true,
+        "formula": "classified == aggressor_ok + passive_ok",
+        "per_pair": {
+          "LTCUSDT": true,
+          "PRLUSDT": true,
+          "QUANTUSUSDT": true
+        }
+      },
+      "conservation": {
+        "all_hold": true,
+        "formula": "unique + missing_id == classified + ambiguous + indet + no_snap + unverified",
+        "per_pair": {
+          "LTCUSDT": true,
+          "PRLUSDT": true,
+          "QUANTUSUSDT": true
+        }
+      },
+      "total_breakdown": {
+        "all_hold": true,
+        "formula": "total_rows == unique + duplicates + missing_id",
+        "per_pair": {
+          "LTCUSDT": true,
+          "PRLUSDT": true,
+          "QUANTUSUSDT": true
+        }
+      },
+      "unique_simplified": {
+        "all_hold": false,
+        "formula": "unique == classified + ambiguous + indet (строгий вид ТЗ; верен iff no_snap==0 and unverified==0)",
+        "per_pair": {
+          "LTCUSDT": false,
+          "PRLUSDT": false,
+          "QUANTUSUSDT": false
+        }
+      }
+    },
+    "scheme": "поле-схема: total_rows = все строки сделок с валидным created_at+price; unique = первые вхождения (pair,id); duplicates = повторные (pair,id) (не классифицируются); missing_id = строки без id (не дедуплицируются, но классифицируются); classified = aggressor_ok + passive_ok; каждая строка (unique или missing_id) попадает ровно в один исход: classified | ambiguous | indet | no_snap | unverified. Точные тождества: total_rows = unique + duplicates + missing_id; unique + missing_id = classified + ambiguous + indet + no_snap + unverified. Упрощённый вид из ТЗ \"unique = classified + ambiguous + indet\" выполняется строго только при missing_id=0 (не входит в него) и no_snap=0, unverified=0."
+  },
+  "invocation": "python3 scripts/side_semantics_frozen_run.py --snapshot-dir /home/kali/side_semantics_snapshot_20261004T1916 --run-id mk_18db19212772b000 --cutoff 2026-10-04T16:15:37Z --out reports/side_semantics_mk_18db19212772b000_cutoff_20261004T161537Z.json",
+  "pairs": {
+    "LTCUSDT": {
+      "aggressor_ok": 183,
+      "aggressor_share_pct": 95.3125,
+      "ambiguous": 0,
+      "classified": 192,
+      "classified_share_of_total_pct": 0.1615,
+      "duplicates": 118521,
+      "examples": [
+        {
+          "cls": "aggr",
+          "price": "69.39999",
+          "side": "buy",
+          "ts": "2026-10-03T18:54:00Z"
+        },
+        {
+          "cls": "aggr",
+          "price": "69.39998",
+          "side": "buy",
+          "ts": "2026-10-03T19:12:23Z"
+        },
+        {
+          "cls": "aggr",
+          "price": "69.39998",
+          "side": "buy",
+          "ts": "2026-10-03T19:19:23Z"
+        }
+      ],
+      "indet": 80,
+      "inv_classified_breakdown": true,
+      "inv_conservation": true,
+      "inv_total_breakdown": true,
+      "inv_unique_simplified": false,
+      "missing_id": 0,
+      "no_snap": 107,
+      "passive_ok": 9,
+      "passive_share_pct": 4.6875,
+      "total_rows": 118900,
+      "unique": 379,
+      "unverified": 0,
+      "verdict": "aggressor-consistent"
+    },
+    "PRLUSDT": {
+      "aggressor_ok": 9062,
+      "aggressor_share_pct": 98.1905,
+      "ambiguous": 79,
+      "classified": 9229,
+      "classified_share_of_total_pct": 7.6719,
+      "duplicates": 110757,
+      "examples": [
+        {
+          "cls": "aggr",
+          "price": "1.05",
+          "side": "sell",
+          "ts": "2026-10-03T18:42:14Z"
+        },
+        {
+          "cls": "aggr",
+          "price": "1.05",
+          "side": "sell",
+          "ts": "2026-10-03T18:42:07Z"
+        },
+        {
+          "cls": "aggr",
+          "price": "1.06",
+          "side": "buy",
+          "ts": "2026-10-03T18:43:21Z"
+        }
+      ],
+      "indet": 133,
+      "inv_classified_breakdown": true,
+      "inv_conservation": true,
+      "inv_total_breakdown": true,
+      "inv_unique_simplified": false,
+      "missing_id": 0,
+      "no_snap": 98,
+      "passive_ok": 167,
+      "passive_share_pct": 1.8095,
+      "total_rows": 120296,
+      "unique": 9539,
+      "unverified": 0,
+      "verdict": "aggressor-consistent"
+    },
+    "QUANTUSUSDT": {
+      "aggressor_ok": 2257,
+      "aggressor_share_pct": 94.1201,
+      "ambiguous": 2,
+      "classified": 2398,
+      "classified_share_of_total_pct": 1.9983,
+      "duplicates": 115742,
+      "examples": [
+        {
+          "cls": "aggr",
+          "price": "111.736",
+          "side": "buy",
+          "ts": "2026-10-03T18:42:28Z"
+        },
+        {
+          "cls": "aggr",
+          "price": "111.736",
+          "side": "buy",
+          "ts": "2026-10-03T18:42:26Z"
+        },
+        {
+          "cls": "aggr",
+          "price": "111.736",
+          "side": "buy",
+          "ts": "2026-10-03T18:42:16Z"
+        }
+      ],
+      "indet": 1764,
+      "inv_classified_breakdown": true,
+      "inv_conservation": true,
+      "inv_total_breakdown": true,
+      "inv_unique_simplified": false,
+      "missing_id": 0,
+      "no_snap": 94,
+      "passive_ok": 141,
+      "passive_share_pct": 5.8799,
+      "total_rows": 120000,
+      "unique": 4258,
+      "unverified": 0,
+      "verdict": "aggressor-consistent"
+    }
+  },
+  "parameters": {
+    "boundary": "BBO-only: best_bid=max(bids), best_ask=min(asks); deep levels are not spread boundaries",
+    "dedup_key": "(pair, id); rows without id -> missing_id (not deduped, still classified); duplicates skip classification",
+    "max_snapshot_age_s": 30.0,
+    "percent_denominator": "classified = aggressor_ok + passive_ok",
+    "scripts": {
+      "runner": {
+        "path": "scripts/side_semantics_frozen_run.py",
+        "sha256": "502eaec2d45953e11ba84ac30bd27fb05bb90029481843b9ea7f0301182aa74b"
+      },
+      "side_semantics_check.py": {
+        "path": "research/safetrade/scripts/side_semantics_check.py",
+        "sha256": "6fcc591e48ae1736fd90679fe0f49269bdb52b307a715bc00a577bb4d8ba5adc"
+      }
+    },
+    "side_unverified": "preserved as unverified, not classified",
+    "tick_fallback": "0.01",
+    "tick_per_pair": {
+      "LTCUSDT": "0.00001",
+      "PRLUSDT": "0.01",
+      "QUANTUSUSDT": "0.001"
+    }
+  },
+  "run_id": "mk_18db19212772b000",
+  "schema": "safetrade.side_semantics.frozen_run/v1"
+}
