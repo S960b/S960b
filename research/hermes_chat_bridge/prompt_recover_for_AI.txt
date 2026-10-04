@@ -1,0 +1,214 @@
+ПРОМТ ДЛЯ ИИ: ПОЛНОЕ ВОССТАНОВЛЕНИЕ ПРОЕКТА HERMES<->CHATGPT BRIDGE С НУЛЯ
+====================================================================
+
+Ты — ИИ-агент (Hermes/DeepSeek/аналогичный). Тебе нужно с нуля, на чистой
+операционной системе (после потери диска) поднять проект MCP-моста между
+локальным Hermes-агентом и чатом ChatGPT. Проект опубликован в Git. Никаких
+локальных копий больше нет — всё бери из репозитория.
+
+========================================================================
+1. ЧТО ЭТО ЗА ПРОЕКТ
+========================================================================
+- Локальная однопользовательская очередь сообщений (SQLite) между Hermes
+  и ChatGPT: Hermes кладёт задачу, ChatGPT через MCP-инструменты читает её
+  и пишет ответ, Hermes читает ответ.
+- MCP-сервер с OAuth (PKCE/DCR), протокол 2026-07-28, события (MCP Events):
+  webhook-подписка ChatGPT на событие hermes.message.created.
+- Worker hermes-control.v1: автономный цикл «задача -> ChatGPT -> инструкция
+  -> запуск Hermes CLI -> отчёт» без ручных команд.
+- Git: https://github.com/S960b/S960b , каталог research/hermes_chat_bridge.
+  SSH: git@github.com:S960b/S960b.git (ключ id_ed25519).
+- Актуальное состояние: 86 passed / 3 xfailed; подтверждённый реальный обмен;
+  финальный коммит на момент последней публикации можно взять из
+  `git log -1 --oneline` после клонирования.
+
+========================================================================
+2. ПРЕДВАРИТЕЛЬНЫЕ ТРЕБОВАНИЯ (установить, если нет)
+========================================================================
+- Linux (проверено на Debian/Kali), Python 3.13.x, git.
+- venv (python3-venv), pip.
+- cloudflared (для публичного туннеля):
+    curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o ~/cloudflared
+    chmod +x ~/cloudflared
+- Hermes CLI (нужен только для worker):
+    curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash
+- У пользователя есть SSH-ключ к GitHub (S960b/S960b) или токен HTTPS.
+
+========================================================================
+3. КЛОНИРОВАНИЕ
+========================================================================
+    mkdir -p ~/S960b
+    git clone git@github.com:S960b/S960b.git ~/S960b   (или HTTPS)
+    cd ~/S960b/research/hermes_chat_bridge
+
+Прочитай README.md, DESIGN_WORKER.md и REPORT_3.md — это описание контракта
+и известных ограничений. Перед запуском чего-либо выполни:
+
+    python3 -m venv .venv
+    .venv/bin/python -m pip install -r requirements.txt
+    .venv/bin/python -m pip check       # должно быть: No broken requirements
+
+========================================================================
+4. ПРОВЕРКА ИЗОЛЯЦИИ И ТЕСТЫ (обязательно, до запуска сервера)
+========================================================================
+    cd ~/S960b/research/hermes_chat_bridge
+    PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 .venv/bin/python -m pytest tests -q --tb=short
+
+Ожидается: ~86 passed, 3 xfailed (xfail — известные ограничения, НЕ ошибки).
+Автотест конфигурации fail-closed: тесты НЕ имеют доступа к реальной сети и
+рабочей БД. Дополнительно можно прогнать изолированный HTTP-смоук:
+
+    .venv/bin/python scripts/run_isolated_http_e2e.py   # ожидается 12 passed
+    .venv/bin/python scripts/verify_pilot_startup.py    # ожидается 5 checks
+
+========================================================================
+5. ВАЖНЫЕ ПРАВИЛА БЕЗОПАСНОСТИ (читай до запуска)
+========================================================================
+- Пароль владельца НЕ должен попадать в Git, логи и переписку. Генерируй
+  случайный сильный пароль локально и храни в файле с правами 600:
+      umask 077
+      BRIDGE_PASS="$(openssl rand -base64 32)"
+      printf '%s' "$BRIDGE_PASS" > ~/.local/state/hermes-bridge/BRIDGE_PASS
+      chmod 600 ~/.local/state/hermes-bridge/BRIDGE_PASS
+- Сервер БЕЗ явного пути к БД не запускается (by design). Используй НОВУЮ
+  пустую пилотную БД, не пытайся мигрировать старую.
+- Не запускай против рабочего окружения до зелёных тестов.
+- Туннель quick URL меняется при каждом запуске; после смены URL нужно
+  пересоздавать коннектор в ChatGPT (см. раздел 8).
+
+========================================================================
+6. ЗАПУСК СЕРВЕРА (локально, до туннеля)
+========================================================================
+ДОПУСТИМО запускать с BRIDGE_BASE=http://127.0.0.1:8765 только для проверки;
+для реального подключения ChatGPT нужен публичный URL (раздел 7).
+
+    cd ~/S960b/research/hermes_chat_bridge
+    export BRIDGE_DB_PATH=/abs/path/to/NEW-pilot.db    # ОБЯЗАТЕЛЬНО, новый путь
+    export BRIDGE_HOST=127.0.0.1
+    export BRIDGE_PORT=8765
+    export BRIDGE_BASE=http://127.0.0.1:8765           # заменишь на публичный
+    export BRIDGE_USER=owner
+    export BRIDGE_PASS="$(cat ~/.local/state/hermes-bridge/BRIDGE_PASS)"
+
+Проверка локально:
+    .venv/bin/python bridge_server.py &   # или в своём process manager
+    curl -s http://127.0.0.1:8765/ping
+    # {"ok":"ok","version":"0.2.0","git_revision":"<sha>","process_mode":"single-process-pilot"}
+
+Проверь, что git_revision совпадает с `git rev-parse HEAD` в чистом checkout.
+Если известно ожидаемое значение, можно проверить стартап-скриптом с указанием
+ожидаемого коммита.
+
+========================================================================
+7. ПУБЛИЧНЫЙ ТУННЕЛЬ И BRIDGE_BASE
+========================================================================
+Запусти туннель (держать работающим вместе с сервером):
+    ~/cloudflared tunnel --url http://127.0.0.1:8765 --no-autoupdate
+
+Из вывода возьми адрес вида https://<random-subdomain>.trycloudflare.com.
+ЗАМЕНИ BRIDGE_BASE на этот адрес, перезапусти сервер!!! (issuer OAuth,
+Host-allowlist и redirect-адреса строятся от BRIDGE_BASE).
+
+    export BRIDGE_BASE=https://<random-subdomain>.trycloudflare.com
+    # перезапусти bridge_server.py с новым BRIDGE_BASE
+
+Проверь публично:
+    curl -s https://<random-subdomain>.trycloudflare.com/ping
+    curl -s https://<random-subdomain>.trycloudflare.com/.well-known/oauth-authorization-server
+        # issuer должен равняться твоему trycloudflare-адресу
+
+========================================================================
+8. ПОДКЛЮЧЕНИЕ CHATGPT (ЧЕЛОВЕК, ВАЖНО!)
+========================================================================
+КРИТИЧЕСКИ ВАЖНО: НЕЛЬЗЯ автоматически заходить в ChatGPT Work, капча и
+авторизация. Сделать это должен ЧЕЛОВЕК. Твоя задача — дать ему точные шаги
+и дождаться подтверждения.
+
+ПОДСКАЗКА ДЛЯ ЧЕЛОВЕКА (скажи пользователю следующее):
+
+「В Work-чате ChatGPT (chatgpt.com/work) создай/подключи кастомный MCP-плагин:
+1) Нажми Apps/Connectors -> Add / Connect app -> Custom MCP server.
+2) Название: Hermes Bridge (любое).
+3) URL сервера (вставить ТОЧНО, включая /mcp):
+   https://<random-subdomain>.trycloudflare.com/mcp
+4) Оставь OAuth (не «без аутентификации»).
+5) Откроется форма входа — введи:
+   Пользователь: owner
+   Пароль: (значение BRIDGE_PASS, которое агент передаст тебе локально,
+           либо ты сам заглянешь в ~/.local/state/hermes-bridge/BRIDGE_PASS)
+6) После «Connected» напиши в том же Work-чате ChatGPT фразу:
+   «Подпишись на событие hermes.message.created от моста и при получении
+   задачи читай её через bridge_get_message, отвечай через bridge_put_reply.」
+7) Дождись, когда ChatGPT подтвердит подписку.」
+
+После этого подтверди подписку со стороны сервера:
+    cd ~/S960b/research/hermes_chat_bridge
+    BRIDGE_DB_PATH=/abs/path/to/NEW-pilot.db .venv/bin/python bridge_cli.py subs
+    # должна появиться строка с event=hermes.message.created, active=1
+
+========================================================================
+9. СКВОЗНАЯ ПРОВЕРКА (roundtrip) — критерий успеха
+========================================================================
+1) Положи задачу:
+    BRIDGE_DB_PATH=/abs/path/to/NEW-pilot.db .venv/bin/python bridge_cli.py \
+        put 'Тестовая задача. Ответь одним предложением.'
+    # -> job_id=..., events_queued=1 (если подписка активна)
+2) В Work-чате ChatGPT пользователь пишет:
+    «Прочитай новую задачу из моста (bridge_get_message) и ответь на неё
+    через bridge_put_reply.»
+3) Проверь ответ:
+    BRIDGE_DB_PATH=/abs/path/to/NEW-pilot.db .venv/bin/python bridge_cli.py get <job_id>
+    # status должен стать replied, в reply — текст ответа ChatGPT.
+
+КРИТЕРИЙ ГОТОВНОСТИ: на job виден ответ ChatGPT (status=replied) и он прочитан
+из консоли Hermes. HTTP-тесты и локальный OAuth-цикл — НЕ заменяют этот
+реальный обмен.
+
+========================================================================
+10. WORKER hermes-control.v1 (автономный цикл «задача -> ChatGPT -> Hermes»)
+========================================================================
+Worker запускает локальный Hermes CLI в цикле (нужен установленный hermes):
+
+    cd ~/S960b/research/hermes_chat_bridge
+    export BRIDGE_DB_PATH=/abs/path/to/NEW-pilot.db
+    export WORKER_STATE_PATH=/abs/path/to/worker_state.json
+    export PROJECT_CWD=/abs/path/to/project
+    export WORKER_GOAL='Опиши, что нужно сделать'
+    export HERMES_BIN="$(command -v hermes)"
+    export WORKER_LOG_DIR=/abs/path/to/worker_logs
+    export WORKER_LOCK_PATH=/abs/path/to/worker.lock
+    .venv/bin/python worker.py
+
+Ключевые параметры (переопределяются через env):
+    WORKER_MAX_ITERATIONS  (по умолчанию 10000)
+    WORKER_POLL_S          (2.0)
+    WORKER_HERMES_TIMEOUT_S(600)
+    WORKER_HERMES_MAX_TURNS(8)
+
+Проверка worker (после подписки, раздел 8): запусти worker; он сам создаст
+задачу, ChatGPT даст инструкцию execute, worker выполнит один Hermes turn и
+отправит отчёт. Не запускай worker без активной подписки — он будет ждать
+ответа впустую.
+
+========================================================================
+11. ИЗВЕСТНЫЕ ОГРАНИЧЕНИЯ (не «баги», не пытайся чинить без задачи)
+========================================================================
+- Legacy-миграция старой БД не реализована: всегда новая пустая пилотная БД.
+- Только ОДИН серверный процесс на БД (flock); только один worker.
+- События и автономный цикл работают ТОЛЬКО в Work-чате ChatGPT, не в
+  обычном чате.
+- exactly-once HTTP-доставка не гарантируется; мульти-пользовательской
+  изоляции нет (мост однопользовательский).
+- Секреты (BRIDGE_PASS, whsec) НЕ хранить в Git/логах.
+
+========================================================================
+12. ЧТО СЧИТАТЬ УСПЕХОМ
+========================================================================
+1) pytest зелёный (~86 passed, 3 xfailed);
+2) сервер отвечает /ping с git_revision = HEAD;
+3) публичный URL отдаёт metadata OAuth с правильным issuer;
+4) пользователь создал плагин в Work-чате и подписка active=1;
+5) реальный roundtrip job -> ChatGPT -> ответ в консоли (status=replied).
+
+Если на любом шаге что-то не сходится — честно скажи, на каком шаге и какой
+именно текст ошибки, не выдумывай обходы и не меняй код без необходимости.
