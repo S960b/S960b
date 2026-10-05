@@ -125,9 +125,10 @@ class Sensitivity:
                  delay_s: float, budget: Decimal, improve: bool = False,
                  tick: Decimal = Decimal('0.01'), capital: Decimal = Decimal('100'),
                  run_dir: str = '', window_start: float = 0.0,
-                 window_end: float = 0.0):
+                 window_end: float = 0.0, baseline: bool = False):
         self.pair = pair.upper()
         self.h = hypothesis                 # 'H1' | 'H2'
+        self.baseline = baseline            # no-trade control
         self.qf = {'0x': Decimal('0'), '1x': Decimal('1'),
                    '2x': Decimal('2')}[queue_factor]
         self.delay_s = delay_s
@@ -149,10 +150,14 @@ class Sensitivity:
         self.order = None                   # активная entry (buy)
         self.exit_order = None              # maker-exit (sell)
         self.order_active_ts = 0.0          # когда заявка стала активной (delay)
+        self.exit_active_ts = 0.0
         self.fills: list[FillRec] = []
         self.equity: list = []
         self.skipped_stale = 0
         self.notes: list = []
+        self.completed_cycles = 0           # entry+exit замкнулись
+        self.force_exit_count = 0
+        self.fees_total = Decimal('0')
         self.result = {}
 
     # ---------- капитал ----------
@@ -295,6 +300,9 @@ class Sensitivity:
             self.last_mid = book.mid
         if self.seed_mid is None:
             return
+        if self.baseline:
+            self.equity.append((book.ts, self._equity(book)))
+            return                         # no-trade control: без заявок
         self._refresh_orders(book)
         # удержание: force taker-exit, если позиция открыта дольше 30 минут
         # (отсчёт от момента входа, не от перестановки заявки)
@@ -350,6 +358,7 @@ class Sensitivity:
             o['remaining'] -= executed
         partial = o['remaining'] > 0
         fee = (executed * o['price'] * FEE_RATE).quantize(D6, ROUND_HALF_UP)
+        self.fees_total += fee
         self.fills.append(FillRec(ts=ts, side=o['side'], price=o['price'],
                                   qty=executed, fee=fee, partial=partial,
                                   reason=reason))
@@ -362,6 +371,9 @@ class Sensitivity:
                 self._place_exit(book, ts, qty=entry_qty)
             else:
                 self.exit_order = None
+                if self.order is None:
+                    self.completed_cycles += 1   # entry+exit замкнулись
+                    self.entry_ts = None
 
     def on_trade(self, ts: float, price: Decimal, amount: Decimal,
                  trade_side: str, book: Book | None) -> None:
@@ -393,12 +405,17 @@ class Sensitivity:
             return
         src['remaining'] -= executed
         fee = (executed * lv.price * FEE_RATE).quantize(D6, ROUND_HALF_UP)
+        self.fees_total += fee
+        self.force_exit_count += 1
         self.fills.append(FillRec(ts=book.ts, side='sell', price=lv.price,
                                   qty=executed, fee=fee, partial=src['remaining'] > 0,
                                   taker=True, reason=reason))
         if src['remaining'] <= 0:
             if self.exit_order is not None:
                 self.exit_order = None
+                if self.order is None:
+                    self.completed_cycles += 1
+                    self.entry_ts = None
             self.order = None
 
     def finalize(self) -> dict:
@@ -407,7 +424,7 @@ class Sensitivity:
         pnl = (end_equity - self.capital).quantize(D4, ROUND_HALF_UP)
         n = len(self.fills)
         npart = sum(1 for f in self.fills if f.partial)
-        turnover = sum(f.qty * f.price for f in self.fills)
+        turnover = sum(f.qty * f.price for f in self.fills) if self.fills else Decimal('0')
         max_pos = self.base
         max_dd = Decimal('0')
         if self.equity:
@@ -433,9 +450,14 @@ class Sensitivity:
             'pair': self.pair, 'hypothesis': self.h, 'queue_factor': str(self.qf),
             'delay_s': self.delay_s, 'budget_usdt': float(self.budget),
             'improve': self.improve, 'tick': float(self.tick),
+            'baseline': self.baseline,
+            'final_nav': float(end_equity.quantize(D4, ROUND_HALF_UP)),
             'net_pnl': float(pnl), 'return_on_100_pct': float(
                 (pnl / self.capital * 100).quantize(Decimal('0.001'), ROUND_HALF_UP)),
             'n_fills': n, 'n_partial': npart,
+            'completed_cycles': self.completed_cycles,
+            'force_exit_count': self.force_exit_count,
+            'fees_total': float(self.fees_total.quantize(D4, ROUND_HALF_UP)),
             'partial_share': float((Decimal(npart) / Decimal(max(1, n)))
                                    .quantize(Decimal('0.0001'), ROUND_HALF_UP)),
             'turnover_usdt': float(turnover.quantize(D4, ROUND_HALF_UP)),

@@ -151,6 +151,38 @@ class TestSensitivity(unittest.TestCase):
         s.on_trade(1005.0, _d('1.05'), _d('100'), 'sell', old)
         self.assertEqual(len(s.fills), 1)
 
+    def test_baseline_no_trade(self):
+        """No-trade baseline: нулевые заявки, fills, комиссии; NAV = cash+base*mid."""
+        s = Sensitivity('PRLUSDT', 'H1', '1x', 1.0, _d('10'), tick=_d('0.01'),
+                        baseline=True)
+        b0 = book(1000.0)
+        s.on_book(b0)
+        # трейд не должен ничего исполнить в baseline
+        s.on_trade(1010.0, _d('1.05'), _d('100'), 'sell', book(1010.0))
+        s.on_trade(1015.0, _d('1.06'), _d('150'), 'buy', book(1015.0))
+        self.assertEqual(len(s.fills), 0)
+        self.assertIsNone(s.order)
+        self.assertIsNone(s.exit_order)
+        self.assertEqual(s.fees_total, Decimal('0'))
+        r = s.finalize()
+        self.assertTrue(r['baseline'])
+        self.assertEqual(r['n_fills'], 0)
+        self.assertEqual(r['completed_cycles'], 0)
+
+    def test_force_exit_count_and_cycles(self):
+        """Счётчики: completed_cycles и force_exit_count корректны."""
+        s = Sensitivity('PRLUSDT', 'H1', '0x', 0.0, _d('5'), tick=_d('0.01'))
+        s.on_book(book(1000.0))
+        s.on_trade(1010.0, _d('1.05'), _d('100'), 'sell', book(1010.0))  # entry
+        s.on_trade(1015.0, _d('1.06'), _d('150'), 'buy', book(1015.0))    # exit
+        # ничего открытого — force_exit не должен ничего закрыть
+        s._force_exit(book(2000.0), 'window_end')
+        r = s.finalize()
+        self.assertEqual(r['completed_cycles'], 1)
+        self.assertEqual(r['force_exit_count'], 0)
+        self.assertGreater(r['fees_total'], 0.0)
+        self.assertGreater(r['final_nav'], 0.0)
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
