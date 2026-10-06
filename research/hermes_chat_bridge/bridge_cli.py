@@ -48,7 +48,9 @@ def main():
 
     elif cmd == 'list':
         for j in q.list_jobs():
-            print(j)
+            d = dict(j)
+            d['text'] = (j.get('text') or '')[:100]
+            print(d)
         return 0
 
     elif cmd == 'subs':
