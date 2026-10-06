@@ -26,6 +26,7 @@ from datetime import datetime, timezone
 MAX_TEXT_BYTES = 8192
 LEASE_DEFAULT_S = 300.0
 RATE_LIMIT_PER_MIN = 20  # простой per-owner лимит (в памяти, без внешней инфраструктуры)
+MAX_ATTEMPTS = 5  # максимальное число захватов/попыток дочерней задачи
 
 
 def utc_now_iso() -> str:
@@ -56,6 +57,10 @@ class Queue:
             'claimed_by': 'TEXT',
             'claimed_at_utc': 'TEXT',
             'lease_until_epoch': 'REAL',
+            'parent_job_id': 'TEXT',          # для отчёта to_chatgpt от to_hermes
+            'completed_at_utc': 'TEXT',        # терминальные статусы
+            'completed_by': 'TEXT',
+            'attempts': 'INTEGER NOT NULL DEFAULT 0',  # попытки дочерней задачи
         }
         for name, ddl in adds.items():
             if name not in cols:
@@ -167,7 +172,8 @@ class Queue:
 
         Один победитель (BEGIN IMMEDIATE + UPDATE ... WHERE ... IS NULL/
         lease истёк). Истёкший lease -> повторный захват другим воркером.
-        to_chatgpt не claim'ится никогда.
+        to_chatgpt не claim'ится никогда; completed/failed — не выбираются;
+        attempts >= MAX_ATTEMPTS — не выбираются (лимит retry).
         """
         now_epoch = time.time()
         lease_until = now_epoch + lease_s
@@ -178,22 +184,141 @@ class Queue:
                 row = conn.execute(
                     'SELECT job_id FROM jobs'
                     ' WHERE direction=? AND status=?'
+                    ' AND (attempts IS NULL OR attempts < ?)'
                     ' AND (claimed_by IS NULL OR lease_until_epoch IS NULL'
                     '      OR lease_until_epoch < ?)'
                     ' ORDER BY created_at_utc ASC LIMIT 1',
-                    ('to_hermes', 'pending', now_epoch)).fetchone()
+                    ('to_hermes', 'pending', MAX_ATTEMPTS, now_epoch)).fetchone()
                 if row is None:
                     conn.execute('COMMIT')
                     return None
                 conn.execute(
                     'UPDATE jobs SET claimed_by=?, claimed_at_utc=?,'
-                    ' lease_until_epoch=?, updated_at_utc=? WHERE job_id=?',
+                    ' lease_until_epoch=?, attempts=COALESCE(attempts,0)+1,'
+                    ' updated_at_utc=? WHERE job_id=?',
                     (worker, utc_now_iso(), lease_until, utc_now_iso(), row['job_id']))
                 conn.execute('COMMIT')
             except Exception:
                 conn.execute('ROLLBACK')
                 raise
         return self.get_message(row['job_id'])
+
+    def _lease_holder(self, job_id: str) -> dict | None:
+        return self._conn.execute(
+            'SELECT * FROM jobs WHERE job_id=?', (job_id,)).fetchone()
+
+    def _check_lease(self, row, worker: str) -> dict | None:
+        """Валидация lease перед complete/fail. Возвращает None или ошибку."""
+        if row is None:
+            return {'job_id': None, 'status': 'not_found'}
+        if row['direction'] != 'to_hermes':
+            return {'job_id': row['job_id'], 'status': 'conflict',
+                    'reason': 'complete/fail allowed only for to_hermes'}
+        if row['status'] not in ('pending',):
+            return {'job_id': row['job_id'], 'status': row['status'],
+                    'reason': 'terminal status; no lease active'}
+        if row['claimed_by'] != worker:
+            return {'job_id': row['job_id'], 'status': 'not_owner',
+                    'reason': f'claimed by {row["claimed_by"]}'}
+        if row['lease_until_epoch'] is None or row['lease_until_epoch'] < time.time():
+            return {'job_id': row['job_id'], 'status': 'lease_expired',
+                    'reason': 'lease expired; reclaim first'}
+        return None
+
+    def complete_to_hermes(self, job_id: str, worker: str,
+                           report_text: str | None = None) -> dict:
+        """Атомарно завершить to_hermes текущим владельцем lease.
+
+        В одной транзакции: перевод в 'completed' + снятие lease +
+        создание (идемпотентно) связанного отчёта to_chatgpt с
+        parent_job_id. Повторный complete возвращает тот же report_job_id
+        и created=False (сервер НЕ должен emit'ить второе событие).
+        Истёкший lease -> lease_expired (старый воркер завершить не может).
+        to_chatgpt -> conflict.
+        """
+        conn = self._conn
+        now = utc_now_iso()
+        with conn:
+            conn.execute('BEGIN IMMEDIATE')
+            try:
+                row = self._lease_holder(job_id)
+                err = self._check_lease(row, worker)
+                if err is not None:
+                    conn.execute('COMMIT')
+                    # повтор complete ТЕМ ЖЕ воркером после потери ответа:
+                    # задача уже completed -> тот же report_job_id, created=False;
+                    # чужой воркер не получает idempotent-успех
+                    if (row is not None and row['status'] == 'completed'
+                            and row['completed_by'] == worker):
+                        report = conn.execute(
+                            'SELECT job_id FROM jobs WHERE parent_job_id=?'
+                            ' AND direction=? LIMIT 1',
+                            (job_id, 'to_chatgpt')).fetchone()
+                        return {'job_id': job_id, 'status': 'completed',
+                                'report_job_id': report['job_id'] if report else None,
+                                'created': False}
+                    return err
+                conn.execute(
+                    'UPDATE jobs SET status=?, reply=?, claimed_by=NULL,'
+                    ' claimed_at_utc=NULL, lease_until_epoch=NULL,'
+                    ' completed_at_utc=?, completed_by=?, updated_at_utc=?'
+                    ' WHERE job_id=?',
+                    ('completed', report_text or row['text'], now, worker, now, job_id))
+                # связанный отчёт to_chatgpt (parent_job_id, идемпотентно)
+                report_key = f'report:{job_id}'
+                from sqlite3 import IntegrityError
+                report_job = 'job_' + secrets.token_hex(12)
+                try:
+                    conn.execute(
+                        'INSERT INTO jobs (job_id, text, created_at_utc, status,'
+                        ' updated_at_utc, direction, idempotency_key, owner,'
+                        ' parent_job_id) VALUES (?,?,?,?,?,?,?,?,?)',
+                        (report_job, report_text or row['text'], now, 'pending', now,
+                         'to_chatgpt', report_key, row['owner'] or 'owner', job_id))
+                    created = True
+                except IntegrityError:
+                    existing = conn.execute(
+                        'SELECT job_id FROM jobs WHERE idempotency_key=?'
+                        ' AND direction=?', (report_key, 'to_chatgpt')).fetchone()
+                    report_job = existing['job_id']
+                    created = False
+                conn.execute('COMMIT')
+            except Exception:
+                conn.execute('ROLLBACK')
+                raise
+        return {'job_id': job_id, 'status': 'completed',
+                'report_job_id': report_job, 'created': created}
+
+    def fail_to_hermes(self, job_id: str, worker: str, reason: str | None = None) -> dict:
+        """Атомарно перевести to_hermes в 'failed' текущим владельцем lease.
+
+        Снимает lease. Повторный fail_idempotent; истёкший lease ->
+        lease_expired; to_chatgpt -> conflict. Отчёт не создаётся.
+        """
+        conn = self._conn
+        now = utc_now_iso()
+        with conn:
+            conn.execute('BEGIN IMMEDIATE')
+            try:
+                row = self._lease_holder(job_id)
+                err = self._check_lease(row, worker)
+                if err is not None:
+                    conn.execute('COMMIT')
+                    if row is not None and row['status'] == 'failed':
+                        return {'job_id': job_id, 'status': 'failed',
+                                'idempotent': True}
+                    return err
+                conn.execute(
+                    'UPDATE jobs SET status=?, reply=?, claimed_by=NULL,'
+                    ' claimed_at_utc=NULL, lease_until_epoch=NULL,'
+                    ' completed_at_utc=?, completed_by=?, updated_at_utc=?'
+                    ' WHERE job_id=?',
+                    ('failed', reason or 'failed', now, worker, now, job_id))
+                conn.execute('COMMIT')
+            except Exception:
+                conn.execute('ROLLBACK')
+                raise
+        return {'job_id': job_id, 'status': 'failed', 'idempotent': False}
 
     def renew_lease(self, job_id: str, worker: str,
                     lease_s: float = LEASE_DEFAULT_S) -> bool:

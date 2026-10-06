@@ -211,3 +211,136 @@ def test_rate_limit_per_owner(tmp_path):
     assert limited is not None, 'лимит должен сработать'
     assert ok <= under
     q._conn.close()
+
+
+# --- жизненный цикл to_hermes: complete/fail (ревизия) ---
+
+def _claim_one(q, worker='w'):
+    got = q.claim_next_to_hermes(worker=worker, lease_s=300)
+    assert got is not None
+    return got
+
+
+def test_complete_success_creates_report_once(tmp_path):
+    q = fresh_queue(tmp_path)
+    job = q.put_message('do it', direction='to_hermes', idempotency_key='lc-1')
+    got = _claim_one(q, 'w1')
+    r = q.complete_to_hermes(got['job_id'], 'w1', report_text='RESULT ok')
+    assert r['status'] == 'completed' and r['created'] is True
+    assert r['report_job_id'] and r['report_job_id'] != got['job_id']
+    # задача в терминальном статусе, lease снят
+    row = q.get_message(got['job_id'])
+    assert row['status'] == 'completed'
+    assert row['claimed_by'] is None and row['lease_until_epoch'] is None
+    # отчёт to_chatgpt с parent_job_id
+    rep = q.get_message(r['report_job_id'])
+    assert rep['direction'] == 'to_chatgpt'
+    assert rep['parent_job_id'] == got['job_id']
+    assert rep['text'] == 'RESULT ok'
+    # повтор complete (потеря ответа) -> тот же report_job_id, created=False
+    r2 = q.complete_to_hermes(got['job_id'], 'w1', report_text='RESULT ok')
+    assert r2['status'] == 'completed' and r2['created'] is False
+    assert r2['report_job_id'] == r['report_job_id']
+    # ровно один отчёт
+    rows = [x for x in q.list_jobs() if x['job_id'] == r['report_job_id']]
+    assert len(rows) == 1
+    q._conn.close()
+
+
+def test_fail_terminal_and_never_reclaimed(tmp_path):
+    q = fresh_queue(tmp_path)
+    job = q.put_message('do it', direction='to_hermes', idempotency_key='lc-f1')
+    got = _claim_one(q, 'w1')
+    r = q.fail_to_hermes(got['job_id'], 'w1', reason='temp error')
+    assert r['status'] == 'failed'
+    row = q.get_message(got['job_id'])
+    assert row['status'] == 'failed' and row['claimed_by'] is None
+    # повторный fail идемпотентен
+    r2 = q.fail_to_hermes(got['job_id'], 'w1')
+    assert r2['status'] == 'failed' and r2.get('idempotent') is True
+    # failed никогда не выбирается claim
+    assert q.claim_next_to_hermes(worker='w2', lease_s=60) is None
+    q._conn.close()
+
+
+def test_complete_denied_for_to_chatgpt_and_wrong_owner(tmp_path):
+    q = fresh_queue(tmp_path)
+    jg = q.put_message('to gpt', direction='to_chatgpt')
+    r = q.complete_to_hermes(jg['job_id'], 'w1')
+    assert r['status'] == 'conflict'
+    # to_hermes: чужой воркер не может завершить
+    jh = q.put_message('to hermes', direction='to_hermes', idempotency_key='lc-o1')
+    _claim_one(q, 'w1')
+    r2 = q.complete_to_hermes(jh['job_id'], 'intruder')
+    assert r2['status'] == 'not_owner'
+    assert q.get_message(jh['job_id'])['status'] == 'pending'
+    q._conn.close()
+
+
+def test_complete_after_lease_expiry_denied(tmp_path):
+    """Истёкший lease: старый воркер завершить не может."""
+    import time
+    q = fresh_queue(tmp_path)
+    job = q.put_message('do it', direction='to_hermes', idempotency_key='lc-e1')
+    got = q.claim_next_to_hermes(worker='w1', lease_s=0.1)
+    assert got is not None
+    time.sleep(0.3)
+    r = q.complete_to_hermes(got['job_id'], 'w1', report_text='late')
+    assert r['status'] == 'lease_expired'
+    assert q.get_message(got['job_id'])['status'] == 'pending'
+    # другой воркер может перезахватить и завершить
+    got2 = q.claim_next_to_hermes(worker='w2', lease_s=60)
+    assert got2 is not None and got2['job_id'] == got['job_id']
+    r2 = q.complete_to_hermes(got2['job_id'], 'w2', report_text='done by w2')
+    assert r2['status'] == 'completed'
+    q._conn.close()
+
+
+def test_concurrent_complete_one_winner(tmp_path):
+    """Два воркера конкурируют за complete одной задачи — ровно один отчёт."""
+    db = str(tmp_path / 'bridge.db')
+    q0 = bq.Queue(db)
+    job = q0.put_message('race', direction='to_hermes', idempotency_key='lc-race')
+    q0.claim_next_to_hermes(worker='w_holder', lease_s=300)
+    q0._conn.close()
+    # теперь один воркер — holder, второй — посторонний
+    import threading
+    results = []
+
+    def worker(name, holder):
+        q = bq.Queue(db)
+        try:
+            if holder:
+                r = q.complete_to_hermes(job['job_id'], 'w_holder',
+                                         report_text='race done')
+            else:
+                r = q.complete_to_hermes(job['job_id'], 'w_intruder')
+            results.append((name, r['status']))
+        finally:
+            q._conn.close()
+
+    t1 = threading.Thread(target=worker, args=('h', True))
+    t2 = threading.Thread(target=worker, args=('i', False))
+    t1.start(); t2.start(); t1.join(); t2.join()
+    statuses = sorted(r[1] for r in results)
+    assert statuses == ['completed', 'not_owner'], results
+    qc = bq.Queue(db)
+    reps = [x for x in qc.list_jobs(100) if x['job_id'] != job['job_id']
+            and qc.get_message(x['job_id'])['parent_job_id'] == job['job_id']]
+    assert len(reps) == 1, 'ровно один отчёт'
+    qc._conn.close()
+
+
+def test_attempts_limit_after_release_retry(tmp_path):
+    """release/retry: число попыток ограничено MAX_ATTEMPTS."""
+    q = fresh_queue(tmp_path)
+    job = q.put_message('retry me', direction='to_hermes', idempotency_key='lc-r1')
+    for i in range(bq.MAX_ATTEMPTS):
+        got = q.claim_next_to_hermes(worker=f'w{i}', lease_s=60)
+        assert got is not None and got['job_id'] == job['job_id']
+        q.release_claim(got['job_id'], f'w{i}')
+    # попытки исчерпаны: задача больше не выбирается
+    assert q.claim_next_to_hermes(worker='last', lease_s=60) is None
+    row = q.get_message(job['job_id'])
+    assert row['attempts'] >= bq.MAX_ATTEMPTS
+    q._conn.close()
