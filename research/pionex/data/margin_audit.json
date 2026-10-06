@@ -1,0 +1,154 @@
+{
+ "N0": 200.0,
+ "MMR_STRESS": [
+  0.005,
+  0.01,
+  0.02
+ ],
+ "results": [
+  {
+   "symbol": "AAVE_USDT",
+   "q": 2.128339,
+   "S0": 93.97,
+   "F0": 93.92,
+   "FT": 183.93,
+   "xstock": false,
+   "spot_cost_usdt": 200.0,
+   "net_usdt": 4.0202,
+   "max_adverse_short_usdt": 191.5718,
+   "mmr": {
+    "mmr0.005": {
+     "min_cfut": 189.3526,
+     "cfut_deployed(+20%)": 227.2231,
+     "min_margin_ratio": 20.349,
+     "worst_t": 1790928000000,
+     "worst_F": 183.92
+    },
+    "mmr0.010": {
+     "min_cfut": 191.3098,
+     "cfut_deployed(+20%)": 229.5718,
+     "min_margin_ratio": 10.775,
+     "worst_t": 1790928000000,
+     "worst_F": 183.92
+    },
+    "mmr0.020": {
+     "min_cfut": 195.2243,
+     "cfut_deployed(+20%)": 234.2691,
+     "min_margin_ratio": 5.987,
+     "worst_t": 1790928000000,
+     "worst_F": 183.92
+    }
+   },
+   "C_deployed(mmr0.5%)": 427.22,
+   "net_bps_on_deployed": 94.101
+  },
+  {
+   "symbol": "ARKM_USDT",
+   "q": 1666.666667,
+   "S0": 0.12,
+   "F0": 0.1195,
+   "FT": 0.135,
+   "xstock": false,
+   "spot_cost_usdt": 200.0,
+   "net_usdt": 4.2,
+   "max_adverse_short_usdt": 70.0,
+   "mmr": {
+    "mmr0.005": {
+     "min_cfut": 70.5577,
+     "cfut_deployed(+20%)": 84.6693,
+     "min_margin_ratio": 11.485,
+     "worst_t": 1779811200000,
+     "worst_F": 0.1615
+    },
+    "mmr0.010": {
+     "min_cfut": 71.9036,
+     "cfut_deployed(+20%)": 86.2843,
+     "min_margin_ratio": 6.343,
+     "worst_t": 1779811200000,
+     "worst_F": 0.1615
+    },
+    "mmr0.020": {
+     "min_cfut": 74.5952,
+     "cfut_deployed(+20%)": 89.5143,
+     "min_margin_ratio": 3.771,
+     "worst_t": 1779811200000,
+     "worst_F": 0.1615
+    }
+   },
+   "C_deployed(mmr0.5%)": 284.67,
+   "net_bps_on_deployed": 147.541
+  },
+  {
+   "symbol": "AMZNX_USDT",
+   "q": 0.785361,
+   "S0": 254.66,
+   "F0": 254.69,
+   "FT": 252.11,
+   "xstock": true,
+   "spot_cost_usdt": 200.0,
+   "net_usdt": 7.4292,
+   "max_adverse_short_usdt": 24.2205,
+   "mmr": {
+    "mmr0.005": {
+     "min_cfut": 19.4467,
+     "cfut_deployed(+20%)": 23.3361,
+     "min_margin_ratio": 4.469,
+     "worst_t": 1785772800000,
+     "worst_F": 285.53
+    },
+    "mmr0.010": {
+     "min_cfut": 20.5679,
+     "cfut_deployed(+20%)": 24.6815,
+     "min_margin_ratio": 2.834,
+     "worst_t": 1785772800000,
+     "worst_F": 285.53
+    },
+    "mmr0.020": {
+     "min_cfut": 22.8104,
+     "cfut_deployed(+20%)": 27.3724,
+     "min_margin_ratio": 2.017,
+     "worst_t": 1785772800000,
+     "worst_F": 285.53
+    }
+   },
+   "C_deployed(mmr0.5%)": 223.34,
+   "net_bps_on_deployed": 332.648
+  },
+  {
+   "symbol": "AAPLX_USDT",
+   "q": 0.739645,
+   "S0": 270.4,
+   "F0": 270.51,
+   "FT": 333.03,
+   "xstock": true,
+   "spot_cost_usdt": 200.0,
+   "net_usdt": 2.8918,
+   "max_adverse_short_usdt": 53.0325,
+   "mmr": {
+    "mmr0.005": {
+     "min_cfut": 52.2856,
+     "cfut_deployed(+20%)": 62.7427,
+     "min_margin_ratio": 9.269,
+     "worst_t": 1785312000000,
+     "worst_F": 341.97
+    },
+    "mmr0.010": {
+     "min_cfut": 53.5502,
+     "cfut_deployed(+20%)": 64.2603,
+     "min_margin_ratio": 5.234,
+     "worst_t": 1785312000000,
+     "worst_F": 341.97
+    },
+    "mmr0.020": {
+     "min_cfut": 56.0796,
+     "cfut_deployed(+20%)": 67.2955,
+     "min_margin_ratio": 3.217,
+     "worst_t": 1785312000000,
+     "worst_F": 341.97
+    }
+   },
+   "C_deployed(mmr0.5%)": 262.74,
+   "net_bps_on_deployed": 110.063
+  }
+ ]
+}

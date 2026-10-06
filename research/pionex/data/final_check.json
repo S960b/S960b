@@ -1,0 +1,142 @@
+[
+ {
+  "symbol": "AAVE_USDT",
+  "q": 2.1283388315419813,
+  "q_step_floor": 2.12,
+  "baseStep": 0.01,
+  "S0": 93.97,
+  "F0": 93.92,
+  "ST": 184.08,
+  "FT": 183.93,
+  "n_periods": 499,
+  "t_start": 1776902400000,
+  "t_end": 1791244800000,
+  "funding_usdt": 4.398801,
+  "price_pnl_usdt": 0.212834,
+  "fees_usdt": 0.591572,
+  "net_usdt": 4.020063,
+  "C0_usdt": 399.8936,
+  "net_bps_on_C0": 100.528,
+  "spot_cost_usdt": 200.0,
+  "min_cfut_usdt": 189.3526,
+  "cfut_deployed_usdt": 227.2231,
+  "C_deployed_usdt": 427.2231,
+  "net_bps_on_deployed": 94.098,
+  "max_adverse_short_usdt": 191.5718,
+  "coverage_multiple_min": 20.349,
+  "worst_t": 1790928000000,
+  "worst_F": 183.92,
+  "E_max_usdt": 4.020063,
+  "w30": [
+   {
+    "start": 1776902400000,
+    "end": 1779465600000,
+    "net_usdt": 0.054553
+   },
+   {
+    "start": 1779494400000,
+    "end": 1782057600000,
+    "net_usdt": -0.313596
+   },
+   {
+    "start": 1782086400000,
+    "end": 1784649600000,
+    "net_usdt": 0.554098
+   },
+   {
+    "start": 1784678400000,
+    "end": 1787241600000,
+    "net_usdt": 0.020267
+   },
+   {
+    "start": 1787270400000,
+    "end": 1789833600000,
+    "net_usdt": 1.07391
+   }
+  ],
+  "w30_remain": 49,
+  "w60": [
+   {
+    "start": 1776902400000,
+    "end": 1782057600000,
+    "net_usdt": 0.069274
+   },
+   {
+    "start": 1782086400000,
+    "end": 1787241600000,
+    "net_usdt": 0.98258
+   }
+  ],
+  "w60_remain": 139
+ },
+ {
+  "symbol": "ARKM_USDT",
+  "q": 1666.6666666666667,
+  "q_step_floor": 1666.0,
+  "baseStep": 1.0,
+  "S0": 0.12,
+  "F0": 0.1195,
+  "ST": 0.1348,
+  "FT": 0.135,
+  "n_periods": 499,
+  "t_start": 1776902400000,
+  "t_end": 1791244800000,
+  "funding_usdt": 5.791284,
+  "price_pnl_usdt": -1.166667,
+  "fees_usdt": 0.424417,
+  "net_usdt": 4.2002,
+  "C0_usdt": 399.1667,
+  "net_bps_on_C0": 105.224,
+  "spot_cost_usdt": 200.0,
+  "min_cfut_usdt": 70.5577,
+  "cfut_deployed_usdt": 84.6693,
+  "C_deployed_usdt": 284.6693,
+  "net_bps_on_deployed": 147.547,
+  "max_adverse_short_usdt": 70.0,
+  "coverage_multiple_min": 11.485,
+  "worst_t": 1779811200000,
+  "worst_F": 0.1615,
+  "E_max_usdt": 4.2002,
+  "w30": [
+   {
+    "start": 1776902400000,
+    "end": 1779465600000,
+    "net_usdt": -0.009837
+   },
+   {
+    "start": 1779494400000,
+    "end": 1782057600000,
+    "net_usdt": 0.482019
+   },
+   {
+    "start": 1782086400000,
+    "end": 1784649600000,
+    "net_usdt": 0.332661
+   },
+   {
+    "start": 1784678400000,
+    "end": 1787241600000,
+    "net_usdt": 0.095336
+   },
+   {
+    "start": 1787270400000,
+    "end": 1789833600000,
+    "net_usdt": 1.088367
+   }
+  ],
+  "w30_remain": 49,
+  "w60": [
+   {
+    "start": 1776902400000,
+    "end": 1782057600000,
+    "net_usdt": 0.750099
+   },
+   {
+    "start": 1782086400000,
+    "end": 1787241600000,
+    "net_usdt": 0.965913
+   }
+  ],
+  "w60_remain": 139
+ }
+]

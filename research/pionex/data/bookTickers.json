@@ -1,0 +1,7478 @@
+{
+ "SPOT": [
+  {
+   "symbol": "1INCH_USDT",
+   "bidPrice": "0.1055",
+   "bidSize": "9794.8461",
+   "askPrice": "0.1056",
+   "askSize": "4111.1460",
+   "timestamp": 1791269905315
+  },
+  {
+   "symbol": "8BALL_USDT",
+   "bidPrice": "0.0268",
+   "bidSize": "503.82",
+   "askPrice": "0.0279",
+   "askSize": "484.35",
+   "timestamp": 1791269906244
+  },
+  {
+   "symbol": "AAPLX_USDT",
+   "bidPrice": "333.15",
+   "bidSize": "353.4148",
+   "askPrice": "333.17",
+   "askSize": "324.7458",
+   "timestamp": 1791269906905
+  },
+  {
+   "symbol": "AAVE_ETH",
+   "bidPrice": "0.06731",
+   "bidSize": "2.042",
+   "askPrice": "0.06751",
+   "askSize": "5.905",
+   "timestamp": 1791269905367
+  },
+  {
+   "symbol": "AAVE_USDT",
+   "bidPrice": "181.76",
+   "bidSize": "3.123",
+   "askPrice": "181.78",
+   "askSize": "0.523",
+   "timestamp": 1791269906225
+  },
+  {
+   "symbol": "ACE_USDT",
+   "bidPrice": "0.1928",
+   "bidSize": "5648.2",
+   "askPrice": "0.1930",
+   "askSize": "11043.3",
+   "timestamp": 1791269906575
+  },
+  {
+   "symbol": "ACH_USDT",
+   "bidPrice": "0.00604",
+   "bidSize": "278114.8500",
+   "askPrice": "0.00605",
+   "askSize": "94235.3100",
+   "timestamp": 1791269903146
+  },
+  {
+   "symbol": "ACM_USDT",
+   "bidPrice": "0.287",
+   "bidSize": "4977.873",
+   "askPrice": "0.288",
+   "askSize": "5367.575",
+   "timestamp": 1791269906570
+  },
+  {
+   "symbol": "ADA_BTC",
+   "bidPrice": "0.00000316",
+   "bidSize": "167897.34",
+   "askPrice": "0.00000317",
+   "askSize": "151825.00",
+   "timestamp": 1791269906654
+  },
+  {
+   "symbol": "ADA_ETH",
+   "bidPrice": "0.0001000",
+   "bidSize": "20445.3995",
+   "askPrice": "0.0001001",
+   "askSize": "21127.7116",
+   "timestamp": 1791269906861
+  },
+  {
+   "symbol": "ADA_USDT",
+   "bidPrice": "0.2699",
+   "bidSize": "16341.4680",
+   "askPrice": "0.2700",
+   "askSize": "141535.7135",
+   "timestamp": 1791269906453
+  },
+  {
+   "symbol": "ADBEX_USDT",
+   "bidPrice": "238.84",
+   "bidSize": "337.695",
+   "askPrice": "238.95",
+   "askSize": "351.614",
+   "timestamp": 1791269906810
+  },
+  {
+   "symbol": "AERO_USDT",
+   "bidPrice": "0.8374",
+   "bidSize": "1069.68",
+   "askPrice": "0.8377",
+   "askSize": "2.48",
+   "timestamp": 1791269906153
+  },
+  {
+   "symbol": "AEVO_USDT",
+   "bidPrice": "0.0259",
+   "bidSize": "62825.59",
+   "askPrice": "0.0260",
+   "askSize": "254487.83",
+   "timestamp": 1791269905685
+  },
+  {
+   "symbol": "AGLD_USDT",
+   "bidPrice": "0.211",
+   "bidSize": "21081.2899",
+   "askPrice": "0.212",
+   "askSize": "15205.0860",
+   "timestamp": 1791269906768
+  },
+  {
+   "symbol": "AI_USDT",
+   "bidPrice": "0.0211",
+   "bidSize": "103992",
+   "askPrice": "0.0212",
+   "askSize": "178766",
+   "timestamp": 1791269905525
+  },
+  {
+   "symbol": "ALGO_USDT",
+   "bidPrice": "0.1277",
+   "bidSize": "42787.72",
+   "askPrice": "0.1278",
+   "askSize": "3858.66",
+   "timestamp": 1791269906629
+  },
+  {
+   "symbol": "ALICE_USDT",
+   "bidPrice": "0.1826",
+   "bidSize": "9792.84",
+   "askPrice": "0.1828",
+   "askSize": "67347.14",
+   "timestamp": 1791269905827
+  },
+  {
+   "symbol": "ALT_USDT",
+   "bidPrice": "0.00779",
+   "bidSize": "434906",
+   "askPrice": "0.00780",
+   "askSize": "52754",
+   "timestamp": 1791269906644
+  },
+  {
+   "symbol": "AMZNX_USDT",
+   "bidPrice": "252.77",
+   "bidSize": "450.052",
+   "askPrice": "252.81",
+   "askSize": "361.155",
+   "timestamp": 1791269906787
+  },
+  {
+   "symbol": "APE_USDT",
+   "bidPrice": "0.1596",
+   "bidSize": "8345.1654",
+   "askPrice": "0.1597",
+   "askSize": "895.0500",
+   "timestamp": 1791269906905
+  },
+  {
+   "symbol": "API3_USDT",
+   "bidPrice": "0.3469",
+   "bidSize": "1280.0853",
+   "askPrice": "0.3474",
+   "askSize": "541.8153",
+   "timestamp": 1791269906010
+  },
+  {
+   "symbol": "APT_USDT",
+   "bidPrice": "0.820",
+   "bidSize": "16729.62",
+   "askPrice": "0.821",
+   "askSize": "3940.60",
+   "timestamp": 1791269906714
+  },
+  {
+   "symbol": "ARB_USDT",
+   "bidPrice": "0.2019",
+   "bidSize": "7941.7",
+   "askPrice": "0.2020",
+   "askSize": "35729.9",
+   "timestamp": 1791269906653
+  },
+  {
+   "symbol": "ARKM_USDT",
+   "bidPrice": "0.1319",
+   "bidSize": "3160",
+   "askPrice": "0.1320",
+   "askSize": "1047",
+   "timestamp": 1791269905351
+  },
+  {
+   "symbol": "ARPA_USDT",
+   "bidPrice": "0.011590",
+   "bidSize": "105564.65",
+   "askPrice": "0.011600",
+   "askSize": "10530.00",
+   "timestamp": 1791269906862
+  },
+  {
+   "symbol": "AR_USDT",
+   "bidPrice": "4.49",
+   "bidSize": "800.02",
+   "askPrice": "4.50",
+   "askSize": "1880.93",
+   "timestamp": 1791269906531
+  },
+  {
+   "symbol": "ASR_USDT",
+   "bidPrice": "0.878",
+   "bidSize": "534.807",
+   "askPrice": "0.879",
+   "askSize": "383.819",
+   "timestamp": 1791269906500
+  },
+  {
+   "symbol": "ASTER_USDT",
+   "bidPrice": "0.741",
+   "bidSize": "64991.5",
+   "askPrice": "0.742",
+   "askSize": "26.4",
+   "timestamp": 1791269906463
+  },
+  {
+   "symbol": "ASTR_USDT",
+   "bidPrice": "0.007523",
+   "bidSize": "24897.60",
+   "askPrice": "0.007528",
+   "askSize": "26270.01",
+   "timestamp": 1791269905469
+  },
+  {
+   "symbol": "ATH_USDT",
+   "bidPrice": "0.007293",
+   "bidSize": "6209.0",
+   "askPrice": "0.007298",
+   "askSize": "6267.1",
+   "timestamp": 1791269906348
+  },
+  {
+   "symbol": "ATOM_USDT",
+   "bidPrice": "1.805",
+   "bidSize": "908.78",
+   "askPrice": "1.806",
+   "askSize": "379.68",
+   "timestamp": 1791269906279
+  },
+  {
+   "symbol": "AUCTION_USDT",
+   "bidPrice": "3.79",
+   "bidSize": "869.3991",
+   "askPrice": "3.80",
+   "askSize": "108.1899",
+   "timestamp": 1791269906807
+  },
+  {
+   "symbol": "AUDIO_USDT",
+   "bidPrice": "0.01687",
+   "bidSize": "32958.1",
+   "askPrice": "0.01689",
+   "askSize": "7159.2",
+   "timestamp": 1791269906677
+  },
+  {
+   "symbol": "AVAX_USDT",
+   "bidPrice": "11.31",
+   "bidSize": "4225.3161",
+   "askPrice": "11.32",
+   "askSize": "5841.5292",
+   "timestamp": 1791269906834
+  },
+  {
+   "symbol": "AVA_USDT",
+   "bidPrice": "0.2415",
+   "bidSize": "263.1",
+   "askPrice": "0.2416",
+   "askSize": "450.2",
+   "timestamp": 1791269905819
+  },
+  {
+   "symbol": "AXL_USDT",
+   "bidPrice": "0.0540",
+   "bidSize": "19873.68",
+   "askPrice": "0.0541",
+   "askSize": "50720.34",
+   "timestamp": 1791269905605
+  },
+  {
+   "symbol": "AXS_USDT",
+   "bidPrice": "1.296",
+   "bidSize": "629.11",
+   "askPrice": "1.297",
+   "askSize": "1232.52",
+   "timestamp": 1791269906205
+  },
+  {
+   "symbol": "A_USDT",
+   "bidPrice": "0.1013",
+   "bidSize": "15958.9",
+   "askPrice": "0.1014",
+   "askSize": "15851.5",
+   "timestamp": 1791269906048
+  },
+  {
+   "symbol": "BABAX_USDT",
+   "bidPrice": "110.53",
+   "bidSize": "1029.816",
+   "askPrice": "110.63",
+   "askSize": "765.845",
+   "timestamp": 1791269906909
+  },
+  {
+   "symbol": "BABYDOGE_USDT",
+   "bidPrice": "0.000000000410",
+   "bidSize": "33415172299123",
+   "askPrice": "0.000000000412",
+   "askSize": "4692444401444",
+   "timestamp": 1791269906248
+  },
+  {
+   "symbol": "BAR_USDT",
+   "bidPrice": "0.282",
+   "bidSize": "11187.27",
+   "askPrice": "0.283",
+   "askSize": "11698.38",
+   "timestamp": 1791269904993
+  },
+  {
+   "symbol": "BAT_USDT",
+   "bidPrice": "0.1060",
+   "bidSize": "4623.84",
+   "askPrice": "0.1061",
+   "askSize": "466.16",
+   "timestamp": 1791269905545
+  },
+  {
+   "symbol": "BB_USDT",
+   "bidPrice": "0.00970",
+   "bidSize": "16101.5",
+   "askPrice": "0.00971",
+   "askSize": "76177.1",
+   "timestamp": 1791269906467
+  },
+  {
+   "symbol": "BCH_BTC",
+   "bidPrice": "0.003697",
+   "bidSize": "1.8545",
+   "askPrice": "0.003699",
+   "askSize": "1.0694",
+   "timestamp": 1791269906746
+  },
+  {
+   "symbol": "BCH_USDT",
+   "bidPrice": "315.5",
+   "bidSize": "3.1496",
+   "askPrice": "315.6",
+   "askSize": "65.7903",
+   "timestamp": 1791269906747
+  },
+  {
+   "symbol": "BDAG_USDT",
+   "bidPrice": "0.000019",
+   "bidSize": "2190765",
+   "askPrice": "0.000021",
+   "askSize": "6056675",
+   "timestamp": 1791269906173
+  },
+  {
+   "symbol": "BDX_USDC",
+   "bidPrice": "0.07065",
+   "bidSize": "311.17",
+   "askPrice": "0.07357",
+   "askSize": "461.52",
+   "timestamp": 1791269906461
+  },
+  {
+   "symbol": "BDX_USDT",
+   "bidPrice": "0.07233",
+   "bidSize": "18.89",
+   "askPrice": "0.07398",
+   "askSize": "19.92",
+   "timestamp": 1791269906308
+  },
+  {
+   "symbol": "BEAMX_USDT",
+   "bidPrice": "0.00247",
+   "bidSize": "4177019",
+   "askPrice": "0.00248",
+   "askSize": "2793443",
+   "timestamp": 1791269906838
+  },
+  {
+   "symbol": "BEL_USDT",
+   "bidPrice": "0.1268",
+   "bidSize": "868.73",
+   "askPrice": "0.1270",
+   "askSize": "15432.30",
+   "timestamp": 1791269906830
+  },
+  {
+   "symbol": "BICO_USDT",
+   "bidPrice": "0.0209",
+   "bidSize": "222915.4317",
+   "askPrice": "0.0210",
+   "askSize": "405026.6122",
+   "timestamp": 1791269903042
+  },
+  {
+   "symbol": "BIGTROUT_USDT",
+   "bidPrice": "0.002077",
+   "bidSize": "5876",
+   "askPrice": "0.002139",
+   "askSize": "9313",
+   "timestamp": 1791269906751
+  },
+  {
+   "symbol": "BLUR_USDT",
+   "bidPrice": "0.0206",
+   "bidSize": "571856.2340",
+   "askPrice": "0.0207",
+   "askSize": "91522.3202",
+   "timestamp": 1791269905463
+  },
+  {
+   "symbol": "BMNRX_USDT",
+   "bidPrice": "26.71",
+   "bidSize": "3319.605",
+   "askPrice": "26.75",
+   "askSize": "4144.984",
+   "timestamp": 1791269906699
+  },
+  {
+   "symbol": "BNB_BTC",
+   "bidPrice": "0.009130",
+   "bidSize": "3.76",
+   "askPrice": "0.009131",
+   "askSize": "14.77",
+   "timestamp": 1791269906141
+  },
+  {
+   "symbol": "BNB_ETH",
+   "bidPrice": "0.2888",
+   "bidSize": "15.10",
+   "askPrice": "0.2889",
+   "askSize": "38.16",
+   "timestamp": 1791269903104
+  },
+  {
+   "symbol": "BNB_USDT",
+   "bidPrice": "779.09",
+   "bidSize": "8.5773",
+   "askPrice": "779.10",
+   "askSize": "27.7898",
+   "timestamp": 1791269906177
+  },
+  {
+   "symbol": "BNT_USDT",
+   "bidPrice": "0.3450",
+   "bidSize": "144.96",
+   "askPrice": "0.3457",
+   "askSize": "5751.84",
+   "timestamp": 1791269906350
+  },
+  {
+   "symbol": "BOME_USDT",
+   "bidPrice": "0.000969",
+   "bidSize": "514828.1",
+   "askPrice": "0.000970",
+   "askSize": "380458.3",
+   "timestamp": 1791269906848
+  },
+  {
+   "symbol": "BONK_USDT",
+   "bidPrice": "0.00000375",
+   "bidSize": "6492894911",
+   "askPrice": "0.00000376",
+   "askSize": "6364672595",
+   "timestamp": 1791269906217
+  },
+  {
+   "symbol": "BRKBX_USDT",
+   "bidPrice": "504.84",
+   "bidSize": "215.284",
+   "askPrice": "505.12",
+   "askSize": "170.132",
+   "timestamp": 1791269906614
+  },
+  {
+   "symbol": "BSGAI_USDT",
+   "bidPrice": "8.714",
+   "bidSize": "3.47",
+   "askPrice": "9.033",
+   "askSize": "7.72",
+   "timestamp": 1791269906151
+  },
+  {
+   "symbol": "BTC_USDC",
+   "bidPrice": "85328.42",
+   "bidSize": "0.018052",
+   "askPrice": "85328.45",
+   "askSize": "0.076343",
+   "timestamp": 1791269906710
+  },
+  {
+   "symbol": "BTC_USDT",
+   "bidPrice": "85347.18",
+   "bidSize": "8.896004",
+   "askPrice": "85347.19",
+   "askSize": "16.623771",
+   "timestamp": 1791269906789
+  },
+  {
+   "symbol": "BUNNIE_USDT",
+   "bidPrice": "0.0000060",
+   "bidSize": "1293477",
+   "askPrice": "0.0000065",
+   "askSize": "563233",
+   "timestamp": 1791269906170
+  },
+  {
+   "symbol": "C98_USDT",
+   "bidPrice": "0.01751",
+   "bidSize": "14754",
+   "askPrice": "0.01754",
+   "askSize": "26549",
+   "timestamp": 1791269906631
+  },
+  {
+   "symbol": "CAKE_USDT",
+   "bidPrice": "2.436",
+   "bidSize": "1241.230",
+   "askPrice": "2.437",
+   "askSize": "651.620",
+   "timestamp": 1791269906912
+  },
+  {
+   "symbol": "CATX_USDT",
+   "bidPrice": "851.81",
+   "bidSize": "135.043",
+   "askPrice": "852.96",
+   "askSize": "134.823",
+   "timestamp": 1791269906398
+  },
+  {
+   "symbol": "CCDOG_USDT",
+   "bidPrice": "0.0002066",
+   "bidSize": "3721.7",
+   "askPrice": "0.0002137",
+   "askSize": "14327.2",
+   "timestamp": 1791269905948
+  },
+  {
+   "symbol": "CCJX_USDT",
+   "bidPrice": "88.09",
+   "bidSize": "1340.620",
+   "askPrice": "88.30",
+   "askSize": "1337.960",
+   "timestamp": 1791269906853
+  },
+  {
+   "symbol": "CELR_USDT",
+   "bidPrice": "0.00312",
+   "bidSize": "93932.0",
+   "askPrice": "0.00313",
+   "askSize": "1041759.0",
+   "timestamp": 1791269905874
+  },
+  {
+   "symbol": "CHR_USDT",
+   "bidPrice": "0.02184",
+   "bidSize": "60493.7",
+   "askPrice": "0.02186",
+   "askSize": "999.2",
+   "timestamp": 1791269906002
+  },
+  {
+   "symbol": "CHZ_USDT",
+   "bidPrice": "0.01668",
+   "bidSize": "38512.8900",
+   "askPrice": "0.01669",
+   "askSize": "96267.6000",
+   "timestamp": 1791269906362
+  },
+  {
+   "symbol": "CITY_USDT",
+   "bidPrice": "0.355",
+   "bidSize": "323.70",
+   "askPrice": "0.356",
+   "askSize": "4940.51",
+   "timestamp": 1791269906839
+  },
+  {
+   "symbol": "CKB_USDT",
+   "bidPrice": "0.001340",
+   "bidSize": "1311926.85",
+   "askPrice": "0.001341",
+   "askSize": "100644.57",
+   "timestamp": 1791269906348
+  },
+  {
+   "symbol": "COAI_USDT",
+   "bidPrice": "0.3294",
+   "bidSize": "78.87",
+   "askPrice": "0.3300",
+   "askSize": "97.27",
+   "timestamp": 1791269905687
+  },
+  {
+   "symbol": "COINDEPO_USDT",
+   "bidPrice": "0.11217",
+   "bidSize": "25.91",
+   "askPrice": "0.11292",
+   "askSize": "8.87",
+   "timestamp": 1791269906308
+  },
+  {
+   "symbol": "COMP_USDT",
+   "bidPrice": "24.41",
+   "bidSize": "5.52825",
+   "askPrice": "24.42",
+   "askSize": "3.78981",
+   "timestamp": 1791269906925
+  },
+  {
+   "symbol": "COPXX_USDT",
+   "bidPrice": "86.24",
+   "bidSize": "1289.375",
+   "askPrice": "86.56",
+   "askSize": "1162.971",
+   "timestamp": 1791269906736
+  },
+  {
+   "symbol": "CORE_USDT",
+   "bidPrice": "0.0216",
+   "bidSize": "528135.11",
+   "askPrice": "0.0218",
+   "askSize": "437128.72",
+   "timestamp": 1791269905267
+  },
+  {
+   "symbol": "COTI_USDT",
+   "bidPrice": "0.01400",
+   "bidSize": "27172.1",
+   "askPrice": "0.01401",
+   "askSize": "129505.0",
+   "timestamp": 1791269906842
+  },
+  {
+   "symbol": "CRCLX_USDT",
+   "bidPrice": "83.21",
+   "bidSize": "1240.3933",
+   "askPrice": "83.22",
+   "askSize": "1044.5996",
+   "timestamp": 1791269906737
+  },
+  {
+   "symbol": "CRO_USDT",
+   "bidPrice": "0.06732",
+   "bidSize": "3391",
+   "askPrice": "0.06736",
+   "askSize": "4676",
+   "timestamp": 1791269905747
+  },
+  {
+   "symbol": "CRV_USDT",
+   "bidPrice": "0.3625",
+   "bidSize": "299.719",
+   "askPrice": "0.3626",
+   "askSize": "2585.115",
+   "timestamp": 1791269906410
+  },
+  {
+   "symbol": "CSPR_USDT",
+   "bidPrice": "0.002542",
+   "bidSize": "69536.9",
+   "askPrice": "0.002550",
+   "askSize": "606.1",
+   "timestamp": 1791269906797
+  },
+  {
+   "symbol": "CTK_USDT",
+   "bidPrice": "0.1289",
+   "bidSize": "1248.16",
+   "askPrice": "0.1290",
+   "askSize": "1644.79",
+   "timestamp": 1791269905737
+  },
+  {
+   "symbol": "CTSI_USDT",
+   "bidPrice": "0.03067",
+   "bidSize": "4475.3",
+   "askPrice": "0.03071",
+   "askSize": "7938.5",
+   "timestamp": 1791269905398
+  },
+  {
+   "symbol": "CVC_USDT",
+   "bidPrice": "0.0311",
+   "bidSize": "46333",
+   "askPrice": "0.0312",
+   "askSize": "126082",
+   "timestamp": 1791269905591
+  },
+  {
+   "symbol": "CVX_USDT",
+   "bidPrice": "2.1990",
+   "bidSize": "57.9150",
+   "askPrice": "2.2000",
+   "askSize": "101.5326",
+   "timestamp": 1791269906892
+  },
+  {
+   "symbol": "CYBER_USDT",
+   "bidPrice": "0.328",
+   "bidSize": "38422.98",
+   "askPrice": "0.329",
+   "askSize": "6642.50",
+   "timestamp": 1791269905446
+  },
+  {
+   "symbol": "DASH_USDT",
+   "bidPrice": "56.55",
+   "bidSize": "444.6761",
+   "askPrice": "56.57",
+   "askSize": "22.1481",
+   "timestamp": 1791269906682
+  },
+  {
+   "symbol": "DCR_USDT",
+   "bidPrice": "18.48",
+   "bidSize": "18.8932",
+   "askPrice": "18.51",
+   "askSize": "0.0905",
+   "timestamp": 1791269903932
+  },
+  {
+   "symbol": "DEXE_USDT",
+   "bidPrice": "1.855",
+   "bidSize": "588.29",
+   "askPrice": "1.856",
+   "askSize": "136.95",
+   "timestamp": 1791269906834
+  },
+  {
+   "symbol": "DGB_USDT",
+   "bidPrice": "0.00426",
+   "bidSize": "9093.3",
+   "askPrice": "0.00427",
+   "askSize": "20833.2",
+   "timestamp": 1791269906646
+  },
+  {
+   "symbol": "DIA_USDT",
+   "bidPrice": "0.1798",
+   "bidSize": "207.324",
+   "askPrice": "0.1800",
+   "askSize": "2249.676",
+   "timestamp": 1791269906303
+  },
+  {
+   "symbol": "DODO_USDT",
+   "bidPrice": "0.0187",
+   "bidSize": "444244.862",
+   "askPrice": "0.0188",
+   "askSize": "131319.630",
+   "timestamp": 1791269905735
+  },
+  {
+   "symbol": "DOGE_BTC",
+   "bidPrice": "0.00000110",
+   "bidSize": "2665232.39",
+   "askPrice": "0.00000111",
+   "askSize": "1888840.98",
+   "timestamp": 1791269905384
+  },
+  {
+   "symbol": "DOGE_USDT",
+   "bidPrice": "0.09441",
+   "bidSize": "162894.23",
+   "askPrice": "0.09442",
+   "askSize": "69402.99",
+   "timestamp": 1791269905816
+  },
+  {
+   "symbol": "DOT_USDT",
+   "bidPrice": "1.232",
+   "bidSize": "16557.9687",
+   "askPrice": "1.233",
+   "askSize": "4752.3879",
+   "timestamp": 1791269904918
+  },
+  {
+   "symbol": "DUSK_USDT",
+   "bidPrice": "0.0850",
+   "bidSize": "16",
+   "askPrice": "0.0851",
+   "askSize": "11960",
+   "timestamp": 1791269906653
+  },
+  {
+   "symbol": "DXYZX_USDT",
+   "bidPrice": "32.62",
+   "bidSize": "3344.01",
+   "askPrice": "32.65",
+   "askSize": "3448.67",
+   "timestamp": 1791269906019
+  },
+  {
+   "symbol": "DYDX_USDT",
+   "bidPrice": "0.1464",
+   "bidSize": "3206.1978",
+   "askPrice": "0.1466",
+   "askSize": "2355.9354",
+   "timestamp": 1791269906807
+  },
+  {
+   "symbol": "DYM_USDT",
+   "bidPrice": "0.01971",
+   "bidSize": "7240.1",
+   "askPrice": "0.01973",
+   "askSize": "12533.6",
+   "timestamp": 1791269905506
+  },
+  {
+   "symbol": "EDEL_USDT",
+   "bidPrice": "0.05011",
+   "bidSize": "779",
+   "askPrice": "0.05138",
+   "askSize": "181",
+   "timestamp": 1791269906224
+  },
+  {
+   "symbol": "EDENA_USDT",
+   "bidPrice": "0.0530",
+   "bidSize": "78.11",
+   "askPrice": "0.0552",
+   "askSize": "94.15",
+   "timestamp": 1791269906135
+  },
+  {
+   "symbol": "EDU_USDT",
+   "bidPrice": "0.05820",
+   "bidSize": "26009",
+   "askPrice": "0.05830",
+   "askSize": "4403",
+   "timestamp": 1791269905712
+  },
+  {
+   "symbol": "EGLD_USDT",
+   "bidPrice": "4.462",
+   "bidSize": "44.717",
+   "askPrice": "4.463",
+   "askSize": "2.925",
+   "timestamp": 1791269906090
+  },
+  {
+   "symbol": "ENA_USDT",
+   "bidPrice": "0.2426",
+   "bidSize": "27197.42",
+   "askPrice": "0.2427",
+   "askSize": "17984.56",
+   "timestamp": 1791269906952
+  },
+  {
+   "symbol": "ENS_USDT",
+   "bidPrice": "6.76",
+   "bidSize": "1527.2361",
+   "askPrice": "6.78",
+   "askSize": "1779.9119",
+   "timestamp": 1791269904845
+  },
+  {
+   "symbol": "ETC_USDT",
+   "bidPrice": "8.85",
+   "bidSize": "1625.4342",
+   "askPrice": "8.86",
+   "askSize": "1461.0375",
+   "timestamp": 1791269906439
+  },
+  {
+   "symbol": "ETHFI_USDT",
+   "bidPrice": "0.730",
+   "bidSize": "35961.4",
+   "askPrice": "0.731",
+   "askSize": "5393.5",
+   "timestamp": 1791269905203
+  },
+  {
+   "symbol": "ETHW_USDT",
+   "bidPrice": "0.2885",
+   "bidSize": "84.2400",
+   "askPrice": "0.2888",
+   "askSize": "326.8642",
+   "timestamp": 1791269905740
+  },
+  {
+   "symbol": "ETH_BTC",
+   "bidPrice": "0.031610",
+   "bidSize": "52.1803",
+   "askPrice": "0.031611",
+   "askSize": "0.0016",
+   "timestamp": 1791269906073
+  },
+  {
+   "symbol": "ETH_USDC",
+   "bidPrice": "2697.61",
+   "bidSize": "0.8495",
+   "askPrice": "2697.64",
+   "askSize": "0.6960",
+   "timestamp": 1791269906504
+  },
+  {
+   "symbol": "ETH_USDT",
+   "bidPrice": "2698.31",
+   "bidSize": "238.11526",
+   "askPrice": "2698.32",
+   "askSize": "272.84582",
+   "timestamp": 1791269906890
+  },
+  {
+   "symbol": "EV_USDT",
+   "bidPrice": "0.0002698",
+   "bidSize": "4730",
+   "askPrice": "0.0002738",
+   "askSize": "75529",
+   "timestamp": 1791269906802
+  },
+  {
+   "symbol": "FARTCOIN_USDT",
+   "bidPrice": "0.1721",
+   "bidSize": "6236.67",
+   "askPrice": "0.1724",
+   "askSize": "1947.86",
+   "timestamp": 1791269906836
+  },
+  {
+   "symbol": "FET_USDT",
+   "bidPrice": "0.2486",
+   "bidSize": "14917.7",
+   "askPrice": "0.2487",
+   "askSize": "3711.6",
+   "timestamp": 1791269906558
+  },
+  {
+   "symbol": "FIL_USDT",
+   "bidPrice": "1.1957",
+   "bidSize": "1279.8396",
+   "askPrice": "1.1959",
+   "askSize": "161.8929",
+   "timestamp": 1791269906425
+  },
+  {
+   "symbol": "FLOKI_USDT",
+   "bidPrice": "0.00002880",
+   "bidSize": "35611317",
+   "askPrice": "0.00002882",
+   "askSize": "34711510",
+   "timestamp": 1791269905362
+  },
+  {
+   "symbol": "FLUX_USDT",
+   "bidPrice": "0.0867",
+   "bidSize": "5272.44",
+   "askPrice": "0.0868",
+   "askSize": "1711.13",
+   "timestamp": 1791269906009
+  },
+  {
+   "symbol": "FTT_USDT",
+   "bidPrice": "0.2591",
+   "bidSize": "74.66",
+   "askPrice": "0.2594",
+   "askSize": "318.13",
+   "timestamp": 1791269906781
+  },
+  {
+   "symbol": "FULL_USDT",
+   "bidPrice": "0.000026576",
+   "bidSize": "54553",
+   "askPrice": "0.000026642",
+   "askSize": "56301",
+   "timestamp": 1791269906172
+  },
+  {
+   "symbol": "GALA_USDT",
+   "bidPrice": "0.00241",
+   "bidSize": "989968",
+   "askPrice": "0.00242",
+   "askSize": "12938428",
+   "timestamp": 1791269904724
+  },
+  {
+   "symbol": "GCOIN_USDT",
+   "bidPrice": "0.0008690",
+   "bidSize": "28625.5718",
+   "askPrice": "0.0008773",
+   "askSize": "49019.6078",
+   "timestamp": 1791269905997
+  },
+  {
+   "symbol": "GLM_USDT",
+   "bidPrice": "0.1330",
+   "bidSize": "5842.0",
+   "askPrice": "0.1332",
+   "askSize": "1813.5",
+   "timestamp": 1791269905456
+  },
+  {
+   "symbol": "GMT_USDT",
+   "bidPrice": "0.00881",
+   "bidSize": "314429.6",
+   "askPrice": "0.00882",
+   "askSize": "22079.9",
+   "timestamp": 1791269905305
+  },
+  {
+   "symbol": "GMX_USDT",
+   "bidPrice": "8.85",
+   "bidSize": "335.125",
+   "askPrice": "8.86",
+   "askSize": "32.421",
+   "timestamp": 1791269905333
+  },
+  {
+   "symbol": "GOOGLX_USDT",
+   "bidPrice": "348.34",
+   "bidSize": "236.3014",
+   "askPrice": "348.35",
+   "askSize": "289.9183",
+   "timestamp": 1791269906912
+  },
+  {
+   "symbol": "GRIPPY_USDT",
+   "bidPrice": "0.0023190",
+   "bidSize": "3084.7",
+   "askPrice": "0.0023842",
+   "askSize": "2139.9",
+   "timestamp": 1791269906771
+  },
+  {
+   "symbol": "GRT_USDT",
+   "bidPrice": "0.02930",
+   "bidSize": "2749.5000",
+   "askPrice": "0.02931",
+   "askSize": "6829.2900",
+   "timestamp": 1791269906710
+  },
+  {
+   "symbol": "HBAR_USDT",
+   "bidPrice": "0.10040",
+   "bidSize": "26725.1",
+   "askPrice": "0.10041",
+   "askSize": "1368.4",
+   "timestamp": 1791269906855
+  },
+  {
+   "symbol": "HSK_USDT",
+   "bidPrice": "0.0972",
+   "bidSize": "13.43",
+   "askPrice": "0.0977",
+   "askSize": "13.43",
+   "timestamp": 1791269906139
+  },
+  {
+   "symbol": "HTX_USDT",
+   "bidPrice": "0.000001711",
+   "bidSize": "1816279.30",
+   "askPrice": "0.000001717",
+   "askSize": "33448952.31",
+   "timestamp": 1791269906422
+  },
+  {
+   "symbol": "HYPE_USDT",
+   "bidPrice": "93.27",
+   "bidSize": "79.12",
+   "askPrice": "93.28",
+   "askSize": "98.52",
+   "timestamp": 1791269906839
+  },
+  {
+   "symbol": "ICP_USDT",
+   "bidPrice": "3.456",
+   "bidSize": "562.5275",
+   "askPrice": "3.457",
+   "askSize": "71.5104",
+   "timestamp": 1791269906519
+  },
+  {
+   "symbol": "ID_USDT",
+   "bidPrice": "0.03783",
+   "bidSize": "43",
+   "askPrice": "0.03790",
+   "askSize": "134020",
+   "timestamp": 1791269905433
+  },
+  {
+   "symbol": "ILV_USDT",
+   "bidPrice": "4.09",
+   "bidSize": "225.216",
+   "askPrice": "4.10",
+   "askSize": "922.655",
+   "timestamp": 1791269906744
+  },
+  {
+   "symbol": "IMX_USDT",
+   "bidPrice": "0.1848",
+   "bidSize": "1220.9652",
+   "askPrice": "0.1850",
+   "askSize": "4654.3887",
+   "timestamp": 1791269906825
+  },
+  {
+   "symbol": "INJ_USDT",
+   "bidPrice": "7.572",
+   "bidSize": "61.94",
+   "askPrice": "7.573",
+   "askSize": "15.09",
+   "timestamp": 1791269906658
+  },
+  {
+   "symbol": "IONQX_USDT",
+   "bidPrice": "42.71",
+   "bidSize": "0.036",
+   "askPrice": "43.16",
+   "askSize": "0.128",
+   "timestamp": 1791269902346
+  },
+  {
+   "symbol": "IOST_USDT",
+   "bidPrice": "0.000848",
+   "bidSize": "1337923.5809",
+   "askPrice": "0.000849",
+   "askSize": "458313.8055",
+   "timestamp": 1791269905501
+  },
+  {
+   "symbol": "IOTA_USDT",
+   "bidPrice": "0.0574",
+   "bidSize": "220548.5100",
+   "askPrice": "0.0575",
+   "askSize": "8679.0948",
+   "timestamp": 1791269906418
+  },
+  {
+   "symbol": "IOTX_USDT",
+   "bidPrice": "0.003609",
+   "bidSize": "58512",
+   "askPrice": "0.003612",
+   "askSize": "36855",
+   "timestamp": 1791269906134
+  },
+  {
+   "symbol": "IO_USDT",
+   "bidPrice": "0.1685",
+   "bidSize": "9061.09",
+   "askPrice": "0.1686",
+   "askSize": "733.30",
+   "timestamp": 1791269906502
+  },
+  {
+   "symbol": "IQ_USDT",
+   "bidPrice": "0.000899",
+   "bidSize": "7329",
+   "askPrice": "0.000902",
+   "askSize": "810635",
+   "timestamp": 1791269905429
+  },
+  {
+   "symbol": "JASMY_USDT",
+   "bidPrice": "0.00520",
+   "bidSize": "707908.3",
+   "askPrice": "0.00521",
+   "askSize": "1025943.6",
+   "timestamp": 1791269905871
+  },
+  {
+   "symbol": "JOE_USDT",
+   "bidPrice": "0.0414",
+   "bidSize": "40996.04",
+   "askPrice": "0.0415",
+   "askSize": "71256.04",
+   "timestamp": 1791269906866
+  },
+  {
+   "symbol": "JTO_USDT",
+   "bidPrice": "0.5679",
+   "bidSize": "234.2",
+   "askPrice": "0.5681",
+   "askSize": "234.2",
+   "timestamp": 1791269906454
+  },
+  {
+   "symbol": "JUP_USDT",
+   "bidPrice": "0.3473",
+   "bidSize": "1284.2",
+   "askPrice": "0.3474",
+   "askSize": "530.6",
+   "timestamp": 1791269906562
+  },
+  {
+   "symbol": "JUV_USDT",
+   "bidPrice": "0.336",
+   "bidSize": "3942.110",
+   "askPrice": "0.337",
+   "askSize": "6878.188",
+   "timestamp": 1791269904246
+  },
+  {
+   "symbol": "KAITO_USDT",
+   "bidPrice": "0.3385",
+   "bidSize": "3312.511",
+   "askPrice": "0.3387",
+   "askSize": "4748.327",
+   "timestamp": 1791269905214
+  },
+  {
+   "symbol": "KAS_USDT",
+   "bidPrice": "0.04256",
+   "bidSize": "6618",
+   "askPrice": "0.04258",
+   "askSize": "7839",
+   "timestamp": 1791269905540
+  },
+  {
+   "symbol": "KAVA_USDT",
+   "bidPrice": "0.0690",
+   "bidSize": "31829.71",
+   "askPrice": "0.0691",
+   "askSize": "2262.43",
+   "timestamp": 1791269905542
+  },
+  {
+   "symbol": "KROWN_USDT",
+   "bidPrice": "0.00011820",
+   "bidSize": "245325",
+   "askPrice": "0.00011852",
+   "askSize": "897802",
+   "timestamp": 1791269906122
+  },
+  {
+   "symbol": "KSM_USDT",
+   "bidPrice": "5.09",
+   "bidSize": "1298.75",
+   "askPrice": "5.11",
+   "askSize": "652.62",
+   "timestamp": 1791269906423
+  },
+  {
+   "symbol": "LAZIO_USDT",
+   "bidPrice": "0.385",
+   "bidSize": "2772.21",
+   "askPrice": "0.386",
+   "askSize": "1106.59",
+   "timestamp": 1791269905678
+  },
+  {
+   "symbol": "LDO_USDT",
+   "bidPrice": "0.4601",
+   "bidSize": "308.65",
+   "askPrice": "0.4603",
+   "askSize": "697.79",
+   "timestamp": 1791269906378
+  },
+  {
+   "symbol": "LINK_BTC",
+   "bidPrice": "0.0001620",
+   "bidSize": "510.26",
+   "askPrice": "0.0001621",
+   "askSize": "10.42",
+   "timestamp": 1791269905654
+  },
+  {
+   "symbol": "LINK_ETH",
+   "bidPrice": "0.005127",
+   "bidSize": "44.55",
+   "askPrice": "0.005129",
+   "askSize": "10.07",
+   "timestamp": 1791269905435
+  },
+  {
+   "symbol": "LINK_USDT",
+   "bidPrice": "13.83",
+   "bidSize": "2683.51",
+   "askPrice": "13.84",
+   "askSize": "310.17",
+   "timestamp": 1791269906704
+  },
+  {
+   "symbol": "LPT_USDT",
+   "bidPrice": "1.776",
+   "bidSize": "229.72",
+   "askPrice": "1.777",
+   "askSize": "11.70",
+   "timestamp": 1791269906547
+  },
+  {
+   "symbol": "LQTY_USDT",
+   "bidPrice": "0.244",
+   "bidSize": "596.4",
+   "askPrice": "0.245",
+   "askSize": "3911.8",
+   "timestamp": 1791269906258
+  },
+  {
+   "symbol": "LRC_USDT",
+   "bidPrice": "0.01030",
+   "bidSize": "2715.7",
+   "askPrice": "0.01031",
+   "askSize": "5091.3",
+   "timestamp": 1791269906815
+  },
+  {
+   "symbol": "LSK_USDT",
+   "bidPrice": "0.2563",
+   "bidSize": "1635.4",
+   "askPrice": "0.2566",
+   "askSize": "790.1",
+   "timestamp": 1791269905233
+  },
+  {
+   "symbol": "LTC_USDT",
+   "bidPrice": "69.56",
+   "bidSize": "124.7143",
+   "askPrice": "69.57",
+   "askSize": "84.8987",
+   "timestamp": 1791269906369
+  },
+  {
+   "symbol": "LUNA_USDT",
+   "bidPrice": "0.0510",
+   "bidSize": "34355.63",
+   "askPrice": "0.0511",
+   "askSize": "135385.37",
+   "timestamp": 1791269905479
+  },
+  {
+   "symbol": "LUNC_USDT",
+   "bidPrice": "0.00005283",
+   "bidSize": "4571357.93",
+   "askPrice": "0.00005286",
+   "askSize": "3216825.21",
+   "timestamp": 1791269906193
+  },
+  {
+   "symbol": "MAGIC_USDT",
+   "bidPrice": "0.0615",
+   "bidSize": "11733.5",
+   "askPrice": "0.0616",
+   "askSize": "64538.1",
+   "timestamp": 1791269906065
+  },
+  {
+   "symbol": "MANA_USDT",
+   "bidPrice": "0.1031",
+   "bidSize": "3173.04",
+   "askPrice": "0.1032",
+   "askSize": "20611.89",
+   "timestamp": 1791269905217
+  },
+  {
+   "symbol": "MASK_USDT",
+   "bidPrice": "0.4890",
+   "bidSize": "46668.2000",
+   "askPrice": "0.4900",
+   "askSize": "55371.2000",
+   "timestamp": 1791269906415
+  },
+  {
+   "symbol": "MAV_USDT",
+   "bidPrice": "0.01195",
+   "bidSize": "27056",
+   "askPrice": "0.01197",
+   "askSize": "78929",
+   "timestamp": 1791269906831
+  },
+  {
+   "symbol": "MBL_USDT",
+   "bidPrice": "0.000798",
+   "bidSize": "122747",
+   "askPrice": "0.000799",
+   "askSize": "239950",
+   "timestamp": 1791269906841
+  },
+  {
+   "symbol": "MEME_USDT",
+   "bidPrice": "0.000617",
+   "bidSize": "1140724",
+   "askPrice": "0.000618",
+   "askSize": "5016653",
+   "timestamp": 1791269906436
+  },
+  {
+   "symbol": "METAX_USDT",
+   "bidPrice": "745.35",
+   "bidSize": "140.181",
+   "askPrice": "745.82",
+   "askSize": "117.206",
+   "timestamp": 1791269906942
+  },
+  {
+   "symbol": "METIS_USDT",
+   "bidPrice": "3.37",
+   "bidSize": "483.172",
+   "askPrice": "3.38",
+   "askSize": "2126.601",
+   "timestamp": 1791269906624
+  },
+  {
+   "symbol": "MEW_USDT",
+   "bidPrice": "0.000530",
+   "bidSize": "7095303.5400",
+   "askPrice": "0.000532",
+   "askSize": "4147837.2000",
+   "timestamp": 1791269906743
+  },
+  {
+   "symbol": "MFG_USDT",
+   "bidPrice": "0.000623",
+   "bidSize": "11821.94",
+   "askPrice": "0.000654",
+   "askSize": "10538.98",
+   "timestamp": 1791269906633
+  },
+  {
+   "symbol": "MTL_USDT",
+   "bidPrice": "0.318",
+   "bidSize": "8104.49",
+   "askPrice": "0.319",
+   "askSize": "1313.72",
+   "timestamp": 1791269906793
+  },
+  {
+   "symbol": "MUSA_USDT",
+   "bidPrice": "0.00121",
+   "bidSize": "12088.64",
+   "askPrice": "0.00128",
+   "askSize": "8351.56",
+   "timestamp": 1791269906802
+  },
+  {
+   "symbol": "MUUX_USDT",
+   "bidPrice": "35.92",
+   "bidSize": "4569.60",
+   "askPrice": "36.00",
+   "askSize": "5880.00",
+   "timestamp": 1791269906172
+  },
+  {
+   "symbol": "NACHA_USDT",
+   "bidPrice": "0.145833",
+   "bidSize": "63.3",
+   "askPrice": "0.147419",
+   "askSize": "1879.8",
+   "timestamp": 1791269906861
+  },
+  {
+   "symbol": "NAORIS_USDT",
+   "bidPrice": "0.03269",
+   "bidSize": "202",
+   "askPrice": "0.03278",
+   "askSize": "39",
+   "timestamp": 1791269905473
+  },
+  {
+   "symbol": "NASAX_USDT",
+   "bidPrice": "24.84",
+   "bidSize": "0.06",
+   "askPrice": "25.43",
+   "askSize": "0.05",
+   "timestamp": 1791269902346
+  },
+  {
+   "symbol": "NEAR_USDT",
+   "bidPrice": "5.175",
+   "bidSize": "1407.86",
+   "askPrice": "5.176",
+   "askSize": "2493.97",
+   "timestamp": 1791269906187
+  },
+  {
+   "symbol": "NEO_USDT",
+   "bidPrice": "2.53",
+   "bidSize": "633.3450",
+   "askPrice": "2.54",
+   "askSize": "4486.6648",
+   "timestamp": 1791269905263
+  },
+  {
+   "symbol": "NEXO_USDT",
+   "bidPrice": "0.847",
+   "bidSize": "1460.23",
+   "askPrice": "0.849",
+   "askSize": "971.86",
+   "timestamp": 1791269905209
+  },
+  {
+   "symbol": "NIOX_USDT",
+   "bidPrice": "3.41",
+   "bidSize": "28764.796",
+   "askPrice": "3.42",
+   "askSize": "27265.115",
+   "timestamp": 1791269905988
+  },
+  {
+   "symbol": "NLRX_USDT",
+   "bidPrice": "104.35",
+   "bidSize": "1049.138",
+   "askPrice": "104.48",
+   "askSize": "0.018",
+   "timestamp": 1791269906245
+  },
+  {
+   "symbol": "NMR_USDT",
+   "bidPrice": "11.96",
+   "bidSize": "29.777",
+   "askPrice": "11.97",
+   "askSize": "244.296",
+   "timestamp": 1791269903621
+  },
+  {
+   "symbol": "NVDAX_USDT",
+   "bidPrice": "240.22",
+   "bidSize": "461.3969",
+   "askPrice": "240.23",
+   "askSize": "350.1221",
+   "timestamp": 1791269906821
+  },
+  {
+   "symbol": "OGN_USDT",
+   "bidPrice": "0.0224",
+   "bidSize": "296614.85",
+   "askPrice": "0.0226",
+   "askSize": "146275.74",
+   "timestamp": 1791269906786
+  },
+  {
+   "symbol": "OG_USDT",
+   "bidPrice": "2.840",
+   "bidSize": "168.480",
+   "askPrice": "2.844",
+   "askSize": "91.143",
+   "timestamp": 1791269904536
+  },
+  {
+   "symbol": "OKB_USDT",
+   "bidPrice": "130.16",
+   "bidSize": "7.6905",
+   "askPrice": "130.19",
+   "askSize": "28.7957",
+   "timestamp": 1791269906536
+  },
+  {
+   "symbol": "ONDO_USDT",
+   "bidPrice": "0.4881",
+   "bidSize": "14086.82",
+   "askPrice": "0.4882",
+   "askSize": "929.21",
+   "timestamp": 1791269906152
+  },
+  {
+   "symbol": "ONE_USDT",
+   "bidPrice": "0.002323",
+   "bidSize": "356888.14",
+   "askPrice": "0.002324",
+   "askSize": "29623.70",
+   "timestamp": 1791269906640
+  },
+  {
+   "symbol": "ONT_USDT",
+   "bidPrice": "0.0601",
+   "bidSize": "101564.0239",
+   "askPrice": "0.0603",
+   "askSize": "170254.1361",
+   "timestamp": 1791269904635
+  },
+  {
+   "symbol": "OP_USDT",
+   "bidPrice": "0.1339",
+   "bidSize": "80466.2469",
+   "askPrice": "0.1340",
+   "askSize": "15012.2115",
+   "timestamp": 1791269906166
+  },
+  {
+   "symbol": "ORDI_USDT",
+   "bidPrice": "4.538",
+   "bidSize": "28.7578",
+   "askPrice": "4.539",
+   "askSize": "28.9575",
+   "timestamp": 1791269905688
+  },
+  {
+   "symbol": "OSMO_USDT",
+   "bidPrice": "0.0357",
+   "bidSize": "26495.8",
+   "askPrice": "0.0358",
+   "askSize": "23566.8",
+   "timestamp": 1791269906898
+  },
+  {
+   "symbol": "P2PS_ETH",
+   "bidPrice": "0.08253",
+   "bidSize": "0.06894",
+   "askPrice": "0.08526",
+   "askSize": "0.02869",
+   "timestamp": 1791269906245
+  },
+  {
+   "symbol": "P2PS_USDC",
+   "bidPrice": "230.46",
+   "bidSize": "0.02941",
+   "askPrice": "237.85",
+   "askSize": "0.04365",
+   "timestamp": 1791269905946
+  },
+  {
+   "symbol": "PAXG_USDT",
+   "bidPrice": "4140.82",
+   "bidSize": "5.927592",
+   "askPrice": "4140.83",
+   "askSize": "1.283490",
+   "timestamp": 1791269906262
+  },
+  {
+   "symbol": "PDDX_USDT",
+   "bidPrice": "77.92",
+   "bidSize": "1038.926",
+   "askPrice": "77.96",
+   "askSize": "1043.967",
+   "timestamp": 1791269906222
+  },
+  {
+   "symbol": "PENDLE_USDT",
+   "bidPrice": "2.431",
+   "bidSize": "73.7",
+   "askPrice": "2.432",
+   "askSize": "435.5",
+   "timestamp": 1791269906342
+  },
+  {
+   "symbol": "PENGU_USDT",
+   "bidPrice": "0.009455",
+   "bidSize": "19048",
+   "askPrice": "0.009456",
+   "askSize": "3092",
+   "timestamp": 1791269906937
+  },
+  {
+   "symbol": "PEOPLE_USDT",
+   "bidPrice": "0.00877",
+   "bidSize": "127396.6",
+   "askPrice": "0.00878",
+   "askSize": "22639.5",
+   "timestamp": 1791269905862
+  },
+  {
+   "symbol": "PEPE_USDT",
+   "bidPrice": "0.000004300",
+   "bidSize": "24757952537",
+   "askPrice": "0.000004310",
+   "askSize": "27164847788",
+   "timestamp": 1791269906444
+  },
+  {
+   "symbol": "PHA_USDT",
+   "bidPrice": "0.0714",
+   "bidSize": "71399.7216",
+   "askPrice": "0.0716",
+   "askSize": "13194.5729",
+   "timestamp": 1791269906922
+  },
+  {
+   "symbol": "PIXEL_USDT",
+   "bidPrice": "0.00618",
+   "bidSize": "142267.6",
+   "askPrice": "0.00619",
+   "askSize": "423266.9",
+   "timestamp": 1791269906786
+  },
+  {
+   "symbol": "PI_USDT",
+   "bidPrice": "0.0869",
+   "bidSize": "29618.220",
+   "askPrice": "0.0870",
+   "askSize": "1839.304",
+   "timestamp": 1791269906101
+  },
+  {
+   "symbol": "PLPA_USDT",
+   "bidPrice": "0.00271",
+   "bidSize": "1551.34",
+   "askPrice": "0.00280",
+   "askSize": "613.01",
+   "timestamp": 1791269906656
+  },
+  {
+   "symbol": "POLYX_USDT",
+   "bidPrice": "0.0422",
+   "bidSize": "141021.7380",
+   "askPrice": "0.0423",
+   "askSize": "4279.1580",
+   "timestamp": 1791269905422
+  },
+  {
+   "symbol": "POL_USDT",
+   "bidPrice": "0.1090",
+   "bidSize": "2305.5",
+   "askPrice": "0.1091",
+   "askSize": "37478.8",
+   "timestamp": 1791269906512
+  },
+  {
+   "symbol": "PORTAL_USDT",
+   "bidPrice": "0.01809",
+   "bidSize": "47258.2",
+   "askPrice": "0.01812",
+   "askSize": "32035.9",
+   "timestamp": 1791269906920
+  },
+  {
+   "symbol": "PORTO_USDT",
+   "bidPrice": "0.454",
+   "bidSize": "4899.92",
+   "askPrice": "0.455",
+   "askSize": "4389.34",
+   "timestamp": 1791269906786
+  },
+  {
+   "symbol": "POWR_USDT",
+   "bidPrice": "0.0662",
+   "bidSize": "5133",
+   "askPrice": "0.0663",
+   "askSize": "6141",
+   "timestamp": 1791269906859
+  },
+  {
+   "symbol": "PROM_USDT",
+   "bidPrice": "6.211",
+   "bidSize": "172.03",
+   "askPrice": "6.214",
+   "askSize": "21.06",
+   "timestamp": 1791269904528
+  },
+  {
+   "symbol": "PSG_USDT",
+   "bidPrice": "0.462",
+   "bidSize": "14663.003",
+   "askPrice": "0.464",
+   "askSize": "15175.824",
+   "timestamp": 1791269906312
+  },
+  {
+   "symbol": "PUNDIX_USDT",
+   "bidPrice": "0.1218",
+   "bidSize": "1529.190",
+   "askPrice": "0.1219",
+   "askSize": "895.050",
+   "timestamp": 1791269906474
+  },
+  {
+   "symbol": "PYTH_USDT",
+   "bidPrice": "0.0776",
+   "bidSize": "113",
+   "askPrice": "0.0777",
+   "askSize": "150127",
+   "timestamp": 1791269904996
+  },
+  {
+   "symbol": "QKC_USDT",
+   "bidPrice": "0.002918",
+   "bidSize": "663",
+   "askPrice": "0.002923",
+   "askSize": "10892",
+   "timestamp": 1791269906116
+  },
+  {
+   "symbol": "QNT_USDT",
+   "bidPrice": "257.17",
+   "bidSize": "1.914",
+   "askPrice": "257.27",
+   "askSize": "0.136",
+   "timestamp": 1791269906862
+  },
+  {
+   "symbol": "QQQX_USDT",
+   "bidPrice": "757.42",
+   "bidSize": "145.8785",
+   "askPrice": "757.43",
+   "askSize": "118.9840",
+   "timestamp": 1791269906840
+  },
+  {
+   "symbol": "QTUM_USDT",
+   "bidPrice": "0.981",
+   "bidSize": "946.0620",
+   "askPrice": "0.982",
+   "askSize": "211.1850",
+   "timestamp": 1791269906806
+  },
+  {
+   "symbol": "RAMX_USDT",
+   "bidPrice": "14.15",
+   "bidSize": "0.27",
+   "askPrice": "14.30",
+   "askSize": "0.15",
+   "timestamp": 1791269904195
+  },
+  {
+   "symbol": "RARE_USDT",
+   "bidPrice": "0.0166",
+   "bidSize": "964808.0",
+   "askPrice": "0.0167",
+   "askSize": "266802.6",
+   "timestamp": 1791269904389
+  },
+  {
+   "symbol": "RATS_USDT",
+   "bidPrice": "0.00004091",
+   "bidSize": "62837",
+   "askPrice": "0.00004102",
+   "askSize": "8390104",
+   "timestamp": 1791269905091
+  },
+  {
+   "symbol": "RAY_USDT",
+   "bidPrice": "2.120",
+   "bidSize": "1.4",
+   "askPrice": "2.121",
+   "askSize": "307.0",
+   "timestamp": 1791269906491
+  },
+  {
+   "symbol": "REEL_USDT",
+   "bidPrice": "0.00208",
+   "bidSize": "3568",
+   "askPrice": "0.00219",
+   "askSize": "1595",
+   "timestamp": 1791269906101
+  },
+  {
+   "symbol": "REQ_USDT",
+   "bidPrice": "0.0561",
+   "bidSize": "27005.9",
+   "askPrice": "0.0562",
+   "askSize": "1252.0",
+   "timestamp": 1791269904337
+  },
+  {
+   "symbol": "RIF_USDT",
+   "bidPrice": "0.0824",
+   "bidSize": "15810",
+   "askPrice": "0.0825",
+   "askSize": "4797",
+   "timestamp": 1791269906328
+  },
+  {
+   "symbol": "RLC_USDT",
+   "bidPrice": "0.903",
+   "bidSize": "787.53",
+   "askPrice": "0.905",
+   "askSize": "2467.42",
+   "timestamp": 1791269906946
+  },
+  {
+   "symbol": "RPL_USDT",
+   "bidPrice": "1.91",
+   "bidSize": "3524.60",
+   "askPrice": "1.92",
+   "askSize": "3423.48",
+   "timestamp": 1791269903120
+  },
+  {
+   "symbol": "RSR_USDT",
+   "bidPrice": "0.001722",
+   "bidSize": "481155.60",
+   "askPrice": "0.001723",
+   "askSize": "76342.50",
+   "timestamp": 1791269905002
+  },
+  {
+   "symbol": "RUNE_USDT",
+   "bidPrice": "0.766",
+   "bidSize": "19293.65",
+   "askPrice": "0.767",
+   "askSize": "2625.25",
+   "timestamp": 1791269906363
+  },
+  {
+   "symbol": "RVN_USDT",
+   "bidPrice": "0.00242",
+   "bidSize": "1307986.8",
+   "askPrice": "0.00243",
+   "askSize": "1996850.8",
+   "timestamp": 1791269906898
+  },
+  {
+   "symbol": "RWAHUB_USDT",
+   "bidPrice": "1.4523",
+   "bidSize": "3.86",
+   "askPrice": "1.5025",
+   "askSize": "4.09",
+   "timestamp": 1791269906909
+  },
+  {
+   "symbol": "SAGA_USDT",
+   "bidPrice": "0.02398",
+   "bidSize": "20208.1",
+   "askPrice": "0.02399",
+   "askSize": "19531.5",
+   "timestamp": 1791269906694
+  },
+  {
+   "symbol": "SAND_USDT",
+   "bidPrice": "0.0658",
+   "bidSize": "55748.1600",
+   "askPrice": "0.0659",
+   "askSize": "29491.8424",
+   "timestamp": 1791269906035
+  },
+  {
+   "symbol": "SANTOS_USDT",
+   "bidPrice": "0.525",
+   "bidSize": "20234.96",
+   "askPrice": "0.526",
+   "askSize": "3016.19",
+   "timestamp": 1791269903233
+  },
+  {
+   "symbol": "SATS_USDT",
+   "bidPrice": "0.00000001243",
+   "bidSize": "3876250635",
+   "askPrice": "0.00000001245",
+   "askSize": "16774284086",
+   "timestamp": 1791269905490
+  },
+  {
+   "symbol": "SEI_USDT",
+   "bidPrice": "0.0737",
+   "bidSize": "250081.3",
+   "askPrice": "0.0738",
+   "askSize": "22858.8",
+   "timestamp": 1791269904565
+  },
+  {
+   "symbol": "SHIB_USDT",
+   "bidPrice": "0.00000584",
+   "bidSize": "5874149231.02",
+   "askPrice": "0.00000585",
+   "askSize": "7849880520.30",
+   "timestamp": 1791269905344
+  },
+  {
+   "symbol": "SINGULARRY_USDT",
+   "bidPrice": "0.01007",
+   "bidSize": "18994.54",
+   "askPrice": "0.01012",
+   "askSize": "19130.79",
+   "timestamp": 1791269906736
+  },
+  {
+   "symbol": "SISC_USDT",
+   "bidPrice": "1.9067",
+   "bidSize": "214.6",
+   "askPrice": "1.9081",
+   "askSize": "1572.2",
+   "timestamp": 1791269906038
+  },
+  {
+   "symbol": "SKL_USDT",
+   "bidPrice": "0.00483",
+   "bidSize": "53016.8832",
+   "askPrice": "0.00484",
+   "askSize": "1207801.5300",
+   "timestamp": 1791269906279
+  },
+  {
+   "symbol": "SKUUX_USDT",
+   "bidPrice": "30.92",
+   "bidSize": "0.10",
+   "askPrice": "31.83",
+   "askSize": "2.21",
+   "timestamp": 1791269906841
+  },
+  {
+   "symbol": "SLVX_USDT",
+   "bidPrice": "54.79",
+   "bidSize": "33040.000",
+   "askPrice": "54.82",
+   "askSize": "1530.793",
+   "timestamp": 1791269905981
+  },
+  {
+   "symbol": "SMRX_USDT",
+   "bidPrice": "7.73",
+   "bidSize": "14144.624",
+   "askPrice": "7.74",
+   "askSize": "13992.776",
+   "timestamp": 1791269906699
+  },
+  {
+   "symbol": "SNEK_USDT",
+   "bidPrice": "0.0008304",
+   "bidSize": "2880",
+   "askPrice": "0.0008332",
+   "askSize": "209299",
+   "timestamp": 1791269906804
+  },
+  {
+   "symbol": "SNX_USDT",
+   "bidPrice": "0.253",
+   "bidSize": "751.320",
+   "askPrice": "0.254",
+   "askSize": "68865.584",
+   "timestamp": 1791269906467
+  },
+  {
+   "symbol": "SOFIX_USDT",
+   "bidPrice": "15.94",
+   "bidSize": "5576.953",
+   "askPrice": "15.96",
+   "askSize": "11046.000",
+   "timestamp": 1791269906153
+  },
+  {
+   "symbol": "SOL_BTC",
+   "bidPrice": "0.00140356",
+   "bidSize": "13.12",
+   "askPrice": "0.00140390",
+   "askSize": "0.44",
+   "timestamp": 1791269906779
+  },
+  {
+   "symbol": "SOL_USDT",
+   "bidPrice": "119.84",
+   "bidSize": "2931.01",
+   "askPrice": "119.85",
+   "askSize": "3307.10",
+   "timestamp": 1791269906863
+  },
+  {
+   "symbol": "SPELL_USDT",
+   "bidPrice": "0.0000993",
+   "bidSize": "16524700",
+   "askPrice": "0.0000994",
+   "askSize": "7518482",
+   "timestamp": 1791269906853
+  },
+  {
+   "symbol": "SPYX_USDT",
+   "bidPrice": "776.14",
+   "bidSize": "146.9752",
+   "askPrice": "776.15",
+   "askSize": "116.3616",
+   "timestamp": 1791269906821
+  },
+  {
+   "symbol": "SSV_USDT",
+   "bidPrice": "3.071",
+   "bidSize": "77.245",
+   "askPrice": "3.075",
+   "askSize": "25.377",
+   "timestamp": 1791269905879
+  },
+  {
+   "symbol": "STRAX_USDT",
+   "bidPrice": "0.01132",
+   "bidSize": "4132",
+   "askPrice": "0.01133",
+   "askSize": "10261",
+   "timestamp": 1791269904260
+  },
+  {
+   "symbol": "STRK_USDT",
+   "bidPrice": "0.0520",
+   "bidSize": "403371.22",
+   "askPrice": "0.0521",
+   "askSize": "3913.73",
+   "timestamp": 1791269906588
+  },
+  {
+   "symbol": "STX_USDT",
+   "bidPrice": "0.3740",
+   "bidSize": "337.65",
+   "askPrice": "0.3741",
+   "askSize": "1382.36",
+   "timestamp": 1791269903169
+  },
+  {
+   "symbol": "SUI_USDT",
+   "bidPrice": "1.1902",
+   "bidSize": "1262.0",
+   "askPrice": "1.1903",
+   "askSize": "3148.0",
+   "timestamp": 1791269906851
+  },
+  {
+   "symbol": "SUPER_USDT",
+   "bidPrice": "0.2400",
+   "bidSize": "561.600",
+   "askPrice": "0.2402",
+   "askSize": "4361.760",
+   "timestamp": 1791269905874
+  },
+  {
+   "symbol": "SUSHI_USDT",
+   "bidPrice": "0.252",
+   "bidSize": "96605.3790",
+   "askPrice": "0.253",
+   "askSize": "15555.8520",
+   "timestamp": 1791269906088
+  },
+  {
+   "symbol": "SYN_USDT",
+   "bidPrice": "0.1784",
+   "bidSize": "2139.6",
+   "askPrice": "0.1786",
+   "askSize": "1229.0",
+   "timestamp": 1791269904575
+  },
+  {
+   "symbol": "S_USDT",
+   "bidPrice": "0.0440",
+   "bidSize": "28072.7",
+   "askPrice": "0.0441",
+   "askSize": "26641.0",
+   "timestamp": 1791269906038
+  },
+  {
+   "symbol": "TAO_USDT",
+   "bidPrice": "301.3",
+   "bidSize": "3.6189",
+   "askPrice": "301.4",
+   "askSize": "9.2759",
+   "timestamp": 1791269906695
+  },
+  {
+   "symbol": "TFUEL_USDT",
+   "bidPrice": "0.010500",
+   "bidSize": "5044",
+   "askPrice": "0.010520",
+   "askSize": "1892",
+   "timestamp": 1791269906512
+  },
+  {
+   "symbol": "THETA_USDT",
+   "bidPrice": "0.2328",
+   "bidSize": "1028.4300",
+   "askPrice": "0.2330",
+   "askSize": "2049.1380",
+   "timestamp": 1791269906580
+  },
+  {
+   "symbol": "TIA_USDT",
+   "bidPrice": "0.4656",
+   "bidSize": "302.8",
+   "askPrice": "0.4657",
+   "askSize": "327.9",
+   "timestamp": 1791269906434
+  },
+  {
+   "symbol": "TKO_USDT",
+   "bidPrice": "0.0599",
+   "bidSize": "2936.47",
+   "askPrice": "0.0601",
+   "askSize": "14210.21",
+   "timestamp": 1791269905496
+  },
+  {
+   "symbol": "TLM_USDT",
+   "bidPrice": "0.001533",
+   "bidSize": "708410.43",
+   "askPrice": "0.001535",
+   "askSize": "295201.53",
+   "timestamp": 1791269906684
+  },
+  {
+   "symbol": "TNSR_USDT",
+   "bidPrice": "0.0391",
+   "bidSize": "113078.0",
+   "askPrice": "0.0392",
+   "askSize": "276669.4",
+   "timestamp": 1791269905854
+  },
+  {
+   "symbol": "TRB_USDT",
+   "bidPrice": "20.09",
+   "bidSize": "16.2326",
+   "askPrice": "20.10",
+   "askSize": "186.0908",
+   "timestamp": 1791269906869
+  },
+  {
+   "symbol": "TRUMP_USDT",
+   "bidPrice": "2.015",
+   "bidSize": "6092.5979",
+   "askPrice": "2.016",
+   "askSize": "1309.7710",
+   "timestamp": 1791269906551
+  },
+  {
+   "symbol": "TRX_ETH",
+   "bidPrice": "0.00012473",
+   "bidSize": "3952.26",
+   "askPrice": "0.00012479",
+   "askSize": "174.33",
+   "timestamp": 1791269905513
+  },
+  {
+   "symbol": "TRX_USDT",
+   "bidPrice": "0.3365",
+   "bidSize": "166115.08",
+   "askPrice": "0.3366",
+   "askSize": "146487.39",
+   "timestamp": 1791269906434
+  },
+  {
+   "symbol": "TSLAX_USDT",
+   "bidPrice": "380.80",
+   "bidSize": "300.9522",
+   "askPrice": "380.81",
+   "askSize": "294.6435",
+   "timestamp": 1791269906823
+  },
+  {
+   "symbol": "TSLLX_USDT",
+   "bidPrice": "10.33",
+   "bidSize": "8427.24",
+   "askPrice": "10.34",
+   "askSize": "14744.80",
+   "timestamp": 1791269906141
+  },
+  {
+   "symbol": "TURBO_USDT",
+   "bidPrice": "0.0010330",
+   "bidSize": "1659350",
+   "askPrice": "0.0010340",
+   "askSize": "283420",
+   "timestamp": 1791269906780
+  },
+  {
+   "symbol": "TWT_USDT",
+   "bidPrice": "0.5722",
+   "bidSize": "911",
+   "askPrice": "0.5729",
+   "askSize": "527",
+   "timestamp": 1791269906582
+  },
+  {
+   "symbol": "TXC_USDT",
+   "bidPrice": "0.1365",
+   "bidSize": "278.42",
+   "askPrice": "0.1445",
+   "askSize": "16.83",
+   "timestamp": 1791269906512
+  },
+  {
+   "symbol": "UFOX_USDT",
+   "bidPrice": "41.25",
+   "bidSize": "0.05",
+   "askPrice": "44.54",
+   "askSize": "0.59",
+   "timestamp": 1791269905828
+  },
+  {
+   "symbol": "UMA_USDT",
+   "bidPrice": "0.449",
+   "bidSize": "475.628",
+   "askPrice": "0.450",
+   "askSize": "1142.575",
+   "timestamp": 1791269906125
+  },
+  {
+   "symbol": "UNIC_USDT",
+   "bidPrice": "0.9006",
+   "bidSize": "5.8775",
+   "askPrice": "0.9259",
+   "askSize": "4.9351",
+   "timestamp": 1791269906040
+  },
+  {
+   "symbol": "UNI_BTC",
+   "bidPrice": "0.00010350",
+   "bidSize": "214.12",
+   "askPrice": "0.00010357",
+   "askSize": "2.64",
+   "timestamp": 1791269906267
+  },
+  {
+   "symbol": "UNI_USDT",
+   "bidPrice": "8.835",
+   "bidSize": "702.9711",
+   "askPrice": "8.836",
+   "askSize": "307.3005",
+   "timestamp": 1791269906334
+  },
+  {
+   "symbol": "USDC_USDT",
+   "bidPrice": "1.0002",
+   "bidSize": "6995332.40",
+   "askPrice": "1.0003",
+   "askSize": "5079475.42",
+   "timestamp": 1791269906826
+  },
+  {
+   "symbol": "USOX_USDT",
+   "bidPrice": "143.15",
+   "bidSize": "980.000",
+   "askPrice": "143.22",
+   "askSize": "1400.000",
+   "timestamp": 1791269906963
+  },
+  {
+   "symbol": "USTC_USDT",
+   "bidPrice": "0.00576",
+   "bidSize": "194974",
+   "askPrice": "0.00577",
+   "askSize": "80662",
+   "timestamp": 1791269906628
+  },
+  {
+   "symbol": "USUAL_USDT",
+   "bidPrice": "0.01315",
+   "bidSize": "13846",
+   "askPrice": "0.01317",
+   "askSize": "12134",
+   "timestamp": 1791269906157
+  },
+  {
+   "symbol": "UTT_USDT",
+   "bidPrice": "0.40662",
+   "bidSize": "7.05",
+   "askPrice": "0.40793",
+   "askSize": "12.36",
+   "timestamp": 1791269906193
+  },
+  {
+   "symbol": "VANA_USDT",
+   "bidPrice": "1.084",
+   "bidSize": "1834.30",
+   "askPrice": "1.086",
+   "askSize": "160.58",
+   "timestamp": 1791269906791
+  },
+  {
+   "symbol": "VEREM_USDT",
+   "bidPrice": "4.52",
+   "bidSize": "1.96",
+   "askPrice": "4.73",
+   "askSize": "2.42",
+   "timestamp": 1791269906068
+  },
+  {
+   "symbol": "VET_USDT",
+   "bidPrice": "0.00875",
+   "bidSize": "54367.3260",
+   "askPrice": "0.00876",
+   "askSize": "235616.8230",
+   "timestamp": 1791269906076
+  },
+  {
+   "symbol": "VRTX_USDT",
+   "bidPrice": "255.12",
+   "bidSize": "376.716",
+   "askPrice": "255.50",
+   "askSize": "319.988",
+   "timestamp": 1791269906963
+  },
+  {
+   "symbol": "VTHO_USDT",
+   "bidPrice": "0.000773",
+   "bidSize": "285437",
+   "askPrice": "0.000774",
+   "askSize": "3681266",
+   "timestamp": 1791269906946
+  },
+  {
+   "symbol": "WAXP_USDT",
+   "bidPrice": "0.006140",
+   "bidSize": "287390.61",
+   "askPrice": "0.006150",
+   "askSize": "1401511.41",
+   "timestamp": 1791269906691
+  },
+  {
+   "symbol": "WBTC_BTC",
+   "bidPrice": "0.9998",
+   "bidSize": "3.0606",
+   "askPrice": "0.9999",
+   "askSize": "4.3321",
+   "timestamp": 1791269906076
+  },
+  {
+   "symbol": "WEALTH_USDT",
+   "bidPrice": "28.32",
+   "bidSize": "0.244",
+   "askPrice": "29.21",
+   "askSize": "0.228",
+   "timestamp": 1791269906431
+  },
+  {
+   "symbol": "WIF_USDT",
+   "bidPrice": "0.247",
+   "bidSize": "32691.28",
+   "askPrice": "0.248",
+   "askSize": "156338.55",
+   "timestamp": 1791269906658
+  },
+  {
+   "symbol": "WIN_USDT",
+   "bidPrice": "0.00005184",
+   "bidSize": "176304",
+   "askPrice": "0.00005192",
+   "askSize": "29823",
+   "timestamp": 1791269904982
+  },
+  {
+   "symbol": "WLD_USDT",
+   "bidPrice": "0.5610",
+   "bidSize": "720.4",
+   "askPrice": "0.5611",
+   "askSize": "3964.7",
+   "timestamp": 1791269906363
+  },
+  {
+   "symbol": "WLFI_USDT",
+   "bidPrice": "0.0565",
+   "bidSize": "517297.17",
+   "askPrice": "0.0566",
+   "askSize": "52.24",
+   "timestamp": 1791269906583
+  },
+  {
+   "symbol": "WOO_USDT",
+   "bidPrice": "0.01351",
+   "bidSize": "7523.10",
+   "askPrice": "0.01352",
+   "askSize": "5791.50",
+   "timestamp": 1791269905342
+  },
+  {
+   "symbol": "W_USDT",
+   "bidPrice": "0.01414",
+   "bidSize": "9384.8",
+   "askPrice": "0.01415",
+   "askSize": "115903.2",
+   "timestamp": 1791269906673
+  },
+  {
+   "symbol": "XAI_USDT",
+   "bidPrice": "0.00997",
+   "bidSize": "296771.1",
+   "askPrice": "0.00998",
+   "askSize": "24219.0",
+   "timestamp": 1791269905534
+  },
+  {
+   "symbol": "XAUT_USDT",
+   "bidPrice": "4132.4",
+   "bidSize": "5.8963",
+   "askPrice": "4132.5",
+   "askSize": "0.0577",
+   "timestamp": 1791269906654
+  },
+  {
+   "symbol": "XCH_USDT",
+   "bidPrice": "1.56",
+   "bidSize": "2389.3332",
+   "askPrice": "1.58",
+   "askSize": "762.0615",
+   "timestamp": 1791269906013
+  },
+  {
+   "symbol": "XDC_USDT",
+   "bidPrice": "0.03402",
+   "bidSize": "2139.4",
+   "askPrice": "0.03406",
+   "askSize": "48.7",
+   "timestamp": 1791269906945
+  },
+  {
+   "symbol": "XEC_USDT",
+   "bidPrice": "0.00000799",
+   "bidSize": "115647764.31",
+   "askPrice": "0.00000801",
+   "askSize": "270636019.29",
+   "timestamp": 1791269905704
+  },
+  {
+   "symbol": "XLM_USDT",
+   "bidPrice": "0.2147",
+   "bidSize": "15356.2500",
+   "askPrice": "0.2148",
+   "askSize": "39544.8300",
+   "timestamp": 1791269906420
+  },
+  {
+   "symbol": "XNY_USDT",
+   "bidPrice": "0.006856",
+   "bidSize": "11237.2",
+   "askPrice": "0.006886",
+   "askSize": "11542.9",
+   "timestamp": 1791269906687
+  },
+  {
+   "symbol": "XRP_BTC",
+   "bidPrice": "0.00001755",
+   "bidSize": "2556",
+   "askPrice": "0.00001756",
+   "askSize": "18559",
+   "timestamp": 1791269906256
+  },
+  {
+   "symbol": "XRP_USDT",
+   "bidPrice": "1.4977",
+   "bidSize": "33477.95",
+   "askPrice": "1.4978",
+   "askSize": "19546.64",
+   "timestamp": 1791269906796
+  },
+  {
+   "symbol": "XTZ_USDT",
+   "bidPrice": "0.3318",
+   "bidSize": "394.8750",
+   "askPrice": "0.3320",
+   "askSize": "394.8750",
+   "timestamp": 1791269906709
+  },
+  {
+   "symbol": "XVG_USDT",
+   "bidPrice": "0.003115",
+   "bidSize": "480374",
+   "askPrice": "0.003117",
+   "askSize": "34747",
+   "timestamp": 1791269904243
+  },
+  {
+   "symbol": "XVS_USDT",
+   "bidPrice": "3.350",
+   "bidSize": "72.283",
+   "askPrice": "3.351",
+   "askSize": "64.701",
+   "timestamp": 1791269905182
+  },
+  {
+   "symbol": "YFI_USDT",
+   "bidPrice": "2515",
+   "bidSize": "0.161823",
+   "askPrice": "2516",
+   "askSize": "0.049959",
+   "timestamp": 1791269906057
+  },
+  {
+   "symbol": "YGG_USDT",
+   "bidPrice": "0.0284",
+   "bidSize": "30856.3270",
+   "askPrice": "0.0285",
+   "askSize": "107257.0743",
+   "timestamp": 1791269906744
+  },
+  {
+   "symbol": "ZBCN_USDT",
+   "bidPrice": "0.0025406",
+   "bidSize": "10530",
+   "askPrice": "0.0025434",
+   "askSize": "1267",
+   "timestamp": 1791269906138
+  },
+  {
+   "symbol": "ZEC_USDT",
+   "bidPrice": "1323.89",
+   "bidSize": "2.9285",
+   "askPrice": "1323.90",
+   "askSize": "8.4661",
+   "timestamp": 1791269906562
+  },
+  {
+   "symbol": "ZEN_USDT",
+   "bidPrice": "6.922",
+   "bidSize": "98.420",
+   "askPrice": "6.924",
+   "askSize": "21.540",
+   "timestamp": 1791269905755
+  },
+  {
+   "symbol": "ZIL_USDT",
+   "bidPrice": "0.003642",
+   "bidSize": "55000.0620",
+   "askPrice": "0.003644",
+   "askSize": "28422.4590",
+   "timestamp": 1791269906177
+  },
+  {
+   "symbol": "ZRX_USDT",
+   "bidPrice": "0.1273",
+   "bidSize": "1026.09",
+   "askPrice": "0.1274",
+   "askSize": "4740.55",
+   "timestamp": 1791269905588
+  },
+  {
+   "symbol": "mBTC_USDT",
+   "bidPrice": "85.347",
+   "bidSize": "1680.688",
+   "askPrice": "85.348",
+   "askSize": "7141.956",
+   "timestamp": 1791269906788
+  },
+  {
+   "symbol": "mETH_USDT",
+   "bidPrice": "2.697",
+   "bidSize": "25647.27",
+   "askPrice": "2.698",
+   "askSize": "5.14",
+   "timestamp": 1791269906093
+  }
+ ],
+ "PERP": [
+  {
+   "symbol": "0G_USDT_PERP",
+   "bidPrice": "0.3057",
+   "bidSize": "1680",
+   "askPrice": "0.3058",
+   "askSize": "929",
+   "timestamp": 1791269907186
+  },
+  {
+   "symbol": "1INCH_USDT_PERP",
+   "bidPrice": "0.1054",
+   "bidSize": "113106",
+   "askPrice": "0.1055",
+   "askSize": "125070",
+   "timestamp": 1791269907286
+  },
+  {
+   "symbol": "2Z_USDT_PERP",
+   "bidPrice": "0.04250",
+   "bidSize": "5884",
+   "askPrice": "0.04252",
+   "askSize": "21192",
+   "timestamp": 1791269907336
+  },
+  {
+   "symbol": "4_USDT_PERP",
+   "bidPrice": "0.01823",
+   "bidSize": "17993",
+   "askPrice": "0.01824",
+   "askSize": "18119",
+   "timestamp": 1791269907293
+  },
+  {
+   "symbol": "AAOIX_USDT_PERP",
+   "bidPrice": "123.10",
+   "bidSize": "249.44",
+   "askPrice": "123.12",
+   "askSize": "197.06",
+   "timestamp": 1791269907407
+  },
+  {
+   "symbol": "AAPLX_USDT_PERP",
+   "bidPrice": "333.38",
+   "bidSize": "255.76",
+   "askPrice": "333.39",
+   "askSize": "293.84",
+   "timestamp": 1791269907206
+  },
+  {
+   "symbol": "AAVE_ETH_PERP",
+   "bidPrice": "0.06738",
+   "bidSize": "97.576",
+   "askPrice": "0.06739",
+   "askSize": "94.309",
+   "timestamp": 1791269907084
+  },
+  {
+   "symbol": "AAVE_USDT_PERP",
+   "bidPrice": "181.72",
+   "bidSize": "27.58",
+   "askPrice": "181.73",
+   "askSize": "41.72",
+   "timestamp": 1791269907278
+  },
+  {
+   "symbol": "AAX_USDT_PERP",
+   "bidPrice": "43.48",
+   "bidSize": "0.04",
+   "askPrice": "43.59",
+   "askSize": "0.04",
+   "timestamp": 1791269905362
+  },
+  {
+   "symbol": "ACE_USDT_PERP",
+   "bidPrice": "0.19291",
+   "bidSize": "4727.95",
+   "askPrice": "0.19292",
+   "askSize": "3351.55",
+   "timestamp": 1791269907449
+  },
+  {
+   "symbol": "ACH_USDT_PERP",
+   "bidPrice": "0.006044",
+   "bidSize": "34461",
+   "askPrice": "0.006048",
+   "askSize": "44853",
+   "timestamp": 1791269907358
+  },
+  {
+   "symbol": "ACT_USDT_PERP",
+   "bidPrice": "0.01083",
+   "bidSize": "180490",
+   "askPrice": "0.01084",
+   "askSize": "160661",
+   "timestamp": 1791269907285
+  },
+  {
+   "symbol": "ADA_BTC_PERP",
+   "bidPrice": "0.000003161",
+   "bidSize": "641778",
+   "askPrice": "0.000003162",
+   "askSize": "9",
+   "timestamp": 1791269907277
+  },
+  {
+   "symbol": "ADA_ETH_PERP",
+   "bidPrice": "0.00010000",
+   "bidSize": "541703",
+   "askPrice": "0.00010005",
+   "askSize": "720017",
+   "timestamp": 1791269907173
+  },
+  {
+   "symbol": "ADA_USDT_PERP",
+   "bidPrice": "0.2697",
+   "bidSize": "1203666",
+   "askPrice": "0.2698",
+   "askSize": "1020948",
+   "timestamp": 1791269907313
+  },
+  {
+   "symbol": "AERO_USDT_PERP",
+   "bidPrice": "0.8377",
+   "bidSize": "953.0",
+   "askPrice": "0.8378",
+   "askSize": "668.8",
+   "timestamp": 1791269907316
+  },
+  {
+   "symbol": "AEVO_USDT_PERP",
+   "bidPrice": "0.02591",
+   "bidSize": "17841.9",
+   "askPrice": "0.02593",
+   "askSize": "15682.6",
+   "timestamp": 1791269907176
+  },
+  {
+   "symbol": "AGT_USDT_PERP",
+   "bidPrice": "0.024610",
+   "bidSize": "12764",
+   "askPrice": "0.024611",
+   "askSize": "12729",
+   "timestamp": 1791269907204
+  },
+  {
+   "symbol": "AIA_USDT_PERP",
+   "bidPrice": "0.07563",
+   "bidSize": "4059",
+   "askPrice": "0.07568",
+   "askSize": "4057",
+   "timestamp": 1791269907508
+  },
+  {
+   "symbol": "AIGENSYN_USDT_PERP",
+   "bidPrice": "0.02117",
+   "bidSize": "9816",
+   "askPrice": "0.02118",
+   "askSize": "260566",
+   "timestamp": 1791269907244
+  },
+  {
+   "symbol": "AIN_USDT_PERP",
+   "bidPrice": "0.05837",
+   "bidSize": "3354",
+   "askPrice": "0.05839",
+   "askSize": "12898",
+   "timestamp": 1791269907445
+  },
+  {
+   "symbol": "AIO_USDT_PERP",
+   "bidPrice": "0.04358",
+   "bidSize": "2257",
+   "askPrice": "0.04360",
+   "askSize": "8984",
+   "timestamp": 1791269907516
+  },
+  {
+   "symbol": "AIXBT_USDT_PERP",
+   "bidPrice": "0.02251",
+   "bidSize": "28461",
+   "askPrice": "0.02252",
+   "askSize": "18579",
+   "timestamp": 1791269907496
+  },
+  {
+   "symbol": "AKE_USDT_PERP",
+   "bidPrice": "0.0299800",
+   "bidSize": "13741",
+   "askPrice": "0.0299810",
+   "askSize": "14437",
+   "timestamp": 1791269907501
+  },
+  {
+   "symbol": "AKT_USDT_PERP",
+   "bidPrice": "0.7490",
+   "bidSize": "527.9",
+   "askPrice": "0.7493",
+   "askSize": "297.0",
+   "timestamp": 1791269907518
+  },
+  {
+   "symbol": "ALABX_USDT_PERP",
+   "bidPrice": "366.30",
+   "bidSize": "0.09",
+   "askPrice": "366.41",
+   "askSize": "48.94",
+   "timestamp": 1791269907398
+  },
+  {
+   "symbol": "ALCH_USDT_PERP",
+   "bidPrice": "0.04931",
+   "bidSize": "1762",
+   "askPrice": "0.04935",
+   "askSize": "2341",
+   "timestamp": 1791269907292
+  },
+  {
+   "symbol": "ALGO_USDT_PERP",
+   "bidPrice": "0.1276",
+   "bidSize": "78565.9",
+   "askPrice": "0.1277",
+   "askSize": "78090.4",
+   "timestamp": 1791269907345
+  },
+  {
+   "symbol": "ALLO_USDT_PERP",
+   "bidPrice": "0.2604",
+   "bidSize": "732",
+   "askPrice": "0.2605",
+   "askSize": "730",
+   "timestamp": 1791269907054
+  },
+  {
+   "symbol": "ALL_USDT_PERP",
+   "bidPrice": "0.6865",
+   "bidSize": "291",
+   "askPrice": "0.6866",
+   "askSize": "815",
+   "timestamp": 1791269907196
+  },
+  {
+   "symbol": "ALT_USDT_PERP",
+   "bidPrice": "0.00779",
+   "bidSize": "57742",
+   "askPrice": "0.00780",
+   "askSize": "53046",
+   "timestamp": 1791269907193
+  },
+  {
+   "symbol": "AMATX_USDT_PERP",
+   "bidPrice": "544.33",
+   "bidSize": "27.63",
+   "askPrice": "544.40",
+   "askSize": "23.05",
+   "timestamp": 1791269907453
+  },
+  {
+   "symbol": "AMDX_USDT_PERP",
+   "bidPrice": "633.80",
+   "bidSize": "56.01",
+   "askPrice": "633.81",
+   "askSize": "49.19",
+   "timestamp": 1791269907359
+  },
+  {
+   "symbol": "AMZNX_USDT_PERP",
+   "bidPrice": "252.93",
+   "bidSize": "360.14",
+   "askPrice": "252.94",
+   "askSize": "340.94",
+   "timestamp": 1791269907224
+  },
+  {
+   "symbol": "ANIME_USDT_PERP",
+   "bidPrice": "0.003350",
+   "bidSize": "90791",
+   "askPrice": "0.003351",
+   "askSize": "100389",
+   "timestamp": 1791269907248
+  },
+  {
+   "symbol": "ANTHROPIC_USDT_PERP",
+   "bidPrice": "2035.76",
+   "bidSize": "5.71",
+   "askPrice": "2038.07",
+   "askSize": "5.10",
+   "timestamp": 1791269907050
+  },
+  {
+   "symbol": "APE_USDT_PERP",
+   "bidPrice": "0.1596",
+   "bidSize": "23719",
+   "askPrice": "0.1597",
+   "askSize": "29718",
+   "timestamp": 1791269907082
+  },
+  {
+   "symbol": "API3_USDT_PERP",
+   "bidPrice": "0.3419",
+   "bidSize": "2757.0",
+   "askPrice": "0.3420",
+   "askSize": "1392.8",
+   "timestamp": 1791269907366
+  },
+  {
+   "symbol": "APPX_USDT_PERP",
+   "bidPrice": "281.44",
+   "bidSize": "0.11",
+   "askPrice": "282.15",
+   "askSize": "0.03",
+   "timestamp": 1791269903226
+  },
+  {
+   "symbol": "APR_USDT_PERP",
+   "bidPrice": "0.13807",
+   "bidSize": "7925",
+   "askPrice": "0.13822",
+   "askSize": "40",
+   "timestamp": 1791269907054
+  },
+  {
+   "symbol": "APT_USDT_PERP",
+   "bidPrice": "0.8200",
+   "bidSize": "576.7",
+   "askPrice": "0.8201",
+   "askSize": "4704.4",
+   "timestamp": 1791269907509
+  },
+  {
+   "symbol": "ARB_USDT_PERP",
+   "bidPrice": "0.2018",
+   "bidSize": "62720.9",
+   "askPrice": "0.2019",
+   "askSize": "67514.3",
+   "timestamp": 1791269907154
+  },
+  {
+   "symbol": "ARC_USDT_PERP",
+   "bidPrice": "0.07068",
+   "bidSize": "1491",
+   "askPrice": "0.07070",
+   "askSize": "2956",
+   "timestamp": 1791269907190
+  },
+  {
+   "symbol": "ARIA_USDT_PERP",
+   "bidPrice": "0.03746",
+   "bidSize": "77376",
+   "askPrice": "0.03747",
+   "askSize": "76669",
+   "timestamp": 1791269907074
+  },
+  {
+   "symbol": "ARKM_USDT_PERP",
+   "bidPrice": "0.1318",
+   "bidSize": "19899",
+   "askPrice": "0.1319",
+   "askSize": "10460",
+   "timestamp": 1791269907295
+  },
+  {
+   "symbol": "ARMX_USDT_PERP",
+   "bidPrice": "302.66",
+   "bidSize": "101.93",
+   "askPrice": "302.68",
+   "askSize": "141.82",
+   "timestamp": 1791269907094
+  },
+  {
+   "symbol": "ARPA_USDT_PERP",
+   "bidPrice": "0.01159",
+   "bidSize": "232495",
+   "askPrice": "0.01160",
+   "askSize": "275209",
+   "timestamp": 1791269907281
+  },
+  {
+   "symbol": "ARX_USDT_PERP",
+   "bidPrice": "0.2861",
+   "bidSize": "14617",
+   "askPrice": "0.2862",
+   "askSize": "14235",
+   "timestamp": 1791269907403
+  },
+  {
+   "symbol": "AR_USDT_PERP",
+   "bidPrice": "4.489",
+   "bidSize": "144.2",
+   "askPrice": "4.490",
+   "askSize": "138.6",
+   "timestamp": 1791269907194
+  },
+  {
+   "symbol": "ASMLX_USDT_PERP",
+   "bidPrice": "1861.42",
+   "bidSize": "17.70",
+   "askPrice": "1861.71",
+   "askSize": "12.94",
+   "timestamp": 1791269907408
+  },
+  {
+   "symbol": "ASTER_USDT_PERP",
+   "bidPrice": "0.7416",
+   "bidSize": "9520",
+   "askPrice": "0.7417",
+   "askSize": "3897",
+   "timestamp": 1791269907226
+  },
+  {
+   "symbol": "ASTR_USDT_PERP",
+   "bidPrice": "0.007517",
+   "bidSize": "37455",
+   "askPrice": "0.007518",
+   "askSize": "40633",
+   "timestamp": 1791269907484
+  },
+  {
+   "symbol": "ASTSX_USDT_PERP",
+   "bidPrice": "58.91",
+   "bidSize": "143.86",
+   "askPrice": "58.93",
+   "askSize": "145.39",
+   "timestamp": 1791269907400
+  },
+  {
+   "symbol": "ATH_USDT_PERP",
+   "bidPrice": "0.00729",
+   "bidSize": "57943",
+   "askPrice": "0.00730",
+   "askSize": "41773",
+   "timestamp": 1791269907494
+  },
+  {
+   "symbol": "ATOM_USDT_PERP",
+   "bidPrice": "1.803",
+   "bidSize": "5130.89",
+   "askPrice": "1.804",
+   "askSize": "4065.41",
+   "timestamp": 1791269907154
+  },
+  {
+   "symbol": "AT_USDT_PERP",
+   "bidPrice": "0.13090",
+   "bidSize": "8320",
+   "askPrice": "0.13100",
+   "askSize": "3214",
+   "timestamp": 1791269907362
+  },
+  {
+   "symbol": "AUCTION_USDT_PERP",
+   "bidPrice": "3.793",
+   "bidSize": "90.37",
+   "askPrice": "3.794",
+   "askSize": "112.67",
+   "timestamp": 1791269907475
+  },
+  {
+   "symbol": "AVAX_USDT_PERP",
+   "bidPrice": "11.311",
+   "bidSize": "595.1",
+   "askPrice": "11.313",
+   "askSize": "1037.4",
+   "timestamp": 1791269907301
+  },
+  {
+   "symbol": "AVGOX_USDT_PERP",
+   "bidPrice": "364.64",
+   "bidSize": "2.74",
+   "askPrice": "364.72",
+   "askSize": "74.44",
+   "timestamp": 1791269907190
+  },
+  {
+   "symbol": "AVNT_USDT_PERP",
+   "bidPrice": "0.1325",
+   "bidSize": "15270",
+   "askPrice": "0.1326",
+   "askSize": "12079",
+   "timestamp": 1791269907126
+  },
+  {
+   "symbol": "AWE_USDT_PERP",
+   "bidPrice": "0.06589",
+   "bidSize": "3201",
+   "askPrice": "0.06592",
+   "askSize": "3435",
+   "timestamp": 1791269907497
+  },
+  {
+   "symbol": "AXL_USDT_PERP",
+   "bidPrice": "0.0540",
+   "bidSize": "4740",
+   "askPrice": "0.0541",
+   "askSize": "6864",
+   "timestamp": 1791269907488
+  },
+  {
+   "symbol": "AXS_USDT_PERP",
+   "bidPrice": "1.294",
+   "bidSize": "8783",
+   "askPrice": "1.295",
+   "askSize": "7576",
+   "timestamp": 1791269907335
+  },
+  {
+   "symbol": "AXTIX_USDT_PERP",
+   "bidPrice": "86.56",
+   "bidSize": "329.42",
+   "askPrice": "86.57",
+   "askSize": "405.06",
+   "timestamp": 1791269907409
+  },
+  {
+   "symbol": "A_USDT_PERP",
+   "bidPrice": "0.10113",
+   "bidSize": "2499",
+   "askPrice": "0.10116",
+   "askSize": "2964",
+   "timestamp": 1791269907265
+  },
+  {
+   "symbol": "BABAX_USDT_PERP",
+   "bidPrice": "110.62",
+   "bidSize": "320.18",
+   "askPrice": "110.63",
+   "askSize": "255.59",
+   "timestamp": 1791269907310
+  },
+  {
+   "symbol": "BABY_USDT_PERP",
+   "bidPrice": "0.01337",
+   "bidSize": "99532",
+   "askPrice": "0.01338",
+   "askSize": "91661",
+   "timestamp": 1791269907487
+  },
+  {
+   "symbol": "BANANAS31_USDT_PERP",
+   "bidPrice": "0.007371",
+   "bidSize": "16131",
+   "askPrice": "0.007374",
+   "askSize": "18431",
+   "timestamp": 1791269907242
+  },
+  {
+   "symbol": "BANANA_USDT_PERP",
+   "bidPrice": "3.954",
+   "bidSize": "69.1",
+   "askPrice": "3.956",
+   "askSize": "106.5",
+   "timestamp": 1791269907057
+  },
+  {
+   "symbol": "BAND_USDT_PERP",
+   "bidPrice": "0.2515",
+   "bidSize": "1315.1",
+   "askPrice": "0.2516",
+   "askSize": "1549.7",
+   "timestamp": 1791269907160
+  },
+  {
+   "symbol": "BANK_USDT_PERP",
+   "bidPrice": "0.02840",
+   "bidSize": "28970",
+   "askPrice": "0.02841",
+   "askSize": "79593",
+   "timestamp": 1791269907058
+  },
+  {
+   "symbol": "BAN_USDT_PERP",
+   "bidPrice": "0.06741",
+   "bidSize": "2489",
+   "askPrice": "0.06743",
+   "askSize": "3123",
+   "timestamp": 1791269907142
+  },
+  {
+   "symbol": "BARD_USDT_PERP",
+   "bidPrice": "0.1326",
+   "bidSize": "8010",
+   "askPrice": "0.1327",
+   "askSize": "9361",
+   "timestamp": 1791269907113
+  },
+  {
+   "symbol": "BASED_USDT_PERP",
+   "bidPrice": "0.06160",
+   "bidSize": "5215",
+   "askPrice": "0.06163",
+   "askSize": "4298",
+   "timestamp": 1791269907487
+  },
+  {
+   "symbol": "BAS_USDT_PERP",
+   "bidPrice": "0.023710",
+   "bidSize": "10620",
+   "askPrice": "0.023719",
+   "askSize": "33204",
+   "timestamp": 1791269907472
+  },
+  {
+   "symbol": "BAT_USDT_PERP",
+   "bidPrice": "0.1058",
+   "bidSize": "31213.8",
+   "askPrice": "0.1059",
+   "askSize": "36538.1",
+   "timestamp": 1791269907391
+  },
+  {
+   "symbol": "BB_USDT_PERP",
+   "bidPrice": "0.00969",
+   "bidSize": "112938",
+   "askPrice": "0.00970",
+   "askSize": "135644",
+   "timestamp": 1791269907339
+  },
+  {
+   "symbol": "BCH_USDT_PERP",
+   "bidPrice": "315.30",
+   "bidSize": "5.844",
+   "askPrice": "315.31",
+   "askSize": "6.027",
+   "timestamp": 1791269907285
+  },
+  {
+   "symbol": "BEAMX_USDT_PERP",
+   "bidPrice": "0.002476",
+   "bidSize": "1102700",
+   "askPrice": "0.002477",
+   "askSize": "210523",
+   "timestamp": 1791269907494
+  },
+  {
+   "symbol": "BEAT_USDT_PERP",
+   "bidPrice": "0.0851",
+   "bidSize": "41422",
+   "askPrice": "0.0852",
+   "askSize": "151893",
+   "timestamp": 1791269907332
+  },
+  {
+   "symbol": "BERA_USDT_PERP",
+   "bidPrice": "0.2351",
+   "bidSize": "9310.0",
+   "askPrice": "0.2353",
+   "askSize": "13874.3",
+   "timestamp": 1791269907399
+  },
+  {
+   "symbol": "BEX_USDT_PERP",
+   "bidPrice": "289.10",
+   "bidSize": "148.88",
+   "askPrice": "289.11",
+   "askSize": "137.04",
+   "timestamp": 1791269907346
+  },
+  {
+   "symbol": "BICO_USDT_PERP",
+   "bidPrice": "0.02094",
+   "bidSize": "28997",
+   "askPrice": "0.02095",
+   "askSize": "33981",
+   "timestamp": 1791269907183
+  },
+  {
+   "symbol": "BILL_USDT_PERP",
+   "bidPrice": "0.01136",
+   "bidSize": "167674",
+   "askPrice": "0.01137",
+   "askSize": "124824",
+   "timestamp": 1791269907107
+  },
+  {
+   "symbol": "BIO_USDT_PERP",
+   "bidPrice": "0.03122",
+   "bidSize": "40079",
+   "askPrice": "0.03123",
+   "askSize": "24548",
+   "timestamp": 1791269907470
+  },
+  {
+   "symbol": "BIRB_USDT_PERP",
+   "bidPrice": "0.06366",
+   "bidSize": "2003",
+   "askPrice": "0.06369",
+   "askSize": "1501",
+   "timestamp": 1791269907332
+  },
+  {
+   "symbol": "BLEND_USDT_PERP",
+   "bidPrice": "0.0679",
+   "bidSize": "3692",
+   "askPrice": "0.0680",
+   "askSize": "4677",
+   "timestamp": 1791269907306
+  },
+  {
+   "symbol": "BLESS_USDT_PERP",
+   "bidPrice": "0.008870",
+   "bidSize": "21187",
+   "askPrice": "0.008874",
+   "askSize": "22642",
+   "timestamp": 1791269907458
+  },
+  {
+   "symbol": "BLUAI_USDT_PERP",
+   "bidPrice": "0.008959",
+   "bidSize": "12301",
+   "askPrice": "0.008962",
+   "askSize": "11017",
+   "timestamp": 1791269907034
+  },
+  {
+   "symbol": "BLUR_USDT_PERP",
+   "bidPrice": "0.02069",
+   "bidSize": "53321",
+   "askPrice": "0.02071",
+   "askSize": "53668",
+   "timestamp": 1791269907101
+  },
+  {
+   "symbol": "BMNRX_ETH_PERP",
+   "bidPrice": "0.009897",
+   "bidSize": "1610.89",
+   "askPrice": "0.009900",
+   "askSize": "25.03",
+   "timestamp": 1791269907177
+  },
+  {
+   "symbol": "BMNRX_USDT_PERP",
+   "bidPrice": "26.67",
+   "bidSize": "1587.02",
+   "askPrice": "26.69",
+   "askSize": "0.25",
+   "timestamp": 1791269907228
+  },
+  {
+   "symbol": "BNB_BTC_PERP",
+   "bidPrice": "0.009138",
+   "bidSize": "73.04",
+   "askPrice": "0.009139",
+   "askSize": "84.76",
+   "timestamp": 1791269907404
+  },
+  {
+   "symbol": "BNB_USDT_PERP",
+   "bidPrice": "779.50",
+   "bidSize": "343.85",
+   "askPrice": "779.51",
+   "askSize": "74.13",
+   "timestamp": 1791269907338
+  },
+  {
+   "symbol": "BNCX_USDT_PERP",
+   "bidPrice": "5.981",
+   "bidSize": "1680.16",
+   "askPrice": "5.982",
+   "askSize": "1565.71",
+   "timestamp": 1791269907261
+  },
+  {
+   "symbol": "BNOX_USDT_PERP",
+   "bidPrice": "61.32",
+   "bidSize": "0.04",
+   "askPrice": "61.48",
+   "askSize": "0.07",
+   "timestamp": 1791269902588
+  },
+  {
+   "symbol": "BOME_USDT_PERP",
+   "bidPrice": "0.0009691",
+   "bidSize": "184558",
+   "askPrice": "0.0009692",
+   "askSize": "204801",
+   "timestamp": 1791269907418
+  },
+  {
+   "symbol": "BONK_USDT_PERP",
+   "bidPrice": "0.000003753",
+   "bidSize": "271565968",
+   "askPrice": "0.000003754",
+   "askSize": "1317720600",
+   "timestamp": 1791269907078
+  },
+  {
+   "symbol": "BOTX_USDT_PERP",
+   "bidPrice": "32.79",
+   "bidSize": "268.78",
+   "askPrice": "32.81",
+   "askSize": "321.53",
+   "timestamp": 1791269907138
+  },
+  {
+   "symbol": "BRENTOIL_USDT_PERP",
+   "bidPrice": "99.660",
+   "bidSize": "495.19",
+   "askPrice": "99.662",
+   "askSize": "1.31",
+   "timestamp": 1791269907318
+  },
+  {
+   "symbol": "BRETT_USDT_PERP",
+   "bidPrice": "0.00574",
+   "bidSize": "74130",
+   "askPrice": "0.00575",
+   "askSize": "73563",
+   "timestamp": 1791269907470
+  },
+  {
+   "symbol": "BREV_USDT_PERP",
+   "bidPrice": "0.0901",
+   "bidSize": "9487",
+   "askPrice": "0.0902",
+   "askSize": "10517",
+   "timestamp": 1791269907459
+  },
+  {
+   "symbol": "BROCCOLI_USDT_PERP",
+   "bidPrice": "0.02625",
+   "bidSize": "172227",
+   "askPrice": "0.02626",
+   "askSize": "171897",
+   "timestamp": 1791269907231
+  },
+  {
+   "symbol": "BR_USDT_PERP",
+   "bidPrice": "0.42120",
+   "bidSize": "1393",
+   "askPrice": "0.42138",
+   "askSize": "112",
+   "timestamp": 1791269907296
+  },
+  {
+   "symbol": "BSB_USDT_PERP",
+   "bidPrice": "0.10030",
+   "bidSize": "3251",
+   "askPrice": "0.10033",
+   "askSize": "3548",
+   "timestamp": 1791269907306
+  },
+  {
+   "symbol": "BSPX_USDT_PERP",
+   "bidPrice": "32.05",
+   "bidSize": "325.90",
+   "askPrice": "32.07",
+   "askSize": "416.49",
+   "timestamp": 1791269907465
+  },
+  {
+   "symbol": "BSV_USDT_PERP",
+   "bidPrice": "19.96",
+   "bidSize": "36.7",
+   "askPrice": "19.97",
+   "askSize": "32.9",
+   "timestamp": 1791269907133
+  },
+  {
+   "symbol": "BTC_ETH_PERP",
+   "bidPrice": "31.629",
+   "bidSize": "1.00098",
+   "askPrice": "31.630",
+   "askSize": "0.80617",
+   "timestamp": 1791269907046
+  },
+  {
+   "symbol": "BTC_SOL_PERP",
+   "bidPrice": "712.16",
+   "bidSize": "1.10653",
+   "askPrice": "712.23",
+   "askSize": "1.13115",
+   "timestamp": 1791269907344
+  },
+  {
+   "symbol": "BTC_USDT_PERP",
+   "bidPrice": "85296.0",
+   "bidSize": "4.6718",
+   "askPrice": "85296.1",
+   "askSize": "9.8308",
+   "timestamp": 1791269907446
+  },
+  {
+   "symbol": "BTR_USDT_PERP",
+   "bidPrice": "0.04664",
+   "bidSize": "12039",
+   "askPrice": "0.04665",
+   "askSize": "9280",
+   "timestamp": 1791269907299
+  },
+  {
+   "symbol": "BTW_USDT_PERP",
+   "bidPrice": "1.178700",
+   "bidSize": "311",
+   "askPrice": "1.179000",
+   "askSize": "268",
+   "timestamp": 1791269907251
+  },
+  {
+   "symbol": "BULLA_USDT_PERP",
+   "bidPrice": "0.08321",
+   "bidSize": "11369",
+   "askPrice": "0.08322",
+   "askSize": "13270",
+   "timestamp": 1791269907037
+  },
+  {
+   "symbol": "B_USDT_PERP",
+   "bidPrice": "0.1763",
+   "bidSize": "2701",
+   "askPrice": "0.1764",
+   "askSize": "2649",
+   "timestamp": 1791269907091
+  },
+  {
+   "symbol": "CAKE_USDT_PERP",
+   "bidPrice": "2.4339",
+   "bidSize": "81",
+   "askPrice": "2.4340",
+   "askSize": "103",
+   "timestamp": 1791269907311
+  },
+  {
+   "symbol": "CAP_USDT_PERP",
+   "bidPrice": "0.07879",
+   "bidSize": "4710",
+   "askPrice": "0.07880",
+   "askSize": "5265",
+   "timestamp": 1791269907331
+  },
+  {
+   "symbol": "CASHCAT_USDT_PERP",
+   "bidPrice": "0.1537",
+   "bidSize": "43526",
+   "askPrice": "0.1538",
+   "askSize": "15202",
+   "timestamp": 1791269907190
+  },
+  {
+   "symbol": "CATI_USDT_PERP",
+   "bidPrice": "0.06924",
+   "bidSize": "1564",
+   "askPrice": "0.06926",
+   "askSize": "1585",
+   "timestamp": 1791269907155
+  },
+  {
+   "symbol": "CBRS_USDT_PERP",
+   "bidPrice": "182.96",
+   "bidSize": "58.99",
+   "askPrice": "182.97",
+   "askSize": "3.93",
+   "timestamp": 1791269907244
+  },
+  {
+   "symbol": "CC_USDT_PERP",
+   "bidPrice": "0.12817",
+   "bidSize": "1602",
+   "askPrice": "0.12820",
+   "askSize": "2811",
+   "timestamp": 1791269907505
+  },
+  {
+   "symbol": "CEGX_USDT_PERP",
+   "bidPrice": "267.47",
+   "bidSize": "0.02",
+   "askPrice": "268.44",
+   "askSize": "0.02",
+   "timestamp": 1791269904496
+  },
+  {
+   "symbol": "CETUS_USDT_PERP",
+   "bidPrice": "0.02791",
+   "bidSize": "11060",
+   "askPrice": "0.02793",
+   "askSize": "12005",
+   "timestamp": 1791269907116
+  },
+  {
+   "symbol": "CFG_USDT_PERP",
+   "bidPrice": "0.1493",
+   "bidSize": "2346",
+   "askPrice": "0.1494",
+   "askSize": "2124",
+   "timestamp": 1791269907257
+  },
+  {
+   "symbol": "CFX_USDT_PERP",
+   "bidPrice": "0.05464",
+   "bidSize": "138",
+   "askPrice": "0.05465",
+   "askSize": "7476",
+   "timestamp": 1791269907484
+  },
+  {
+   "symbol": "CF_USDT_PERP",
+   "bidPrice": "115.54",
+   "bidSize": "0.17",
+   "askPrice": "116.60",
+   "askSize": "0.17",
+   "timestamp": 1791269902588
+  },
+  {
+   "symbol": "CHIP_USDT_PERP",
+   "bidPrice": "0.05443",
+   "bidSize": "13082",
+   "askPrice": "0.05444",
+   "askSize": "13459",
+   "timestamp": 1791269907398
+  },
+  {
+   "symbol": "CHZ_USDT_PERP",
+   "bidPrice": "0.01666",
+   "bidSize": "347164",
+   "askPrice": "0.01667",
+   "askSize": "174553",
+   "timestamp": 1791269907288
+  },
+  {
+   "symbol": "CIFRX_USDT_PERP",
+   "bidPrice": "15.39",
+   "bidSize": "0.16",
+   "askPrice": "15.47",
+   "askSize": "0.65",
+   "timestamp": 1791269906314
+  },
+  {
+   "symbol": "CKB_USDT_PERP",
+   "bidPrice": "0.001339",
+   "bidSize": "1252565",
+   "askPrice": "0.001340",
+   "askSize": "968748",
+   "timestamp": 1791269907289
+  },
+  {
+   "symbol": "CLANKER_USDT_PERP",
+   "bidPrice": "14.37",
+   "bidSize": "30.38",
+   "askPrice": "14.38",
+   "askSize": "25.47",
+   "timestamp": 1791269907487
+  },
+  {
+   "symbol": "CLO_USDT_PERP",
+   "bidPrice": "0.0610",
+   "bidSize": "2953",
+   "askPrice": "0.0611",
+   "askSize": "5113",
+   "timestamp": 1791269907429
+  },
+  {
+   "symbol": "COAI_USDT_PERP",
+   "bidPrice": "0.3302",
+   "bidSize": "939",
+   "askPrice": "0.3304",
+   "askSize": "881",
+   "timestamp": 1791269907292
+  },
+  {
+   "symbol": "COHRX_USDT_PERP",
+   "bidPrice": "335.7",
+   "bidSize": "88.88",
+   "askPrice": "336.0",
+   "askSize": "0.06",
+   "timestamp": 1791269907258
+  },
+  {
+   "symbol": "COINX_USDT_PERP",
+   "bidPrice": "187.46",
+   "bidSize": "173.21",
+   "askPrice": "187.47",
+   "askSize": "160.12",
+   "timestamp": 1791269907204
+  },
+  {
+   "symbol": "COLLECT_USDT_PERP",
+   "bidPrice": "0.02145",
+   "bidSize": "16431",
+   "askPrice": "0.02146",
+   "askSize": "32236",
+   "timestamp": 1791269907467
+  },
+  {
+   "symbol": "COMP_USDT_PERP",
+   "bidPrice": "24.38",
+   "bidSize": "67.211",
+   "askPrice": "24.39",
+   "askSize": "59.412",
+   "timestamp": 1791269907389
+  },
+  {
+   "symbol": "COOKIE_USDT_PERP",
+   "bidPrice": "0.01292",
+   "bidSize": "25418",
+   "askPrice": "0.01293",
+   "askSize": "25258",
+   "timestamp": 1791269907525
+  },
+  {
+   "symbol": "COPPER_USDT_PERP",
+   "bidPrice": "6.639",
+   "bidSize": "2609.3",
+   "askPrice": "6.640",
+   "askSize": "2187.4",
+   "timestamp": 1791269907144
+  },
+  {
+   "symbol": "COTI_USDT_PERP",
+   "bidPrice": "0.01399",
+   "bidSize": "197386",
+   "askPrice": "0.01400",
+   "askSize": "234200",
+   "timestamp": 1791269907356
+  },
+  {
+   "symbol": "CPERX_USDT_PERP",
+   "bidPrice": "39.86",
+   "bidSize": "0.03",
+   "askPrice": "39.94",
+   "askSize": "1.19",
+   "timestamp": 1791269902587
+  },
+  {
+   "symbol": "CRCLX_USDT_PERP",
+   "bidPrice": "83.23",
+   "bidSize": "1631.82",
+   "askPrice": "83.24",
+   "askSize": "1186.51",
+   "timestamp": 1791269907465
+  },
+  {
+   "symbol": "CRDOX_USDT_PERP",
+   "bidPrice": "213.44",
+   "bidSize": "48.92",
+   "askPrice": "213.54",
+   "askSize": "46.47",
+   "timestamp": 1791269907002
+  },
+  {
+   "symbol": "CRMX_USDT_PERP",
+   "bidPrice": "230.53",
+   "bidSize": "150.40",
+   "askPrice": "230.56",
+   "askSize": "104.82",
+   "timestamp": 1791269907415
+  },
+  {
+   "symbol": "CROSS_USDT_PERP",
+   "bidPrice": "0.14626",
+   "bidSize": "2715",
+   "askPrice": "0.14633",
+   "askSize": "3235",
+   "timestamp": 1791269907223
+  },
+  {
+   "symbol": "CRO_USDT_PERP",
+   "bidPrice": "0.06739",
+   "bidSize": "510",
+   "askPrice": "0.06740",
+   "askSize": "7700",
+   "timestamp": 1791269907340
+  },
+  {
+   "symbol": "CRV_USDT_PERP",
+   "bidPrice": "0.3621",
+   "bidSize": "10136.6",
+   "askPrice": "0.3622",
+   "askSize": "22505.9",
+   "timestamp": 1791269907283
+  },
+  {
+   "symbol": "CRWVX_USDT_PERP",
+   "bidPrice": "88.09",
+   "bidSize": "382.81",
+   "askPrice": "88.10",
+   "askSize": "348.48",
+   "timestamp": 1791269907091
+  },
+  {
+   "symbol": "CSCOX_USDT_PERP",
+   "bidPrice": "113.04",
+   "bidSize": "224.96",
+   "askPrice": "113.05",
+   "askSize": "286.44",
+   "timestamp": 1791269907139
+  },
+  {
+   "symbol": "CTR_USDT_PERP",
+   "bidPrice": "0.01297",
+   "bidSize": "19692",
+   "askPrice": "0.01299",
+   "askSize": "22565",
+   "timestamp": 1791269907261
+  },
+  {
+   "symbol": "CT_USDT_PERP",
+   "bidPrice": "0.37750",
+   "bidSize": "727",
+   "askPrice": "0.37762",
+   "askSize": "760",
+   "timestamp": 1791269907201
+  },
+  {
+   "symbol": "CVXX_USDT_PERP",
+   "bidPrice": "205.45",
+   "bidSize": "0.07",
+   "askPrice": "206.66",
+   "askSize": "0.07",
+   "timestamp": 1791269906366
+  },
+  {
+   "symbol": "CVX_USDT_PERP",
+   "bidPrice": "2.197",
+   "bidSize": "165.7",
+   "askPrice": "2.198",
+   "askSize": "199.6",
+   "timestamp": 1791269907364
+  },
+  {
+   "symbol": "CXMTX_USDT_PERP",
+   "bidPrice": "8.35",
+   "bidSize": "5764.09",
+   "askPrice": "8.36",
+   "askSize": "5375.40",
+   "timestamp": 1791269907462
+  },
+  {
+   "symbol": "CYS_USDT_PERP",
+   "bidPrice": "0.1630",
+   "bidSize": "48304",
+   "askPrice": "0.1631",
+   "askSize": "3818",
+   "timestamp": 1791269907093
+  },
+  {
+   "symbol": "DASH_USDT_PERP",
+   "bidPrice": "56.53",
+   "bidSize": "16.642",
+   "askPrice": "56.54",
+   "askSize": "58.547",
+   "timestamp": 1791269907234
+  },
+  {
+   "symbol": "DATA_USDT_PERP",
+   "bidPrice": "0.2070",
+   "bidSize": "12974",
+   "askPrice": "0.2071",
+   "askSize": "3256",
+   "timestamp": 1791269907175
+  },
+  {
+   "symbol": "DELLX_USDT_PERP",
+   "bidPrice": "556.06",
+   "bidSize": "54.60",
+   "askPrice": "556.07",
+   "askSize": "59.19",
+   "timestamp": 1791269907505
+  },
+  {
+   "symbol": "DODO_USDT_PERP",
+   "bidPrice": "0.018820",
+   "bidSize": "18067",
+   "askPrice": "0.018822",
+   "askSize": "17051",
+   "timestamp": 1791269907445
+  },
+  {
+   "symbol": "DOGE_BTC_PERP",
+   "bidPrice": "0.000001106",
+   "bidSize": "1147203",
+   "askPrice": "0.000001107",
+   "askSize": "1290836",
+   "timestamp": 1791269907398
+  },
+  {
+   "symbol": "DOGE_ETH_PERP",
+   "bidPrice": "0.000034993",
+   "bidSize": "1585369",
+   "askPrice": "0.000034998",
+   "askSize": "2078591",
+   "timestamp": 1791269907021
+  },
+  {
+   "symbol": "DOGE_SOL_PERP",
+   "bidPrice": "0.0007879",
+   "bidSize": "1310329",
+   "askPrice": "0.0007881",
+   "askSize": "1345609",
+   "timestamp": 1791269907157
+  },
+  {
+   "symbol": "DOGE_USDT_PERP",
+   "bidPrice": "0.09437",
+   "bidSize": "685439",
+   "askPrice": "0.09438",
+   "askSize": "885875",
+   "timestamp": 1791269907516
+  },
+  {
+   "symbol": "DOGS_USDT_PERP",
+   "bidPrice": "0.0000473",
+   "bidSize": "4616436",
+   "askPrice": "0.0000474",
+   "askSize": "5009406",
+   "timestamp": 1791269907494
+  },
+  {
+   "symbol": "DOLO_USDT_PERP",
+   "bidPrice": "0.03132",
+   "bidSize": "5800",
+   "askPrice": "0.03134",
+   "askSize": "7434",
+   "timestamp": 1791269907143
+  },
+  {
+   "symbol": "DOS_USDT_PERP",
+   "bidPrice": "0.2138",
+   "bidSize": "1460",
+   "askPrice": "0.2140",
+   "askSize": "1541",
+   "timestamp": 1791269907453
+  },
+  {
+   "symbol": "DOT_USDT_PERP",
+   "bidPrice": "1.232",
+   "bidSize": "34085.2",
+   "askPrice": "1.233",
+   "askSize": "35593.4",
+   "timestamp": 1791269907310
+  },
+  {
+   "symbol": "DRAMX_USDT_PERP",
+   "bidPrice": "60.86",
+   "bidSize": "659.81",
+   "askPrice": "60.87",
+   "askSize": "799.59",
+   "timestamp": 1791269907257
+  },
+  {
+   "symbol": "DRIFT_USDT_PERP",
+   "bidPrice": "0.01976",
+   "bidSize": "22429",
+   "askPrice": "0.01977",
+   "askSize": "20735",
+   "timestamp": 1791269907425
+  },
+  {
+   "symbol": "DUSK_USDT_PERP",
+   "bidPrice": "0.08493",
+   "bidSize": "1170",
+   "askPrice": "0.08495",
+   "askSize": "14981",
+   "timestamp": 1791269907458
+  },
+  {
+   "symbol": "DYM_USDT_PERP",
+   "bidPrice": "0.01971",
+   "bidSize": "19823.6",
+   "askPrice": "0.01972",
+   "askSize": "19306.3",
+   "timestamp": 1791269907486
+  },
+  {
+   "symbol": "EDEN_USDT_PERP",
+   "bidPrice": "0.06082",
+   "bidSize": "4744",
+   "askPrice": "0.06083",
+   "askSize": "4657",
+   "timestamp": 1791269907500
+  },
+  {
+   "symbol": "EDGE_USDT_PERP",
+   "bidPrice": "0.4575",
+   "bidSize": "480",
+   "askPrice": "0.4577",
+   "askSize": "1498",
+   "timestamp": 1791269907098
+  },
+  {
+   "symbol": "EDU_USDT_PERP",
+   "bidPrice": "0.0582",
+   "bidSize": "4210",
+   "askPrice": "0.0583",
+   "askSize": "4974",
+   "timestamp": 1791269907148
+  },
+  {
+   "symbol": "EGLD_USDT_PERP",
+   "bidPrice": "4.449",
+   "bidSize": "105.8",
+   "askPrice": "4.451",
+   "askSize": "81.1",
+   "timestamp": 1791269907248
+  },
+  {
+   "symbol": "EIGEN_USDT_PERP",
+   "bidPrice": "0.2503",
+   "bidSize": "2952.5",
+   "askPrice": "0.2504",
+   "askSize": "16681.4",
+   "timestamp": 1791269907092
+  },
+  {
+   "symbol": "ELSA_USDT_PERP",
+   "bidPrice": "0.05445",
+   "bidSize": "1628",
+   "askPrice": "0.05446",
+   "askSize": "1736",
+   "timestamp": 1791269907192
+  },
+  {
+   "symbol": "ENA_ETH_PERP",
+   "bidPrice": "0.00008994",
+   "bidSize": "215016",
+   "askPrice": "0.00008995",
+   "askSize": "250775",
+   "timestamp": 1791269907458
+  },
+  {
+   "symbol": "ENA_USDT_PERP",
+   "bidPrice": "0.2425",
+   "bidSize": "319674",
+   "askPrice": "0.2426",
+   "askSize": "357020",
+   "timestamp": 1791269907240
+  },
+  {
+   "symbol": "ENJ_USDT_PERP",
+   "bidPrice": "0.03309",
+   "bidSize": "10487",
+   "askPrice": "0.03310",
+   "askSize": "62093",
+   "timestamp": 1791269907332
+  },
+  {
+   "symbol": "ENSO_USDT_PERP",
+   "bidPrice": "1.0000",
+   "bidSize": "208.7",
+   "askPrice": "1.0001",
+   "askSize": "220.3",
+   "timestamp": 1791269907240
+  },
+  {
+   "symbol": "ENS_USDT_PERP",
+   "bidPrice": "6.765",
+   "bidSize": "51.8",
+   "askPrice": "6.767",
+   "askSize": "53.1",
+   "timestamp": 1791269907187
+  },
+  {
+   "symbol": "ESP_USDT_PERP",
+   "bidPrice": "0.11693",
+   "bidSize": "2445",
+   "askPrice": "0.11694",
+   "askSize": "2329",
+   "timestamp": 1791269907305
+  },
+  {
+   "symbol": "ETC_USDT_PERP",
+   "bidPrice": "8.854",
+   "bidSize": "300.96",
+   "askPrice": "8.855",
+   "askSize": "163.41",
+   "timestamp": 1791269907485
+  },
+  {
+   "symbol": "ETHFI_USDT_PERP",
+   "bidPrice": "0.7295",
+   "bidSize": "5498.8",
+   "askPrice": "0.7296",
+   "askSize": "1721.2",
+   "timestamp": 1791269907509
+  },
+  {
+   "symbol": "ETH_BTC_PERP",
+   "bidPrice": "0.031616",
+   "bidSize": "62.056",
+   "askPrice": "0.031617",
+   "askSize": "70.348",
+   "timestamp": 1791269907335
+  },
+  {
+   "symbol": "ETH_SOL_PERP",
+   "bidPrice": "22.516",
+   "bidSize": "29.2606",
+   "askPrice": "22.519",
+   "askSize": "32.5194",
+   "timestamp": 1791269907494
+  },
+  {
+   "symbol": "ETH_USDT_PERP",
+   "bidPrice": "2696.75",
+   "bidSize": "188.055",
+   "askPrice": "2696.76",
+   "askSize": "224.375",
+   "timestamp": 1791269907444
+  },
+  {
+   "symbol": "EUL_USDT_PERP",
+   "bidPrice": "1.4311",
+   "bidSize": "433.0",
+   "askPrice": "1.4312",
+   "askSize": "223.9",
+   "timestamp": 1791269907165
+  },
+  {
+   "symbol": "EVAA_USDT_PERP",
+   "bidPrice": "0.7619",
+   "bidSize": "292.8",
+   "askPrice": "0.7620",
+   "askSize": "277.2",
+   "timestamp": 1791269907116
+  },
+  {
+   "symbol": "EWJX_USDT_PERP",
+   "bidPrice": "99.53",
+   "bidSize": "309.47",
+   "askPrice": "99.66",
+   "askSize": "317.66",
+   "timestamp": 1791269907363
+  },
+  {
+   "symbol": "EWYX_USDT_PERP",
+   "bidPrice": "188.80",
+   "bidSize": "146.10",
+   "askPrice": "188.81",
+   "askSize": "160.82",
+   "timestamp": 1791269907357
+  },
+  {
+   "symbol": "FARTCOIN_USDT_PERP",
+   "bidPrice": "0.1723",
+   "bidSize": "25998.6",
+   "askPrice": "0.1724",
+   "askSize": "74937.6",
+   "timestamp": 1791269907259
+  },
+  {
+   "symbol": "FET_USDT_PERP",
+   "bidPrice": "0.2487",
+   "bidSize": "37668",
+   "askPrice": "0.2488",
+   "askSize": "31576",
+   "timestamp": 1791269907118
+  },
+  {
+   "symbol": "FF_USDT_PERP",
+   "bidPrice": "0.11302",
+   "bidSize": "3030",
+   "askPrice": "0.11303",
+   "askSize": "3860",
+   "timestamp": 1791269907039
+  },
+  {
+   "symbol": "FHE_USDT_PERP",
+   "bidPrice": "0.02178",
+   "bidSize": "15690",
+   "askPrice": "0.02179",
+   "askSize": "36347",
+   "timestamp": 1791269907054
+  },
+  {
+   "symbol": "FIL_USDT_PERP",
+   "bidPrice": "1.195",
+   "bidSize": "47595.4",
+   "askPrice": "1.196",
+   "askSize": "47713.8",
+   "timestamp": 1791269907447
+  },
+  {
+   "symbol": "FLNCX_USDT_PERP",
+   "bidPrice": "7.67",
+   "bidSize": "1214.21",
+   "askPrice": "7.68",
+   "askSize": "1257.25",
+   "timestamp": 1791269906998
+  },
+  {
+   "symbol": "FLOKI_USDT_PERP",
+   "bidPrice": "0.00002878",
+   "bidSize": "57762600",
+   "askPrice": "0.00002879",
+   "askSize": "15034300",
+   "timestamp": 1791269907507
+  },
+  {
+   "symbol": "FLUID_USDT_PERP",
+   "bidPrice": "1.979",
+   "bidSize": "257.9",
+   "askPrice": "1.980",
+   "askSize": "293.4",
+   "timestamp": 1791269907339
+  },
+  {
+   "symbol": "FOGO_USDT_PERP",
+   "bidPrice": "0.00533",
+   "bidSize": "313217",
+   "askPrice": "0.00534",
+   "askSize": "260688",
+   "timestamp": 1791269907408
+  },
+  {
+   "symbol": "FOLKS_USDT_PERP",
+   "bidPrice": "2.450",
+   "bidSize": "231.3",
+   "askPrice": "2.452",
+   "askSize": "183.0",
+   "timestamp": 1791269907042
+  },
+  {
+   "symbol": "FRAX_USDT_PERP",
+   "bidPrice": "0.3043",
+   "bidSize": "664",
+   "askPrice": "0.3044",
+   "askSize": "652",
+   "timestamp": 1791269907206
+  },
+  {
+   "symbol": "FUTUX_USDT_PERP",
+   "bidPrice": "109.76",
+   "bidSize": "81.77",
+   "askPrice": "110.03",
+   "askSize": "97.61",
+   "timestamp": 1791269907254
+  },
+  {
+   "symbol": "GALA_USDT_PERP",
+   "bidPrice": "0.002410",
+   "bidSize": "316409",
+   "askPrice": "0.002411",
+   "askSize": "1604112",
+   "timestamp": 1791269907479
+  },
+  {
+   "symbol": "GAS_USDT_PERP",
+   "bidPrice": "1.415",
+   "bidSize": "1078.5",
+   "askPrice": "1.416",
+   "askSize": "1086.9",
+   "timestamp": 1791269907072
+  },
+  {
+   "symbol": "GENIUS_USDT_PERP",
+   "bidPrice": "0.3297",
+   "bidSize": "2667",
+   "askPrice": "0.3298",
+   "askSize": "965",
+   "timestamp": 1791269907357
+  },
+  {
+   "symbol": "GEVX_USDT_PERP",
+   "bidPrice": "989.72",
+   "bidSize": "0.01",
+   "askPrice": "992.17",
+   "askSize": "0.09",
+   "timestamp": 1791269905362
+  },
+  {
+   "symbol": "GIGGLE_USDT_PERP",
+   "bidPrice": "37.75",
+   "bidSize": "64.95",
+   "askPrice": "37.77",
+   "askSize": "62.43",
+   "timestamp": 1791269907353
+  },
+  {
+   "symbol": "GLWX_USDT_PERP",
+   "bidPrice": "160.16",
+   "bidSize": "176.77",
+   "askPrice": "160.18",
+   "askSize": "160.46",
+   "timestamp": 1791269907123
+  },
+  {
+   "symbol": "GMEX_USDT_PERP",
+   "bidPrice": "25.30",
+   "bidSize": "367.1",
+   "askPrice": "25.37",
+   "askSize": "0.5",
+   "timestamp": 1791269907055
+  },
+  {
+   "symbol": "GMT_USDT_PERP",
+   "bidPrice": "0.00880",
+   "bidSize": "375624",
+   "askPrice": "0.00881",
+   "askSize": "371080",
+   "timestamp": 1791269907071
+  },
+  {
+   "symbol": "GMX_USDT_PERP",
+   "bidPrice": "8.855",
+   "bidSize": "33.05",
+   "askPrice": "8.857",
+   "askSize": "22.35",
+   "timestamp": 1791269907074
+  },
+  {
+   "symbol": "GOAT_USDT_PERP",
+   "bidPrice": "0.01843",
+   "bidSize": "14044",
+   "askPrice": "0.01844",
+   "askSize": "32918",
+   "timestamp": 1791269907405
+  },
+  {
+   "symbol": "GOOGLX_USDT_PERP",
+   "bidPrice": "348.47",
+   "bidSize": "260.60",
+   "askPrice": "348.48",
+   "askSize": "300.71",
+   "timestamp": 1791269907271
+  },
+  {
+   "symbol": "GPS_USDT_PERP",
+   "bidPrice": "0.010931",
+   "bidSize": "26720",
+   "askPrice": "0.010932",
+   "askSize": "74425",
+   "timestamp": 1791269907449
+  },
+  {
+   "symbol": "GRAM_USDT_PERP",
+   "bidPrice": "1.544",
+   "bidSize": "7104.6",
+   "askPrice": "1.545",
+   "askSize": "3614.7",
+   "timestamp": 1791269907359
+  },
+  {
+   "symbol": "GRASS_USDT_PERP",
+   "bidPrice": "0.7182",
+   "bidSize": "359",
+   "askPrice": "0.7183",
+   "askSize": "313",
+   "timestamp": 1791269907444
+  },
+  {
+   "symbol": "GRIFFAIN_USDT_PERP",
+   "bidPrice": "0.01897",
+   "bidSize": "43639",
+   "askPrice": "0.01898",
+   "askSize": "62817",
+   "timestamp": 1791269907353
+  },
+  {
+   "symbol": "GRT_USDT_PERP",
+   "bidPrice": "0.02927",
+   "bidSize": "56651",
+   "askPrice": "0.02928",
+   "askSize": "79104",
+   "timestamp": 1791269907128
+  },
+  {
+   "symbol": "GRVT_USDT_PERP",
+   "bidPrice": "0.2192",
+   "bidSize": "1269",
+   "askPrice": "0.2193",
+   "askSize": "4953",
+   "timestamp": 1791269907310
+  },
+  {
+   "symbol": "GSGX_USDT_PERP",
+   "bidPrice": "35.35",
+   "bidSize": "0.16",
+   "askPrice": "35.51",
+   "askSize": "0.16",
+   "timestamp": 1791269905362
+  },
+  {
+   "symbol": "GUA_USDT_PERP",
+   "bidPrice": "0.03587",
+   "bidSize": "12633",
+   "askPrice": "0.03588",
+   "askSize": "11442",
+   "timestamp": 1791269907206
+  },
+  {
+   "symbol": "GUN_USDT_PERP",
+   "bidPrice": "0.00312",
+   "bidSize": "320905",
+   "askPrice": "0.00313",
+   "askSize": "383857",
+   "timestamp": 1791269907403
+  },
+  {
+   "symbol": "GWEI_USDT_PERP",
+   "bidPrice": "0.02097",
+   "bidSize": "34046",
+   "askPrice": "0.02098",
+   "askSize": "31306",
+   "timestamp": 1791269907296
+  },
+  {
+   "symbol": "HAEDAL_USDT_PERP",
+   "bidPrice": "0.01978",
+   "bidSize": "27763",
+   "askPrice": "0.01979",
+   "askSize": "18624",
+   "timestamp": 1791269907506
+  },
+  {
+   "symbol": "HANA_USDT_PERP",
+   "bidPrice": "0.01266",
+   "bidSize": "7528",
+   "askPrice": "0.01267",
+   "askSize": "20324",
+   "timestamp": 1791269907162
+  },
+  {
+   "symbol": "HBAR_USDT_PERP",
+   "bidPrice": "0.10035",
+   "bidSize": "18572",
+   "askPrice": "0.10036",
+   "askSize": "20782",
+   "timestamp": 1791269907324
+  },
+  {
+   "symbol": "HEMI_USDT_PERP",
+   "bidPrice": "0.00589",
+   "bidSize": "58473",
+   "askPrice": "0.00590",
+   "askSize": "53253",
+   "timestamp": 1791269907157
+  },
+  {
+   "symbol": "HIMSX_USDT_PERP",
+   "bidPrice": "29.85",
+   "bidSize": "989.70",
+   "askPrice": "29.89",
+   "askSize": "0.08",
+   "timestamp": 1791269907435
+  },
+  {
+   "symbol": "HMSTR_USDT_PERP",
+   "bidPrice": "0.0001699",
+   "bidSize": "3322663",
+   "askPrice": "0.0001701",
+   "askSize": "2859491",
+   "timestamp": 1791269907200
+  },
+  {
+   "symbol": "HOLO_USDT_PERP",
+   "bidPrice": "0.06557",
+   "bidSize": "4534",
+   "askPrice": "0.06559",
+   "askSize": "3750",
+   "timestamp": 1791269907484
+  },
+  {
+   "symbol": "HOME_USDT_PERP",
+   "bidPrice": "0.005738",
+   "bidSize": "172787",
+   "askPrice": "0.005739",
+   "askSize": "160920",
+   "timestamp": 1791269907087
+  },
+  {
+   "symbol": "HOODX_USDT_PERP",
+   "bidPrice": "114.20",
+   "bidSize": "331.02",
+   "askPrice": "114.23",
+   "askSize": "322.15",
+   "timestamp": 1791269907421
+  },
+  {
+   "symbol": "HPEX_USDT_PERP",
+   "bidPrice": "69.40",
+   "bidSize": "156.07",
+   "askPrice": "69.47",
+   "askSize": "166.61",
+   "timestamp": 1791269907209
+  },
+  {
+   "symbol": "HUMA_USDT_PERP",
+   "bidPrice": "0.033369",
+   "bidSize": "3360",
+   "askPrice": "0.033374",
+   "askSize": "16794",
+   "timestamp": 1791269907363
+  },
+  {
+   "symbol": "HYPE_USDT_PERP",
+   "bidPrice": "93.238",
+   "bidSize": "91.31",
+   "askPrice": "93.239",
+   "askSize": "169.11",
+   "timestamp": 1791269907350
+  },
+  {
+   "symbol": "HYUNDAI_USDT_PERP",
+   "bidPrice": "258.90",
+   "bidSize": "127.559",
+   "askPrice": "259.56",
+   "askSize": "100.822",
+   "timestamp": 1791269907436
+  },
+  {
+   "symbol": "H_USDT_PERP",
+   "bidPrice": "0.06947",
+   "bidSize": "3781",
+   "askPrice": "0.06948",
+   "askSize": "4792",
+   "timestamp": 1791269907464
+  },
+  {
+   "symbol": "IBMX_USDT_PERP",
+   "bidPrice": "221.86",
+   "bidSize": "159.02",
+   "askPrice": "221.88",
+   "askSize": "151.47",
+   "timestamp": 1791269907054
+  },
+  {
+   "symbol": "ICNT_USDT_PERP",
+   "bidPrice": "0.0998",
+   "bidSize": "9425",
+   "askPrice": "0.0999",
+   "askSize": "3008",
+   "timestamp": 1791269907216
+  },
+  {
+   "symbol": "ICP_USDT_PERP",
+   "bidPrice": "3.456",
+   "bidSize": "626",
+   "askPrice": "3.457",
+   "askSize": "1006",
+   "timestamp": 1791269907225
+  },
+  {
+   "symbol": "IDOL_USDT_PERP",
+   "bidPrice": "0.01035",
+   "bidSize": "238966",
+   "askPrice": "0.01036",
+   "askSize": "101346",
+   "timestamp": 1791269907447
+  },
+  {
+   "symbol": "IMX_USDT_PERP",
+   "bidPrice": "0.1844",
+   "bidSize": "17378",
+   "askPrice": "0.1845",
+   "askSize": "7714",
+   "timestamp": 1791269907358
+  },
+  {
+   "symbol": "INFQX_USDT_PERP",
+   "bidPrice": "12.71",
+   "bidSize": "876.1",
+   "askPrice": "12.73",
+   "askSize": "0.1",
+   "timestamp": 1791269906998
+  },
+  {
+   "symbol": "INIT_USDT_PERP",
+   "bidPrice": "0.1188",
+   "bidSize": "3499",
+   "askPrice": "0.1190",
+   "askSize": "4397",
+   "timestamp": 1791269907236
+  },
+  {
+   "symbol": "INJ_USDT_PERP",
+   "bidPrice": "7.568",
+   "bidSize": "419.0",
+   "askPrice": "7.569",
+   "askSize": "88.0",
+   "timestamp": 1791269907327
+  },
+  {
+   "symbol": "INTCX_USDT_PERP",
+   "bidPrice": "116.67",
+   "bidSize": "263.70",
+   "askPrice": "116.68",
+   "askSize": "208.56",
+   "timestamp": 1791269907416
+  },
+  {
+   "symbol": "INX_USDT_PERP",
+   "bidPrice": "0.005786",
+   "bidSize": "45929",
+   "askPrice": "0.005789",
+   "askSize": "56496",
+   "timestamp": 1791269907204
+  },
+  {
+   "symbol": "IOST_USDT_PERP",
+   "bidPrice": "0.000848",
+   "bidSize": "2013710",
+   "askPrice": "0.000849",
+   "askSize": "1959177",
+   "timestamp": 1791269907442
+  },
+  {
+   "symbol": "IOTA_USDT_PERP",
+   "bidPrice": "0.0574",
+   "bidSize": "191879.2",
+   "askPrice": "0.0575",
+   "askSize": "184662.3",
+   "timestamp": 1791269907262
+  },
+  {
+   "symbol": "IO_USDT_PERP",
+   "bidPrice": "0.1685",
+   "bidSize": "4605.6",
+   "askPrice": "0.1686",
+   "askSize": "11869.6",
+   "timestamp": 1791269907429
+  },
+  {
+   "symbol": "IRENX_USDT_PERP",
+   "bidPrice": "40.63",
+   "bidSize": "893.04",
+   "askPrice": "40.68",
+   "askSize": "0.14",
+   "timestamp": 1791269907362
+  },
+  {
+   "symbol": "IRYS_USDT_PERP",
+   "bidPrice": "0.01576",
+   "bidSize": "27998",
+   "askPrice": "0.01577",
+   "askSize": "27496",
+   "timestamp": 1791269907306
+  },
+  {
+   "symbol": "JASMY_USDT_PERP",
+   "bidPrice": "0.005203",
+   "bidSize": "122297",
+   "askPrice": "0.005204",
+   "askSize": "40293",
+   "timestamp": 1791269907133
+  },
+  {
+   "symbol": "JELLYJELLY_USDT_PERP",
+   "bidPrice": "0.05491",
+   "bidSize": "13983",
+   "askPrice": "0.05492",
+   "askSize": "8000",
+   "timestamp": 1791269907161
+  },
+  {
+   "symbol": "JTO_USDT_PERP",
+   "bidPrice": "0.5674",
+   "bidSize": "1918",
+   "askPrice": "0.5676",
+   "askSize": "2072",
+   "timestamp": 1791269907333
+  },
+  {
+   "symbol": "JUP_USDT_PERP",
+   "bidPrice": "0.3469",
+   "bidSize": "7146",
+   "askPrice": "0.3470",
+   "askSize": "12364",
+   "timestamp": 1791269907384
+  },
+  {
+   "symbol": "KAIA_USDT_PERP",
+   "bidPrice": "0.04005",
+   "bidSize": "10536",
+   "askPrice": "0.04007",
+   "askSize": "9643",
+   "timestamp": 1791269907301
+  },
+  {
+   "symbol": "KAITO_USDT_PERP",
+   "bidPrice": "0.3385",
+   "bidSize": "1320.6",
+   "askPrice": "0.3386",
+   "askSize": "16157.1",
+   "timestamp": 1791269907135
+  },
+  {
+   "symbol": "KAS_USDT_PERP",
+   "bidPrice": "0.04255",
+   "bidSize": "11179",
+   "askPrice": "0.04256",
+   "askSize": "8818",
+   "timestamp": 1791269907445
+  },
+  {
+   "symbol": "KAT_USDT_PERP",
+   "bidPrice": "0.004744",
+   "bidSize": "657809",
+   "askPrice": "0.004745",
+   "askSize": "799933",
+   "timestamp": 1791269907407
+  },
+  {
+   "symbol": "KAVA_USDT_PERP",
+   "bidPrice": "0.06904",
+   "bidSize": "67090.7",
+   "askPrice": "0.06905",
+   "askSize": "64044.9",
+   "timestamp": 1791269907527
+  },
+  {
+   "symbol": "KERNEL_USDT_PERP",
+   "bidPrice": "0.05404",
+   "bidSize": "8651",
+   "askPrice": "0.05406",
+   "askSize": "7762",
+   "timestamp": 1791269907218
+  },
+  {
+   "symbol": "KGEN_USDT_PERP",
+   "bidPrice": "0.16140",
+   "bidSize": "3305",
+   "askPrice": "0.16150",
+   "askSize": "3623",
+   "timestamp": 1791269907066
+  },
+  {
+   "symbol": "KII_USDT_PERP",
+   "bidPrice": "0.08868",
+   "bidSize": "3596",
+   "askPrice": "0.08873",
+   "askSize": "3490",
+   "timestamp": 1791269907462
+  },
+  {
+   "symbol": "KITE_USDT_PERP",
+   "bidPrice": "0.13807",
+   "bidSize": "6467",
+   "askPrice": "0.13809",
+   "askSize": "657",
+   "timestamp": 1791269907331
+  },
+  {
+   "symbol": "KLACX_USDT_PERP",
+   "bidPrice": "207.28",
+   "bidSize": "56.13",
+   "askPrice": "207.38",
+   "askSize": "39.92",
+   "timestamp": 1791269907258
+  },
+  {
+   "symbol": "KMNO_USDT_PERP",
+   "bidPrice": "0.03983",
+   "bidSize": "22705",
+   "askPrice": "0.03984",
+   "askSize": "20726",
+   "timestamp": 1791269907506
+  },
+  {
+   "symbol": "KNC_USDT_PERP",
+   "bidPrice": "0.1437",
+   "bidSize": "12037",
+   "askPrice": "0.1438",
+   "askSize": "10357",
+   "timestamp": 1791269907444
+  },
+  {
+   "symbol": "KORUX_USDT_PERP",
+   "bidPrice": "21.78",
+   "bidSize": "3211.31",
+   "askPrice": "21.79",
+   "askSize": "3724.06",
+   "timestamp": 1791269907254
+  },
+  {
+   "symbol": "LAB_USDT_PERP",
+   "bidPrice": "0.04994",
+   "bidSize": "17662",
+   "askPrice": "0.04995",
+   "askSize": "15224",
+   "timestamp": 1791269907033
+  },
+  {
+   "symbol": "LAYER_USDT_PERP",
+   "bidPrice": "0.0771",
+   "bidSize": "4113.3",
+   "askPrice": "0.0772",
+   "askSize": "3796.8",
+   "timestamp": 1791269907398
+  },
+  {
+   "symbol": "LA_USDT_PERP",
+   "bidPrice": "0.06876",
+   "bidSize": "14875.4",
+   "askPrice": "0.06877",
+   "askSize": "14313.1",
+   "timestamp": 1791269907113
+  },
+  {
+   "symbol": "LDO_USDT_PERP",
+   "bidPrice": "0.4597",
+   "bidSize": "2243",
+   "askPrice": "0.4598",
+   "askSize": "1424",
+   "timestamp": 1791269907234
+  },
+  {
+   "symbol": "LIGHT_USDT_PERP",
+   "bidPrice": "0.2068",
+   "bidSize": "3817",
+   "askPrice": "0.2069",
+   "askSize": "2504",
+   "timestamp": 1791269907300
+  },
+  {
+   "symbol": "LINEA_USDT_PERP",
+   "bidPrice": "0.002848",
+   "bidSize": "108357",
+   "askPrice": "0.002849",
+   "askSize": "189868",
+   "timestamp": 1791269907241
+  },
+  {
+   "symbol": "LINK_BTC_PERP",
+   "bidPrice": "0.00016212",
+   "bidSize": "2724.53",
+   "askPrice": "0.00016215",
+   "askSize": "2006.93",
+   "timestamp": 1791269907246
+  },
+  {
+   "symbol": "LINK_ETH_PERP",
+   "bidPrice": "0.005128",
+   "bidSize": "3653.90",
+   "askPrice": "0.005129",
+   "askSize": "4821.63",
+   "timestamp": 1791269907152
+  },
+  {
+   "symbol": "LINK_USDT_PERP",
+   "bidPrice": "13.829",
+   "bidSize": "2602.05",
+   "askPrice": "13.830",
+   "askSize": "506.53",
+   "timestamp": 1791269907099
+  },
+  {
+   "symbol": "LISTA_USDT_PERP",
+   "bidPrice": "0.0836",
+   "bidSize": "4190",
+   "askPrice": "0.0837",
+   "askSize": "4260",
+   "timestamp": 1791269907238
+  },
+  {
+   "symbol": "LITEX_USDT_PERP",
+   "bidPrice": "1095.27",
+   "bidSize": "24.18",
+   "askPrice": "1095.30",
+   "askSize": "26.02",
+   "timestamp": 1791269907106
+  },
+  {
+   "symbol": "LIT_USDT_PERP",
+   "bidPrice": "3.917",
+   "bidSize": "138.6",
+   "askPrice": "3.918",
+   "askSize": "471.1",
+   "timestamp": 1791269907087
+  },
+  {
+   "symbol": "LLYX_USDT_PERP",
+   "bidPrice": "1148.00",
+   "bidSize": "25.12",
+   "askPrice": "1148.25",
+   "askSize": "23.18",
+   "timestamp": 1791269907508
+  },
+  {
+   "symbol": "LMTX_USDT_PERP",
+   "bidPrice": "506.48",
+   "bidSize": "0.01",
+   "askPrice": "507.44",
+   "askSize": "0.01",
+   "timestamp": 1791269905249
+  },
+  {
+   "symbol": "LNGX_USDT_PERP",
+   "bidPrice": "274.05",
+   "bidSize": "0.05",
+   "askPrice": "275.17",
+   "askSize": "0.03",
+   "timestamp": 1791269904983
+  },
+  {
+   "symbol": "LPT_USDT_PERP",
+   "bidPrice": "1.774",
+   "bidSize": "1017.7",
+   "askPrice": "1.775",
+   "askSize": "907.7",
+   "timestamp": 1791269907224
+  },
+  {
+   "symbol": "LRCXX_USDT_PERP",
+   "bidPrice": "347.72",
+   "bidSize": "89.11",
+   "askPrice": "347.85",
+   "askSize": "90.59",
+   "timestamp": 1791269907357
+  },
+  {
+   "symbol": "LRC_USDT_PERP",
+   "bidPrice": "0.01031",
+   "bidSize": "26280",
+   "askPrice": "0.01032",
+   "askSize": "29678",
+   "timestamp": 1791269907311
+  },
+  {
+   "symbol": "LSK_USDT_PERP",
+   "bidPrice": "0.2561",
+   "bidSize": "15435",
+   "askPrice": "0.2562",
+   "askSize": "11359",
+   "timestamp": 1791269907348
+  },
+  {
+   "symbol": "LTC_USDT_PERP",
+   "bidPrice": "69.51",
+   "bidSize": "353.408",
+   "askPrice": "69.52",
+   "askSize": "218.329",
+   "timestamp": 1791269907259
+  },
+  {
+   "symbol": "LUNA2_USDT_PERP",
+   "bidPrice": "0.05109",
+   "bidSize": "3507",
+   "askPrice": "0.05110",
+   "askSize": "4296",
+   "timestamp": 1791269907333
+  },
+  {
+   "symbol": "LUNC_USDT_PERP",
+   "bidPrice": "0.00005279",
+   "bidSize": "8392213",
+   "askPrice": "0.00005280",
+   "askSize": "11319053",
+   "timestamp": 1791269907329
+  },
+  {
+   "symbol": "LYN_USDT_PERP",
+   "bidPrice": "0.02824",
+   "bidSize": "10820",
+   "askPrice": "0.02826",
+   "askSize": "9276",
+   "timestamp": 1791269907391
+  },
+  {
+   "symbol": "MAGIC_USDT_PERP",
+   "bidPrice": "0.0615",
+   "bidSize": "5957.0",
+   "askPrice": "0.0616",
+   "askSize": "7173.3",
+   "timestamp": 1791269907518
+  },
+  {
+   "symbol": "MAGMA_USDT_PERP",
+   "bidPrice": "0.21200",
+   "bidSize": "1193",
+   "askPrice": "0.21201",
+   "askSize": "1645",
+   "timestamp": 1791269907279
+  },
+  {
+   "symbol": "MANA_USDT_PERP",
+   "bidPrice": "0.1030",
+   "bidSize": "82416",
+   "askPrice": "0.1031",
+   "askSize": "88790",
+   "timestamp": 1791269907026
+  },
+  {
+   "symbol": "MANTA_USDT_PERP",
+   "bidPrice": "0.06888",
+   "bidSize": "2405.1",
+   "askPrice": "0.06889",
+   "askSize": "2489.4",
+   "timestamp": 1791269907304
+  },
+  {
+   "symbol": "MANTRA_USDT_PERP",
+   "bidPrice": "0.00457",
+   "bidSize": "747495",
+   "askPrice": "0.00458",
+   "askSize": "714389",
+   "timestamp": 1791269907403
+  },
+  {
+   "symbol": "MARSCOIN_USDT_PERP",
+   "bidPrice": "0.10001",
+   "bidSize": "2816",
+   "askPrice": "0.10002",
+   "askSize": "2519",
+   "timestamp": 1791269907348
+  },
+  {
+   "symbol": "MASK_USDT_PERP",
+   "bidPrice": "0.4891",
+   "bidSize": "543",
+   "askPrice": "0.4892",
+   "askSize": "576",
+   "timestamp": 1791269907280
+  },
+  {
+   "symbol": "MAV_USDT_PERP",
+   "bidPrice": "0.01194",
+   "bidSize": "63340",
+   "askPrice": "0.01196",
+   "askSize": "61344",
+   "timestamp": 1791269907438
+  },
+  {
+   "symbol": "MEGA_USDT_PERP",
+   "bidPrice": "0.04761",
+   "bidSize": "5207",
+   "askPrice": "0.04763",
+   "askSize": "7482",
+   "timestamp": 1791269907190
+  },
+  {
+   "symbol": "MELANIA_USDT_PERP",
+   "bidPrice": "0.1026",
+   "bidSize": "12855.6",
+   "askPrice": "0.1027",
+   "askSize": "14192.9",
+   "timestamp": 1791269907116
+  },
+  {
+   "symbol": "MEME_USDT_PERP",
+   "bidPrice": "0.000617",
+   "bidSize": "555428",
+   "askPrice": "0.000618",
+   "askSize": "676891",
+   "timestamp": 1791269907075
+  },
+  {
+   "symbol": "MERL_USDT_PERP",
+   "bidPrice": "0.02988",
+   "bidSize": "6099.4",
+   "askPrice": "0.02990",
+   "askSize": "22723.4",
+   "timestamp": 1791269907258
+  },
+  {
+   "symbol": "METAX_USDT_PERP",
+   "bidPrice": "745.85",
+   "bidSize": "152.70",
+   "askPrice": "745.86",
+   "askSize": "130.72",
+   "timestamp": 1791269907206
+  },
+  {
+   "symbol": "METIS_USDT_PERP",
+   "bidPrice": "3.369",
+   "bidSize": "56.48",
+   "askPrice": "3.370",
+   "askSize": "70.20",
+   "timestamp": 1791269907112
+  },
+  {
+   "symbol": "MET_USDT_PERP",
+   "bidPrice": "0.2879",
+   "bidSize": "2202",
+   "askPrice": "0.2880",
+   "askSize": "2275",
+   "timestamp": 1791269907436
+  },
+  {
+   "symbol": "MEW_USDT_PERP",
+   "bidPrice": "0.000531",
+   "bidSize": "771043",
+   "askPrice": "0.000532",
+   "askSize": "775098",
+   "timestamp": 1791269907344
+  },
+  {
+   "symbol": "ME_USDT_PERP",
+   "bidPrice": "0.0754",
+   "bidSize": "54367.3",
+   "askPrice": "0.0755",
+   "askSize": "45606.6",
+   "timestamp": 1791269907378
+  },
+  {
+   "symbol": "MITO_USDT_PERP",
+   "bidPrice": "0.01640",
+   "bidSize": "20650",
+   "askPrice": "0.01641",
+   "askSize": "20322",
+   "timestamp": 1791269907069
+  },
+  {
+   "symbol": "MMT_USDT_PERP",
+   "bidPrice": "0.1782",
+   "bidSize": "5266",
+   "askPrice": "0.1784",
+   "askSize": "9447",
+   "timestamp": 1791269907466
+  },
+  {
+   "symbol": "MNT_USDT_PERP",
+   "bidPrice": "0.6467",
+   "bidSize": "2276",
+   "askPrice": "0.6468",
+   "askSize": "1557",
+   "timestamp": 1791269907097
+  },
+  {
+   "symbol": "MON_USDT_PERP",
+   "bidPrice": "0.02904",
+   "bidSize": "46570",
+   "askPrice": "0.02905",
+   "askSize": "25028",
+   "timestamp": 1791269907471
+  },
+  {
+   "symbol": "MOODENG_USDT_PERP",
+   "bidPrice": "0.04550",
+   "bidSize": "6103",
+   "askPrice": "0.04551",
+   "askSize": "6003",
+   "timestamp": 1791269907063
+  },
+  {
+   "symbol": "MOONSHOT_USDT_PERP",
+   "bidPrice": "67.66",
+   "bidSize": "148.10",
+   "askPrice": "67.74",
+   "askSize": "129.92",
+   "timestamp": 1791269907296
+  },
+  {
+   "symbol": "MOSX_USDT_PERP",
+   "bidPrice": "21.26",
+   "bidSize": "0.05",
+   "askPrice": "21.31",
+   "askSize": "0.05",
+   "timestamp": 1791269905362
+  },
+  {
+   "symbol": "MOVE_USDT_PERP",
+   "bidPrice": "0.00971",
+   "bidSize": "230812",
+   "askPrice": "0.00972",
+   "askSize": "203353",
+   "timestamp": 1791269907222
+  },
+  {
+   "symbol": "MOVR_USDT_PERP",
+   "bidPrice": "1.843",
+   "bidSize": "260.91",
+   "askPrice": "1.844",
+   "askSize": "307.81",
+   "timestamp": 1791269907279
+  },
+  {
+   "symbol": "MPX_USDT_PERP",
+   "bidPrice": "46.84",
+   "bidSize": "0.14",
+   "askPrice": "46.92",
+   "askSize": "0.28",
+   "timestamp": 1791269906216
+  },
+  {
+   "symbol": "MRNAX_USDT_PERP",
+   "bidPrice": "206.85",
+   "bidSize": "80.15",
+   "askPrice": "206.88",
+   "askSize": "85.57",
+   "timestamp": 1791269907306
+  },
+  {
+   "symbol": "MRVLX_USDT_PERP",
+   "bidPrice": "272.27",
+   "bidSize": "102.07",
+   "askPrice": "272.28",
+   "askSize": "97.93",
+   "timestamp": 1791269907435
+  },
+  {
+   "symbol": "MSFTX_USDT_PERP",
+   "bidPrice": "527.09",
+   "bidSize": "213.06",
+   "askPrice": "527.10",
+   "askSize": "214.40",
+   "timestamp": 1791269907263
+  },
+  {
+   "symbol": "MSTRX_BTC_PERP",
+   "bidPrice": "0.0019185",
+   "bidSize": "0.04",
+   "askPrice": "0.0019200",
+   "askSize": "1773.34",
+   "timestamp": 1791269907176
+  },
+  {
+   "symbol": "MSTRX_USDT_PERP",
+   "bidPrice": "163.68",
+   "bidSize": "821.40",
+   "askPrice": "163.69",
+   "askSize": "875.02",
+   "timestamp": 1791269907256
+  },
+  {
+   "symbol": "MUBARAK_USDT_PERP",
+   "bidPrice": "0.07308",
+   "bidSize": "11029",
+   "askPrice": "0.07309",
+   "askSize": "13038",
+   "timestamp": 1791269907472
+  },
+  {
+   "symbol": "MUX_USDT_PERP",
+   "bidPrice": "1057.78",
+   "bidSize": "28.07",
+   "askPrice": "1057.79",
+   "askSize": "23.68",
+   "timestamp": 1791269907054
+  },
+  {
+   "symbol": "MYX_USDT_PERP",
+   "bidPrice": "0.07107",
+   "bidSize": "3151",
+   "askPrice": "0.07109",
+   "askSize": "2573",
+   "timestamp": 1791269907322
+  },
+  {
+   "symbol": "NAORIS_USDT_PERP",
+   "bidPrice": "0.03285",
+   "bidSize": "10708",
+   "askPrice": "0.03287",
+   "askSize": "9121",
+   "timestamp": 1791269907355
+  },
+  {
+   "symbol": "NATGAS_USDT_PERP",
+   "bidPrice": "3.0874",
+   "bidSize": "10764.8",
+   "askPrice": "3.0875",
+   "askSize": "0.8",
+   "timestamp": 1791269907039
+  },
+  {
+   "symbol": "NBISX_USDT_PERP",
+   "bidPrice": "234.51",
+   "bidSize": "135.19",
+   "askPrice": "234.54",
+   "askSize": "110.01",
+   "timestamp": 1791269907243
+  },
+  {
+   "symbol": "NEAR_USDT_PERP",
+   "bidPrice": "5.173",
+   "bidSize": "29136",
+   "askPrice": "5.174",
+   "askSize": "30505",
+   "timestamp": 1791269907184
+  },
+  {
+   "symbol": "NEIRO_USDT_PERP",
+   "bidPrice": "0.00009078",
+   "bidSize": "3371310",
+   "askPrice": "0.00009079",
+   "askSize": "4030876",
+   "timestamp": 1791269907215
+  },
+  {
+   "symbol": "NEO_USDT_PERP",
+   "bidPrice": "2.529",
+   "bidSize": "260.46",
+   "askPrice": "2.530",
+   "askSize": "268.40",
+   "timestamp": 1791269907311
+  },
+  {
+   "symbol": "NETX_USDT_PERP",
+   "bidPrice": "359.57",
+   "bidSize": "0.03",
+   "askPrice": "360.87",
+   "askSize": "0.34",
+   "timestamp": 1791269906216
+  },
+  {
+   "symbol": "NFLXX_USDT_PERP",
+   "bidPrice": "67.77",
+   "bidSize": "145.50",
+   "askPrice": "67.85",
+   "askSize": "0.42",
+   "timestamp": 1791269907467
+  },
+  {
+   "symbol": "NIGHT_USDT_PERP",
+   "bidPrice": "0.05017",
+   "bidSize": "9324",
+   "askPrice": "0.05019",
+   "askSize": "9435",
+   "timestamp": 1791269907023
+  },
+  {
+   "symbol": "NIL_USDT_PERP",
+   "bidPrice": "0.10058",
+   "bidSize": "12945.0",
+   "askPrice": "0.10059",
+   "askSize": "14253.1",
+   "timestamp": 1791269907336
+  },
+  {
+   "symbol": "NIOX_USDT_PERP",
+   "bidPrice": "3.41",
+   "bidSize": "4.84",
+   "askPrice": "3.43",
+   "askSize": "4.84",
+   "timestamp": 1791269904496
+  },
+  {
+   "symbol": "NKEX_USDT_PERP",
+   "bidPrice": "33.63",
+   "bidSize": "283.27",
+   "askPrice": "33.65",
+   "askSize": "0.82",
+   "timestamp": 1791269907026
+  },
+  {
+   "symbol": "NMR_USDT_PERP",
+   "bidPrice": "11.959",
+   "bidSize": "15.2",
+   "askPrice": "11.960",
+   "askSize": "18.1",
+   "timestamp": 1791269907383
+  },
+  {
+   "symbol": "NOKX_USDT_PERP",
+   "bidPrice": "10.25",
+   "bidSize": "2346.04",
+   "askPrice": "10.26",
+   "askSize": "3281.02",
+   "timestamp": 1791269907107
+  },
+  {
+   "symbol": "NOM_USDT_PERP",
+   "bidPrice": "0.002429",
+   "bidSize": "332455",
+   "askPrice": "0.002430",
+   "askSize": "300443",
+   "timestamp": 1791269907303
+  },
+  {
+   "symbol": "NOT_USDT_PERP",
+   "bidPrice": "0.0004916",
+   "bidSize": "661591",
+   "askPrice": "0.0004918",
+   "askSize": "335389",
+   "timestamp": 1791269907408
+  },
+  {
+   "symbol": "NOWX_USDT_PERP",
+   "bidPrice": "136.32",
+   "bidSize": "61.81",
+   "askPrice": "136.44",
+   "askSize": "0.02",
+   "timestamp": 1791269907450
+  },
+  {
+   "symbol": "NTRX_USDT_PERP",
+   "bidPrice": "69.97",
+   "bidSize": "0.18",
+   "askPrice": "70.28",
+   "askSize": "0.18",
+   "timestamp": 1791269903929
+  },
+  {
+   "symbol": "NVDAX_USDT_PERP",
+   "bidPrice": "240.41",
+   "bidSize": "435.71",
+   "askPrice": "240.42",
+   "askSize": "433.87",
+   "timestamp": 1791269907400
+  },
+  {
+   "symbol": "NVDLX_USDT_PERP",
+   "bidPrice": "40.47",
+   "bidSize": "342.19",
+   "askPrice": "40.52",
+   "askSize": "0.18",
+   "timestamp": 1791269907279
+  },
+  {
+   "symbol": "NXPC_USDT_PERP",
+   "bidPrice": "0.2329",
+   "bidSize": "2780",
+   "askPrice": "0.2330",
+   "askSize": "3038",
+   "timestamp": 1791269907289
+  },
+  {
+   "symbol": "OFC_USDT_PERP",
+   "bidPrice": "0.00824",
+   "bidSize": "59278",
+   "askPrice": "0.00826",
+   "askSize": "60493",
+   "timestamp": 1791269907023
+  },
+  {
+   "symbol": "OGN_USDT_PERP",
+   "bidPrice": "0.02234",
+   "bidSize": "47315",
+   "askPrice": "0.02235",
+   "askSize": "51414",
+   "timestamp": 1791269907051
+  },
+  {
+   "symbol": "OG_USDT_PERP",
+   "bidPrice": "2.839",
+   "bidSize": "217.7",
+   "askPrice": "2.841",
+   "askSize": "63.5",
+   "timestamp": 1791269907230
+  },
+  {
+   "symbol": "OKB_USDT_PERP",
+   "bidPrice": "130.18",
+   "bidSize": "3.27",
+   "askPrice": "130.19",
+   "askSize": "2.73",
+   "timestamp": 1791269907420
+  },
+  {
+   "symbol": "OKLOX_USDT_PERP",
+   "bidPrice": "36.18",
+   "bidSize": "721.78",
+   "askPrice": "36.24",
+   "askSize": "0.04",
+   "timestamp": 1791269907303
+  },
+  {
+   "symbol": "ONDO_USDT_PERP",
+   "bidPrice": "0.4879",
+   "bidSize": "59721.7",
+   "askPrice": "0.4880",
+   "askSize": "66896.7",
+   "timestamp": 1791269907109
+  },
+  {
+   "symbol": "ONDSX_USDT_PERP",
+   "bidPrice": "7.47",
+   "bidSize": "1.66",
+   "askPrice": "7.49",
+   "askSize": "8.10",
+   "timestamp": 1791269907106
+  },
+  {
+   "symbol": "ONG_USDT_PERP",
+   "bidPrice": "0.08899",
+   "bidSize": "4823",
+   "askPrice": "0.08900",
+   "askSize": "3710",
+   "timestamp": 1791269907391
+  },
+  {
+   "symbol": "ONT_USDT_PERP",
+   "bidPrice": "0.0601",
+   "bidSize": "199195.7",
+   "askPrice": "0.0602",
+   "askSize": "167148.3",
+   "timestamp": 1791269907075
+  },
+  {
+   "symbol": "ONX_USDT_PERP",
+   "bidPrice": "85.67",
+   "bidSize": "1.52",
+   "askPrice": "86.22",
+   "askSize": "0.11",
+   "timestamp": 1791269906164
+  },
+  {
+   "symbol": "ON_USDT_PERP",
+   "bidPrice": "0.10820",
+   "bidSize": "6912",
+   "askPrice": "0.10825",
+   "askSize": "511",
+   "timestamp": 1791269907455
+  },
+  {
+   "symbol": "OPENAI_USDT_PERP",
+   "bidPrice": "1621.84",
+   "bidSize": "7.07",
+   "askPrice": "1622.97",
+   "askSize": "4.95",
+   "timestamp": 1791269907107
+  },
+  {
+   "symbol": "OPEN_USDT_PERP",
+   "bidPrice": "0.1196",
+   "bidSize": "18505",
+   "askPrice": "0.1197",
+   "askSize": "5369",
+   "timestamp": 1791269907407
+  },
+  {
+   "symbol": "OPG_USDT_PERP",
+   "bidPrice": "0.1330",
+   "bidSize": "7669",
+   "askPrice": "0.1331",
+   "askSize": "2561",
+   "timestamp": 1791269907094
+  },
+  {
+   "symbol": "OPN_USDT_PERP",
+   "bidPrice": "0.0567",
+   "bidSize": "22459",
+   "askPrice": "0.0568",
+   "askSize": "15085",
+   "timestamp": 1791269907227
+  },
+  {
+   "symbol": "OP_USDT_PERP",
+   "bidPrice": "0.1339",
+   "bidSize": "174644.4",
+   "askPrice": "0.1340",
+   "askSize": "162367.2",
+   "timestamp": 1791269907326
+  },
+  {
+   "symbol": "ORCA_USDT_PERP",
+   "bidPrice": "2.512",
+   "bidSize": "1278.3",
+   "askPrice": "2.513",
+   "askSize": "1544.2",
+   "timestamp": 1791269907462
+  },
+  {
+   "symbol": "ORCLX_USDT_PERP",
+   "bidPrice": "143.48",
+   "bidSize": "217.06",
+   "askPrice": "143.49",
+   "askSize": "194.47",
+   "timestamp": 1791269907060
+  },
+  {
+   "symbol": "ORDER_USDT_PERP",
+   "bidPrice": "0.03860",
+   "bidSize": "5253",
+   "askPrice": "0.03862",
+   "askSize": "6994",
+   "timestamp": 1791269907472
+  },
+  {
+   "symbol": "ORDI_BTC_PERP",
+   "bidPrice": "0.00005315",
+   "bidSize": "942.90",
+   "askPrice": "0.00005317",
+   "askSize": "679.24",
+   "timestamp": 1791269907209
+  },
+  {
+   "symbol": "ORDI_USDT_PERP",
+   "bidPrice": "4.534",
+   "bidSize": "176.38",
+   "askPrice": "4.535",
+   "askSize": "132.29",
+   "timestamp": 1791269907289
+  },
+  {
+   "symbol": "O_USDT_PERP",
+   "bidPrice": "0.5029",
+   "bidSize": "1313",
+   "askPrice": "0.5030",
+   "askSize": "1382",
+   "timestamp": 1791269907296
+  },
+  {
+   "symbol": "PANWX_USDT_PERP",
+   "bidPrice": "405.90",
+   "bidSize": "0.03",
+   "askPrice": "407.32",
+   "askSize": "0.03",
+   "timestamp": 1791269906216
+  },
+  {
+   "symbol": "PARTI_USDT_PERP",
+   "bidPrice": "0.03228",
+   "bidSize": "7043",
+   "askPrice": "0.03229",
+   "askSize": "21850",
+   "timestamp": 1791269907284
+  },
+  {
+   "symbol": "PAXG_BTC_PERP",
+   "bidPrice": "0.048535",
+   "bidSize": "32.754",
+   "askPrice": "0.048536",
+   "askSize": "26.091",
+   "timestamp": 1791269907436
+  },
+  {
+   "symbol": "PAXG_USDT_PERP",
+   "bidPrice": "4139.86",
+   "bidSize": "11.791",
+   "askPrice": "4139.87",
+   "askSize": "11.669",
+   "timestamp": 1791269907196
+  },
+  {
+   "symbol": "PAYPX_USDT_PERP",
+   "bidPrice": "15.23",
+   "bidSize": "912.67",
+   "askPrice": "15.25",
+   "askSize": "661.97",
+   "timestamp": 1791269907357
+  },
+  {
+   "symbol": "PENDLE_USDT_PERP",
+   "bidPrice": "2.4289",
+   "bidSize": "102",
+   "askPrice": "2.4291",
+   "askSize": "116",
+   "timestamp": 1791269907229
+  },
+  {
+   "symbol": "PENGU_USDT_PERP",
+   "bidPrice": "0.009451",
+   "bidSize": "252690",
+   "askPrice": "0.009452",
+   "askSize": "67021",
+   "timestamp": 1791269907263
+  },
+  {
+   "symbol": "PEOPLE_USDT_PERP",
+   "bidPrice": "0.00877",
+   "bidSize": "786489",
+   "askPrice": "0.00878",
+   "askSize": "770658",
+   "timestamp": 1791269907132
+  },
+  {
+   "symbol": "PEPE_USDT_PERP",
+   "bidPrice": "0.0000043043",
+   "bidSize": "199791356",
+   "askPrice": "0.0000043044",
+   "askSize": "2728573930",
+   "timestamp": 1791269907305
+  },
+  {
+   "symbol": "PHA_USDT_PERP",
+   "bidPrice": "0.07140",
+   "bidSize": "5424",
+   "askPrice": "0.07142",
+   "askSize": "4348",
+   "timestamp": 1791269907407
+  },
+  {
+   "symbol": "PIEVERSE_USDT_PERP",
+   "bidPrice": "1.3431",
+   "bidSize": "452",
+   "askPrice": "1.3433",
+   "askSize": "135",
+   "timestamp": 1791269907192
+  },
+  {
+   "symbol": "PIPPIN_USDT_PERP",
+   "bidPrice": "0.01829",
+   "bidSize": "49876",
+   "askPrice": "0.01830",
+   "askSize": "320979",
+   "timestamp": 1791269907334
+  },
+  {
+   "symbol": "PIXEL_USDT_PERP",
+   "bidPrice": "0.00618",
+   "bidSize": "38174",
+   "askPrice": "0.00619",
+   "askSize": "32561",
+   "timestamp": 1791269907502
+  },
+  {
+   "symbol": "PI_USDT_PERP",
+   "bidPrice": "0.0870",
+   "bidSize": "22052",
+   "askPrice": "0.0871",
+   "askSize": "18979",
+   "timestamp": 1791269907371
+  },
+  {
+   "symbol": "PLAY_USDT_PERP",
+   "bidPrice": "0.02935",
+   "bidSize": "62",
+   "askPrice": "0.02936",
+   "askSize": "8914",
+   "timestamp": 1791269907053
+  },
+  {
+   "symbol": "PLTRX_USDT_PERP",
+   "bidPrice": "189.52",
+   "bidSize": "183.65",
+   "askPrice": "189.53",
+   "askSize": "148.91",
+   "timestamp": 1791269907459
+  },
+  {
+   "symbol": "PLUME_USDT_PERP",
+   "bidPrice": "0.01909",
+   "bidSize": "53220",
+   "askPrice": "0.01910",
+   "askSize": "54601",
+   "timestamp": 1791269907517
+  },
+  {
+   "symbol": "PNUT_USDT_PERP",
+   "bidPrice": "0.05374",
+   "bidSize": "6815",
+   "askPrice": "0.05376",
+   "askSize": "6147",
+   "timestamp": 1791269907218
+  },
+  {
+   "symbol": "POLYX_USDT_PERP",
+   "bidPrice": "0.04226",
+   "bidSize": "6881",
+   "askPrice": "0.04228",
+   "askSize": "4371",
+   "timestamp": 1791269907065
+  },
+  {
+   "symbol": "POL_USDT_PERP",
+   "bidPrice": "0.10890",
+   "bidSize": "5072",
+   "askPrice": "0.10891",
+   "askSize": "6633",
+   "timestamp": 1791269907181
+  },
+  {
+   "symbol": "PONS_USDT_PERP",
+   "bidPrice": "0.3759",
+   "bidSize": "1293",
+   "askPrice": "0.3761",
+   "askSize": "35738",
+   "timestamp": 1791269907258
+  },
+  {
+   "symbol": "POPCAT_USDT_PERP",
+   "bidPrice": "0.0531",
+   "bidSize": "6855",
+   "askPrice": "0.0533",
+   "askSize": "6663",
+   "timestamp": 1791269907403
+  },
+  {
+   "symbol": "PORTAL_USDT_PERP",
+   "bidPrice": "0.01810",
+   "bidSize": "46612.2",
+   "askPrice": "0.01811",
+   "askSize": "82560.9",
+   "timestamp": 1791269907302
+  },
+  {
+   "symbol": "POWER_USDT_PERP",
+   "bidPrice": "0.08508",
+   "bidSize": "3229",
+   "askPrice": "0.08511",
+   "askSize": "3265",
+   "timestamp": 1791269907122
+  },
+  {
+   "symbol": "POWR_USDT_PERP",
+   "bidPrice": "0.06632",
+   "bidSize": "4140",
+   "askPrice": "0.06633",
+   "askSize": "5324",
+   "timestamp": 1791269907322
+  },
+  {
+   "symbol": "PRL_USDT_PERP",
+   "bidPrice": "0.1146",
+   "bidSize": "6976",
+   "askPrice": "0.1147",
+   "askSize": "18409",
+   "timestamp": 1791269907347
+  },
+  {
+   "symbol": "PROS_USDT_PERP",
+   "bidPrice": "0.7157",
+   "bidSize": "446",
+   "askPrice": "0.7160",
+   "askSize": "445",
+   "timestamp": 1791269907488
+  },
+  {
+   "symbol": "PROVE_USDT_PERP",
+   "bidPrice": "0.2132",
+   "bidSize": "4185.0",
+   "askPrice": "0.2133",
+   "askSize": "3062.2",
+   "timestamp": 1791269907303
+  },
+  {
+   "symbol": "PTB_USDT_PERP",
+   "bidPrice": "0.000965",
+   "bidSize": "595893",
+   "askPrice": "0.000966",
+   "askSize": "455732",
+   "timestamp": 1791269907096
+  },
+  {
+   "symbol": "PUMP_USDT_PERP",
+   "bidPrice": "0.006248",
+   "bidSize": "263291",
+   "askPrice": "0.006249",
+   "askSize": "1390381",
+   "timestamp": 1791269907033
+  },
+  {
+   "symbol": "PYTH_USDT_PERP",
+   "bidPrice": "0.07751",
+   "bidSize": "4067",
+   "askPrice": "0.07752",
+   "askSize": "6976",
+   "timestamp": 1791269907057
+  },
+  {
+   "symbol": "QCOMX_USDT_PERP",
+   "bidPrice": "181.53",
+   "bidSize": "190.77",
+   "askPrice": "181.54",
+   "askSize": "189.39",
+   "timestamp": 1791269907227
+  },
+  {
+   "symbol": "QNTX_USDT_PERP",
+   "bidPrice": "45.76",
+   "bidSize": "677.20",
+   "askPrice": "45.77",
+   "askSize": "654.95",
+   "timestamp": 1791269907413
+  },
+  {
+   "symbol": "QNT_USDT_PERP",
+   "bidPrice": "256.80",
+   "bidSize": "5.2",
+   "askPrice": "256.81",
+   "askSize": "17.0",
+   "timestamp": 1791269907438
+  },
+  {
+   "symbol": "QQQX_USDT_PERP",
+   "bidPrice": "757.71",
+   "bidSize": "166.24",
+   "askPrice": "757.72",
+   "askSize": "133.03",
+   "timestamp": 1791269907354
+  },
+  {
+   "symbol": "QTUM_USDT_PERP",
+   "bidPrice": "0.981",
+   "bidSize": "3245.1",
+   "askPrice": "0.982",
+   "askSize": "2739.5",
+   "timestamp": 1791269907050
+  },
+  {
+   "symbol": "Q_USDT_PERP",
+   "bidPrice": "0.020812",
+   "bidSize": "224012",
+   "askPrice": "0.020818",
+   "askSize": "276219",
+   "timestamp": 1791269907360
+  },
+  {
+   "symbol": "RATS_USDT_PERP",
+   "bidPrice": "0.00004105",
+   "bidSize": "10029184",
+   "askPrice": "0.00004106",
+   "askSize": "12372246",
+   "timestamp": 1791269907025
+  },
+  {
+   "symbol": "RAVE_USDT_PERP",
+   "bidPrice": "0.18800",
+   "bidSize": "3093",
+   "askPrice": "0.18810",
+   "askSize": "4631",
+   "timestamp": 1791269907487
+  },
+  {
+   "symbol": "RAY_USDT_PERP",
+   "bidPrice": "2.119",
+   "bidSize": "458.0",
+   "askPrice": "2.120",
+   "askSize": "387.1",
+   "timestamp": 1791269907504
+  },
+  {
+   "symbol": "RECALL_USDT_PERP",
+   "bidPrice": "0.04831",
+   "bidSize": "3819",
+   "askPrice": "0.04835",
+   "askSize": "4127",
+   "timestamp": 1791269907353
+  },
+  {
+   "symbol": "RENDER_USDT_PERP",
+   "bidPrice": "2.061",
+   "bidSize": "3056.4",
+   "askPrice": "2.062",
+   "askSize": "3330.5",
+   "timestamp": 1791269907217
+  },
+  {
+   "symbol": "REZ_USDT_PERP",
+   "bidPrice": "0.004086",
+   "bidSize": "151777",
+   "askPrice": "0.004087",
+   "askSize": "112735",
+   "timestamp": 1791269907085
+  },
+  {
+   "symbol": "RE_USDT_PERP",
+   "bidPrice": "0.4947",
+   "bidSize": "1121",
+   "askPrice": "0.4948",
+   "askSize": "1676",
+   "timestamp": 1791269907435
+  },
+  {
+   "symbol": "RGTIX_USDT_PERP",
+   "bidPrice": "15.16",
+   "bidSize": "1584.78",
+   "askPrice": "15.20",
+   "askSize": "0.34",
+   "timestamp": 1791269907305
+  },
+  {
+   "symbol": "RIF_USDT_PERP",
+   "bidPrice": "0.08230",
+   "bidSize": "3220",
+   "askPrice": "0.08231",
+   "askSize": "3218",
+   "timestamp": 1791269907465
+  },
+  {
+   "symbol": "RIVER_USDT_PERP",
+   "bidPrice": "1.223",
+   "bidSize": "7189.0",
+   "askPrice": "1.224",
+   "askSize": "5215.3",
+   "timestamp": 1791269907146
+  },
+  {
+   "symbol": "RKLBX_USDT_PERP",
+   "bidPrice": "73.41",
+   "bidSize": "447.75",
+   "askPrice": "73.42",
+   "askSize": "343.45",
+   "timestamp": 1791269907398
+  },
+  {
+   "symbol": "ROBO_USDT_PERP",
+   "bidPrice": "0.00843",
+   "bidSize": "222757",
+   "askPrice": "0.00844",
+   "askSize": "114839",
+   "timestamp": 1791269907436
+  },
+  {
+   "symbol": "ROSE_USDT_PERP",
+   "bidPrice": "0.00819",
+   "bidSize": "404503",
+   "askPrice": "0.00820",
+   "askSize": "282987",
+   "timestamp": 1791269907318
+  },
+  {
+   "symbol": "RSR_USDT_PERP",
+   "bidPrice": "0.001721",
+   "bidSize": "775264",
+   "askPrice": "0.001722",
+   "askSize": "638844",
+   "timestamp": 1791269907430
+  },
+  {
+   "symbol": "RTXX_USDT_PERP",
+   "bidPrice": "184.24",
+   "bidSize": "0.01",
+   "askPrice": "184.57",
+   "askSize": "0.01",
+   "timestamp": 1791269905362
+  },
+  {
+   "symbol": "RUNE_USDT_PERP",
+   "bidPrice": "0.7661",
+   "bidSize": "1043",
+   "askPrice": "0.7662",
+   "askSize": "626",
+   "timestamp": 1791269907104
+  },
+  {
+   "symbol": "SAGA_USDT_PERP",
+   "bidPrice": "0.02395",
+   "bidSize": "145126.8",
+   "askPrice": "0.02396",
+   "askSize": "134651.2",
+   "timestamp": 1791269907167
+  },
+  {
+   "symbol": "SAHARA_USDT_PERP",
+   "bidPrice": "0.00925",
+   "bidSize": "71736",
+   "askPrice": "0.00926",
+   "askSize": "62903",
+   "timestamp": 1791269907299
+  },
+  {
+   "symbol": "SAND_USDT_PERP",
+   "bidPrice": "0.06578",
+   "bidSize": "16342",
+   "askPrice": "0.06579",
+   "askSize": "192765",
+   "timestamp": 1791269907329
+  },
+  {
+   "symbol": "SAPIEN_USDT_PERP",
+   "bidPrice": "0.07520",
+   "bidSize": "2643",
+   "askPrice": "0.07524",
+   "askSize": "3074",
+   "timestamp": 1791269907369
+  },
+  {
+   "symbol": "SEI_USDT_PERP",
+   "bidPrice": "0.0737",
+   "bidSize": "23604",
+   "askPrice": "0.0738",
+   "askSize": "24460",
+   "timestamp": 1791269907366
+  },
+  {
+   "symbol": "SENT_USDT_PERP",
+   "bidPrice": "0.02550",
+   "bidSize": "58098",
+   "askPrice": "0.02551",
+   "askSize": "79976",
+   "timestamp": 1791269907408
+  },
+  {
+   "symbol": "SFP_USDT_PERP",
+   "bidPrice": "0.2956",
+   "bidSize": "2629",
+   "askPrice": "0.2958",
+   "askSize": "1802",
+   "timestamp": 1791269907393
+  },
+  {
+   "symbol": "SHAZX_USDT_PERP",
+   "bidPrice": "47.98",
+   "bidSize": "704.32",
+   "askPrice": "48.02",
+   "askSize": "0.03",
+   "timestamp": 1791269907070
+  },
+  {
+   "symbol": "SHIB_USDT_PERP",
+   "bidPrice": "0.000005845",
+   "bidSize": "1713979477",
+   "askPrice": "0.000005846",
+   "askSize": "321262200",
+   "timestamp": 1791269907212
+  },
+  {
+   "symbol": "SIREN_USDT_PERP",
+   "bidPrice": "0.02371",
+   "bidSize": "65732",
+   "askPrice": "0.02372",
+   "askSize": "56693",
+   "timestamp": 1791269907501
+  },
+  {
+   "symbol": "SITMX_USDT_PERP",
+   "bidPrice": "707.21",
+   "bidSize": "0.02",
+   "askPrice": "710.90",
+   "askSize": "0.02",
+   "timestamp": 1791269906216
+  },
+  {
+   "symbol": "SKHX_USDT_PERP",
+   "bidPrice": "1327.20",
+   "bidSize": "53.126",
+   "askPrice": "1327.21",
+   "askSize": "61.005",
+   "timestamp": 1791269907453
+  },
+  {
+   "symbol": "SKHY_USDT_PERP",
+   "bidPrice": "190.11",
+   "bidSize": "778.61",
+   "askPrice": "190.12",
+   "askSize": "159.77",
+   "timestamp": 1791269907462
+  },
+  {
+   "symbol": "SKL_USDT_PERP",
+   "bidPrice": "0.004828",
+   "bidSize": "437392",
+   "askPrice": "0.004829",
+   "askSize": "544992",
+   "timestamp": 1791269907079
+  },
+  {
+   "symbol": "SKR_USDT_PERP",
+   "bidPrice": "0.017629",
+   "bidSize": "25048",
+   "askPrice": "0.017639",
+   "askSize": "26470",
+   "timestamp": 1791269907415
+  },
+  {
+   "symbol": "SKYAI_USDT_PERP",
+   "bidPrice": "0.03533",
+   "bidSize": "13270",
+   "askPrice": "0.03534",
+   "askSize": "10071",
+   "timestamp": 1791269907418
+  },
+  {
+   "symbol": "SKY_USDT_PERP",
+   "bidPrice": "0.08738",
+   "bidSize": "31401",
+   "askPrice": "0.08739",
+   "askSize": "8208",
+   "timestamp": 1791269907227
+  },
+  {
+   "symbol": "SLP_USDT_PERP",
+   "bidPrice": "0.0006932",
+   "bidSize": "129879",
+   "askPrice": "0.0006933",
+   "askSize": "293005",
+   "timestamp": 1791269907322
+  },
+  {
+   "symbol": "SLVX_USDT_PERP",
+   "bidPrice": "54.79",
+   "bidSize": "0.02",
+   "askPrice": "54.82",
+   "askSize": "1989.69",
+   "timestamp": 1791269907091
+  },
+  {
+   "symbol": "SLX_USDT_PERP",
+   "bidPrice": "0.06132",
+   "bidSize": "4120",
+   "askPrice": "0.06133",
+   "askSize": "4574",
+   "timestamp": 1791269907123
+  },
+  {
+   "symbol": "SMCIX_USDT_PERP",
+   "bidPrice": "43.32",
+   "bidSize": "236.86",
+   "askPrice": "43.33",
+   "askSize": "247.12",
+   "timestamp": 1791269907409
+  },
+  {
+   "symbol": "SMHX_USDT_PERP",
+   "bidPrice": "634.86",
+   "bidSize": "49.94",
+   "askPrice": "635.37",
+   "askSize": "70.00",
+   "timestamp": 1791269907242
+  },
+  {
+   "symbol": "SMSN_USDT_PERP",
+   "bidPrice": "202.65",
+   "bidSize": "185.187",
+   "askPrice": "202.66",
+   "askSize": "222.452",
+   "timestamp": 1791269907175
+  },
+  {
+   "symbol": "SNDKX_USDT_PERP",
+   "bidPrice": "1698.55",
+   "bidSize": "23.24",
+   "askPrice": "1698.56",
+   "askSize": "23.64",
+   "timestamp": 1791269907356
+  },
+  {
+   "symbol": "SNXXX_USDT_PERP",
+   "bidPrice": "15.88",
+   "bidSize": "1875.78",
+   "askPrice": "15.89",
+   "askSize": "5439.37",
+   "timestamp": 1791269907158
+  },
+  {
+   "symbol": "SNX_USDT_PERP",
+   "bidPrice": "0.2525",
+   "bidSize": "1505.4",
+   "askPrice": "0.2526",
+   "askSize": "1688.3",
+   "timestamp": 1791269907185
+  },
+  {
+   "symbol": "SOLV_USDT_PERP",
+   "bidPrice": "0.00421",
+   "bidSize": "72650",
+   "askPrice": "0.00422",
+   "askSize": "80698",
+   "timestamp": 1791269907073
+  },
+  {
+   "symbol": "SOL_BTC_PERP",
+   "bidPrice": "0.0014040",
+   "bidSize": "75.46",
+   "askPrice": "0.0014042",
+   "askSize": "72.90",
+   "timestamp": 1791269907332
+  },
+  {
+   "symbol": "SOL_ETH_PERP",
+   "bidPrice": "0.044408",
+   "bidSize": "36.97",
+   "askPrice": "0.044413",
+   "askSize": "45.96",
+   "timestamp": 1791269907331
+  },
+  {
+   "symbol": "SOL_USDT_PERP",
+   "bidPrice": "119.760",
+   "bidSize": "2147.39",
+   "askPrice": "119.770",
+   "askSize": "750.26",
+   "timestamp": 1791269907280
+  },
+  {
+   "symbol": "SOMI_USDT_PERP",
+   "bidPrice": "0.2165",
+   "bidSize": "4573",
+   "askPrice": "0.2166",
+   "askSize": "3798",
+   "timestamp": 1791269907144
+  },
+  {
+   "symbol": "SOON_USDT_PERP",
+   "bidPrice": "0.3408",
+   "bidSize": "4392",
+   "askPrice": "0.3409",
+   "askSize": "6460",
+   "timestamp": 1791269907211
+  },
+  {
+   "symbol": "SOXLX_USDT_PERP",
+   "bidPrice": "164.90",
+   "bidSize": "149.88",
+   "askPrice": "164.91",
+   "askSize": "204.28",
+   "timestamp": 1791269907383
+  },
+  {
+   "symbol": "SOXSX_USDT_PERP",
+   "bidPrice": "29.55",
+   "bidSize": "1207.80",
+   "askPrice": "29.56",
+   "askSize": "1167.97",
+   "timestamp": 1791269907331
+  },
+  {
+   "symbol": "SOXXX_USDT_PERP",
+   "bidPrice": "590.76",
+   "bidSize": "0.01",
+   "askPrice": "590.88",
+   "askSize": "45.87",
+   "timestamp": 1791269907055
+  },
+  {
+   "symbol": "SPACE_USDT_PERP",
+   "bidPrice": "0.005087",
+   "bidSize": "24420",
+   "askPrice": "0.005089",
+   "askSize": "62363",
+   "timestamp": 1791269907383
+  },
+  {
+   "symbol": "SPCX_USDT_PERP",
+   "bidPrice": "173.38",
+   "bidSize": "2979.55",
+   "askPrice": "173.39",
+   "askSize": "690.85",
+   "timestamp": 1791269907348
+  },
+  {
+   "symbol": "SPELL_USDT_PERP",
+   "bidPrice": "0.0000993",
+   "bidSize": "16152500",
+   "askPrice": "0.0000994",
+   "askSize": "15712369",
+   "timestamp": 1791269907389
+  },
+  {
+   "symbol": "SPK_USDT_PERP",
+   "bidPrice": "0.02421",
+   "bidSize": "20949",
+   "askPrice": "0.02422",
+   "askSize": "31104",
+   "timestamp": 1791269907424
+  },
+  {
+   "symbol": "SPORTFUN_USDT_PERP",
+   "bidPrice": "0.02064",
+   "bidSize": "11134",
+   "askPrice": "0.02066",
+   "askSize": "10975",
+   "timestamp": 1791269907227
+  },
+  {
+   "symbol": "SPX_USDT_PERP",
+   "bidPrice": "0.4330",
+   "bidSize": "13622",
+   "askPrice": "0.4332",
+   "askSize": "998",
+   "timestamp": 1791269907187
+  },
+  {
+   "symbol": "SPYX_USDT_PERP",
+   "bidPrice": "776.36",
+   "bidSize": "120.72",
+   "askPrice": "776.37",
+   "askSize": "116.06",
+   "timestamp": 1791269907428
+  },
+  {
+   "symbol": "SQD_USDT_PERP",
+   "bidPrice": "0.02919",
+   "bidSize": "7256",
+   "askPrice": "0.02920",
+   "askSize": "5944",
+   "timestamp": 1791269907097
+  },
+  {
+   "symbol": "SSV_USDT_PERP",
+   "bidPrice": "3.069",
+   "bidSize": "100.25",
+   "askPrice": "3.070",
+   "askSize": "96.51",
+   "timestamp": 1791269907053
+  },
+  {
+   "symbol": "STABLE_USDT_PERP",
+   "bidPrice": "0.02850",
+   "bidSize": "75849",
+   "askPrice": "0.02851",
+   "askSize": "10196",
+   "timestamp": 1791269907206
+  },
+  {
+   "symbol": "STAR_USDT_PERP",
+   "bidPrice": "0.04093",
+   "bidSize": "7742",
+   "askPrice": "0.04095",
+   "askSize": "5983",
+   "timestamp": 1791269907450
+  },
+  {
+   "symbol": "STBL_USDT_PERP",
+   "bidPrice": "0.02561",
+   "bidSize": "8933",
+   "askPrice": "0.02562",
+   "askSize": "6398",
+   "timestamp": 1791269907347
+  },
+  {
+   "symbol": "STRK_USDT_PERP",
+   "bidPrice": "0.0520",
+   "bidSize": "42654.3",
+   "askPrice": "0.0521",
+   "askSize": "11921.7",
+   "timestamp": 1791269907297
+  },
+  {
+   "symbol": "STXX_USDT_PERP",
+   "bidPrice": "888.30",
+   "bidSize": "31.67",
+   "askPrice": "888.49",
+   "askSize": "29.47",
+   "timestamp": 1791269907227
+  },
+  {
+   "symbol": "STX_USDT_PERP",
+   "bidPrice": "0.3735",
+   "bidSize": "22813",
+   "askPrice": "0.3736",
+   "askSize": "3494",
+   "timestamp": 1791269907177
+  },
+  {
+   "symbol": "SUI_BTC_PERP",
+   "bidPrice": "0.00001394",
+   "bidSize": "19601.9",
+   "askPrice": "0.00001395",
+   "askSize": "23918.7",
+   "timestamp": 1791269907316
+  },
+  {
+   "symbol": "SUI_USDT_PERP",
+   "bidPrice": "1.1894",
+   "bidSize": "48681.2",
+   "askPrice": "1.1895",
+   "askSize": "49490.4",
+   "timestamp": 1791269907400
+  },
+  {
+   "symbol": "SUN_USDT_PERP",
+   "bidPrice": "0.017116",
+   "bidSize": "16871",
+   "askPrice": "0.017117",
+   "askSize": "17186",
+   "timestamp": 1791269907356
+  },
+  {
+   "symbol": "SUPER_USDT_PERP",
+   "bidPrice": "0.2398",
+   "bidSize": "7416",
+   "askPrice": "0.2399",
+   "askSize": "9479",
+   "timestamp": 1791269907201
+  },
+  {
+   "symbol": "SUSHI_USDT_PERP",
+   "bidPrice": "0.2525",
+   "bidSize": "2826",
+   "askPrice": "0.2526",
+   "askSize": "3254",
+   "timestamp": 1791269907266
+  },
+  {
+   "symbol": "SXT_USDT_PERP",
+   "bidPrice": "0.009366",
+   "bidSize": "74816",
+   "askPrice": "0.009369",
+   "askSize": "94598",
+   "timestamp": 1791269907230
+  },
+  {
+   "symbol": "SYRUP_USDT_PERP",
+   "bidPrice": "0.24710",
+   "bidSize": "1318",
+   "askPrice": "0.24713",
+   "askSize": "1437",
+   "timestamp": 1791269907228
+  },
+  {
+   "symbol": "S_USDT_PERP",
+   "bidPrice": "0.04398",
+   "bidSize": "12331",
+   "askPrice": "0.04399",
+   "askSize": "28834",
+   "timestamp": 1791269907085
+  },
+  {
+   "symbol": "TAC_USDT_PERP",
+   "bidPrice": "0.001551",
+   "bidSize": "413409",
+   "askPrice": "0.001552",
+   "askSize": "198252",
+   "timestamp": 1791269907185
+  },
+  {
+   "symbol": "TAKE_USDT_PERP",
+   "bidPrice": "0.06724",
+   "bidSize": "5113",
+   "askPrice": "0.06727",
+   "askSize": "5122",
+   "timestamp": 1791269907090
+  },
+  {
+   "symbol": "TAO_USDT_PERP",
+   "bidPrice": "301.24",
+   "bidSize": "55.203",
+   "askPrice": "301.26",
+   "askSize": "65.239",
+   "timestamp": 1791269907486
+  },
+  {
+   "symbol": "TA_USDT_PERP",
+   "bidPrice": "0.05055",
+   "bidSize": "4506",
+   "askPrice": "0.05058",
+   "askSize": "4088",
+   "timestamp": 1791269907318
+  },
+  {
+   "symbol": "THETA_USDT_PERP",
+   "bidPrice": "0.2324",
+   "bidSize": "3133.7",
+   "askPrice": "0.2325",
+   "askSize": "3579.3",
+   "timestamp": 1791269907515
+  },
+  {
+   "symbol": "THE_USDT_PERP",
+   "bidPrice": "0.07440",
+   "bidSize": "17282.4",
+   "askPrice": "0.07441",
+   "askSize": "20093.1",
+   "timestamp": 1791269907110
+  },
+  {
+   "symbol": "TIA_USDT_PERP",
+   "bidPrice": "0.4651",
+   "bidSize": "2931.4",
+   "askPrice": "0.4652",
+   "askSize": "3910.2",
+   "timestamp": 1791269907400
+  },
+  {
+   "symbol": "TLM_USDT_PERP",
+   "bidPrice": "0.001533",
+   "bidSize": "420663",
+   "askPrice": "0.001535",
+   "askSize": "390167",
+   "timestamp": 1791269907362
+  },
+  {
+   "symbol": "TNSR_USDT_PERP",
+   "bidPrice": "0.03918",
+   "bidSize": "7561.8",
+   "askPrice": "0.03919",
+   "askSize": "6965.3",
+   "timestamp": 1791269907129
+  },
+  {
+   "symbol": "TOSHI_USDT_PERP",
+   "bidPrice": "0.0001225",
+   "bidSize": "4569289",
+   "askPrice": "0.0001226",
+   "askSize": "3332383",
+   "timestamp": 1791269906157
+  },
+  {
+   "symbol": "TOWNS_USDT_PERP",
+   "bidPrice": "0.002104",
+   "bidSize": "191430",
+   "askPrice": "0.002105",
+   "askSize": "228259",
+   "timestamp": 1791269907100
+  },
+  {
+   "symbol": "TQQQX_USDT_PERP",
+   "bidPrice": "83.58",
+   "bidSize": "0.02",
+   "askPrice": "83.66",
+   "askSize": "290.63",
+   "timestamp": 1791269907332
+  },
+  {
+   "symbol": "TRADOOR_USDT_PERP",
+   "bidPrice": "0.7101",
+   "bidSize": "626",
+   "askPrice": "0.7107",
+   "askSize": "530",
+   "timestamp": 1791269907119
+  },
+  {
+   "symbol": "TRB_USDT_PERP",
+   "bidPrice": "20.081",
+   "bidSize": "9.170",
+   "askPrice": "20.084",
+   "askSize": "10.459",
+   "timestamp": 1791269907451
+  },
+  {
+   "symbol": "TREE_USDT_PERP",
+   "bidPrice": "0.04511",
+   "bidSize": "14431",
+   "askPrice": "0.04514",
+   "askSize": "11767",
+   "timestamp": 1791269907150
+  },
+  {
+   "symbol": "TRIA_USDT_PERP",
+   "bidPrice": "0.00381",
+   "bidSize": "240799",
+   "askPrice": "0.00382",
+   "askSize": "142891",
+   "timestamp": 1791269907280
+  },
+  {
+   "symbol": "TRUMP_USDT_PERP",
+   "bidPrice": "2.013",
+   "bidSize": "24741.7",
+   "askPrice": "2.014",
+   "askSize": "13148.5",
+   "timestamp": 1791269907326
+  },
+  {
+   "symbol": "TRUST_USDT_PERP",
+   "bidPrice": "0.0587",
+   "bidSize": "6123",
+   "askPrice": "0.0588",
+   "askSize": "4857",
+   "timestamp": 1791269907413
+  },
+  {
+   "symbol": "TRUTH_USDT_PERP",
+   "bidPrice": "0.014511",
+   "bidSize": "257050",
+   "askPrice": "0.014512",
+   "askSize": "84065",
+   "timestamp": 1791269907356
+  },
+  {
+   "symbol": "TRX_USDT_PERP",
+   "bidPrice": "0.33640",
+   "bidSize": "49582",
+   "askPrice": "0.33641",
+   "askSize": "26507",
+   "timestamp": 1791269907411
+  },
+  {
+   "symbol": "TSLAX_USDT_PERP",
+   "bidPrice": "381.08",
+   "bidSize": "280.21",
+   "askPrice": "381.09",
+   "askSize": "287.78",
+   "timestamp": 1791269907287
+  },
+  {
+   "symbol": "TSMX_USDT_PERP",
+   "bidPrice": "485.77",
+   "bidSize": "178.49",
+   "askPrice": "485.78",
+   "askSize": "235.38",
+   "timestamp": 1791269907159
+  },
+  {
+   "symbol": "TST_USDT_PERP",
+   "bidPrice": "0.01808",
+   "bidSize": "70542",
+   "askPrice": "0.01809",
+   "askSize": "57536",
+   "timestamp": 1791269907457
+  },
+  {
+   "symbol": "TTEX_USDT_PERP",
+   "bidPrice": "84.27",
+   "bidSize": "0.16",
+   "askPrice": "84.56",
+   "askSize": "0.09",
+   "timestamp": 1791269905249
+  },
+  {
+   "symbol": "TURBO_USDT_PERP",
+   "bidPrice": "0.0010331",
+   "bidSize": "102489",
+   "askPrice": "0.0010333",
+   "askSize": "89407",
+   "timestamp": 1791269907408
+  },
+  {
+   "symbol": "TUT_USDT_PERP",
+   "bidPrice": "0.02483",
+   "bidSize": "96299",
+   "askPrice": "0.02484",
+   "askSize": "23173",
+   "timestamp": 1791269907429
+  },
+  {
+   "symbol": "TWT_USDT_PERP",
+   "bidPrice": "0.5718",
+   "bidSize": "386",
+   "askPrice": "0.5720",
+   "askSize": "650",
+   "timestamp": 1791269907050
+  },
+  {
+   "symbol": "TXNX_USDT_PERP",
+   "bidPrice": "294.73",
+   "bidSize": "0.01",
+   "askPrice": "295.09",
+   "askSize": "0.01",
+   "timestamp": 1791269906216
+  },
+  {
+   "symbol": "UAI_USDT_PERP",
+   "bidPrice": "0.2886",
+   "bidSize": "1850",
+   "askPrice": "0.2887",
+   "askSize": "2044",
+   "timestamp": 1791269907150
+  },
+  {
+   "symbol": "UB_USDT_PERP",
+   "bidPrice": "0.14246",
+   "bidSize": "2208",
+   "askPrice": "0.14250",
+   "askSize": "1786",
+   "timestamp": 1791269907319
+  },
+  {
+   "symbol": "UNGX_USDT_PERP",
+   "bidPrice": "10.53",
+   "bidSize": "1.40",
+   "askPrice": "10.56",
+   "askSize": "1.06",
+   "timestamp": 1791269905362
+  },
+  {
+   "symbol": "UNHX_USDT_PERP",
+   "bidPrice": "378.17",
+   "bidSize": "0.01",
+   "askPrice": "379.00",
+   "askSize": "0.12",
+   "timestamp": 1791269905348
+  },
+  {
+   "symbol": "UNITREEX_USDT_PERP",
+   "bidPrice": "68.33",
+   "bidSize": "171.67",
+   "askPrice": "68.34",
+   "askSize": "149.78",
+   "timestamp": 1791269907435
+  },
+  {
+   "symbol": "UNI_ETH_PERP",
+   "bidPrice": "0.0032739",
+   "bidSize": "6487.6",
+   "askPrice": "0.0032744",
+   "askSize": "6751.3",
+   "timestamp": 1791269907021
+  },
+  {
+   "symbol": "UNI_USDT_PERP",
+   "bidPrice": "8.829",
+   "bidSize": "1114",
+   "askPrice": "8.830",
+   "askSize": "2115",
+   "timestamp": 1791269907154
+  },
+  {
+   "symbol": "UP_USDT_PERP",
+   "bidPrice": "0.2253",
+   "bidSize": "1225",
+   "askPrice": "0.2256",
+   "askSize": "1587",
+   "timestamp": 1791269907206
+  },
+  {
+   "symbol": "URAX_USDT_PERP",
+   "bidPrice": "40.08",
+   "bidSize": "0.04",
+   "askPrice": "40.20",
+   "askSize": "0.32",
+   "timestamp": 1791269906314
+  },
+  {
+   "symbol": "URNMX_USDT_PERP",
+   "bidPrice": "48.17",
+   "bidSize": "0.1",
+   "askPrice": "48.29",
+   "askSize": "0.1",
+   "timestamp": 1791269907176
+  },
+  {
+   "symbol": "USARX_USDT_PERP",
+   "bidPrice": "13.75",
+   "bidSize": "1762.97",
+   "askPrice": "13.76",
+   "askSize": "1930.01",
+   "timestamp": 1791269907253
+  },
+  {
+   "symbol": "USDC_USDT_PERP",
+   "bidPrice": "0.999633",
+   "bidSize": "792869",
+   "askPrice": "0.999634",
+   "askSize": "574068",
+   "timestamp": 1791269907211
+  },
+  {
+   "symbol": "USDT_ADA_PERP",
+   "bidPrice": "3.7071",
+   "bidSize": "23",
+   "askPrice": "3.7079",
+   "askSize": "190313",
+   "timestamp": 1791269907080
+  },
+  {
+   "symbol": "USDT_ASTER_PERP",
+   "bidPrice": "1.34838",
+   "bidSize": "3",
+   "askPrice": "1.34844",
+   "askSize": "169",
+   "timestamp": 1791269907498
+  },
+  {
+   "symbol": "USDT_AVAX_PERP",
+   "bidPrice": "0.088393",
+   "bidSize": "21850",
+   "askPrice": "0.088402",
+   "askSize": "25818",
+   "timestamp": 1791269907287
+  },
+  {
+   "symbol": "USDT_BNB_PERP",
+   "bidPrice": "0.0012828",
+   "bidSize": "33552",
+   "askPrice": "0.0012829",
+   "askSize": "34556",
+   "timestamp": 1791269907380
+  },
+  {
+   "symbol": "USDT_BTC_PERP",
+   "bidPrice": "0.00001172386",
+   "bidSize": "72819",
+   "askPrice": "0.00001172388",
+   "askSize": "101203",
+   "timestamp": 1791269907424
+  },
+  {
+   "symbol": "USDT_DOGE_PERP",
+   "bidPrice": "10.5954",
+   "bidSize": "95685",
+   "askPrice": "10.5966",
+   "askSize": "78373",
+   "timestamp": 1791269907154
+  },
+  {
+   "symbol": "USDT_DOT_PERP",
+   "bidPrice": "0.81109",
+   "bidSize": "164625",
+   "askPrice": "0.81117",
+   "askSize": "129933",
+   "timestamp": 1791269907198
+  },
+  {
+   "symbol": "USDT_ETH_PERP",
+   "bidPrice": "0.00037081",
+   "bidSize": "1790986",
+   "askPrice": "0.00037082",
+   "askSize": "1549189",
+   "timestamp": 1791269907395
+  },
+  {
+   "symbol": "USDT_HBAR_PERP",
+   "bidPrice": "9.9631",
+   "bidSize": "8285",
+   "askPrice": "9.9642",
+   "askSize": "8151",
+   "timestamp": 1791269907046
+  },
+  {
+   "symbol": "USDT_HYPE_PERP",
+   "bidPrice": "0.010725",
+   "bidSize": "35926",
+   "askPrice": "0.010726",
+   "askSize": "35939",
+   "timestamp": 1791269907375
+  },
+  {
+   "symbol": "USDT_LINK_PERP",
+   "bidPrice": "0.072306",
+   "bidSize": "34921",
+   "askPrice": "0.072312",
+   "askSize": "38704",
+   "timestamp": 1791269907373
+  },
+  {
+   "symbol": "USDT_PAXG_PERP",
+   "bidPrice": "0.00024155",
+   "bidSize": "77700",
+   "askPrice": "0.00024156",
+   "askSize": "69194",
+   "timestamp": 1791269907039
+  },
+  {
+   "symbol": "USDT_PEPE_PERP",
+   "bidPrice": "232315",
+   "bidSize": "319.52",
+   "askPrice": "232319",
+   "askSize": "0.46",
+   "timestamp": 1791269907292
+  },
+  {
+   "symbol": "USDT_QQQX_PERP",
+   "bidPrice": "0.0013197",
+   "bidSize": "5",
+   "askPrice": "0.0013205",
+   "askSize": "115588",
+   "timestamp": 1791269907157
+  },
+  {
+   "symbol": "USDT_SOL_PERP",
+   "bidPrice": "0.0083493",
+   "bidSize": "5459",
+   "askPrice": "0.0083501",
+   "askSize": "6453",
+   "timestamp": 1791269907175
+  },
+  {
+   "symbol": "USDT_SPYX_PERP",
+   "bidPrice": "0.0012879",
+   "bidSize": "10",
+   "askPrice": "0.0012888",
+   "askSize": "101735",
+   "timestamp": 1791269907192
+  },
+  {
+   "symbol": "USDT_SUI_PERP",
+   "bidPrice": "0.84071",
+   "bidSize": "3",
+   "askPrice": "0.84077",
+   "askSize": "108245",
+   "timestamp": 1791269907307
+  },
+  {
+   "symbol": "USDT_TRX_PERP",
+   "bidPrice": "2.9725",
+   "bidSize": "644",
+   "askPrice": "2.9727",
+   "askSize": "778",
+   "timestamp": 1791269907177
+  },
+  {
+   "symbol": "USDT_UNI_PERP",
+   "bidPrice": "0.11325",
+   "bidSize": "127968",
+   "askPrice": "0.11327",
+   "askSize": "132065",
+   "timestamp": 1791269907471
+  },
+  {
+   "symbol": "USDT_WIF_PERP",
+   "bidPrice": "4.0485",
+   "bidSize": "33854",
+   "askPrice": "4.0503",
+   "askSize": "28622",
+   "timestamp": 1791269907505
+  },
+  {
+   "symbol": "USDT_XLM_PERP",
+   "bidPrice": "4.6593",
+   "bidSize": "14276",
+   "askPrice": "4.6597",
+   "askSize": "13702",
+   "timestamp": 1791269907074
+  },
+  {
+   "symbol": "USDT_XRP_PERP",
+   "bidPrice": "0.6679",
+   "bidSize": "107915",
+   "askPrice": "0.6681",
+   "askSize": "120642",
+   "timestamp": 1791269907247
+  },
+  {
+   "symbol": "USELESS_USDT_PERP",
+   "bidPrice": "0.22503",
+   "bidSize": "1979",
+   "askPrice": "0.22505",
+   "askSize": "2400",
+   "timestamp": 1791269907262
+  },
+  {
+   "symbol": "USOX_USDT_PERP",
+   "bidPrice": "143.09",
+   "bidSize": "980.00",
+   "askPrice": "143.12",
+   "askSize": "5.29",
+   "timestamp": 1791269907511
+  },
+  {
+   "symbol": "USTC_USDT_PERP",
+   "bidPrice": "0.005769",
+   "bidSize": "17837",
+   "askPrice": "0.005771",
+   "askSize": "19365",
+   "timestamp": 1791269907450
+  },
+  {
+   "symbol": "USUAL_USDT_PERP",
+   "bidPrice": "0.01316",
+   "bidSize": "81989",
+   "askPrice": "0.01317",
+   "askSize": "61993",
+   "timestamp": 1791269907258
+  },
+  {
+   "symbol": "US_USDT_PERP",
+   "bidPrice": "0.01119",
+   "bidSize": "43776",
+   "askPrice": "0.01121",
+   "askSize": "37215",
+   "timestamp": 1791269907505
+  },
+  {
+   "symbol": "VELODROME_USDT_PERP",
+   "bidPrice": "0.03629",
+   "bidSize": "4733",
+   "askPrice": "0.03631",
+   "askSize": "4763",
+   "timestamp": 1791269907326
+  },
+  {
+   "symbol": "VET_USDT_PERP",
+   "bidPrice": "0.008743",
+   "bidSize": "97266",
+   "askPrice": "0.008744",
+   "askSize": "22058",
+   "timestamp": 1791269907337
+  },
+  {
+   "symbol": "VGKX_USDT_PERP",
+   "bidPrice": "86.22",
+   "bidSize": "0.02",
+   "askPrice": "86.43",
+   "askSize": "0.02",
+   "timestamp": 1791269902588
+  },
+  {
+   "symbol": "VIRTUAL_USDT_PERP",
+   "bidPrice": "0.8416",
+   "bidSize": "1311.9",
+   "askPrice": "0.8417",
+   "askSize": "665.0",
+   "timestamp": 1791269907159
+  },
+  {
+   "symbol": "VSHX_USDT_PERP",
+   "bidPrice": "36.91",
+   "bidSize": "0.22",
+   "askPrice": "37.32",
+   "askSize": "0.22",
+   "timestamp": 1791269904496
+  },
+  {
+   "symbol": "VVV_USDT_PERP",
+   "bidPrice": "27.994",
+   "bidSize": "35.46",
+   "askPrice": "27.996",
+   "askSize": "36.04",
+   "timestamp": 1791269907436
+  },
+  {
+   "symbol": "WAL_USDT_PERP",
+   "bidPrice": "0.0358",
+   "bidSize": "33291",
+   "askPrice": "0.0359",
+   "askSize": "13062",
+   "timestamp": 1791269907334
+  },
+  {
+   "symbol": "WCT_USDT_PERP",
+   "bidPrice": "0.04267",
+   "bidSize": "5119",
+   "askPrice": "0.04268",
+   "askSize": "5406",
+   "timestamp": 1791269907401
+  },
+  {
+   "symbol": "WDCX_USDT_PERP",
+   "bidPrice": "441.6",
+   "bidSize": "70.01",
+   "askPrice": "442.1",
+   "askSize": "0.18",
+   "timestamp": 1791269907139
+  },
+  {
+   "symbol": "WIF_USDT_PERP",
+   "bidPrice": "0.2469",
+   "bidSize": "69624.2",
+   "askPrice": "0.2470",
+   "askSize": "17626.0",
+   "timestamp": 1791269907388
+  },
+  {
+   "symbol": "WLD_USDT_PERP",
+   "bidPrice": "0.5606",
+   "bidSize": "43845",
+   "askPrice": "0.5607",
+   "askSize": "17559",
+   "timestamp": 1791269907454
+  },
+  {
+   "symbol": "WLFI_USDT_PERP",
+   "bidPrice": "0.0566",
+   "bidSize": "870003",
+   "askPrice": "0.0567",
+   "askSize": "611738",
+   "timestamp": 1791269907488
+  },
+  {
+   "symbol": "WTI_USDT_PERP",
+   "bidPrice": "88.70",
+   "bidSize": "4085.403",
+   "askPrice": "88.71",
+   "askSize": "420.276",
+   "timestamp": 1791269907461
+  },
+  {
+   "symbol": "W_USDT_PERP",
+   "bidPrice": "0.01413",
+   "bidSize": "188705.4",
+   "askPrice": "0.01414",
+   "askSize": "258196.1",
+   "timestamp": 1791269907024
+  },
+  {
+   "symbol": "XAG_USDT_PERP",
+   "bidPrice": "60.72",
+   "bidSize": "12695.861",
+   "askPrice": "60.73",
+   "askSize": "4869.502",
+   "timestamp": 1791269907002
+  },
+  {
+   "symbol": "XAI_USDT_PERP",
+   "bidPrice": "0.00997",
+   "bidSize": "141770",
+   "askPrice": "0.00999",
+   "askSize": "183251",
+   "timestamp": 1791269907111
+  },
+  {
+   "symbol": "XAN_USDT_PERP",
+   "bidPrice": "0.01212",
+   "bidSize": "19405",
+   "askPrice": "0.01213",
+   "askSize": "16966",
+   "timestamp": 1791269907192
+  },
+  {
+   "symbol": "XAUT_USDT_PERP",
+   "bidPrice": "4131.32",
+   "bidSize": "20.563",
+   "askPrice": "4131.33",
+   "askSize": "21.837",
+   "timestamp": 1791269907204
+  },
+  {
+   "symbol": "XAU_USDT_PERP",
+   "bidPrice": "4134.81",
+   "bidSize": "64.681",
+   "askPrice": "4134.82",
+   "askSize": "43.346",
+   "timestamp": 1791269907207
+  },
+  {
+   "symbol": "XDP_USDT_PERP",
+   "bidPrice": "0.02006",
+   "bidSize": "24080",
+   "askPrice": "0.02007",
+   "askSize": "12803",
+   "timestamp": 1791269907094
+  },
+  {
+   "symbol": "XEC_USDT_PERP",
+   "bidPrice": "0.00000799",
+   "bidSize": "74520348",
+   "askPrice": "0.00000801",
+   "askSize": "50399244",
+   "timestamp": 1791269907283
+  },
+  {
+   "symbol": "XLM_USDT_PERP",
+   "bidPrice": "0.21461",
+   "bidSize": "18507",
+   "askPrice": "0.21462",
+   "askSize": "24336",
+   "timestamp": 1791269907405
+  },
+  {
+   "symbol": "XLPX_USDT_PERP",
+   "bidPrice": "80.97",
+   "bidSize": "0.02",
+   "askPrice": "81.10",
+   "askSize": "0.90",
+   "timestamp": 1791269906626
+  },
+  {
+   "symbol": "XLVX_USDT_PERP",
+   "bidPrice": "167.17",
+   "bidSize": "0.01",
+   "askPrice": "167.78",
+   "askSize": "0.04",
+   "timestamp": 1791269906164
+  },
+  {
+   "symbol": "XMR_USDT_PERP",
+   "bidPrice": "558.94",
+   "bidSize": "1.871",
+   "askPrice": "558.96",
+   "askSize": "1.033",
+   "timestamp": 1791269907498
+  },
+  {
+   "symbol": "XNY_USDT_PERP",
+   "bidPrice": "0.006877",
+   "bidSize": "34172",
+   "askPrice": "0.006882",
+   "askSize": "29155",
+   "timestamp": 1791269907422
+  },
+  {
+   "symbol": "XPD_USDT_PERP",
+   "bidPrice": "1168.44",
+   "bidSize": "0.260",
+   "askPrice": "1168.69",
+   "askSize": "0.299",
+   "timestamp": 1791269907359
+  },
+  {
+   "symbol": "XPIN_USDT_PERP",
+   "bidPrice": "0.000913",
+   "bidSize": "1381374",
+   "askPrice": "0.000914",
+   "askSize": "507745",
+   "timestamp": 1791269907224
+  },
+  {
+   "symbol": "XPL_USDT_PERP",
+   "bidPrice": "0.0915",
+   "bidSize": "176346",
+   "askPrice": "0.0916",
+   "askSize": "148214",
+   "timestamp": 1791269907426
+  },
+  {
+   "symbol": "XPT_USDT_PERP",
+   "bidPrice": "1711.45",
+   "bidSize": "0.762",
+   "askPrice": "1711.72",
+   "askSize": "0.179",
+   "timestamp": 1791269907406
+  },
+  {
+   "symbol": "XRP_BTC_PERP",
+   "bidPrice": "0.0000175506",
+   "bidSize": "128889",
+   "askPrice": "0.0000175519",
+   "askSize": "149069",
+   "timestamp": 1791269907490
+  },
+  {
+   "symbol": "XRP_USDT_PERP",
+   "bidPrice": "1.4970",
+   "bidSize": "94683",
+   "askPrice": "1.4971",
+   "askSize": "99427",
+   "timestamp": 1791269907276
+  },
+  {
+   "symbol": "XTZ_USDT_PERP",
+   "bidPrice": "0.3313",
+   "bidSize": "4307.1",
+   "askPrice": "0.3314",
+   "askSize": "1221.1",
+   "timestamp": 1791269907207
+  },
+  {
+   "symbol": "XVG_USDT_PERP",
+   "bidPrice": "0.003119",
+   "bidSize": "88563",
+   "askPrice": "0.003120",
+   "askSize": "59994",
+   "timestamp": 1791269907507
+  },
+  {
+   "symbol": "XYZX_USDT_PERP",
+   "bidPrice": "75.40",
+   "bidSize": "0.40",
+   "askPrice": "76.73",
+   "askSize": "0.27",
+   "timestamp": 1791269904660
+  },
+  {
+   "symbol": "YB_USDT_PERP",
+   "bidPrice": "0.0856",
+   "bidSize": "11806",
+   "askPrice": "0.0857",
+   "askSize": "9909",
+   "timestamp": 1791269907130
+  },
+  {
+   "symbol": "YFI_USDT_PERP",
+   "bidPrice": "2512",
+   "bidSize": "0.3276",
+   "askPrice": "2513",
+   "askSize": "0.2934",
+   "timestamp": 1791269907426
+  },
+  {
+   "symbol": "YGG_USDT_PERP",
+   "bidPrice": "0.02837",
+   "bidSize": "18440",
+   "askPrice": "0.02838",
+   "askSize": "19757",
+   "timestamp": 1791269907406
+  },
+  {
+   "symbol": "ZAMA_USDT_PERP",
+   "bidPrice": "0.08344",
+   "bidSize": "6403",
+   "askPrice": "0.08345",
+   "askSize": "10318",
+   "timestamp": 1791269907507
+  },
+  {
+   "symbol": "ZBT_USDT_PERP",
+   "bidPrice": "0.0876",
+   "bidSize": "1991",
+   "askPrice": "0.0877",
+   "askSize": "1269",
+   "timestamp": 1791269907252
+  },
+  {
+   "symbol": "ZEC_USDT_PERP",
+   "bidPrice": "1323.48",
+   "bidSize": "20.745",
+   "askPrice": "1323.49",
+   "askSize": "9.157",
+   "timestamp": 1791269907341
+  },
+  {
+   "symbol": "ZEN_USDT_PERP",
+   "bidPrice": "6.921",
+   "bidSize": "489.6",
+   "askPrice": "6.922",
+   "askSize": "421.7",
+   "timestamp": 1791269907434
+  },
+  {
+   "symbol": "ZEREBRO_USDT_PERP",
+   "bidPrice": "0.03117",
+   "bidSize": "11356",
+   "askPrice": "0.03120",
+   "askSize": "10017",
+   "timestamp": 1791269907331
+  },
+  {
+   "symbol": "ZEST_USDT_PERP",
+   "bidPrice": "0.17689",
+   "bidSize": "1368",
+   "askPrice": "0.17704",
+   "askSize": "1655",
+   "timestamp": 1791269907359
+  },
+  {
+   "symbol": "ZETA_USDT_PERP",
+   "bidPrice": "0.05045",
+   "bidSize": "3199",
+   "askPrice": "0.05047",
+   "askSize": "3888",
+   "timestamp": 1791269907084
+  },
+  {
+   "symbol": "ZIL_USDT_PERP",
+   "bidPrice": "0.00363",
+   "bidSize": "5418299",
+   "askPrice": "0.00364",
+   "askSize": "5195993",
+   "timestamp": 1791269907199
+  },
+  {
+   "symbol": "ZKC_USDT_PERP",
+   "bidPrice": "0.0422",
+   "bidSize": "17674",
+   "askPrice": "0.0423",
+   "askSize": "13009",
+   "timestamp": 1791269907070
+  },
+  {
+   "symbol": "ZKP_USDT_PERP",
+   "bidPrice": "0.04988",
+   "bidSize": "4931",
+   "askPrice": "0.04990",
+   "askSize": "3955",
+   "timestamp": 1791269907398
+  },
+  {
+   "symbol": "ZKSYNC_USDT_PERP",
+   "bidPrice": "0.01270",
+   "bidSize": "42146",
+   "askPrice": "0.01271",
+   "askSize": "44165",
+   "timestamp": 1791269907272
+  },
+  {
+   "symbol": "ZORA_USDT_PERP",
+   "bidPrice": "0.00763",
+   "bidSize": "240829",
+   "askPrice": "0.00764",
+   "askSize": "246567",
+   "timestamp": 1791269907237
+  },
+  {
+   "symbol": "ZRO_USDT_PERP",
+   "bidPrice": "2.1070",
+   "bidSize": "255.1",
+   "askPrice": "2.1081",
+   "askSize": "199.5",
+   "timestamp": 1791269907325
+  },
+  {
+   "symbol": "ZRX_USDT_PERP",
+   "bidPrice": "0.1270",
+   "bidSize": "18190.1",
+   "askPrice": "0.1271",
+   "askSize": "24126.3",
+   "timestamp": 1791269907364
+  },
+  {
+   "symbol": "哈基米_USDT_PERP",
+   "bidPrice": "0.02646",
+   "bidSize": "10386",
+   "askPrice": "0.02649",
+   "askSize": "28596",
+   "timestamp": 1791269907149
+  },
+  {
+   "symbol": "币安人生_USDT_PERP",
+   "bidPrice": "0.50120",
+   "bidSize": "6831",
+   "askPrice": "0.50130",
+   "askSize": "572",
+   "timestamp": 1791269907373
+  },
+  {
+   "symbol": "我踏马来了_USDT_PERP",
+   "bidPrice": "0.011480",
+   "bidSize": "25003",
+   "askPrice": "0.011485",
+   "askSize": "27042",
+   "timestamp": 1791269907092
+  },
+  {
+   "symbol": "牛来_USDT_PERP",
+   "bidPrice": "0.07367",
+   "bidSize": "14281",
+   "askPrice": "0.07369",
+   "askSize": "14187",
+   "timestamp": 1791269907456
+  },
+  {
+   "symbol": "龙虾_USDT_PERP",
+   "bidPrice": "0.046715",
+   "bidSize": "16770",
+   "askPrice": "0.046725",
+   "askSize": "18672",
+   "timestamp": 1791269907254
+  }
+ ]
+}

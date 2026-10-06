@@ -1,0 +1,1208 @@
+{
+ "fee_1.0bps": [
+  {
+   "symbol": "AMZNX_USDT",
+   "n_periods": 500,
+   "fee_per_leg_bps": 1.0,
+   "spot_spread_bps": 1.5825,
+   "perp_spread_bps": 0.3954,
+   "all_in_cost_bps": 5.978,
+   "funding_total_bps": 399.862,
+   "basis_change_bps": 1.198,
+   "net_bps": 395.083,
+   "net_bps_on_gross_capital": 197.541,
+   "worst_neg_streak_bps": -1.119,
+   "funding_pos_share": 0.826,
+   "rolling": {
+    "7d": {
+     "n_windows": 480,
+     "min": -2.283,
+     "median": 12.152,
+     "max": 95.847,
+     "share_positive": 0.925
+    },
+    "30d": {
+     "n_windows": 411,
+     "min": 1.019,
+     "median": 49.373,
+     "max": 183.036,
+     "share_positive": 1.0
+    },
+    "90d": {
+     "n_windows": 231,
+     "min": 107.179,
+     "median": 131.052,
+     "max": 291.94,
+     "share_positive": 1.0
+    },
+    "167d": null
+   },
+   "pnl_exit_each_day_positive_share": 0.998,
+   "cum_funding_final_bps": 399.862
+  },
+  {
+   "symbol": "ARKM_USDT",
+   "n_periods": 500,
+   "fee_per_leg_bps": 1.0,
+   "spot_spread_bps": 7.5815,
+   "perp_spread_bps": 7.5873,
+   "all_in_cost_bps": 19.169,
+   "funding_total_bps": 301.328,
+   "basis_change_bps": 41.667,
+   "net_bps": 323.826,
+   "net_bps_on_gross_capital": 161.913,
+   "worst_neg_streak_bps": -15.238,
+   "funding_pos_share": 0.862,
+   "rolling": {
+    "7d": {
+     "n_windows": 480,
+     "min": -6.907,
+     "median": 12.593,
+     "max": 21.0,
+     "share_positive": 0.923
+    },
+    "30d": {
+     "n_windows": 411,
+     "min": 25.907,
+     "median": 46.247,
+     "max": 90.0,
+     "share_positive": 1.0
+    },
+    "90d": {
+     "n_windows": 231,
+     "min": 110.242,
+     "median": 139.384,
+     "max": 196.412,
+     "share_positive": 1.0
+    },
+    "167d": null
+   },
+   "pnl_exit_each_day_positive_share": 0.886,
+   "cum_funding_final_bps": 301.328
+  },
+  {
+   "symbol": "AEVO_USDT",
+   "n_periods": 500,
+   "fee_per_leg_bps": 1.0,
+   "spot_spread_bps": 38.61,
+   "perp_spread_bps": 7.719,
+   "all_in_cost_bps": 50.329,
+   "funding_total_bps": 224.217,
+   "basis_change_bps": 57.269,
+   "net_bps": 231.158,
+   "net_bps_on_gross_capital": 115.579,
+   "worst_neg_streak_bps": -7.443,
+   "funding_pos_share": 0.97,
+   "rolling": {
+    "7d": {
+     "n_windows": 480,
+     "min": -7.731,
+     "median": 10.5,
+     "max": 10.5,
+     "share_positive": 0.946
+    },
+    "30d": {
+     "n_windows": 411,
+     "min": 19.743,
+     "median": 45.0,
+     "max": 45.0,
+     "share_positive": 1.0
+    },
+    "90d": {
+     "n_windows": 231,
+     "min": 109.217,
+     "median": 135.0,
+     "max": 135.0,
+     "share_positive": 1.0
+    },
+    "167d": null
+   },
+   "pnl_exit_each_day_positive_share": 0.696,
+   "cum_funding_final_bps": 224.217
+  },
+  {
+   "symbol": "ATH_USDT",
+   "n_periods": 500,
+   "fee_per_leg_bps": 1.0,
+   "spot_spread_bps": 6.8559,
+   "perp_spread_bps": 13.7174,
+   "all_in_cost_bps": 24.573,
+   "funding_total_bps": 239.961,
+   "basis_change_bps": 9.373,
+   "net_bps": 224.761,
+   "net_bps_on_gross_capital": 112.38,
+   "worst_neg_streak_bps": -4.046,
+   "funding_pos_share": 0.99,
+   "rolling": {
+    "7d": {
+     "n_windows": 480,
+     "min": 4.11,
+     "median": 10.5,
+     "max": 10.5,
+     "share_positive": 1.0
+    },
+    "30d": {
+     "n_windows": 411,
+     "min": 38.61,
+     "median": 45.0,
+     "max": 45.0,
+     "share_positive": 1.0
+    },
+    "90d": {
+     "n_windows": 231,
+     "min": 128.61,
+     "median": 133.961,
+     "max": 135.0,
+     "share_positive": 1.0
+    },
+    "167d": null
+   },
+   "pnl_exit_each_day_positive_share": 0.902,
+   "cum_funding_final_bps": 239.961
+  },
+  {
+   "symbol": "AR_USDT",
+   "n_periods": 500,
+   "fee_per_leg_bps": 1.0,
+   "spot_spread_bps": 22.2717,
+   "perp_spread_bps": 2.2277,
+   "all_in_cost_bps": 28.499,
+   "funding_total_bps": 300.518,
+   "basis_change_bps": -64.499,
+   "net_bps": 207.52,
+   "net_bps_on_gross_capital": 103.76,
+   "worst_neg_streak_bps": -5.887,
+   "funding_pos_share": 0.856,
+   "rolling": {
+    "7d": {
+     "n_windows": 480,
+     "min": -4.399,
+     "median": 13.026,
+     "max": 21.0,
+     "share_positive": 0.948
+    },
+    "30d": {
+     "n_windows": 411,
+     "min": 8.789,
+     "median": 53.798,
+     "max": 87.153,
+     "share_positive": 1.0
+    },
+    "90d": {
+     "n_windows": 231,
+     "min": 104.208,
+     "median": 154.842,
+     "max": 201.408,
+     "share_positive": 1.0
+    },
+    "167d": null
+   },
+   "pnl_exit_each_day_positive_share": 0.92,
+   "cum_funding_final_bps": 300.518
+  },
+  {
+   "symbol": "ALT_USDT",
+   "n_periods": 500,
+   "fee_per_leg_bps": 1.0,
+   "spot_spread_bps": 12.837,
+   "perp_spread_bps": 12.837,
+   "all_in_cost_bps": 29.674,
+   "funding_total_bps": 201.669,
+   "basis_change_bps": 31.447,
+   "net_bps": 203.442,
+   "net_bps_on_gross_capital": 101.721,
+   "worst_neg_streak_bps": -5.949,
+   "funding_pos_share": 0.932,
+   "rolling": {
+    "7d": {
+     "n_windows": 480,
+     "min": -7.762,
+     "median": 10.446,
+     "max": 10.5,
+     "share_positive": 0.931
+    },
+    "30d": {
+     "n_windows": 411,
+     "min": 5.384,
+     "median": 39.459,
+     "max": 45.0,
+     "share_positive": 1.0
+    },
+    "90d": {
+     "n_windows": 231,
+     "min": 86.991,
+     "median": 95.125,
+     "max": 126.544,
+     "share_positive": 1.0
+    },
+    "167d": null
+   },
+   "pnl_exit_each_day_positive_share": 0.882,
+   "cum_funding_final_bps": 201.669
+  },
+  {
+   "symbol": "ASTER_USDT",
+   "n_periods": 500,
+   "fee_per_leg_bps": 1.0,
+   "spot_spread_bps": 13.4953,
+   "perp_spread_bps": 1.3484,
+   "all_in_cost_bps": 18.844,
+   "funding_total_bps": 223.195,
+   "basis_change_bps": -18.205,
+   "net_bps": 186.147,
+   "net_bps_on_gross_capital": 93.073,
+   "worst_neg_streak_bps": -1.146,
+   "funding_pos_share": 0.964,
+   "rolling": {
+    "7d": {
+     "n_windows": 480,
+     "min": 5.513,
+     "median": 9.568,
+     "max": 10.5,
+     "share_positive": 1.0
+    },
+    "30d": {
+     "n_windows": 411,
+     "min": 34.714,
+     "median": 40.705,
+     "max": 44.589,
+     "share_positive": 1.0
+    },
+    "90d": {
+     "n_windows": 231,
+     "min": 121.038,
+     "median": 123.166,
+     "max": 128.016,
+     "share_positive": 1.0
+    },
+    "167d": null
+   },
+   "pnl_exit_each_day_positive_share": 0.906,
+   "cum_funding_final_bps": 223.195
+  },
+  {
+   "symbol": "1INCH_USDT",
+   "n_periods": 500,
+   "fee_per_leg_bps": 1.0,
+   "spot_spread_bps": 9.4787,
+   "perp_spread_bps": 9.4877,
+   "all_in_cost_bps": 22.966,
+   "funding_total_bps": 210.53,
+   "basis_change_bps": -9.47,
+   "net_bps": 178.094,
+   "net_bps_on_gross_capital": 89.047,
+   "worst_neg_streak_bps": -15.427,
+   "funding_pos_share": 0.756,
+   "rolling": {
+    "7d": {
+     "n_windows": 480,
+     "min": -15.832,
+     "median": 10.724,
+     "max": 21.0,
+     "share_positive": 0.775
+    },
+    "30d": {
+     "n_windows": 411,
+     "min": -15.717,
+     "median": 35.851,
+     "max": 76.654,
+     "share_positive": 0.869
+    },
+    "90d": {
+     "n_windows": 231,
+     "min": 54.688,
+     "median": 108.288,
+     "max": 156.378,
+     "share_positive": 1.0
+    },
+    "167d": null
+   },
+   "pnl_exit_each_day_positive_share": 0.708,
+   "cum_funding_final_bps": 210.53
+  },
+  {
+   "symbol": "AAVE_USDT",
+   "n_periods": 500,
+   "fee_per_leg_bps": 1.0,
+   "spot_spread_bps": 1.1004,
+   "perp_spread_bps": 0.5503,
+   "all_in_cost_bps": 5.651,
+   "funding_total_bps": 177.508,
+   "basis_change_bps": 0.352,
+   "net_bps": 172.209,
+   "net_bps_on_gross_capital": 86.105,
+   "worst_neg_streak_bps": -13.366,
+   "funding_pos_share": 0.78,
+   "rolling": {
+    "7d": {
+     "n_windows": 480,
+     "min": -15.182,
+     "median": 7.972,
+     "max": 21.0,
+     "share_positive": 0.885
+    },
+    "30d": {
+     "n_windows": 411,
+     "min": -10.213,
+     "median": 33.283,
+     "max": 59.142,
+     "share_positive": 0.881
+    },
+    "90d": {
+     "n_windows": 231,
+     "min": 55.448,
+     "median": 84.217,
+     "max": 137.722,
+     "share_positive": 1.0
+    },
+    "167d": null
+   },
+   "pnl_exit_each_day_positive_share": 0.982,
+   "cum_funding_final_bps": 177.508
+  },
+  {
+   "symbol": "AAPLX_USDT",
+   "n_periods": 500,
+   "fee_per_leg_bps": 1.0,
+   "spot_spread_bps": 0.6003,
+   "perp_spread_bps": 0.3,
+   "all_in_cost_bps": 4.9,
+   "funding_total_bps": 167.327,
+   "basis_change_bps": 1.087,
+   "net_bps": 163.514,
+   "net_bps_on_gross_capital": 81.757,
+   "worst_neg_streak_bps": -10.071,
+   "funding_pos_share": 0.734,
+   "rolling": {
+    "7d": {
+     "n_windows": 480,
+     "min": -14.741,
+     "median": 3.847,
+     "max": 56.006,
+     "share_positive": 0.819
+    },
+    "30d": {
+     "n_windows": 411,
+     "min": -22.271,
+     "median": 21.192,
+     "max": 85.732,
+     "share_positive": 0.844
+    },
+    "90d": {
+     "n_windows": 231,
+     "min": 23.949,
+     "median": 50.34,
+     "max": 108.523,
+     "share_positive": 1.0
+    },
+    "167d": null
+   },
+   "pnl_exit_each_day_positive_share": 0.984,
+   "cum_funding_final_bps": 167.327
+  }
+ ],
+ "fee_5.0bps": [
+  {
+   "symbol": "AMZNX_USDT",
+   "n_periods": 500,
+   "fee_per_leg_bps": 5.0,
+   "spot_spread_bps": 1.5825,
+   "perp_spread_bps": 0.3954,
+   "all_in_cost_bps": 21.978,
+   "funding_total_bps": 399.862,
+   "basis_change_bps": 1.594,
+   "net_bps": 379.479,
+   "net_bps_on_gross_capital": 189.74,
+   "worst_neg_streak_bps": -1.119,
+   "funding_pos_share": 0.826,
+   "rolling": {
+    "7d": {
+     "n_windows": 480,
+     "min": -2.283,
+     "median": 12.152,
+     "max": 95.847,
+     "share_positive": 0.925
+    },
+    "30d": {
+     "n_windows": 411,
+     "min": 1.019,
+     "median": 49.373,
+     "max": 183.036,
+     "share_positive": 1.0
+    },
+    "90d": {
+     "n_windows": 231,
+     "min": 107.179,
+     "median": 131.052,
+     "max": 291.94,
+     "share_positive": 1.0
+    },
+    "167d": null
+   },
+   "pnl_exit_each_day_positive_share": 0.986,
+   "cum_funding_final_bps": 399.862
+  },
+  {
+   "symbol": "ARKM_USDT",
+   "n_periods": 500,
+   "fee_per_leg_bps": 5.0,
+   "spot_spread_bps": 7.5815,
+   "perp_spread_bps": 7.5873,
+   "all_in_cost_bps": 35.169,
+   "funding_total_bps": 301.328,
+   "basis_change_bps": 34.165,
+   "net_bps": 300.324,
+   "net_bps_on_gross_capital": 150.162,
+   "worst_neg_streak_bps": -15.238,
+   "funding_pos_share": 0.862,
+   "rolling": {
+    "7d": {
+     "n_windows": 480,
+     "min": -6.907,
+     "median": 12.593,
+     "max": 21.0,
+     "share_positive": 0.923
+    },
+    "30d": {
+     "n_windows": 411,
+     "min": 25.907,
+     "median": 46.247,
+     "max": 90.0,
+     "share_positive": 1.0
+    },
+    "90d": {
+     "n_windows": 231,
+     "min": 110.242,
+     "median": 139.384,
+     "max": 196.412,
+     "share_positive": 1.0
+    },
+    "167d": null
+   },
+   "pnl_exit_each_day_positive_share": 0.822,
+   "cum_funding_final_bps": 301.328
+  },
+  {
+   "symbol": "AEVO_USDT",
+   "n_periods": 500,
+   "fee_per_leg_bps": 5.0,
+   "spot_spread_bps": 38.61,
+   "perp_spread_bps": 7.719,
+   "all_in_cost_bps": 66.329,
+   "funding_total_bps": 224.217,
+   "basis_change_bps": 57.269,
+   "net_bps": 215.158,
+   "net_bps_on_gross_capital": 107.579,
+   "worst_neg_streak_bps": -7.443,
+   "funding_pos_share": 0.97,
+   "rolling": {
+    "7d": {
+     "n_windows": 480,
+     "min": -7.731,
+     "median": 10.5,
+     "max": 10.5,
+     "share_positive": 0.946
+    },
+    "30d": {
+     "n_windows": 411,
+     "min": 19.743,
+     "median": 45.0,
+     "max": 45.0,
+     "share_positive": 1.0
+    },
+    "90d": {
+     "n_windows": 231,
+     "min": 109.217,
+     "median": 135.0,
+     "max": 135.0,
+     "share_positive": 1.0
+    },
+    "167d": null
+   },
+   "pnl_exit_each_day_positive_share": 0.632,
+   "cum_funding_final_bps": 224.217
+  },
+  {
+   "symbol": "ATH_USDT",
+   "n_periods": 500,
+   "fee_per_leg_bps": 5.0,
+   "spot_spread_bps": 6.8559,
+   "perp_spread_bps": 13.7174,
+   "all_in_cost_bps": 40.573,
+   "funding_total_bps": 239.961,
+   "basis_change_bps": 9.373,
+   "net_bps": 208.761,
+   "net_bps_on_gross_capital": 104.38,
+   "worst_neg_streak_bps": -4.046,
+   "funding_pos_share": 0.99,
+   "rolling": {
+    "7d": {
+     "n_windows": 480,
+     "min": 4.11,
+     "median": 10.5,
+     "max": 10.5,
+     "share_positive": 1.0
+    },
+    "30d": {
+     "n_windows": 411,
+     "min": 38.61,
+     "median": 45.0,
+     "max": 45.0,
+     "share_positive": 1.0
+    },
+    "90d": {
+     "n_windows": 231,
+     "min": 128.61,
+     "median": 133.961,
+     "max": 135.0,
+     "share_positive": 1.0
+    },
+    "167d": null
+   },
+   "pnl_exit_each_day_positive_share": 0.836,
+   "cum_funding_final_bps": 239.961
+  },
+  {
+   "symbol": "AR_USDT",
+   "n_periods": 500,
+   "fee_per_leg_bps": 5.0,
+   "spot_spread_bps": 22.2717,
+   "perp_spread_bps": 2.2277,
+   "all_in_cost_bps": 44.499,
+   "funding_total_bps": 300.518,
+   "basis_change_bps": -66.726,
+   "net_bps": 189.293,
+   "net_bps_on_gross_capital": 94.647,
+   "worst_neg_streak_bps": -5.887,
+   "funding_pos_share": 0.856,
+   "rolling": {
+    "7d": {
+     "n_windows": 480,
+     "min": -4.399,
+     "median": 13.026,
+     "max": 21.0,
+     "share_positive": 0.948
+    },
+    "30d": {
+     "n_windows": 411,
+     "min": 8.789,
+     "median": 53.798,
+     "max": 87.153,
+     "share_positive": 1.0
+    },
+    "90d": {
+     "n_windows": 231,
+     "min": 104.208,
+     "median": 154.842,
+     "max": 201.408,
+     "share_positive": 1.0
+    },
+    "167d": null
+   },
+   "pnl_exit_each_day_positive_share": 0.742,
+   "cum_funding_final_bps": 300.518
+  },
+  {
+   "symbol": "ALT_USDT",
+   "n_periods": 500,
+   "fee_per_leg_bps": 5.0,
+   "spot_spread_bps": 12.837,
+   "perp_spread_bps": 12.837,
+   "all_in_cost_bps": 45.674,
+   "funding_total_bps": 201.669,
+   "basis_change_bps": 31.447,
+   "net_bps": 187.442,
+   "net_bps_on_gross_capital": 93.721,
+   "worst_neg_streak_bps": -5.949,
+   "funding_pos_share": 0.932,
+   "rolling": {
+    "7d": {
+     "n_windows": 480,
+     "min": -7.762,
+     "median": 10.446,
+     "max": 10.5,
+     "share_positive": 0.931
+    },
+    "30d": {
+     "n_windows": 411,
+     "min": 5.384,
+     "median": 39.459,
+     "max": 45.0,
+     "share_positive": 1.0
+    },
+    "90d": {
+     "n_windows": 231,
+     "min": 86.991,
+     "median": 95.125,
+     "max": 126.544,
+     "share_positive": 1.0
+    },
+    "167d": null
+   },
+   "pnl_exit_each_day_positive_share": 0.818,
+   "cum_funding_final_bps": 201.669
+  },
+  {
+   "symbol": "1INCH_USDT",
+   "n_periods": 500,
+   "fee_per_leg_bps": 5.0,
+   "spot_spread_bps": 9.4787,
+   "perp_spread_bps": 9.4877,
+   "all_in_cost_bps": 38.966,
+   "funding_total_bps": 210.53,
+   "basis_change_bps": 0.0,
+   "net_bps": 171.564,
+   "net_bps_on_gross_capital": 85.782,
+   "worst_neg_streak_bps": -15.427,
+   "funding_pos_share": 0.756,
+   "rolling": {
+    "7d": {
+     "n_windows": 480,
+     "min": -15.832,
+     "median": 10.724,
+     "max": 21.0,
+     "share_positive": 0.775
+    },
+    "30d": {
+     "n_windows": 411,
+     "min": -15.717,
+     "median": 35.851,
+     "max": 76.654,
+     "share_positive": 0.869
+    },
+    "90d": {
+     "n_windows": 231,
+     "min": 54.688,
+     "median": 108.288,
+     "max": 156.378,
+     "share_positive": 1.0
+    },
+    "167d": null
+   },
+   "pnl_exit_each_day_positive_share": 0.574,
+   "cum_funding_final_bps": 210.53
+  },
+  {
+   "symbol": "ASTER_USDT",
+   "n_periods": 500,
+   "fee_per_leg_bps": 5.0,
+   "spot_spread_bps": 13.4953,
+   "perp_spread_bps": 1.3484,
+   "all_in_cost_bps": 34.844,
+   "funding_total_bps": 223.195,
+   "basis_change_bps": -19.554,
+   "net_bps": 168.797,
+   "net_bps_on_gross_capital": 84.399,
+   "worst_neg_streak_bps": -1.146,
+   "funding_pos_share": 0.964,
+   "rolling": {
+    "7d": {
+     "n_windows": 480,
+     "min": 5.513,
+     "median": 9.568,
+     "max": 10.5,
+     "share_positive": 1.0
+    },
+    "30d": {
+     "n_windows": 411,
+     "min": 34.714,
+     "median": 40.705,
+     "max": 44.589,
+     "share_positive": 1.0
+    },
+    "90d": {
+     "n_windows": 231,
+     "min": 121.038,
+     "median": 123.166,
+     "max": 128.016,
+     "share_positive": 1.0
+    },
+    "167d": null
+   },
+   "pnl_exit_each_day_positive_share": 0.834,
+   "cum_funding_final_bps": 223.195
+  },
+  {
+   "symbol": "AAVE_USDT",
+   "n_periods": 500,
+   "fee_per_leg_bps": 5.0,
+   "spot_spread_bps": 1.1004,
+   "perp_spread_bps": 0.5503,
+   "all_in_cost_bps": 21.651,
+   "funding_total_bps": 177.508,
+   "basis_change_bps": 0.904,
+   "net_bps": 156.761,
+   "net_bps_on_gross_capital": 78.381,
+   "worst_neg_streak_bps": -13.366,
+   "funding_pos_share": 0.78,
+   "rolling": {
+    "7d": {
+     "n_windows": 480,
+     "min": -15.182,
+     "median": 7.972,
+     "max": 21.0,
+     "share_positive": 0.885
+    },
+    "30d": {
+     "n_windows": 411,
+     "min": -10.213,
+     "median": 33.283,
+     "max": 59.142,
+     "share_positive": 0.881
+    },
+    "90d": {
+     "n_windows": 231,
+     "min": 55.448,
+     "median": 84.217,
+     "max": 137.722,
+     "share_positive": 1.0
+    },
+    "167d": null
+   },
+   "pnl_exit_each_day_positive_share": 0.736,
+   "cum_funding_final_bps": 177.508
+  },
+  {
+   "symbol": "AAPLX_USDT",
+   "n_periods": 500,
+   "fee_per_leg_bps": 5.0,
+   "spot_spread_bps": 0.6003,
+   "perp_spread_bps": 0.3,
+   "all_in_cost_bps": 20.9,
+   "funding_total_bps": 167.327,
+   "basis_change_bps": -1.014,
+   "net_bps": 145.413,
+   "net_bps_on_gross_capital": 72.706,
+   "worst_neg_streak_bps": -10.071,
+   "funding_pos_share": 0.734,
+   "rolling": {
+    "7d": {
+     "n_windows": 480,
+     "min": -14.741,
+     "median": 3.847,
+     "max": 56.006,
+     "share_positive": 0.819
+    },
+    "30d": {
+     "n_windows": 411,
+     "min": -22.271,
+     "median": 21.192,
+     "max": 85.732,
+     "share_positive": 0.844
+    },
+    "90d": {
+     "n_windows": 231,
+     "min": 23.949,
+     "median": 50.34,
+     "max": 108.523,
+     "share_positive": 1.0
+    },
+    "167d": null
+   },
+   "pnl_exit_each_day_positive_share": 0.978,
+   "cum_funding_final_bps": 167.327
+  }
+ ],
+ "fee_10.0bps": [
+  {
+   "symbol": "AMZNX_USDT",
+   "n_periods": 500,
+   "fee_per_leg_bps": 10.0,
+   "spot_spread_bps": 1.5825,
+   "perp_spread_bps": 0.3954,
+   "all_in_cost_bps": 41.978,
+   "funding_total_bps": 399.862,
+   "basis_change_bps": 1.991,
+   "net_bps": 359.875,
+   "net_bps_on_gross_capital": 179.938,
+   "worst_neg_streak_bps": -1.119,
+   "funding_pos_share": 0.826,
+   "rolling": {
+    "7d": {
+     "n_windows": 480,
+     "min": -2.283,
+     "median": 12.152,
+     "max": 95.847,
+     "share_positive": 0.925
+    },
+    "30d": {
+     "n_windows": 411,
+     "min": 1.019,
+     "median": 49.373,
+     "max": 183.036,
+     "share_positive": 1.0
+    },
+    "90d": {
+     "n_windows": 231,
+     "min": 107.179,
+     "median": 131.052,
+     "max": 291.94,
+     "share_positive": 1.0
+    },
+    "167d": null
+   },
+   "pnl_exit_each_day_positive_share": 0.974,
+   "cum_funding_final_bps": 399.862
+  },
+  {
+   "symbol": "ARKM_USDT",
+   "n_periods": 500,
+   "fee_per_leg_bps": 10.0,
+   "spot_spread_bps": 7.5815,
+   "perp_spread_bps": 7.5873,
+   "all_in_cost_bps": 55.169,
+   "funding_total_bps": 301.328,
+   "basis_change_bps": 26.674,
+   "net_bps": 272.833,
+   "net_bps_on_gross_capital": 136.417,
+   "worst_neg_streak_bps": -15.238,
+   "funding_pos_share": 0.862,
+   "rolling": {
+    "7d": {
+     "n_windows": 480,
+     "min": -6.907,
+     "median": 12.593,
+     "max": 21.0,
+     "share_positive": 0.923
+    },
+    "30d": {
+     "n_windows": 411,
+     "min": 25.907,
+     "median": 46.247,
+     "max": 90.0,
+     "share_positive": 1.0
+    },
+    "90d": {
+     "n_windows": 231,
+     "min": 110.242,
+     "median": 139.384,
+     "max": 196.412,
+     "share_positive": 1.0
+    },
+    "167d": null
+   },
+   "pnl_exit_each_day_positive_share": 0.702,
+   "cum_funding_final_bps": 301.328
+  },
+  {
+   "symbol": "ATH_USDT",
+   "n_periods": 500,
+   "fee_per_leg_bps": 10.0,
+   "spot_spread_bps": 6.8559,
+   "perp_spread_bps": 13.7174,
+   "all_in_cost_bps": 60.573,
+   "funding_total_bps": 239.961,
+   "basis_change_bps": 13.487,
+   "net_bps": 192.874,
+   "net_bps_on_gross_capital": 96.437,
+   "worst_neg_streak_bps": -4.046,
+   "funding_pos_share": 0.99,
+   "rolling": {
+    "7d": {
+     "n_windows": 480,
+     "min": 4.11,
+     "median": 10.5,
+     "max": 10.5,
+     "share_positive": 1.0
+    },
+    "30d": {
+     "n_windows": 411,
+     "min": 38.61,
+     "median": 45.0,
+     "max": 45.0,
+     "share_positive": 1.0
+    },
+    "90d": {
+     "n_windows": 231,
+     "min": 128.61,
+     "median": 133.961,
+     "max": 135.0,
+     "share_positive": 1.0
+    },
+    "167d": null
+   },
+   "pnl_exit_each_day_positive_share": 0.748,
+   "cum_funding_final_bps": 239.961
+  },
+  {
+   "symbol": "AEVO_USDT",
+   "n_periods": 500,
+   "fee_per_leg_bps": 10.0,
+   "spot_spread_bps": 38.61,
+   "perp_spread_bps": 7.719,
+   "all_in_cost_bps": 86.329,
+   "funding_total_bps": 224.217,
+   "basis_change_bps": 53.423,
+   "net_bps": 191.311,
+   "net_bps_on_gross_capital": 95.656,
+   "worst_neg_streak_bps": -7.443,
+   "funding_pos_share": 0.97,
+   "rolling": {
+    "7d": {
+     "n_windows": 480,
+     "min": -7.731,
+     "median": 10.5,
+     "max": 10.5,
+     "share_positive": 0.946
+    },
+    "30d": {
+     "n_windows": 411,
+     "min": 19.743,
+     "median": 45.0,
+     "max": 45.0,
+     "share_positive": 1.0
+    },
+    "90d": {
+     "n_windows": 231,
+     "min": 109.217,
+     "median": 135.0,
+     "max": 135.0,
+     "share_positive": 1.0
+    },
+    "167d": null
+   },
+   "pnl_exit_each_day_positive_share": 0.552,
+   "cum_funding_final_bps": 224.217
+  },
+  {
+   "symbol": "AR_USDT",
+   "n_periods": 500,
+   "fee_per_leg_bps": 10.0,
+   "spot_spread_bps": 22.2717,
+   "perp_spread_bps": 2.2277,
+   "all_in_cost_bps": 64.499,
+   "funding_total_bps": 300.518,
+   "basis_change_bps": -66.726,
+   "net_bps": 169.293,
+   "net_bps_on_gross_capital": 84.647,
+   "worst_neg_streak_bps": -5.887,
+   "funding_pos_share": 0.856,
+   "rolling": {
+    "7d": {
+     "n_windows": 480,
+     "min": -4.399,
+     "median": 13.026,
+     "max": 21.0,
+     "share_positive": 0.948
+    },
+    "30d": {
+     "n_windows": 411,
+     "min": 8.789,
+     "median": 53.798,
+     "max": 87.153,
+     "share_positive": 1.0
+    },
+    "90d": {
+     "n_windows": 231,
+     "min": 104.208,
+     "median": 154.842,
+     "max": 201.408,
+     "share_positive": 1.0
+    },
+    "167d": null
+   },
+   "pnl_exit_each_day_positive_share": 0.64,
+   "cum_funding_final_bps": 300.518
+  },
+  {
+   "symbol": "ALT_USDT",
+   "n_periods": 500,
+   "fee_per_leg_bps": 10.0,
+   "spot_spread_bps": 12.837,
+   "perp_spread_bps": 12.837,
+   "all_in_cost_bps": 65.674,
+   "funding_total_bps": 201.669,
+   "basis_change_bps": 31.447,
+   "net_bps": 167.442,
+   "net_bps_on_gross_capital": 83.721,
+   "worst_neg_streak_bps": -5.949,
+   "funding_pos_share": 0.932,
+   "rolling": {
+    "7d": {
+     "n_windows": 480,
+     "min": -7.762,
+     "median": 10.446,
+     "max": 10.5,
+     "share_positive": 0.931
+    },
+    "30d": {
+     "n_windows": 411,
+     "min": 5.384,
+     "median": 39.459,
+     "max": 45.0,
+     "share_positive": 1.0
+    },
+    "90d": {
+     "n_windows": 231,
+     "min": 86.991,
+     "median": 95.125,
+     "max": 126.544,
+     "share_positive": 1.0
+    },
+    "167d": null
+   },
+   "pnl_exit_each_day_positive_share": 0.736,
+   "cum_funding_final_bps": 201.669
+  },
+  {
+   "symbol": "1INCH_USDT",
+   "n_periods": 500,
+   "fee_per_leg_bps": 10.0,
+   "spot_spread_bps": 9.4787,
+   "perp_spread_bps": 9.4877,
+   "all_in_cost_bps": 58.966,
+   "funding_total_bps": 210.53,
+   "basis_change_bps": 0.0,
+   "net_bps": 151.564,
+   "net_bps_on_gross_capital": 75.782,
+   "worst_neg_streak_bps": -15.427,
+   "funding_pos_share": 0.756,
+   "rolling": {
+    "7d": {
+     "n_windows": 480,
+     "min": -15.832,
+     "median": 10.724,
+     "max": 21.0,
+     "share_positive": 0.775
+    },
+    "30d": {
+     "n_windows": 411,
+     "min": -15.717,
+     "median": 35.851,
+     "max": 76.654,
+     "share_positive": 0.869
+    },
+    "90d": {
+     "n_windows": 231,
+     "min": 54.688,
+     "median": 108.288,
+     "max": 156.378,
+     "share_positive": 1.0
+    },
+    "167d": null
+   },
+   "pnl_exit_each_day_positive_share": 0.534,
+   "cum_funding_final_bps": 210.53
+  },
+  {
+   "symbol": "ASTER_USDT",
+   "n_periods": 500,
+   "fee_per_leg_bps": 10.0,
+   "spot_spread_bps": 13.4953,
+   "perp_spread_bps": 1.3484,
+   "all_in_cost_bps": 54.844,
+   "funding_total_bps": 223.195,
+   "basis_change_bps": -18.205,
+   "net_bps": 150.147,
+   "net_bps_on_gross_capital": 75.073,
+   "worst_neg_streak_bps": -1.146,
+   "funding_pos_share": 0.964,
+   "rolling": {
+    "7d": {
+     "n_windows": 480,
+     "min": 5.513,
+     "median": 9.568,
+     "max": 10.5,
+     "share_positive": 1.0
+    },
+    "30d": {
+     "n_windows": 411,
+     "min": 34.714,
+     "median": 40.705,
+     "max": 44.589,
+     "share_positive": 1.0
+    },
+    "90d": {
+     "n_windows": 231,
+     "min": 121.038,
+     "median": 123.166,
+     "max": 128.016,
+     "share_positive": 1.0
+    },
+    "167d": null
+   },
+   "pnl_exit_each_day_positive_share": 0.738,
+   "cum_funding_final_bps": 223.195
+  },
+  {
+   "symbol": "AAVE_USDT",
+   "n_periods": 500,
+   "fee_per_leg_bps": 10.0,
+   "spot_spread_bps": 1.1004,
+   "perp_spread_bps": 0.5503,
+   "all_in_cost_bps": 41.651,
+   "funding_total_bps": 177.508,
+   "basis_change_bps": 1.456,
+   "net_bps": 137.313,
+   "net_bps_on_gross_capital": 68.657,
+   "worst_neg_streak_bps": -13.366,
+   "funding_pos_share": 0.78,
+   "rolling": {
+    "7d": {
+     "n_windows": 480,
+     "min": -15.182,
+     "median": 7.972,
+     "max": 21.0,
+     "share_positive": 0.885
+    },
+    "30d": {
+     "n_windows": 411,
+     "min": -10.213,
+     "median": 33.283,
+     "max": 59.142,
+     "share_positive": 0.881
+    },
+    "90d": {
+     "n_windows": 231,
+     "min": 55.448,
+     "median": 84.217,
+     "max": 137.722,
+     "share_positive": 1.0
+    },
+    "167d": null
+   },
+   "pnl_exit_each_day_positive_share": 0.548,
+   "cum_funding_final_bps": 177.508
+  },
+  {
+   "symbol": "AAPLX_USDT",
+   "n_periods": 500,
+   "fee_per_leg_bps": 10.0,
+   "spot_spread_bps": 0.6003,
+   "perp_spread_bps": 0.3,
+   "all_in_cost_bps": 40.9,
+   "funding_total_bps": 167.327,
+   "basis_change_bps": 0.787,
+   "net_bps": 127.214,
+   "net_bps_on_gross_capital": 63.607,
+   "worst_neg_streak_bps": -10.071,
+   "funding_pos_share": 0.734,
+   "rolling": {
+    "7d": {
+     "n_windows": 480,
+     "min": -14.741,
+     "median": 3.847,
+     "max": 56.006,
+     "share_positive": 0.819
+    },
+    "30d": {
+     "n_windows": 411,
+     "min": -22.271,
+     "median": 21.192,
+     "max": 85.732,
+     "share_positive": 0.844
+    },
+    "90d": {
+     "n_windows": 231,
+     "min": 23.949,
+     "median": 50.34,
+     "max": 108.523,
+     "share_positive": 1.0
+    },
+    "167d": null
+   },
+   "pnl_exit_each_day_positive_share": 0.978,
+   "cum_funding_final_bps": 167.327
+  }
+ ]
+}
