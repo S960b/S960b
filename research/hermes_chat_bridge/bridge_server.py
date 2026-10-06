@@ -836,11 +836,17 @@ def make_mcp_server(base_url: str, bridge: BridgeApp) -> MCPServer:
         return bridge.queue.put_reply(job_id, text)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=True, openWorldHint=False), meta={'securitySchemes': [{'type': 'oauth2', 'scopes': [SCOPE]}]})
-    async def bridge_put_message(text: str) -> dict:
-        """Создать новое сообщение Hermes (инициатива ChatGPT). Владелец
-        только. Текст ограничен 8KiB; возвращает job_id/created/status."""
+    async def bridge_put_message(text: str, idempotency_key: str) -> dict:
+        """Создать НОВОЕ сообщение Hermes (ChatGPT->Hermes, direction=to_hermes).
+
+        Только owner. Требуется клиентский idempotency_key: повтор с тем же
+        ключом и тем же текстом возвращает исходный job_id; тот же ключ с
+        другим текстом — conflict. Событие hermes.message.created НЕ
+        генерируется (входящие задачи opraшиваются воркером, не webhook'ом).
+        Ограничение 8KiB + per-owner rate limit."""
         bridge.require_owner()
-        return bridge.queue.put_message(text)
+        return bridge.queue.put_message(text, direction='to_hermes',
+                                        idempotency_key=idempotency_key)
 
     # --- server/discover: события на верхнем уровне capabilities (план MCP Events) ---
     async def _discover(ctx, params):
