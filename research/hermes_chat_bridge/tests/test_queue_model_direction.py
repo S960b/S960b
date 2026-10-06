@@ -75,7 +75,7 @@ def test_no_webhook_loop_for_to_hermes(tmp_path):
             'event': 'hermes.message.created',
             'arguments': {'queue': 'test'},
             'callback_url': 'https://connectors.api.openai.com/webhook/mcp-events/loopcheck',
-            'secret': 'whsec_loop', 'expires_at': _t.time() + 3600,
+            'secret': 'test-secret-loop', 'expires_at': _t.time() + 3600,
             'active': True, 'generation': 1,
         })
         # CLI-путь (to_chatgpt): put_message + emit -> событие есть
