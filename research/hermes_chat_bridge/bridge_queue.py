@@ -247,16 +247,18 @@ class Queue:
                     conn.execute('COMMIT')
                     # повтор complete ТЕМ ЖЕ воркером после потери ответа:
                     # задача уже completed -> тот же report_job_id, created=False;
-                    # чужой воркер не получает idempotent-успех
-                    if (row is not None and row['status'] == 'completed'
-                            and row['completed_by'] == worker):
-                        report = conn.execute(
-                            'SELECT job_id FROM jobs WHERE parent_job_id=?'
-                            ' AND direction=? LIMIT 1',
-                            (job_id, 'to_chatgpt')).fetchone()
-                        return {'job_id': job_id, 'status': 'completed',
-                                'report_job_id': report['job_id'] if report else None,
-                                'created': False}
+                    # чужой воркер (включая уже завершённую задачу) -> not_owner
+                    if row is not None and row['status'] == 'completed':
+                        if row['completed_by'] == worker:
+                            report = conn.execute(
+                                'SELECT job_id FROM jobs WHERE parent_job_id=?'
+                                ' AND direction=? LIMIT 1',
+                                (job_id, 'to_chatgpt')).fetchone()
+                            return {'job_id': job_id, 'status': 'completed',
+                                    'report_job_id': report['job_id'] if report else None,
+                                    'created': False}
+                        return {'job_id': job_id, 'status': 'not_owner',
+                                'reason': f'already completed by {row["completed_by"]}'}
                     return err
                 conn.execute(
                     'UPDATE jobs SET status=?, reply=?, claimed_by=NULL,'
@@ -305,8 +307,11 @@ class Queue:
                 if err is not None:
                     conn.execute('COMMIT')
                     if row is not None and row['status'] == 'failed':
-                        return {'job_id': job_id, 'status': 'failed',
-                                'idempotent': True}
+                        if row['completed_by'] == worker:
+                            return {'job_id': job_id, 'status': 'failed',
+                                    'idempotent': True}
+                        return {'job_id': job_id, 'status': 'not_owner',
+                                'reason': f'already failed by {row["completed_by"]}'}
                     return err
                 conn.execute(
                     'UPDATE jobs SET status=?, reply=?, claimed_by=NULL,'
