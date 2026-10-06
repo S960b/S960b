@@ -29,7 +29,7 @@ def load_key():
     ap.add_argument('--key-file')
     args, _ = ap.parse_known_args()
     path = args.key_file or Path('/home/kali/Documents/key/apikey')
-    lines = [l.strip() for l in path.read_text().splitlines() if l.strip()]
+    lines = [l.strip() for l in Path(path).read_text().splitlines() if l.strip()]
     return lines[0], lines[1]
 
 
