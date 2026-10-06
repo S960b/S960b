@@ -112,6 +112,26 @@ def utc_iso() -> str:
     return datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
 
 
+def normalize_resource(resource: str | None, base_url: str) -> str | None:
+    """Привести OAuth resource к каноническому resource_server_url.
+
+    Новый коннектор OpenAI (chatgpt.com/connector/oauth/...) запрашивает
+    authorize c resource = base_url БЕЗ /mcp; SDK-валидатор (validate_token_
+    resource=True) сравнивает токен.resource с resource_server_url = base/mcp
+    и разворачивает такие токены 401 -> инструменты моста не инжектятся.
+    Нормализуем: base, base/ и base/mcp/ -> base/mcp; прочее оставляем.
+    """
+    if not resource:
+        return resource
+    s = resource.rstrip('/')
+    b = base_url.rstrip('/')
+    if s == b:
+        return b + '/mcp'
+    if s == b + '/mcp':
+        return s
+    return resource
+
+
 def process_build() -> dict:
     """Capture build identity once per app; never guess a revision from a report."""
     revision = 'unknown'
@@ -433,7 +453,7 @@ class BridgeOAuthProvider(OAuthAuthorizationServerProvider[AuthorizationCode, Re
             'code_challenge': params.code_challenge,
             'redirect_uri_provided_explicitly': params.redirect_uri_provided_explicitly,
             'client_id': client.client_id,
-            'resource': params.resource,
+            'resource': normalize_resource(params.resource, self.base),
             'client_state': params.state,
         })
         return f'{self.base}/login?state={state}'
@@ -446,12 +466,13 @@ class BridgeOAuthProvider(OAuthAuthorizationServerProvider[AuthorizationCode, Re
         at = f'at_{secrets.token_urlsafe(24)}'
         rt = f'rt_{secrets.token_urlsafe(24)}'
         now = int(time.time())
+        res = normalize_resource(auth_code.resource, self.base)
         self.store.save_access(AccessToken(
             token=at, client_id=client.client_id, scopes=auth_code.scopes,
-            expires_at=now + 3600, resource=auth_code.resource, subject=auth_code.subject))
+            expires_at=now + 3600, resource=res, subject=auth_code.subject))
         self.store.save_refresh(RefreshToken(
             token=rt, client_id=client.client_id, scopes=auth_code.scopes,
-            expires_at=now + 30 * 86400, resource=auth_code.resource, subject=auth_code.subject))
+            expires_at=now + 30 * 86400, resource=res, subject=auth_code.subject))
         self.store.del_code(auth_code.code)
         return OAuthToken(access_token=at, token_type='Bearer', expires_in=3600,
                           scope=' '.join(auth_code.scopes), refresh_token=rt)
@@ -464,11 +485,12 @@ class BridgeOAuthProvider(OAuthAuthorizationServerProvider[AuthorizationCode, Re
         now = int(time.time())
         at = f'at_{secrets.token_urlsafe(24)}'
         rt = f'rt_{secrets.token_urlsafe(24)}'
+        res = normalize_resource(refresh_token.resource, self.base)
         self.store.save_access(AccessToken(token=at, client_id=client.client_id, scopes=scopes,
-                                           expires_at=now + 3600, resource=refresh_token.resource,
+                                           expires_at=now + 3600, resource=res,
                                            subject=refresh_token.subject))
         self.store.save_refresh(RefreshToken(token=rt, client_id=client.client_id, scopes=scopes,
-                                              expires_at=now + 30 * 86400, resource=refresh_token.resource,
+                                              expires_at=now + 30 * 86400, resource=res,
                                               subject=refresh_token.subject))
         self.store.del_refresh(refresh_token.token)
         return OAuthToken(access_token=at, token_type='Bearer', expires_in=3600,
@@ -553,7 +575,7 @@ class BridgeApp:
             redirect_uri=sd['redirect_uri'] or None,
             redirect_uri_provided_explicitly=sd['redirect_uri_provided_explicitly'],
             expires_at=time.time() + 300, scopes=[SCOPE],
-            code_challenge=sd['code_challenge'], resource=sd.get('resource'), subject=user))
+            code_challenge=sd['code_challenge'], resource=normalize_resource(sd.get('resource'), self.base_url), subject=user))
         self.store.del_state(state)
         return RedirectResponse(
             url=construct_redirect_uri(sd['redirect_uri'], code=code, state=sd.get('client_state')), status_code=302)
