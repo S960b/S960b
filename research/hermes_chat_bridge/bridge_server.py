@@ -396,8 +396,51 @@ class Store:
             if json.loads(r['arguments']) == arguments:
                 return {'id': r['sub_id'], 'owner': r['owner'], 'event': r['event'],
                         'arguments': json.loads(r['arguments']), 'callback_url': r['callback_url'],
-                        'secret': r['secret'], 'expires_at': r['expires_at'], 'active': True, 'generation': r['generation']}
+                        'secret': r['secret'], 'expires_at': r['expires_at'], 'active': True,
+                        'generation': r['generation'], 'created_at': r['created_at']}
         return None
+
+    def find_active_sub(self, owner: str, event: str, arguments: dict) -> dict | None:
+        """Активная подписка owner+event+arguments (для идемпотентного subscribe)."""
+        rows = self.conn.execute(
+            'SELECT * FROM subs WHERE owner=? AND event=? AND active=1 AND expires_at>?',
+            (owner, event, time.time())).fetchall()
+        for r in rows:
+            if json.loads(r['arguments']) == arguments:
+                return {'id': r['sub_id'], 'owner': r['owner'], 'event': r['event'],
+                        'arguments': json.loads(r['arguments']), 'callback_url': r['callback_url'],
+                        'secret': r['secret'], 'expires_at': r['expires_at'], 'active': True,
+                        'generation': r['generation'], 'created_at': r['created_at']}
+        return None
+
+    def last_sub_for_owner(self, owner: str) -> dict | None:
+        """Последняя известная подписка owner (для переиспользования callback)."""
+        r = self.conn.execute(
+            'SELECT * FROM subs WHERE owner=? ORDER BY created_at DESC, rowid DESC LIMIT 1',
+            (owner,)).fetchone()
+        if r is None:
+            return None
+        return {'id': r['sub_id'], 'owner': r['owner'], 'event': r['event'],
+                'arguments': json.loads(r['arguments']), 'callback_url': r['callback_url'],
+                'secret': r['secret'], 'expires_at': r['expires_at'],
+                'active': bool(r['active']), 'generation': r['generation'],
+                'created_at': r['created_at']}
+
+    def list_subs(self, owner: str | None = None) -> list[dict]:
+        q = 'SELECT * FROM subs'
+        args = ()
+        if owner:
+            q += ' WHERE owner=?'
+            args = (owner,)
+        q += ' ORDER BY created_at DESC, rowid DESC'
+        out = []
+        for r in self.conn.execute(q, args).fetchall():
+            out.append({'id': r['sub_id'], 'owner': r['owner'], 'event': r['event'],
+                        'arguments': json.loads(r['arguments']), 'callback_url': r['callback_url'],
+                        'secret': r['secret'], 'expires_at': r['expires_at'],
+                        'active': bool(r['active']), 'generation': r['generation'],
+                        'created_at': r['created_at']})
+        return out
 
     def active_subscriptions(self) -> list[dict]:
         rows = self.conn.execute(
@@ -869,6 +912,89 @@ def make_mcp_server(base_url: str, bridge: BridgeApp) -> MCPServer:
         bridge.require_owner()
         return bridge.queue.put_message(text, direction='to_hermes',
                                         idempotency_key=idempotency_key)
+
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=True, openWorldHint=False), meta={'securitySchemes': [{'type': 'oauth2', 'scopes': [SCOPE]}]})
+    async def bridge_subscribe(event: str = 'hermes.message.created',
+                               callback_url: str | None = None,
+                               secret: str | None = None) -> dict:
+        """Подписаться на push-события Hermes (hermes.message.created).
+
+        Идемпотентно для owner+event: повторный вызов возвращает ту же
+        активную подписку, дублей не создаёт. Существующий вебхук коннектора
+        переиспользуется, если callback_url/secret не переданы."""
+        owner = bridge.require_owner()
+        if event != 'hermes.message.created':
+            raise MCPError(code=-32602, message=f'unknown event {event}')
+        arguments = {'queue': 'test'}
+
+        def _public(s: dict) -> dict:
+            return {'subscription_id': s['id'], 'event': s['event'],
+                    'status': 'active' if s['active'] else 'inactive',
+                    'callback_url': s['callback_url'],
+                    'created_at_utc': s.get('created_at', utc_iso()),
+                    'expires_at': s['expires_at']}
+
+        active = bridge.store.find_active_sub(owner, event, arguments)
+        if active is not None:
+            return _public(active)
+
+        # вебхук: переданный или последний известный для этого владельца
+        url, sec = callback_url, secret
+        if not url or not sec:
+            last = bridge.store.last_sub_for_owner(owner)
+            if last and last.get('callback_url') and last.get('secret'):
+                url = url or last['callback_url']
+                sec = sec or last['secret']
+        if not url or not sec or not sec.startswith('whsec_'):
+            raise MCPError(code=-32602,
+                           message='callback_url и whsec_ secret обязательны '
+                                   'для новой подписки')
+
+        sub = {'id': bridge._sub_id(owner, event, arguments, url),
+               'owner': owner, 'event': event, 'arguments': arguments,
+               'callback_url': url, 'secret': sec,
+               'expires_at': time.time() + SUBSCRIPTION_TTL_S,
+               'active': False,
+               'created_at': utc_iso()}
+        generation = bridge.store.begin_sub(sub)
+        sub['generation'] = generation
+        # верификация callback: если это новый вебхук — challenge; если это
+        # повторно используемый рабочий вебхук коннектора — пропускаем
+        existing = bridge.store.load_sub(sub['id'])
+        verified = (existing is not None and existing['active']
+                    and existing['expires_at'] > time.time()
+                    and existing['callback_url'] == url and existing['secret'] == sec)
+        if not verified:
+            if not await bridge.verify_callback(sub):
+                bridge.store.fail_sub(sub['id'], generation)
+                raise MCPError(code=-32015, message='CallbackEndpointError',
+                               data={'reason': 'challenge_failed'})
+        bridge.store.activate_sub(sub, generation)
+        return _public(bridge.store.load_sub(sub['id']))
+
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False), meta={'securitySchemes': [{'type': 'oauth2', 'scopes': [SCOPE]}]})
+    async def bridge_subscription_status() -> dict:
+        """Показать подписки текущего владельца (hermes.message.created)."""
+        owner = bridge.require_owner()
+        subs = bridge.store.list_subs(owner)
+        return {'subscriptions': [
+            {'subscription_id': s['id'], 'event': s['event'],
+             'status': 'active' if (s['active'] and s['expires_at'] > time.time()) else 'inactive',
+             'callback_url': s['callback_url'],
+             'created_at_utc': s.get('created_at', utc_iso()),
+             'expires_at': s['expires_at']} for s in subs]}
+
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=True, openWorldHint=False), meta={'securitySchemes': [{'type': 'oauth2', 'scopes': [SCOPE]}]})
+    async def bridge_unsubscribe(subscription_id: str, event: str = 'hermes.message.created') -> dict:
+        """Отключить подписку по subscription_id. Идемпотентен."""
+        owner = bridge.require_owner()
+        sub = bridge.store.load_sub(subscription_id)
+        if sub is None or sub['owner'] != owner:
+            raise MCPError(code=-32602, message='subscription not found')
+        if sub['active']:
+            bridge.store.deactivate_sub(subscription_id)
+        return {'subscription_id': subscription_id, 'event': sub['event'],
+                'status': 'inactive'}
 
     # --- server/discover: события на верхнем уровне capabilities (план MCP Events) ---
     async def _discover(ctx, params):

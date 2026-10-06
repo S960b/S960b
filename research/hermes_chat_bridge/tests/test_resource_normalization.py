@@ -84,7 +84,9 @@ def test_oauth_roundtrip_resource_without_mcp(tmp_path, monkeypatch):
             tl = rpc('tools/list', {})
             assert tl.status_code == 200, tl.text
             names = sorted(t['name'] for t in tl.json()['result']['tools'])
-            assert names == ['bridge_get_message', 'bridge_put_message', 'bridge_put_reply'], names
+            assert names == ['bridge_get_message', 'bridge_put_message',
+                             'bridge_put_reply', 'bridge_subscribe',
+                             'bridge_subscription_status', 'bridge_unsubscribe'], names
     finally:
         bridge.queue._conn.close()
         bridge.store.conn.close()

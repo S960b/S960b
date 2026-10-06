@@ -62,4 +62,5 @@ def test_tools_still_work(api):
     r = rpc(api, "tools/list")
     assert r.status_code == 200
     assert sorted(t["name"] for t in r.json()["result"]["tools"]) == [
-        "bridge_get_message", "bridge_put_message", "bridge_put_reply"]
+        "bridge_get_message", "bridge_put_message", "bridge_put_reply",
+        "bridge_subscribe", "bridge_subscription_status", "bridge_unsubscribe"]
