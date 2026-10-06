@@ -46,5 +46,14 @@ def test_actual_oauth_and_reply_roundtrip(tmp_path,monkeypatch):
             response=rpc('tools/call',{'name':'bridge_put_reply','arguments':{'job_id':job['job_id'],'text':answer}})
             assert response.status_code==200 and not response.json()['result'].get('isError'),response.text
             assert bridge.queue.get_message(job['job_id'])['reply']==answer
+            # bridge_put_message: ChatGPT создаёт новое сообщение для Hermes
+            create=rpc('tools/call',{'name':'bridge_put_message','arguments':{'text':'inbound from ChatGPT (synthetic)'}})
+            assert create.status_code==200 and not create.json()['result'].get('isError'),create.text
+            created=create.json()['result']['content'][0]['text']
+            import json as _json
+            created_obj=_json.loads(created)
+            assert created_obj['status']=='pending',created
+            got=bridge.queue.get_message(created_obj['job_id'])
+            assert got is not None and got['text']=='inbound from ChatGPT (synthetic)',got
     finally:
         bridge.queue._conn.close();bridge.store.conn.close()

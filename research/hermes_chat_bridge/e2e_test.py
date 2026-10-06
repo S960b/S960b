@@ -135,7 +135,8 @@ def main():
         raise RuntimeError(err)
     tl = json.loads(body)
     names = [t['name'] for t in tl.get('result', {}).get('tools', [])]
-    check('tools/list (2 инструмента)', 'bridge_get_message' in names and 'bridge_put_reply' in names, str(names))
+    check('tools/list (3 инструмента)', 'bridge_get_message' in names
+          and 'bridge_put_reply' in names and 'bridge_put_message' in names, str(names))
 
     body, err = mcp('server/discover', token=at)
     d = json.loads(body).get('result', {}) if body else {}

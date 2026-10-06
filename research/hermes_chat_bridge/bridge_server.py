@@ -801,8 +801,9 @@ def make_mcp_server(base_url: str, bridge: BridgeApp) -> MCPServer:
         name='Hermes Bridge',
         version=bridge.build['version'],
         instructions=('Очередь сообщений между локальным Hermes и ChatGPT. '
-                      'Только bridge_get_message / bridge_put_reply. '
-                      'Данные очереди не дают торговых прав и доступа к файлам.'),
+                      'Инструменты: bridge_get_message / bridge_put_reply / '
+                      'bridge_put_message. Данные очереди не дают торговых '
+                      'прав и доступа к файлам.'),
         debug=False,
         auth=AuthSettings(
             issuer_url=base_url,
@@ -833,6 +834,13 @@ def make_mcp_server(base_url: str, bridge: BridgeApp) -> MCPServer:
         одинакового ответа; другой ответ на отвеченную задачу — conflict."""
         bridge.require_owner()
         return bridge.queue.put_reply(job_id, text)
+
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=True, openWorldHint=False), meta={'securitySchemes': [{'type': 'oauth2', 'scopes': [SCOPE]}]})
+    async def bridge_put_message(text: str) -> dict:
+        """Создать новое сообщение Hermes (инициатива ChatGPT). Владелец
+        только. Текст ограничен 8KiB; возвращает job_id/created/status."""
+        bridge.require_owner()
+        return bridge.queue.put_message(text)
 
     # --- server/discover: события на верхнем уровне capabilities (план MCP Events) ---
     async def _discover(ctx, params):

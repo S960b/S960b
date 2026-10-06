@@ -61,4 +61,5 @@ def test_compat_does_not_allow_wrong_resource_token(api):
 def test_tools_still_work(api):
     r = rpc(api, "tools/list")
     assert r.status_code == 200
-    assert sorted(t["name"] for t in r.json()["result"]["tools"]) == ["bridge_get_message", "bridge_put_reply"]
+    assert sorted(t["name"] for t in r.json()["result"]["tools"]) == [
+        "bridge_get_message", "bridge_put_message", "bridge_put_reply"]
