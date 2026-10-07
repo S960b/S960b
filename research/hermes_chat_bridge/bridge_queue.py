@@ -130,7 +130,7 @@ class Queue:
     def list_jobs(self, limit: int = 50) -> list[dict]:
         rows = self._conn.execute(
             'SELECT job_id, status, direction, created_at_utc, updated_at_utc,'
-            ' length(text) AS text_len,'
+            ' substr(text,1,120) AS text,'
             ' CASE WHEN reply IS NOT NULL THEN length(reply) ELSE NULL END AS reply_len,'
             ' claimed_by, lease_until_epoch'
             ' FROM jobs ORDER BY created_at_utc DESC LIMIT ?', (limit,)).fetchall()
