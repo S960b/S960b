@@ -802,14 +802,30 @@ class BridgeApp:
         return {'resultType': 'complete'}
 
     def emit_test_event(self, job_id: str, queue: str = 'test'):
-        """Локальный триггер: проверочное сообщение в очереди -> событие подписчикам."""
+        """Локальный триггер: проверочное сообщение в очереди -> событие подписчикам.
+
+        Публикация ТОЛЬКО для direction=to_chatgpt и после COMMIT (emit вызывается
+        CLI-путём после put_message). Payload по контракту job_9286282a:
+        {job_id, created_at_utc, direction, status, queue}."""
+        job = None
+        try:
+            job = self.queue.get_message(job_id) if job_id else None
+        except Exception:
+            job = None
+        payload = {
+            'job_id': job_id,
+            'created_at_utc': (job or {}).get('created_at_utc') or utc_iso(),
+            'direction': (job or {}).get('direction') or 'to_chatgpt',
+            'status': (job or {}).get('status') or 'pending',
+            'queue': queue,
+        }
         subs = [s for s in self.store.active_subscriptions()
                 if s['event'] == 'hermes.message.created'
                 and s['arguments'].get('queue') == queue]
         count = 0
         for s in subs:
             count += self.store.enqueue_delivery(s['id'], 'evt_' + hashlib.sha256((queue + ':' + job_id).encode()).hexdigest()[:32],
-                                        {'job_id': job_id, 'queue': queue})
+                                        payload)
         return count
 
     async def deliver_pending(self):
@@ -1033,19 +1049,23 @@ def jsonable_events_list() -> dict:
     return {
         'events': [{
             'name': 'hermes.message.created',
-            'description': 'Новое сообщение добавлено в очередь моста.',
+            'description': 'Новое сообщение добавлено в очередь моста (to_chatgpt).',
             'delivery': ['webhook'],
             'inputSchema': {
                 'type': 'object',
                 'properties': {'queue': {'type': 'string',
-                                         'description': 'Очередь: test (только проверочная)'}},
-                'required': ['queue'], 'additionalProperties': False,
+                                         'description': 'Очередь: test (по умолчанию)'}},
+                'additionalProperties': False,
             },
             'payloadSchema': {
                 'type': 'object',
                 'properties': {'job_id': {'type': 'string'},
+                               'created_at_utc': {'type': 'string'},
+                               'direction': {'type': 'string'},
+                               'status': {'type': 'string'},
                                'queue': {'type': 'string'}},
-                'required': ['job_id', 'queue'], 'additionalProperties': False,
+                'required': ['job_id', 'created_at_utc', 'direction', 'status'],
+                'additionalProperties': False,
             },
         }]
     }
