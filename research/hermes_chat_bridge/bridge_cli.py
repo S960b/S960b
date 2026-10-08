@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Локальная CLI моста Hermes<->ChatGPT (только владелец, на машине).
 
-  bridge-cli put "текст"   — создать задачу + триггер события hermes.message.created
+  bridge-cli put "текст" [queue] — создать задачу + триггер события hermes.message.created
   bridge-cli get <job_id>  — прочитать задачу/ответ
   bridge-cli list          — список задач (без текста, только длины/статусы)
   bridge-cli subs          — активные подписки (метаданные, без секрета)
@@ -30,10 +30,10 @@ def main():
     if cmd == 'put':
         text = sys.argv[2] if len(sys.argv) > 2 else ''
         if not text:
-            print('usage: bridge-cli put "текст"'); return 1
-        r = q.put_message(text)
-        print(f"job_id={r['job_id']} status={r['status']}")
-        # триггер события подписчикам (queue=test используем для проверочной задачи)
+            print('usage: bridge-cli put "текст" [queue]'); return 1
+        queue = sys.argv[3] if len(sys.argv) > 3 else 'test'
+        r = q.put_message(text, queue=queue)
+        print(f"job_id={r['job_id']} status={r['status']} queue={r.get('queue', queue)}")
         bridge = bs.BridgeApp(bs.BRIDGE_HOST and 'http://127.0.0.1:8765')
         n = bridge.emit_test_event(r['job_id'])
         print(f'events_queued={n}')
