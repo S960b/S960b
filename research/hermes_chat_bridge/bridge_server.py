@@ -61,12 +61,12 @@ from starlette.requests import Request
 from starlette.responses import HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse, Response
 from starlette.routing import Route
 
-from bridge_queue import Queue
+from bridge_queue import Queue, validate_queue_name, validate_consumer_id
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger('bridge')
 
-VERSION = '0.2.0'
+VERSION = '0.2.1'
 PILOT_SCHEMA_VERSION = 3
 BRIDGE_HOST = os.environ.get('BRIDGE_HOST', '127.0.0.1')
 BRIDGE_PORT = int(os.environ.get('BRIDGE_PORT', '8765'))
@@ -750,8 +750,12 @@ class BridgeApp:
         delivery = p.get('delivery') or {}
         if name != 'hermes.message.created':
             raise MCPError(code=-32602, message=f'unknown event {name}')
-        if not isinstance(arguments, dict) or arguments != {'queue': 'test'}:
-            raise MCPError(code=-32602, message='arguments must match queue=test schema without extra fields')
+        if not isinstance(arguments, dict) or set(arguments) != {'queue'}:
+            raise MCPError(code=-32602, message='arguments must contain only queue')
+        try:
+            arguments = {'queue': validate_queue_name(arguments.get('queue'))}
+        except ValueError as e:
+            raise MCPError(code=-32602, message=str(e))
         if not isinstance(delivery, dict):
             raise MCPError(code=-32602, message='delivery must be an object')
         url = delivery.get('url', '')
@@ -801,7 +805,7 @@ class BridgeApp:
             self.store.deactivate_sub(sub_id)
         return {'resultType': 'complete'}
 
-    def emit_test_event(self, job_id: str, queue: str = 'test'):
+    def emit_test_event(self, job_id: str, queue: str | None = None):
         """Локальный триггер: проверочное сообщение в очереди -> событие подписчикам.
 
         Публикация ТОЛЬКО для direction=to_chatgpt и после COMMIT (emit вызывается
@@ -812,20 +816,25 @@ class BridgeApp:
             job = self.queue.get_message(job_id) if job_id else None
         except Exception:
             job = None
+        if job is not None and job.get('direction') != 'to_chatgpt':
+            return 0
+        effective_queue = validate_queue_name(
+            queue if queue is not None else (job or {}).get('queue', 'test'))
         payload = {
             'job_id': job_id,
             'created_at_utc': (job or {}).get('created_at_utc') or utc_iso(),
             'direction': (job or {}).get('direction') or 'to_chatgpt',
             'status': (job or {}).get('status') or 'pending',
-            'queue': queue,
+            'queue': effective_queue,
         }
         subs = [s for s in self.store.active_subscriptions()
                 if s['event'] == 'hermes.message.created'
-                and s['arguments'].get('queue') == queue]
+                and s['arguments'].get('queue') == effective_queue]
         count = 0
         for s in subs:
-            count += self.store.enqueue_delivery(s['id'], 'evt_' + hashlib.sha256((queue + ':' + job_id).encode()).hexdigest()[:32],
-                                        payload)
+            event_id = 'evt_' + hashlib.sha256(
+                (effective_queue + ':' + job_id).encode()).hexdigest()[:32]
+            count += self.store.enqueue_delivery(s['id'], event_id, payload)
         return count
 
     async def deliver_pending(self):
@@ -899,25 +908,50 @@ def make_mcp_server(base_url: str, bridge: BridgeApp) -> MCPServer:
     )
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False), meta={'securitySchemes': [{'type': 'oauth2', 'scopes': [SCOPE]}]})
-    async def bridge_get_message(job_id: str) -> dict:
-        """Получить сообщение из очереди моста по job_id (только существующие)."""
+    async def bridge_get_message(job_id: str, consumer_id: str | None = None,
+                                 lease_seconds: int = 900) -> dict:
+        """Получить сообщение; consumer_id включает атомарный Work-claim.
+
+        Legacy/обычный чат не передаёт consumer_id и читает как раньше.
+        Event-triggered Work ОБЯЗАН передавать стабильный consumer_id: только
+        победитель claim получает text, остальные получают already_claimed.
+        Повтор победителя продлевает lease.
+        """
         bridge.require_owner()
+        if consumer_id is not None:
+            try:
+                validate_consumer_id(consumer_id)
+            except ValueError as e:
+                raise MCPError(code=-32602, message=str(e))
+            return bridge.queue.claim_for_chat(job_id, consumer_id, lease_seconds)
         msg = bridge.queue.get_for_chat(job_id)
         if msg is None:
             return {'job_id': job_id, 'status': 'not_found'}
         return {'job_id': msg['job_id'], 'text': msg['text'],
                 'created_at_utc': msg['created_at_utc'], 'status': msg['status'],
-                'reply': msg['reply']}
+                'reply': msg['reply'], 'queue': msg['queue']}
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=True, openWorldHint=False), meta={'securitySchemes': [{'type': 'oauth2', 'scopes': [SCOPE]}]})
-    async def bridge_put_reply(job_id: str, text: str) -> dict:
-        """Записать ответ для существующего сообщения. Идемпотентен для
-        одинакового ответа; другой ответ на отвеченную задачу — conflict."""
+    async def bridge_put_reply(job_id: str, text: str,
+                               consumer_id: str | None = None) -> dict:
+        """Записать ответ.
+
+        Legacy без consumer_id сохраняет старую семантику. Work-event режим
+        передаёт тот же consumer_id, что и bridge_get_message, и может ответить
+        только пока владеет живым claim.
+        """
         bridge.require_owner()
+        if consumer_id is not None:
+            try:
+                validate_consumer_id(consumer_id)
+            except ValueError as e:
+                raise MCPError(code=-32602, message=str(e))
+            return bridge.queue.put_claimed_reply(job_id, consumer_id, text)
         return bridge.queue.put_reply(job_id, text)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=True, openWorldHint=False), meta={'securitySchemes': [{'type': 'oauth2', 'scopes': [SCOPE]}]})
-    async def bridge_put_message(text: str, idempotency_key: str) -> dict:
+    async def bridge_put_message(text: str, idempotency_key: str,
+                                 queue: str = 'test') -> dict:
         """Создать НОВОЕ сообщение Hermes (ChatGPT->Hermes, direction=to_hermes).
 
         Только owner. Требуется клиентский idempotency_key: повтор с тем же
@@ -926,11 +960,17 @@ def make_mcp_server(base_url: str, bridge: BridgeApp) -> MCPServer:
         генерируется (входящие задачи opraшиваются воркером, не webhook'ом).
         Ограничение 8KiB + per-owner rate limit."""
         bridge.require_owner()
+        try:
+            queue = validate_queue_name(queue)
+        except ValueError as e:
+            raise MCPError(code=-32602, message=str(e))
         return bridge.queue.put_message(text, direction='to_hermes',
-                                        idempotency_key=idempotency_key)
+                                        idempotency_key=idempotency_key,
+                                        queue=queue)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=True, openWorldHint=False), meta={'securitySchemes': [{'type': 'oauth2', 'scopes': [SCOPE]}]})
     async def bridge_subscribe(event: str = 'hermes.message.created',
+                               queue: str = 'test',
                                callback_url: str | None = None,
                                secret: str | None = None) -> dict:
         """Подписаться на push-события Hermes (hermes.message.created).
@@ -941,10 +981,15 @@ def make_mcp_server(base_url: str, bridge: BridgeApp) -> MCPServer:
         owner = bridge.require_owner()
         if event != 'hermes.message.created':
             raise MCPError(code=-32602, message=f'unknown event {event}')
-        arguments = {'queue': 'test'}
+        try:
+            queue = validate_queue_name(queue)
+        except ValueError as e:
+            raise MCPError(code=-32602, message=str(e))
+        arguments = {'queue': queue}
 
         def _public(s: dict) -> dict:
             return {'subscription_id': s['id'], 'event': s['event'],
+                    'queue': s['arguments'].get('queue', 'test'),
                     'status': 'active' if s['active'] else 'inactive',
                     'callback_url': s['callback_url'],
                     'created_at_utc': s.get('created_at', utc_iso()),
@@ -995,6 +1040,7 @@ def make_mcp_server(base_url: str, bridge: BridgeApp) -> MCPServer:
         subs = bridge.store.list_subs(owner)
         return {'subscriptions': [
             {'subscription_id': s['id'], 'event': s['event'],
+             'queue': s['arguments'].get('queue', 'test'),
              'status': 'active' if (s['active'] and s['expires_at'] > time.time()) else 'inactive',
              'callback_url': s['callback_url'],
              'created_at_utc': s.get('created_at', utc_iso()),
@@ -1053,8 +1099,131 @@ def jsonable_events_list() -> dict:
             'delivery': ['webhook'],
             'inputSchema': {
                 'type': 'object',
-                'properties': {'queue': {'type': 'string',
-                                         'description': 'Очередь: test (по умолчанию)'}},
+                'properties': {'queue': {
+                    'type': 'string',
+                    'pattern': '^[A-Za-z0-9_-]{1,64}
+            },
+            'payloadSchema': {
+                'type': 'object',
+                'properties': {'job_id': {'type': 'string'},
+                               'created_at_utc': {'type': 'string'},
+                               'direction': {'type': 'string'},
+                               'status': {'type': 'string'},
+                               'queue': {'type': 'string'}},
+                'required': ['job_id', 'created_at_utc', 'direction', 'status', 'queue'],
+                'additionalProperties': False,
+            },
+        }]
+    }
+
+
+class EventsSubscribeParams(MCPRequestParams):
+    """Свободные параметры events/subscribe|unsubscribe (extra='allow')."""
+
+    model_config = ConfigDict(extra='allow')
+
+
+def _ev_params(params) -> dict:
+    """Преобразовать model (или None) в плоский dict параметров."""
+    if params is None:
+        return {}
+    if isinstance(params, BaseModel):
+        return params.model_dump(exclude_none=True, exclude={'meta'})
+    return dict(params) if isinstance(params, dict) else {}
+
+
+# ---------------------------------------------------------------------------
+def build_app(base_url: str) -> Starlette:
+    if not OWNER_PASS:
+        raise RuntimeError('BRIDGE_PASS is required')
+    pilot_lock = pilot_database_lock(DB_PATH)
+    try:
+        bridge = BridgeApp(base_url)
+    except BaseException:
+        pilot_lock.close()
+        raise
+    mcp = make_mcp_server(base_url, bridge)
+
+    @mcp.custom_route('/ping', methods=['GET'])
+    async def health(request: Request) -> Response:
+        return JSONResponse({'ok': 'ok', **bridge.build})
+
+    @mcp.custom_route('/login', methods=['GET'])
+    async def login_page_route(request: Request) -> Response:
+        return await bridge.login_handler(request)
+
+    @mcp.custom_route('/login/callback', methods=['POST'])
+    async def login_cb_route(request: Request) -> Response:
+        return await bridge.login_callback(request)
+
+    from urllib.parse import urlparse as _up
+    from mcp.server.transport_security import TransportSecuritySettings as TSS
+
+    def _tunnel_host():
+        h = _up(base_url).hostname
+        return h if h else None
+
+    # Легитимный туннель (Cloudflare) — добавляем его Host в allowed_hosts,
+    # DNS-rebinding защиту НЕ отключаем (включена по умолчанию).
+    th = _tunnel_host()
+    app = mcp.streamable_http_app(
+        streamable_http_path='/mcp',
+        host=BRIDGE_HOST,
+        transport_security=TSS(
+            enable_dns_rebinding_protection=True,
+            allowed_hosts=[_up(base_url).netloc] if th else [],
+            allowed_origins=[],
+        ) if th else None,
+    )
+    app.state.bridge = bridge
+    app.state.pilot_lock = pilot_lock
+    original_lifespan = app.router.lifespan_context
+    @asynccontextmanager
+    async def lifespan(application):
+        try:
+            async with original_lifespan(application) as state:
+                yield state
+        finally:
+            pilot_lock.close()
+    app.router.lifespan_context = lifespan
+    return app
+
+
+def main():
+    base = os.environ.get('BRIDGE_BASE') or f'http://{BRIDGE_HOST}:{BRIDGE_PORT}'
+    app = build_app(base)
+    # фоновый цикл доставки webhook-событий
+    bridge = app.state.bridge if hasattr(app.state, 'bridge') else None
+
+    async def delivery_loop():
+        while True:
+            try:
+                if bridge is not None:
+                    await bridge.deliver_pending()
+            except Exception as e:
+                logger.info('delivery loop error: %s', type(e).__name__)
+            await asyncio.sleep(2.0)
+
+    import uvicorn
+    cfg = uvicorn.Config(app, host=BRIDGE_HOST, port=BRIDGE_PORT, log_level='info')
+    server = uvicorn.Server(cfg)
+
+    async def run():
+        task = asyncio.create_task(delivery_loop())
+        await server.serve()
+        task.cancel()
+
+    try:
+        asyncio.run(run())
+    except KeyboardInterrupt:
+        pass
+
+
+if __name__ == '__main__':
+    main(),
+                    'minLength': 1, 'maxLength': 64,
+                    'description': 'Изолированная очередь Work/CTF.'}},
+                'required': ['queue'],
                 'additionalProperties': False,
             },
             'payloadSchema': {
