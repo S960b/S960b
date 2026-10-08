@@ -134,7 +134,7 @@ def test_tool_metadata(api):
     tools = rpc(c, 'tools/list').json()['result']['tools']
     for t in tools:
         assert t['_meta']['securitySchemes'] == [{'type':'oauth2','scopes':['bridge']}]
-        assert t['annotations']['readOnlyHint'] == (t['name'] in ('bridge_get_message', 'bridge_subscription_status'))
+        assert t['annotations']['readOnlyHint'] == (t['name'] == 'bridge_subscription_status')
 
 
 def test_missing_password_fails_before_db(monkeypatch):
