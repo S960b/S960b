@@ -253,7 +253,9 @@ def test_multi_queue_native_routing(monkeypatch, tmp_path):
                          'url': 'https://connectors.api.openai.com/webhook/mcp-events/bad',
                          'secret': sec},
             **EV_PARAMS})
-        assert bad.status_code == 200
+        # Custom MCP request handlers surface invalid params as HTTP 400
+        # while preserving the JSON-RPC error body.
+        assert bad.status_code == 400, bad.text
         assert bad.json().get('error', {}).get('code') == -32602
     bridge.queue._conn.close()
     bridge.store.conn.close()
