@@ -150,12 +150,6 @@ class Queue:
 
     def claim_for_chat(self, job_id: str, consumer_id: str,
                        lease_seconds: float = CHAT_CLAIM_DEFAULT_S) -> dict:
-        """Atomically claim one to_chatgpt job before a Work task reads its text.
-
-        The losing consumer gets no task text, so parallel Work chats do not
-        spend tokens solving the same event. Re-claim by the same consumer is
-        idempotent and renews the lease; an expired lease may be taken over.
-        """
         consumer_id = validate_consumer_id(consumer_id)
         lease_seconds = _chat_lease_seconds(lease_seconds)
         now_epoch = time.time()
@@ -185,9 +179,8 @@ class Queue:
                         'queue': row['queue']}
             lease_until = now_epoch + lease_seconds
             if active and row['claimed_by'] == consumer_id:
-                conn.execute(
-                    'UPDATE jobs SET lease_until_epoch=?, updated_at_utc=? WHERE job_id=?',
-                    (lease_until, now_iso, job_id))
+                conn.execute('UPDATE jobs SET lease_until_epoch=?, updated_at_utc=? WHERE job_id=?',
+                             (lease_until, now_iso, job_id))
                 idempotent = True
             else:
                 conn.execute(
@@ -206,7 +199,6 @@ class Queue:
 
     def put_claimed_reply(self, job_id: str, consumer_id: str, text: str,
                           max_bytes: int = MAX_TEXT_BYTES) -> dict:
-        """Reply only if consumer_id still owns a live to_chatgpt claim."""
         consumer_id = validate_consumer_id(consumer_id)
         if len(text.encode('utf-8')) > max_bytes:
             raise ValueError(f'text > {max_bytes} bytes')
@@ -236,14 +228,11 @@ class Queue:
             if row['lease_until_epoch'] is None or row['lease_until_epoch'] < now_epoch:
                 conn.execute('COMMIT')
                 return {'job_id': job_id, 'status': 'lease_expired'}
-            updated = conn.execute(
+            conn.execute(
                 'UPDATE jobs SET reply=?, status=?, claimed_by=NULL, claimed_at_utc=NULL,'
                 ' lease_until_epoch=NULL, completed_at_utc=?, completed_by=?, updated_at_utc=?'
                 ' WHERE job_id=? AND reply IS NULL AND claimed_by=?',
-                (text, 'replied', now_iso, consumer_id, now_iso, job_id, consumer_id)).rowcount
-            if updated != 1:
-                conn.execute('ROLLBACK')
-                return {'job_id': job_id, 'status': 'conflict'}
+                (text, 'replied', now_iso, consumer_id, now_iso, job_id, consumer_id))
             conn.execute('COMMIT')
             return {'job_id': job_id, 'status': 'replied', 'reply': text}
         except Exception:
