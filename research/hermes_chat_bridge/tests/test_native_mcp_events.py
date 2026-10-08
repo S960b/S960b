@@ -100,7 +100,7 @@ def test_events_list_schema(monkeypatch, tmp_path):
         ev = r.json()['result']['events'][0]
         assert ev['name'] == 'hermes.message.created'
         ps = ev['payloadSchema']
-        assert set(ps['required']) == {'job_id', 'created_at_utc', 'direction', 'status'}
+        assert set(ps['required']) == {'job_id', 'created_at_utc', 'direction', 'status', 'queue'}
         assert set(ps['properties']) >= {'job_id', 'created_at_utc', 'direction', 'status', 'queue'}
         assert 'inputSchema' in ev
     bridge.queue._conn.close()
@@ -173,6 +173,7 @@ def test_event_payload_and_get_message_visibility(monkeypatch, tmp_path):
         assert pl['job_id'] == job['job_id']
         assert pl['direction'] == 'to_chatgpt'
         assert pl['status'] == 'pending'
+        assert pl['queue'] == 'test'
         assert pl['created_at_utc']
         # job_id сразу читается bridge_get_message
         gm = bridge.queue.get_for_chat(job['job_id'])
@@ -212,5 +213,47 @@ def test_unauthorized_events_blocked(monkeypatch, tmp_path):
                 'Accept': 'application/json, text/event-stream'}, json={
                 'jsonrpc': '2.0', 'id': 1, 'method': name, 'params': EV_PARAMS})
             assert r.status_code == 401, (name, r.status_code)
+    bridge.queue._conn.close()
+    bridge.store.conn.close()
+
+def test_multi_queue_native_routing(monkeypatch, tmp_path):
+    client, bridge, at = _oauth(monkeypatch, tmp_path)
+    async def _ok(sub): return True
+    bridge.verify_callback = _ok
+    monkeypatch.setattr(bridge, 'verify_callback', _ok)
+    sec = 'whsec_' + base64.urlsafe_b64encode(b'q' * 32).decode()
+    with client:
+        ids = {}
+        for queue, suffix in [('ctf_A', 'a'), ('ctf_B', 'b')]:
+            r = _rpc(client, at, 'events/subscribe', {
+                'name': 'hermes.message.created', 'arguments': {'queue': queue},
+                'delivery': {'mode': 'webhook',
+                             'url': f'https://connectors.api.openai.com/webhook/mcp-events/{suffix}',
+                             'secret': sec},
+                'ttlMs': 3600 * 1000, **EV_PARAMS})
+            assert r.status_code == 200, r.text
+            ids[queue] = r.json()['result']['id']
+        assert ids['ctf_A'] != ids['ctf_B']
+
+        ja = bridge.queue.put_message('A-only', direction='to_chatgpt', queue='ctf_A')
+        jb = bridge.queue.put_message('B-only', direction='to_chatgpt', queue='ctf_B')
+        assert bridge.emit_test_event(ja['job_id']) == 1
+        assert bridge.emit_test_event(jb['job_id']) == 1
+        rows = bridge.store.conn.execute(
+            'SELECT sub_id,payload FROM deliveries ORDER BY id').fetchall()
+        routed = [(r['sub_id'], json.loads(r['payload'])['queue']) for r in rows]
+        assert (ids['ctf_A'], 'ctf_A') in routed
+        assert (ids['ctf_B'], 'ctf_B') in routed
+        assert (ids['ctf_A'], 'ctf_B') not in routed
+        assert (ids['ctf_B'], 'ctf_A') not in routed
+
+        bad = _rpc(client, at, 'events/subscribe', {
+            'name': 'hermes.message.created', 'arguments': {'queue': '../bad'},
+            'delivery': {'mode': 'webhook',
+                         'url': 'https://connectors.api.openai.com/webhook/mcp-events/bad',
+                         'secret': sec},
+            **EV_PARAMS})
+        assert bad.status_code == 200
+        assert bad.json().get('error', {}).get('code') == -32602
     bridge.queue._conn.close()
     bridge.store.conn.close()
