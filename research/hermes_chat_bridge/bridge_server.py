@@ -1101,127 +1101,9 @@ def jsonable_events_list() -> dict:
                 'type': 'object',
                 'properties': {'queue': {
                     'type': 'string',
-                    'pattern': '^[A-Za-z0-9_-]{1,64}
-            },
-            'payloadSchema': {
-                'type': 'object',
-                'properties': {'job_id': {'type': 'string'},
-                               'created_at_utc': {'type': 'string'},
-                               'direction': {'type': 'string'},
-                               'status': {'type': 'string'},
-                               'queue': {'type': 'string'}},
-                'required': ['job_id', 'created_at_utc', 'direction', 'status', 'queue'],
-                'additionalProperties': False,
-            },
-        }]
-    }
-
-
-class EventsSubscribeParams(MCPRequestParams):
-    """Свободные параметры events/subscribe|unsubscribe (extra='allow')."""
-
-    model_config = ConfigDict(extra='allow')
-
-
-def _ev_params(params) -> dict:
-    """Преобразовать model (или None) в плоский dict параметров."""
-    if params is None:
-        return {}
-    if isinstance(params, BaseModel):
-        return params.model_dump(exclude_none=True, exclude={'meta'})
-    return dict(params) if isinstance(params, dict) else {}
-
-
-# ---------------------------------------------------------------------------
-def build_app(base_url: str) -> Starlette:
-    if not OWNER_PASS:
-        raise RuntimeError('BRIDGE_PASS is required')
-    pilot_lock = pilot_database_lock(DB_PATH)
-    try:
-        bridge = BridgeApp(base_url)
-    except BaseException:
-        pilot_lock.close()
-        raise
-    mcp = make_mcp_server(base_url, bridge)
-
-    @mcp.custom_route('/ping', methods=['GET'])
-    async def health(request: Request) -> Response:
-        return JSONResponse({'ok': 'ok', **bridge.build})
-
-    @mcp.custom_route('/login', methods=['GET'])
-    async def login_page_route(request: Request) -> Response:
-        return await bridge.login_handler(request)
-
-    @mcp.custom_route('/login/callback', methods=['POST'])
-    async def login_cb_route(request: Request) -> Response:
-        return await bridge.login_callback(request)
-
-    from urllib.parse import urlparse as _up
-    from mcp.server.transport_security import TransportSecuritySettings as TSS
-
-    def _tunnel_host():
-        h = _up(base_url).hostname
-        return h if h else None
-
-    # Легитимный туннель (Cloudflare) — добавляем его Host в allowed_hosts,
-    # DNS-rebinding защиту НЕ отключаем (включена по умолчанию).
-    th = _tunnel_host()
-    app = mcp.streamable_http_app(
-        streamable_http_path='/mcp',
-        host=BRIDGE_HOST,
-        transport_security=TSS(
-            enable_dns_rebinding_protection=True,
-            allowed_hosts=[_up(base_url).netloc] if th else [],
-            allowed_origins=[],
-        ) if th else None,
-    )
-    app.state.bridge = bridge
-    app.state.pilot_lock = pilot_lock
-    original_lifespan = app.router.lifespan_context
-    @asynccontextmanager
-    async def lifespan(application):
-        try:
-            async with original_lifespan(application) as state:
-                yield state
-        finally:
-            pilot_lock.close()
-    app.router.lifespan_context = lifespan
-    return app
-
-
-def main():
-    base = os.environ.get('BRIDGE_BASE') or f'http://{BRIDGE_HOST}:{BRIDGE_PORT}'
-    app = build_app(base)
-    # фоновый цикл доставки webhook-событий
-    bridge = app.state.bridge if hasattr(app.state, 'bridge') else None
-
-    async def delivery_loop():
-        while True:
-            try:
-                if bridge is not None:
-                    await bridge.deliver_pending()
-            except Exception as e:
-                logger.info('delivery loop error: %s', type(e).__name__)
-            await asyncio.sleep(2.0)
-
-    import uvicorn
-    cfg = uvicorn.Config(app, host=BRIDGE_HOST, port=BRIDGE_PORT, log_level='info')
-    server = uvicorn.Server(cfg)
-
-    async def run():
-        task = asyncio.create_task(delivery_loop())
-        await server.serve()
-        task.cancel()
-
-    try:
-        asyncio.run(run())
-    except KeyboardInterrupt:
-        pass
-
-
-if __name__ == '__main__':
-    main(),
-                    'minLength': 1, 'maxLength': 64,
+                    'pattern': '^[A-Za-z0-9_-]{1,64}$',
+                    'minLength': 1,
+                    'maxLength': 64,
                     'description': 'Изолированная очередь Work/CTF.'}},
                 'required': ['queue'],
                 'additionalProperties': False,
@@ -1233,7 +1115,7 @@ if __name__ == '__main__':
                                'direction': {'type': 'string'},
                                'status': {'type': 'string'},
                                'queue': {'type': 'string'}},
-                'required': ['job_id', 'created_at_utc', 'direction', 'status'],
+                'required': ['job_id', 'created_at_utc', 'direction', 'status', 'queue'],
                 'additionalProperties': False,
             },
         }]
