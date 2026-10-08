@@ -907,7 +907,7 @@ def make_mcp_server(base_url: str, bridge: BridgeApp) -> MCPServer:
         auth_server_provider=bridge.provider,
     )
 
-    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False), meta={'securitySchemes': [{'type': 'oauth2', 'scopes': [SCOPE]}]})
+    @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=True, openWorldHint=False), meta={'securitySchemes': [{'type': 'oauth2', 'scopes': [SCOPE]}]})
     async def bridge_get_message(job_id: str, consumer_id: str | None = None,
                                  lease_seconds: int = 900) -> dict:
         """Получить сообщение; consumer_id включает атомарный Work-claim.
