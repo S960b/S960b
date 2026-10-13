@@ -29,19 +29,21 @@ class Cipher:
 
 Three facts stand out, and all three matter:
 
-1. **The nonce is `plaintext[:8]`** - the first 8 bytes of the plaintext itself, not CSPRNG output. So the nonce is chosen by the caller (us, when we store a secret).
-2. **The key is generated once per connection** (`Cipher()` is created in `Vault.__init__`) and never changes between inserts.
+1. **The nonce is `plaintext[:8]`** - the first 8 bytes of the plaintext itself, not CSPRNG (cryptographically secure pseudo-random number generator, i.e. `get_random_bytes` here) output. So the nonce is chosen by the caller (us, when we store a secret).
+2. **The key is generated once per connection** - `Cipher()` is created inside `Vault.__init__` as `self.cipher = Cipher()`, and `Cipher.__init__` draws 16 random bytes with `get_random_bytes(16)`; that key never changes between inserts.
 3. **At startup the flag is already inserted**: `vault.insert(FLAG)`, so `Secret #0` in the export is the flag ciphertext.
 
 ## The math of the attack (why CTR makes this exploitable)
 
-AES-CTR is a stream mode: it generates a keystream `KS = AES(key, nonce || counter)` and computes `C = P XOR KS`. The keystream depends only on `(key, nonce)` - **not** on the plaintext.
+AES-CTR is a stream mode: it generates a keystream `KS = AES(key, nonce || counter)` and computes `C = P XOR KS`. The keystream depends only on `(key, nonce)` - **not** on the plaintext. (This is the standard definition of a stream cipher / CTR mode; see e.g. NIST SP 800-38A, Recommendation for Block Cipher Modes of Operation: the keystream is generated from the key and the counter block, independently of the plaintext.)
 
 If two messages are encrypted with the same key AND the same nonce, the keystream is the same, and XORing the two ciphertexts cancels the keystream:
 
 ```text
 C_flag XOR C_mine = (FLAG XOR KS) XOR (MINE XOR KS) = FLAG XOR MINE
 ```
+
+This is the well-known "two-time pad" property: because `KS` appears twice, it cancels out. The XOR of the two messages is then equal to the XOR of the two plaintexts.
 
 So if we can make the server encrypt our message with the same nonce as the flag, we learn `FLAG XOR MINE`. If we also know `MINE`, we recover `FLAG = C_flag XOR C_mine XOR MINE`.
 
@@ -66,7 +68,7 @@ The filler (`"B"` repeated) just makes the length match, so the ciphertext has t
 The nice part: the hit criterion is exact, no "looks like a flag" heuristic needed.
 
 - If `MINE[:8] = FLAG[:8]`, then the keystreams match, so `C_flag XOR C_mine = FLAG XOR MINE` - and since the first 8 bytes of `FLAG` and `MINE` are identical, the first 8 bytes of this XOR are **zero**.
-- If `g != FLAG[7]`, the nonces differ, the keystreams differ, and the first 8 bytes of the XOR are (almost certainly) non-zero.
+- If `g` does not equal `FLAG[7]`, the nonces differ, the keystreams differ, and the first 8 bytes of the XOR are (almost certainly) non-zero.
 
 ```text
 criterion: (C_flag XOR C_mine)[:8] = b"\x00" * 8   means   g = FLAG[7]
@@ -77,8 +79,6 @@ After the correct `g` is found, the full flag is:
 ```text
 FLAG = C_flag XOR C_mine XOR MINE
 ```
-
-The printability check (`flag.startswith("FortID{") ... flag.isprintable()`) is just a sanity check on top, not the primary signal.
 
 ## Pitfalls (things that break a naive script)
 
@@ -121,7 +121,7 @@ Expected output:
 [*] vault has 95 entries
 [+] nonce match at guess 'S' (0x53): FortID{St0p_B31ng_Cr3at1v3_With_N0nc3s_...}
 
-FLAG: FortID{St0p_B31ng_Cr3at1v3_With_N0nc3s_0r_You'll_R3gre7_17_dd2d0787ec}
+FLAG: FortID{St0p_B31ng_Cr3at1v3_With_N0nc3s_...} (masked)
 ```
 
 (The first export alone also gives the flag length; the pipeline is what stays within the 15-second alarm.)

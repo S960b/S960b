@@ -29,19 +29,21 @@ class Cipher:
 
 Три факта, и все три важны:
 
-1. **Nonce - это `plaintext[:8]`** - первые 8 байт самого открытого текста, а не CSPRNG. То есть nonce выбирает вызывающий (мы, когда кладём секрет).
-2. **Ключ генерируется один раз на соединение** (`Cipher()` создаётся в `Vault.__init__`) и не меняется между вставками.
+1. **Nonce - это `plaintext[:8]`** - первые 8 байт самого открытого текста, а не CSPRNG (криптографически стойкий генератор псевдослучайных чисел; здесь это `get_random_bytes`). То есть nonce выбирает вызывающий (мы, когда кладём секрет).
+2. **Ключ генерируется один раз на соединение** - `Cipher()` создаётся в `Vault.__init__` строкой `self.cipher = Cipher()`, а `Cipher.__init__` берёт 16 случайных байт через `get_random_bytes(16)`; этот ключ не меняется между вставками.
 3. **При старте флаг уже вставлен**: `vault.insert(FLAG)`, значит `Secret #0` в выгрузке - это шифротекст флага.
 
 ## Математика атаки (почему CTR это позволяет)
 
-AES-CTR - потоковый режим: он генерирует keystream `KS = AES(key, nonce || counter)` и вычисляет `C = P XOR KS`. Keystream зависит только от `(key, nonce)` - **не** от открытого текста.
+AES-CTR - потоковый режим: он генерирует keystream `KS = AES(key, nonce || counter)` и вычисляет `C = P XOR KS`. Keystream зависит только от `(key, nonce)` - **не** от открытого текста. (Это стандартное определение потокового шифра / режима CTR; см., например, NIST SP 800-38A, Recommendation for Block Cipher Modes of Operation: keystream порождается из ключа и счётчика независимо от открытого текста.)
 
 Если два сообщения зашифрованы одним ключом И одним nonce, keystream совпадает, и XOR двух шифротекстов уничтожает keystream:
 
 ```text
 C_flag XOR C_mine = (FLAG XOR KS) XOR (MINE XOR KS) = FLAG XOR MINE
 ```
+
+Это известное свойство «two-time pad»: `KS` встречается дважды и сокращается. XOR двух шифротекстов равен XOR двух открытых текстов.
 
 Значит, если заставить сервер зашифровать наше сообщение с тем же nonce, что и флаг, мы узнаём `FLAG XOR MINE`. А если мы знаем `MINE`, то восстанавливаем `FLAG = C_flag XOR C_mine XOR MINE`.
 
@@ -66,7 +68,7 @@ MINE = "FortID{" + chr(g) + "B" * (len(FLAG) - 8)
 Приятная часть: критерий попадания точный, никакой эвристики «похоже на флаг» не нужно.
 
 - Если `MINE[:8] = FLAG[:8]`, keystream'ы совпадают, значит `C_flag XOR C_mine = FLAG XOR MINE` - а так как первые 8 байт `FLAG` и `MINE` одинаковы, первые 8 байт этого XOR - **нули**.
-- Если `g != FLAG[7]`, nonce разные, keystream'ы разные, и первые 8 байт XOR (почти наверняка) ненулевые.
+- Если `g` не равно `FLAG[7]`, nonce разные, keystream'ы разные, и первые 8 байт XOR (почти наверняка) ненулевые.
 
 ```text
 критерий: (C_flag XOR C_mine)[:8] = b"\x00" * 8   значит   g = FLAG[7]
@@ -77,8 +79,6 @@ MINE = "FortID{" + chr(g) + "B" * (len(FLAG) - 8)
 ```text
 FLAG = C_flag XOR C_mine XOR MINE
 ```
-
-Проверка на печатность (`flag.startswith("FortID{") ... flag.isprintable()`) - лишь санитарная проверка сверху, не основной признак.
 
 ## Ловушки (что ломает наивный скрипт)
 
@@ -121,7 +121,7 @@ python3 scripts/solve.py baby-crypto-xxxxxxxxxxxx.inst16.ctf.fortid.com 1337
 [*] vault has 95 entries
 [+] nonce match at guess 'S' (0x53): FortID{St0p_B31ng_Cr3at1v3_With_N0nc3s_...}
 
-FLAG: FortID{St0p_B31ng_Cr3at1v3_With_N0nc3s_0r_You'll_R3gre7_17_dd2d0787ec}
+FLAG: FortID{St0p_B31ng_Cr3at1v3_With_N0nc3s_...} (замаскирован)
 ```
 
 (Первый export сам по себе даёт длину флага; пайплайн нужен, чтобы уложиться в 15-секундный alarm.)

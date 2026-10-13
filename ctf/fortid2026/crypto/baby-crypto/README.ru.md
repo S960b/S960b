@@ -1,19 +1,19 @@
-# Baby Crypto - AES-CTR with a nonce taken from the plaintext
+# Baby Crypto - AES-CTR с nonce из открытого текста
 
-- **Platform:** FortiD CTF 2026
-- **Category:** Crypto
-- **Author:** (not recorded in the workspace)
-- **Points / Solves:** (not recorded in the workspace)
-- **Date:** 2026-10-13
-- **Remote:** `ncat --ssl <host>:1337` (the platform gives an instance; dead after the event)
-- **Flag:** `FortID{...}` (masked)
-- **Artifact:** `chall.py` - the source, shipped with the task
+- **Платформа:** FortiD CTF 2026
+- **Категория:** Crypto
+- **Автор:** (не зафиксирован в рабочей папке)
+- **Очки / Решили:** (не зафиксированы в рабочей папке)
+- **Дата:** 2026-10-13
+- **Remote:** `ncat --ssl <host>:1337` (инстанс выдаёт платформа, после соревнования мёртв)
+- **Флаг:** `FortID{...}` (замаскирован)
+- **Артефакт:** `chall.py` - исходник, присланный вместе с заданием
 
-## What the task is
+## Что в задаче
 
-The service is a "secure vault": at startup the flag is put into it, and the player has two operations - store their own secret and export the whole vault as JSON (`Secret #0` is the flag ciphertext). The whole session runs under `signal.alarm(15)`.
+Сервис - «безопасный сейф»: при старте в него кладётся флаг, а игроку доступны две операции - положить свой секрет и выгрузить всё содержимое сейфа в JSON (`Secret #0` - шифротекст флага). На всю сессию стоит `signal.alarm(15)`.
 
-The entire bug is one line of `chall.py`:
+Весь баг - в одной строке `chall.py`:
 
 ```python
 def encrypt(self, plaintext):
@@ -21,19 +21,19 @@ def encrypt(self, plaintext):
     return cipher.encrypt(plaintext)
 ```
 
-The nonce is taken from the first 8 bytes of **the plaintext itself**, and the key is one per connection. So by submitting a message with the same first 8 bytes as the flag, we get the same keystream and recover the flag.
+Nonce берётся из первых 8 байт **самого открытого текста**, а ключ один на всё соединение. Значит, подобрав сообщение с теми же первыми 8 байтами, что у флага, мы получаем тот же keystream и восстанавливаем флаг.
 
-The first 7 bytes are known (`assert FLAG.startswith("FortID{")`), so only one byte is brute-forced - `FLAG[7]` - and the hit is determined unambiguously: `(C_flag XOR C_mine)[:8] = 0`.
+Первые 7 байт известны (`assert FLAG.startswith("FortID{")`), поэтому перебирается ровно один байт - `FLAG[7]`, и попадание определяется однозначно: `(C_flag XOR C_mine)[:8] = 0`.
 
-The full analysis and exploit are in [`solve.md`](solve.md).
+Полный разбор и эксплойт - в [`solve.md`](solve.md).
 
-## Folder structure
+## Структура папки
 
 ```text
 crypto/baby-crypto/
-├── README.md            # this file: the task context
-├── solve.md             # the solution: analysis, pitfalls, flag
-├── chall.py             # the challenge source
+├── README.md            # это файл: условие задачи
+├── solve.md             # решение: разбор, ловушки, флаг
+├── chall.py             # исходник задачи
 └── scripts/
-    └── solve.py         # the working exploit: python3 solve.py <host> [port]
+    └── solve.py         # рабочий эксплойт: python3 solve.py <host> [port]
 ```
