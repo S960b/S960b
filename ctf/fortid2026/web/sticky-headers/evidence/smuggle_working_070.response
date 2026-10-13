@@ -1,0 +1,24 @@
+HTTP/1.1 200 OK
+Connection: keep-alive
+Content-Length: 443
+
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Order received</title>
+<style>body{font-family:system-ui;background:#fff4fb;color:#43243b;text-align:center;padding:12vh 1rem}
+.card{display:inline-block;background:white;border:2px solid #f2b8d8;border-radius:24px;padding:2rem}
+h1{color:#c73583}</style></head><body><div class="card">
+<h1>&#x1f36d; Order received!</h1><p>Your sweets are on their way.</p></div></body></html>HTTP/1.0 200 OK
+Server: BaseHTTP/0.6 Python/3.12.15
+Date: Sat, 10 Oct 2026 18:37:35 GMT
+Content-Type: text/html; charset=utf-8
+Content-Length: 740
+
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Staff Preview</title><style>
+body{font-family:system-ui,sans-serif;background:#f5f7ff;color:#202747;margin:0;padding:8vh 1rem}
+.card{max-width:720px;margin:auto;background:white;border:1px solid #cbd3f5;border-radius:20px;padding:2rem;box-shadow:0 12px 30px #3949ab22}
+h1{color:#3949ab}.preview{margin-top:1.5rem;border:1px dashed #8994d1;border-radius:12px;padding:1rem;min-height:3rem}
+.hint{color:#626b91}
+</style></head><body><section class="card"><h1>Staff template preview</h1>
+<p class="hint">This preview uses the shop's template renderer.</p><div class="preview">49</div></section></body></html>

