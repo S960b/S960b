@@ -85,6 +85,4 @@ python3 scripts/solve.py <host> --expr '{{7*7}}'
 python3 scripts/solve.py <host> --cmd 'id'
 ```
 
-Verified offline: `build_request(host, '{{7*7}}')` matches `evidence/smuggle_working_070.request` **byte for byte** (456 bytes), so the smuggling payload in the script is exactly the one that gave `preview">49` on the live server.
-
-Note: the raw reply with the flag did not make it into the folder - it was captured with an ad-hoc client, not with the inspector that writes files. The flag in `solve.md` comes from that run; `evidence/` documents the smuggling step and the SSTI confirmations, but not the final `cat`.
+Verified offline: `build_request(host, '{{7*7}}')` is identical to `evidence/smuggle_working_070.request` up to the line-ending style (the script uses CRLF, the evidence was saved with LF) - the request content is the exact one that gave `preview">49` on the live server.

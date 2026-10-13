@@ -18,7 +18,7 @@ from collections import Counter
 from pathlib import Path
 from urllib.parse import urlencode
 
-DEFAULT_HOST = 'sticky-headers-e35fa8d4d56e.inst6.ctf.fortid.com'
+DEFAULT_HOST = '<host>'
 FLAG_RE = re.compile(rb'FortID\{[^\r\n}]{1,200}\}')
 PREVIEW_RE = re.compile(rb'<div\s+class=["\']preview["\']\s*>(.*?)</div>', re.I | re.S)
 

