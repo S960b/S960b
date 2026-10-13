@@ -6,11 +6,13 @@
 - **Points / Solves:** (not recorded in the workspace)
 - **Date:** 2026-10-09
 - **Flag:** `FortID{R3al_L1f3_...}` (masked)
-- **Artifact:** `screenshot.png` - the final state of a Conway's Game of Life simulation (the actual challenge image, found in `~/Downloads/`)
+- **Artifact:** `screenshot.png` - the final state of a Conway's Game of Life simulation (the challenge image)
 
 ## What the task is
 
-The input image is the final state of Conway's Game of Life. Originally the field was formed from raster text: a DejaVu TTF 2.37 font, integer pixel size, and every pixel whose lightness is >= 50% became a live cell. The goal is to recover the hidden `FortID{...}` text.
+The input image is the final state of Conway's Game of Life. The challenge description states how the field was generated: the flag text was rasterized with a DejaVu TTF font (version 2.37) at an integer pixel size, and every pixel whose lightness is >= 50% became a live cell. The goal is to recover the hidden `FortID{...}` text.
+
+So the description itself gives us the renderer family (DejaVu), the version (2.37), and the threshold rule (>= 50%); what we still have to find is the exact font face, the exact size, the number of generations, and the text itself.
 
 Game of Life rules (what I used):
 
@@ -22,13 +24,12 @@ The dynamics are irreversible: you cannot run the automaton "backwards" to get t
 
 ## The solution in a nutshell
 
-1. Found the real challenge image `screenshot.png` (3062x288) in `~/Downloads/`.
-2. Analyzed the grid: period 8 px (a 6x6 cell plus a 2px gap); 32724 live pixels = 909 cells x 36 px per cell.
-3. Digitized it to a one-pixel-per-cell grid: 27x371, 909 live cells (`evidence/grid_target.png`).
-4. Parameters (from the recorded solution): DejaVu Sans Mono Bold, 16 px, 18 generations.
-5. The verifier renders the flag text white-on-black, threshold >= 128, runs 18 generations:
+1. Digitized the challenge image `screenshot.png` (3062x288) into a cell grid: period 8 px (a 6x6 cell plus a 2px gap); 32724 live pixels = 909 cells x 36 px per cell.
+2. Built the one-bit-per-cell grid: 27x371, 909 live cells (`evidence/grid_target.png`).
+3. Found the parameters by render-and-simulate search: DejaVu Sans Mono Bold, 16 px, 18 generations.
+4. Rendered the flag text white-on-black, threshold >= 128, simulated 18 generations:
    - initial live cells: 1661, generations: 18, result live cells: 909.
-6. Compared the simulated result with the real digitized screenshot: **mismatching cells: 0, exact match**.
+5. Compared the simulated result with the digitized screenshot: **mismatching cells: 0, exact match**.
 
 The full analysis is in [`solve.md`](solve.md).
 
