@@ -23,26 +23,51 @@ I needed to work with images and simulate a cellular automaton. What I used and 
 
 All three are preinstalled on Kali (or `pip install pillow numpy scipy` in a venv).
 
-## Step 1. Read the image and understand its structure
+## Step 1. Look inside the image (with a small script)
 
-First I opened the screenshot and looked at the numbers. A few checks told me it is a Game of Life field and how it is laid out:
+The first thing I did was look at the pixels with a tiny Python script - Pillow opens the PNG, NumPy turns it into a matrix of brightness numbers (0 = black, 255 = white). This is the "open the file and see" step, but for pixels:
 
-- `screenshot.png` is 3062x288, and 96% of pixels are black, with sparse white pixels - the signature of a cellular automaton field.
-- Binarizing (white = alive, threshold 128): **32724 living pixels**.
-- The content (alive pixels) fits in a bounding box rows 32..245, cols 55..3020; nothing outside.
+```python
+from PIL import Image
+import numpy as np
 
-Why this step gets us closer: before simulating anything, we must know what we are comparing against. "The image" as raw pixels is not usable yet - we need it as a grid of cells.
+a = np.asarray(Image.open('screenshot.png').convert('L'))  # 3062x288 matrix of 0..255
+print(a.shape)               # (288, 3062)
+print((a < 128).mean())      # share of dark pixels: 0.963
+print((a >= 128).mean())     # share of light pixels: 0.037
+alive = a >= 128             # binarization
+print(int(alive.sum()))      # 32724
+```
+
+The output told me three things:
+
+- the image is almost black: 96.3% of pixels are dark, only 3.7% are light. That is exactly what a Game of Life field looks like - sparse live cells on a black field;
+- **binarization** simply means turning the image into either-or: every pixel with brightness >= 128 (that is >= 50% of 255, as the task says) becomes 1 (white, alive), everything else becomes 0 (black, dead). The result is the `alive` matrix of 0/1;
+- counting the 1s (`alive.sum()`) gives **32724 live pixels** - the first concrete number of the challenge.
+
+Why this step gets us closer: now the image is numbers we can compute with, not pixels on a screen.
 
 ## Step 2. Find the grid period (how the cells are drawn)
 
-The image is a screenshot, so cells are probably drawn larger than 1 pixel. I needed the grid step. Method: for a candidate period `p`, count the fraction of alive pixels at each position `(y mod p, x mod p)`. If `p` matches the real grid, cells occupy only some residues and the rest are empty (the gap).
+The image is a screenshot, so the cells are probably drawn larger than one pixel. Before simulating anything, I need to know the grid step: how many pixels one cell takes, and where the gap is.
 
-I tested p = 6, 7, 8, 10, 12. Only **p = 8** gave a clean pattern:
+Method (again a tiny script): for a candidate period `p`, take every pixel and look at its position modulo `p` on both axes - `(y mod p, x mod p)` gives one of `p*p` "residue classes". I count, for each class, what fraction of its pixels are alive. If `p` matches the real grid, the live cells live only inside the cell area, and the gap residues stay empty.
 
-- residues 0..5: ~0.091 alive fraction, uniform;
-- residues 6..7: exactly 0.
+```python
+for p in (6, 7, 8, 10, 12):                      # candidate periods
+    frac = np.zeros((p, p))
+    for ry in range(p):
+        for rx in range(p):
+            frac[ry, rx] = alive[ry::p, rx::p].mean()   # live fraction per residue
+    print(p, frac.round(3))
+```
 
-So the layout is: a **6x6 pixel cell**, then a **2-pixel gap**, period 8. And `32724 / 36 = 909` - exactly 909 live cells, and 909 is a nice round number that will anchor all later checks.
+Only **p = 8** gave a clean pattern:
+
+- residues 0..5 (both axes): live fraction ~0.091, uniform - these 6 rows/cols are the cell body;
+- residues 6..7: exactly 0 - these 2 rows/cols are the gap.
+
+So the layout is: a **6x6 pixel cell**, then a **2-pixel gap**, period 8. And the arithmetic agrees: `32724 live pixels / 36 pixels per cell = 909` live cells - a round number that will anchor all later checks.
 
 Why this step gets us closer: now we can downsample the screenshot from pixels to actual cells, giving a small binary grid (27x371) we can compare against simulations.
 
@@ -67,7 +92,21 @@ board = (neighbors == 3) | (board & (neighbors == 2))
 - a live cell survives with 2 or 3 live neighbors;
 - otherwise it dies.
 
-The comparison is Hamming distance: count cells where the simulated grid and the target differ. If it is 0, the candidate text is exactly the one that produced the challenge image.
+### How to compare two grids (Hamming distance)
+
+The question is: do the simulated grid and the target grid match? "Match" here means *at every cell*: alive in both, dead in both.
+
+I needed a number for "how different are two binary grids", so I googled "how to compare two binary images metric" and the standard answer is **Hamming distance**: count the positions where the two grids disagree.
+
+For two grids `A` and `B` of the same size, it is defined as:
+
+```text
+D = sum over all cells (x, y) of  (A[x,y] != B[x,y])
+```
+
+i.e. each cell contributes 0 if the two values are equal, and 1 if they differ; `D` is the total count of differing cells. (In Python this is exactly `np.count_nonzero(A != B)`.)
+
+If `D = 0`, the two grids are identical - the candidate text is exactly the one that produced the challenge image. If `D` is large, the candidate is wrong. So Hamming distance is the *yes/no test* that drives the whole search in the next step.
 
 ## Step 5. Find the parameters and the flag text
 
