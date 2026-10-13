@@ -1,0 +1,3 @@
+first QR: FortID{Wh3n_7h3_8e1ts_b3c0me
+second QR: _5p49hett1_tr41n5_8ec0m3_
+candidate flag: FortID{Wh3n_7h3_8e1ts_...}   (masked; the two QR fragments above are the extracted content)
