@@ -17,7 +17,11 @@ A random-looking string could be a cipher, but before brute-forcing anything I l
 1. The line starts with a single `0` followed by a long Base64-looking body (`eN...` - the `eN` prefix is the classic signature of a **zlib-compressed stream**, whose first bytes are `0x78 0x9C`, visible as `eJw` / `eN` after Base64).
 2. The task mentions a "factory" ("abandoned factory", "tangled machinery").
 
-I know that the game **Factorio** exports its blueprints as exactly such strings: `0` + base64( zlib( JSON ) ). I googled "factorio blueprint string format" to confirm, and this is the documented format. So the first hypothesis: each file is a Factorio blueprint export, and the message is hidden in the geometry of the factory.
+I know that the game **Factorio** exports its blueprints as exactly such strings: `0` + base64( zlib( JSON ) ). I googled "factorio blueprint string format" to confirm, and this is the documented format.
+
+### Why decode it at all
+
+The principle: this file is *text that contains other data*, so before treating the characters as a cipher I should ask "what is this text actually made of?" The structure (`0` + Base64 body) and the `eN` zlib signature tell me the characters are just an **encoding layer** - the real content is the binary stream underneath. Decoding layers that are known encodings costs nothing and gives me the actual payload to inspect. So I decided to try decoding because: the format signature was recognizable, and the decompressed JSON would tell me what the challenge is really about (a factory description - entities, tiles, wires - instead of letters).
 
 ### Decoding the blueprint
 
@@ -34,17 +38,23 @@ print(data['blueprint'].keys())
 
 The JSON is structured: `entities` (machines, belts, inserters...), `wires` (connections), `tiles` (ground tiles). The coordinates are in `entity["position"]["x"/"y"]` and `tile["position"]["x"/"y"]`.
 
-What this step gives us: the "ciphertext" is actually a structured description of a factory. The flag is not in the bytes but in the **geometry**.
+### Why I thought the flag is in the geometry
+
+The decoded blueprint is a description *of positions*: every machine and every tile has coordinates. A flag could be hidden in the plain text fields (none found), in the wires (they look like a graph - maybe a puzzle), or in the **geometry**. I did not know yet which one. So I formed a hypothesis: *the message may be drawn by the positions/types of objects*, and I decided to check it by rendering the objects as an image - if the hypothesis is wrong, the render will just look like noise, and I will look elsewhere. (This is the "abandoned factory hides a message within its tangled machinery" hint taken literally: the machinery itself is the medium.)
 
 ## Step 2. First blueprint: the tile types draw a QR code
 
-Counts of the first file:
+### Where the "counts" come from
+
+The counts are not given - the script printed them. After decoding, I asked the JSON simple questions with a few lines of Python (`len(bp1['entities'])`, `len(bp1.get('wires', []))`, `len(bp1['tiles'])`), and the output was:
 
 - `entities` = 290, `wires` = 104, `tiles` = 841.
 
-**841 = 29 x 29** - a perfect square, exactly the module size of a QR code version 3. That is the first signal that we are looking at a bit matrix.
+### How I realized it is a QR code (not a guess)
 
-The tiles have two different names:
+The decisive step was arithmetic on that number: **841 = 29 x 29** - a perfect square. A perfect square is the signature of a square bit matrix, and in CTF contexts the most common square bit matrix that is meant to be *read* is a **QR code**. Moreover, 29 modules is exactly the size of QR **version 3** (the QR sizes are 21x21 for v1, 25x25 for v2, 29x29 for v3 - a well-known table). So the hypothesis became concrete: the tiles are arranged as a 29x29 QR code.
+
+To make it testable I needed a binary value per cell. The tiles have two different names:
 
 ```python
 from collections import Counter
@@ -52,9 +62,9 @@ print(Counter(t['name'] for t in bp1['tiles']))
 # landfill 429, foundation 412  (429+412 = 841)
 ```
 
-The 29x29 square is fully covered, but by two different materials. If we draw `landfill` as black and `foundation` as white, a QR-like structure appears (you can see the three corner finder squares).
+So the 29x29 square is fully covered, but by two different materials. That gives exactly the two values a bit matrix needs: `landfill` as black, `foundation` as white. (Why this two-material split is meaningful: a QR code is by definition a pattern of black/white modules - so a fully-covered square made of two distinct tile types is structurally exactly that.)
 
-Why this step gets us closer: instead of a solid square, we now have a binary 29x29 matrix - a candidate QR code.
+Why this step gets us closer: we now have a concrete, checkable candidate - a 29x29 binary matrix that should decode as a QR code. If it decodes, we have real content; if not, we fall back to other hypotheses.
 
 ### Building and reading the first QR
 
