@@ -26,6 +26,10 @@ Quantitative market microstructure research (authorized, public market data only
   public-data collection, causal oracle (median of 3 external mids), premium b(t),
   reach-to-target tests (informational vs executable), paper simulator (virtual 100 USDT,
   taker/taker), quality dashboard. No trading, no keys, no secrets.
+- [Paper seven-day run - status](research/paper_seven_day/STATUS.md) - live status of the
+  experimental 7-day paper runner (SOLUSDT/BTCUSDT Donchian, systemd paper-seven-day +
+  checkpoint timer). Note: its branch `chatgpt/paper-seven-day-2026-10-08` is NOT merged;
+  the status file lives on `main` so a fresh agent can find the recovery steps.
 
 ## Automation (personal daily ops)
 
