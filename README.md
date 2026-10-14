@@ -27,6 +27,13 @@ Quantitative market microstructure research (authorized, public market data only
   reach-to-target tests (informational vs executable), paper simulator (virtual 100 USDT,
   taker/taker), quality dashboard. No trading, no keys, no secrets.
 
+## Automation (personal daily ops)
+
+- [LinkedIn daily posting](linkedin/) - autonomous daily LinkedIn post cycle (research,
+  fact-gates, official Posts API publish, Telegram report) via Hermes cron + a resilient
+  OS-cron wrapper. Includes the full from-zero restore guide. Personal identification is
+  masked for the public repo.
+
 ## About
 
 I am currently transitioning into cybersecurity after many years of technical experience with ISP networks and cryptocurrency mining.
