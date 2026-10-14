@@ -51,8 +51,8 @@
     - systemd-юниты: `paper-seven-day.service`, `paper-checkpoint.service` (на диске);
     - crontab: 3 строки (`bridge_poller`, `send_lead_lag_1445`, `t12_checkpoint`) - 3 новых, 0 старых;
     - скрипты: `bridge_poller.py`, `send_24h/44h_checkpoint.py`, `send_lead_lag_1445.py`, `start_pilot.py`, `t12_checkpoint.py`, `daily_paper_checkpoint_report.py`.
-  - **НЕ выполнено (команда daemon-reload/restart была отклонена пользователем):** `systemctl --user daemon-reload` и перезапуск сервиса на новом пути. Практически это не критично для цели "не падать после ребута": systemd читает юниты с диска при загрузке, cron читает crontab, venv в home не пропадёт. До ребута живой сервис продолжает работать на старом `/tmp/bridge-clean-venv` (он ещё существует) - после перезагрузки автоматически поднимется на новом постоянном. Если захочется перевести на новый путь без ребута: `systemctl --user daemon-reload && systemctl --user restart paper-seven-day`.
-  - Резюме: **после следующей перезагрузки джоба больше не упадёт** из-за пропавшего /tmp venv.
+  - **ВЫПОЛНЕНО позже (2026-10-14 15:17 МСК, явное одобрение юзера):** `systemctl --user daemon-reload && systemctl --user restart paper-seven-day`. Сервис подтверждённо работает на постоянном venv (процесс: `/home/kali/.venvs/bridge-clean/bin/python ... seven_day_exec.py ... risk_paper_runner.py`), heartbeat в БД свежий, loop_count растёт. Checkpoint-юнит также загружен с новым путём; следующий запуск таймера - сегодня 21:00 МСК.
+  - Резюме: **после следующей перезагрузки джоба больше не упадёт** из-за пропавшего /tmp venv. Старый `/tmp/bridge-clean-venv` можно удалить (больше ничто на него не ссылается), но он не мешает.
 
 ## Заметки
 
