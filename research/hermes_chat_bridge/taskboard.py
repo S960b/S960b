@@ -2,12 +2,16 @@
 """Hermes<->ChatGPT bridge taskboard - minimal visual task list.
 
 Serves:
-  /             HTML page (live-updating table, filters, tunnel URL)
-  /api/jobs     JSON list of jobs (query: ?status=&direction=&queue=&limit=)
-  /api/stats    JSON counts by direction/status/queue
+  /                 HTML page (live-updating table, filters, actions, tunnel URL)
+  /api/jobs         JSON list of jobs (query: ?status=&direction=&queue=&limit=)
+  /api/stats        JSON counts by direction/status/queue
+  POST /api/action  {job_id, action} - admin actions on a job:
+                      complete  (pending to_hermes -> completed, completed_by='hermes-admin')
+                      fail      (pending -> failed, admin reason)
+                      reopen    (failed -> pending, clears completed_by/at)
 
-Reads the pilot.db directly (read-only connection). Port 8787.
-Job ids look like  test_3acba1b6.job  (queue_8hex.job) - human readable.
+Reads pilot.db directly (read-only for GET, short write txn for POST actions).
+Port 8787, localhost only. Job ids look like  test_3acba1b6.job  (queue_8hex.job).
 """
 import json
 import sqlite3
@@ -29,17 +33,21 @@ body { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
        background:#0f1115; color:#d7dae0; margin:0; padding:24px; }
 h1 { font-size:20px; margin:0 0 4px; }
 .sub { color:#8b93a3; font-size:13px; margin-bottom:18px; }
-.tunnel { color:#7ee787; font-size:13px; margin-bottom:14px; }
+.tunnel { background:#14241a; border:1px solid #2d5c3a; border-radius:10px;
+  padding:10px 14px; margin-bottom:16px; font-size:14px; }
+.tunnel a { color:#7ee787; text-decoration:none; word-break:break-all; }
+.tunnel a:hover { text-decoration:underline; }
+.tunnel .hint { color:#6f8f7a; font-size:12px; margin-top:4px; }
 .filters { margin-bottom:14px; font-size:13px; }
 .filters button { background:#1c212b; color:#d7dae0; border:1px solid #2d3543;
   border-radius:6px; padding:4px 10px; margin-right:6px; cursor:pointer; }
 .filters button.on { background:#3b82f6; border-color:#3b82f6; color:#fff; }
 table { width:100%; border-collapse:collapse; font-size:13px; }
-th,td { text-align:left; padding:6px 10px; border-bottom:1px solid #232936;
-  vertical-align:top; white-space:nowrap; }
+th,td { text-align:left; padding:6px 9px; border-bottom:1px solid #232936;
+  vertical-align:top; }
 th { color:#8b93a3; font-weight:600; font-size:12px; position:sticky; top:0;
   background:#0f1115; }
-td.txt { white-space:normal; max-width:420px; color:#aab2c0; }
+td.txt { white-space:normal; max-width:360px; color:#aab2c0; }
 td.jid { color:#79c0ff; }
 .badge { display:inline-block; padding:1px 8px; border-radius:10px; font-size:11px; }
 .st-pending { background:#6b4f00; color:#ffd66b; }
@@ -52,23 +60,64 @@ td.jid { color:#79c0ff; }
   padding:1px 6px; }
 .meta { color:#5c6470; font-size:11px; }
 .mono { font-size:12px; }
+.btn { background:#1c212b; color:#d7dae0; border:1px solid #2d3543; border-radius:6px;
+  padding:2px 8px; font-size:11px; cursor:pointer; margin:1px; }
+.btn:hover { border-color:#3b82f6; color:#fff; }
+.btn.go { border-color:#2d5c3a; color:#7ee787; }
+.btn.danger { border-color:#5a1d1d; color:#ff9c9c; }
 #err { color:#ff9c9c; font-size:13px; }
+#toast { position:fixed; bottom:16px; right:16px; background:#1c212b; color:#d7dae0;
+  border:1px solid #2d3543; border-radius:8px; padding:8px 14px; font-size:13px;
+  opacity:0; transition:opacity .3s; }
 </style></head><body>
 <h1>Bridge taskboard</h1>
 <div class="sub">Hermes &harr; ChatGPT &middot; <span id="updated">-</span> &middot; автообновление 5с</div>
-<div class="tunnel" id="tunnel">-</div>
+<div class="tunnel">
+  <b>Текущий туннель (для ChatGPT):</b><br>
+  <a id="tunnelLink" href="#" target="_blank" rel="noopener">-</a>
+  <button class="btn" id="copyTunnel" style="margin-left:8px">⧉ копировать</button>
+  <div class="hint">URL меняется при перезапуске hermes-tunnel.service. Обновляется автоматически.</div>
+</div>
 <div class="filters" id="filters"></div>
 <div id="err"></div>
 <table><thead><tr>
 <th>job_id</th><th>напр.</th><th>queue</th><th>статус</th><th>создан (МСК)</th>
-<th>кому/кем</th><th>текст</th><th>ответ</th></tr></thead>
+<th>кому/кем</th><th>текст</th><th>ответ</th><th>действия</th></tr></thead>
 <tbody id="rows"></tbody></table>
+<div id="toast"></div>
 <script>
 const FMT = new Intl.DateTimeFormat('ru-RU',{day:'2-digit',month:'2-digit',
   hour:'2-digit',minute:'2-digit'});
 let f = { status:'', direction:'', queue:'' };
+let TUNNEL = '';
 function msk(iso){ if(!iso) return '-'; return FMT.format(new Date(iso)); }
 function el(t,c){ return '<span class="badge '+c+'">'+t+'</span>'; }
+function esc(s){ return String(s).replace(/</g,'&lt;'); }
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg;
+  t.style.opacity=1; setTimeout(()=>t.style.opacity=0, 2200); }
+async function act(jobId, action, label){
+  if(!confirm(label+'?\n'+jobId)) return;
+  try{
+    const r = await fetch('/api/action', {method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({job_id: jobId, action: action})});
+    const d = await r.json();
+    if(d.ok){ toast('OK: '+jobId+' -> '+action+' (rows='+d.rowcount+')'); load(); }
+    else { toast('ОШИБКА: '+(d.error||'?')); }
+  }catch(e){ toast('fetch error: '+e); }
+}
+function actionBtns(j){
+  let b = '';
+  if(j.status==='pending' && j.direction==='to_hermes'){
+    b += '<button class="btn go" onclick="act(\\''+j.job_id+'\\',\\'complete\\',\\'Завершить (completed, admin)\\')">✓ завершить</button>';
+    b += '<button class="btn danger" onclick="act(\\''+j.job_id+'\\',\\'fail\\',\\'Закрыть (failed)\\')">✕ закрыть</button>';
+  } else if(j.status==='pending' && j.direction==='to_chatgpt'){
+    b += '<button class="btn danger" onclick="act(\\''+j.job_id+'\\',\\'fail\\',\\'Закрыть (failed)\\')">✕ закрыть</button>';
+  } else if(j.status==='failed'){
+    b += '<button class="btn go" onclick="act(\\''+j.job_id+'\\',\\'reopen\\',\\'Вернуть в очередь (pending)\\')">↺ вернуть</button>';
+  }
+  return b || '<span class="meta">-</span>';
+}
 async function load(){
   const q = new URLSearchParams();
   if(f.status) q.set('status',f.status);
@@ -80,24 +129,27 @@ async function load(){
     const data = await r.json();
     if(data.error){ document.getElementById('err').textContent = data.error; return; }
     document.getElementById('err').textContent='';
+    TUNNEL = data.tunnel_url || '(нет)';
+    const tl = document.getElementById('tunnelLink');
+    tl.href = (TUNNEL.startsWith('http')) ? TUNNEL : '#';
+    tl.textContent = TUNNEL;
     const tb = document.getElementById('rows');
     tb.innerHTML = data.jobs.map(j=>{
       const st = j.claimed_by ? 'claimed' : j.status;
       const stl = j.claimed_by ? 'st-claimed' : 'st-'+j.status;
       const who = j.claimed_by ? j.claimed_by : (j.completed_by ? j.completed_by : '-');
       const rep = (j.reply_len!=null)? j.reply_len+'б' : (j.reply ? 'да' : '-');
-      const txt = (j.text||'').slice(0,160);
-      return '<tr><td class="jid mono">'+j.job_id+'</td>'+
+      return '<tr><td class="jid mono">'+esc(j.job_id)+'</td>'+
         '<td class="dir-'+j.direction+'">'+j.direction.replace('to_','')+'</td>'+
-        '<td><span class="q">'+j.queue+'</span></td>'+
+        '<td><span class="q">'+esc(j.queue)+'</span></td>'+
         '<td>'+el(st,stl)+'</td>'+
         '<td class="meta">'+msk(j.created_at_utc)+'</td>'+
-        '<td class="meta">'+who+'</td>'+
-        '<td class="txt">'+txt.replace(/</g,'&lt;')+'</td>'+
-        '<td class="meta">'+rep+'</td></tr>';
-    }).join('') || '<tr><td colspan="8" class="meta">пусто</td></tr>';
+        '<td class="meta">'+esc(who)+'</td>'+
+        '<td class="txt">'+esc((j.text||'').slice(0,160))+'</td>'+
+        '<td class="meta">'+esc(rep)+'</td>'+
+        '<td>'+actionBtns(j)+'</td></tr>';
+    }).join('') || '<tr><td colspan="9" class="meta">пусто</td></tr>';
     document.getElementById('updated').textContent = 'обновлено '+new Date().toLocaleTimeString('ru-RU');
-    document.getElementById('tunnel').textContent = 'Туннель: ' + data.tunnel_url;
   }catch(e){ document.getElementById('err').textContent = 'fetch error: '+e; }
 }
 function buildFilters(){
@@ -118,8 +170,26 @@ function buildFilters(){
     buildFilters(); load();
   });
 }
+document.getElementById('copyTunnel').onclick = ()=>{
+  const url = TUNNEL;
+  const done = ()=>{ toast('URL скопирован'); };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(url).then(done).catch(()=>fallbackCopy(url));
+  } else fallbackCopy(url);
+};
+function fallbackCopy(text){
+  const ta=document.createElement('textarea'); ta.value=text;
+  document.body.appendChild(ta); ta.select();
+  try{ document.execCommand('copy'); toast('URL скопирован'); }
+  catch(e){ toast('копировать вручную: '+text); }
+  document.body.removeChild(ta);
+}
 buildFilters(); load(); setInterval(load,5000);
 </script></body></html>"""
+
+
+def _conn_ro():
+    return sqlite3.connect(f'file:{DB}?mode=ro', uri=True, timeout=10)
 
 
 def q(url: str):
@@ -128,7 +198,7 @@ def q(url: str):
 
 
 def fetch_jobs(params):
-    conn = sqlite3.connect(f'file:{DB}?mode=ro', uri=True, timeout=10)
+    conn = _conn_ro()
     conn.row_factory = sqlite3.Row
     where, args = [], []
     if params.get('status'):
@@ -150,12 +220,56 @@ def fetch_jobs(params):
 
 
 def fetch_stats():
-    conn = sqlite3.connect(f'file:{DB}?mode=ro', uri=True, timeout=10)
+    conn = _conn_ro()
     rows = conn.execute(
         'SELECT direction, status, count(*) c FROM jobs'
         ' GROUP BY direction, status ORDER BY direction, status').fetchall()
     conn.close()
     return [{'direction': r[0], 'status': r[1], 'count': r[2]} for r in rows]
+
+
+def apply_action(job_id: str, action: str) -> tuple[bool, int, str]:
+    """Admin actions per the bridge skill (completed_by='hermes-admin',
+    no report row creation - documented admin path). Returns (ok, rowcount, err)."""
+    if action not in ('complete', 'fail', 'reopen'):
+        return False, 0, f'unknown action: {action}'
+    now = __import__('datetime').datetime.now(__import__('datetime').timezone.utc) \
+        .isoformat().replace('+00:00', 'Z')
+    conn = sqlite3.connect(DB, timeout=15)
+    conn.execute('PRAGMA busy_timeout=15000')
+    try:
+        if action == 'complete':
+            cur = conn.execute(
+                "UPDATE jobs SET status='completed',"
+                " reply=COALESCE(reply,'завершено вручную из taskboard (admin)'),"
+                " completed_at_utc=?, completed_by='hermes-admin',"
+                " claimed_by=NULL, claimed_at_utc=NULL, lease_until_epoch=NULL,"
+                " updated_at_utc=?"
+                " WHERE job_id=? AND status='pending' AND direction='to_hermes'",
+                (now, now, job_id))
+        elif action == 'fail':
+            cur = conn.execute(
+                "UPDATE jobs SET status='failed',"
+                " reply=COALESCE(reply,'закрыто вручную из taskboard (admin)'),"
+                " completed_at_utc=?, completed_by='hermes-admin',"
+                " claimed_by=NULL, claimed_at_utc=NULL, lease_until_epoch=NULL,"
+                " updated_at_utc=?"
+                " WHERE job_id=? AND status='pending'",
+                (now, now, job_id))
+        else:  # reopen
+            cur = conn.execute(
+                "UPDATE jobs SET status='pending',"
+                " completed_at_utc=NULL, completed_by=NULL,"
+                " updated_at_utc=?"
+                " WHERE job_id=? AND status='failed'",
+                (now, job_id))
+        conn.commit()
+        rc = cur.rowcount
+        conn.close()
+        return True, rc, '' if rc else 'no row changed (status constraint?)'
+    except Exception as e:
+        conn.close()
+        return False, 0, repr(e)
 
 
 class H(BaseHTTPRequestHandler):
@@ -188,6 +302,22 @@ class H(BaseHTTPRequestHandler):
                 self._send(500, json.dumps({'error': repr(e)}).encode())
         else:
             self._send(404, b'{"error":"not found"}')
+
+    def do_POST(self):
+        if not self.path.startswith('/api/action'):
+            self._send(404, b'{"error":"not found"}')
+            return
+        try:
+            n = int(self.headers.get('Content-Length', 0))
+            body = json.loads(self.rfile.read(n) or b'{}')
+            job_id = body.get('job_id', '')
+            action = body.get('action', '')
+            ok, rc, err = apply_action(job_id, action)
+            self._send(200, json.dumps({'ok': ok, 'rowcount': rc,
+                                        'error': err or None}).encode())
+        except Exception as e:
+            self._send(200, json.dumps({'ok': False, 'rowcount': 0,
+                                        'error': repr(e)}).encode())
 
 
 if __name__ == '__main__':
