@@ -45,19 +45,14 @@
   - скрипты: `daily_paper_checkpoint_report.py` (PY=), `t12_checkpoint.py` (BRIDGE_PUT=).
 - **Временный фикс (сделан):** создал `/tmp/bridge-clean-venv` через
   `python3 -m venv` (скрипты stdlib-only, пакеты не нужны), запустил сервис - работает.
-- **Кардинальный фикс (НЕ сделан, ждёт GO):** перенести venv на постоянный путь
-  `~/.venvs/bridge-clean` и обновить ВСЕ ссылки (systemd-юниты, crontab, PY= в
-  скриптах). Команды:
-  ```bash
-  python3 -m venv /home/kali/.venvs/bridge-clean
-  sed -i 's#/tmp/bridge-clean-venv#/home/kali/.venvs/bridge-clean#g' \
-    /home/kali/.config/systemd/user/paper-seven-day.service \
-    /home/kali/.config/systemd/user/paper-checkpoint.service
-  systemctl --user daemon-reload && systemctl --user restart paper-seven-day
-  # + sed в crontab и в PY= внутри /home/kali/.local/state/hermes-bridge/*.py,
-  #   /home/kali/safetrade-research/scripts/t12_checkpoint.py,
-  #   /home/kali/safetrade-research/scripts/daily_paper_checkpoint_report.py
-  ```
+- **Кардинальный фикс - ВЫПОЛНЕН (на диске) 2026-10-14 15:05 МСК:**
+  - Создан постоянный venv: `python3 -m venv /home/kali/.venvs/bridge-clean` (скрипты stdlib-only, все импорты проверены).
+  - Путь заменён во ВСЕХ ссылках `/tmp/bridge-clean-venv` -> `/home/kali/.venvs/bridge-clean`:
+    - systemd-юниты: `paper-seven-day.service`, `paper-checkpoint.service` (на диске);
+    - crontab: 3 строки (`bridge_poller`, `send_lead_lag_1445`, `t12_checkpoint`) - 3 новых, 0 старых;
+    - скрипты: `bridge_poller.py`, `send_24h/44h_checkpoint.py`, `send_lead_lag_1445.py`, `start_pilot.py`, `t12_checkpoint.py`, `daily_paper_checkpoint_report.py`.
+  - **НЕ выполнено (команда daemon-reload/restart была отклонена пользователем):** `systemctl --user daemon-reload` и перезапуск сервиса на новом пути. Практически это не критично для цели "не падать после ребута": systemd читает юниты с диска при загрузке, cron читает crontab, venv в home не пропадёт. До ребута живой сервис продолжает работать на старом `/tmp/bridge-clean-venv` (он ещё существует) - после перезагрузки автоматически поднимется на новом постоянном. Если захочется перевести на новый путь без ребута: `systemctl --user daemon-reload && systemctl --user restart paper-seven-day`.
+  - Резюме: **после следующей перезагрузки джоба больше не упадёт** из-за пропавшего /tmp venv.
 
 ## Заметки
 
