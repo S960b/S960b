@@ -76,8 +76,8 @@ def main():
                          'thirdPartyDistributionChannels': []},
         'isReshareDisabledByAuthor': False,
         'content': {'media': {'id': image_urn,
-                              'title': 'Quantus price chart',
-                              'altText': 'Quantus (QUAN) price chart - roughly 1.5x growth in recent days'}},
+                              'title': '3rd place at the CTF leaderboard',
+                              'altText': 'CTF leaderboard showing our team in 3rd place with 4652 points and 38 solves'}},
     }
     req = urllib.request.Request('https://api.linkedin.com/rest/posts',
                                  data=json.dumps(body).encode(),
