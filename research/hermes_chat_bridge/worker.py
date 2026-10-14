@@ -112,9 +112,10 @@ def load_state(path: Path) -> dict | None:
     return state
 
 
-def new_state(goal: str, worker_id: str | None = None) -> dict:
+def new_state(goal: str, worker_id: str | None = None, queue: str = 'test') -> dict:
     return {'schema': STATE_SCHEMA,
             'worker_id': worker_id or ('wrk_' + secrets.token_hex(8)),
+            'queue': queue,
             'goal': goal, 'state': 'idle', 'current_job_id': None,
             'instruction_hash': None, 'started_at': utc_now_iso(),
             'finished_at': None, 'exit_code': None,
@@ -180,13 +181,15 @@ def _emit_event(job_id: str, db_path: str) -> int:
 
 class Worker:
     def __init__(self, db_path: str, state_path: Path, project_cwd: str,
-                 goal: str, hermes_bin: str, log_dir: Path):
+                 goal: str, hermes_bin: str, log_dir: Path,
+                 queue: str = 'test'):
         self.db_path = db_path
         self.state_path = state_path
         self.project_cwd = project_cwd
         self.goal = goal
         self.hermes_bin = hermes_bin
         self.log_dir = Path(log_dir)
+        self.queue_name = queue
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
         from bridge_queue import Queue
         self.queue = Queue(db_path)
@@ -197,7 +200,8 @@ class Worker:
 
     def _create_report(self, state: dict, completed_step: str, report: dict) -> dict:
         message = build_report_message(state['goal'], completed_step, report)
-        job = self.queue.put_message(json.dumps(message, ensure_ascii=False))
+        job = self.queue.put_message(json.dumps(message, ensure_ascii=False),
+                                     queue=state.get('queue', 'test'))
         state['report_job_id'] = job['job_id']
         state['current_job_id'] = job['job_id']
         state['completed_step'] = completed_step
@@ -281,7 +285,7 @@ class Worker:
     def run(self) -> int:
         state = load_state(self.state_path)
         if state is None:
-            state = new_state(self.goal)
+            state = new_state(self.goal, queue=self.queue_name)
             self._save(state)
         for _ in range(MAX_ITERATIONS):
             state = self.step(state)
@@ -309,10 +313,11 @@ def main() -> int:
     parser.add_argument('--hermes', default=os.environ.get('HERMES_BIN') or shutil.which('hermes'))
     parser.add_argument('--log-dir', default=os.environ.get('WORKER_LOG_DIR'))
     parser.add_argument('--lock', default=os.environ.get('WORKER_LOCK_PATH'))
+    parser.add_argument('--queue', default=os.environ.get('WORKER_QUEUE', 'test'))
     args = parser.parse_args()
     if not (args.db and args.state and args.cwd and args.goal and args.hermes):
         print('usage: worker --db DB --state STATE --cwd DIR --goal GOAL --hermes BIN '
-              '[--log-dir DIR] [--lock PATH]', file=sys.stderr)
+              '[--log-dir DIR] [--lock PATH] [--queue NAME]', file=sys.stderr)
         return 2
     lock_path = Path(args.lock or (args.state + '.lock'))
     lock_path.parent.mkdir(parents=True, exist_ok=True)
@@ -327,7 +332,8 @@ def main() -> int:
         worker = Worker(db_path=args.db, state_path=Path(args.state),
                         project_cwd=args.cwd, goal=args.goal,
                         hermes_bin=args.hermes,
-                        log_dir=Path(args.log_dir or (args.state + '.logs')))
+                        log_dir=Path(args.log_dir or (args.state + '.logs')),
+                        queue=args.queue)
         return worker.run()
     finally:
         os.close(fd)

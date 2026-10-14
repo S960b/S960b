@@ -18,15 +18,39 @@
 """
 import json
 import os
+import re
 import secrets
 import sqlite3
 import time
 from datetime import datetime, timezone
 
-MAX_TEXT_BYTES = 8192
+MAX_TEXT_BYTES = 30720
 LEASE_DEFAULT_S = 300.0
 RATE_LIMIT_PER_MIN = 20  # простой per-owner лимит (в памяти, без внешней инфраструктуры)
 MAX_ATTEMPTS = 5  # максимальное число захватов/попыток дочерней задачи
+QUEUE_NAME_RE = re.compile(r'^[A-Za-z0-9_-]{1,64}$')
+CONSUMER_ID_RE = re.compile(r'^[A-Za-z0-9_.:-]{1,128}$')
+CHAT_CLAIM_DEFAULT_S = 900.0
+CHAT_CLAIM_MIN_S = 60.0
+CHAT_CLAIM_MAX_S = 3600.0
+
+
+def validate_queue_name(queue: str) -> str:
+    if not isinstance(queue, str) or not QUEUE_NAME_RE.fullmatch(queue):
+        raise ValueError('queue must match ^[A-Za-z0-9_-]{1,64}$')
+    return queue
+
+
+def validate_consumer_id(consumer_id: str) -> str:
+    if not isinstance(consumer_id, str) or not CONSUMER_ID_RE.fullmatch(consumer_id):
+        raise ValueError('consumer_id must match ^[A-Za-z0-9_.:-]{1,128}$')
+    return consumer_id
+
+
+def _chat_lease_seconds(value: float) -> float:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ValueError('lease_seconds must be numeric')
+    return max(CHAT_CLAIM_MIN_S, min(float(value), CHAT_CLAIM_MAX_S))
 
 
 def utc_now_iso() -> str:
@@ -61,6 +85,7 @@ class Queue:
             'completed_at_utc': 'TEXT',        # терминальные статусы
             'completed_by': 'TEXT',
             'attempts': 'INTEGER NOT NULL DEFAULT 0',  # попытки дочерней задачи
+            'queue': "TEXT NOT NULL DEFAULT 'test'",
         }
         for name, ddl in adds.items():
             if name not in cols:
@@ -75,7 +100,7 @@ class Queue:
     # --- локальная CLI (только владелец) ---
     def put_message(self, text: str, max_bytes: int = MAX_TEXT_BYTES,
                     direction: str = 'to_chatgpt', idempotency_key: str | None = None,
-                    owner: str = 'owner') -> dict:
+                    owner: str = 'owner', queue: str = 'test') -> dict:
         """Создать задачу с направлением; вернуть job_id/text/created/status.
 
         to_hermes требует idempotency_key: повтор ключа+текста возвращает
@@ -84,6 +109,7 @@ class Queue:
         """
         if direction not in ('to_chatgpt', 'to_hermes'):
             raise ValueError(f'bad direction: {direction}')
+        queue = validate_queue_name(queue)
         if len(text.encode('utf-8')) > max_bytes:
             raise ValueError(f'text > {max_bytes} bytes')
         if direction == 'to_hermes' and not idempotency_key:
@@ -98,18 +124,18 @@ class Queue:
                 'SELECT * FROM jobs WHERE owner=? AND direction=? AND idempotency_key=?',
                 (owner, direction, idempotency_key)).fetchone()
             if row is not None:
-                if row['text'] == text:
+                if row['text'] == text and row['queue'] == queue:
                     return {'job_id': row['job_id'], 'status': row['status'],
-                            'idempotent': True, 'text': text,
+                            'idempotent': True, 'text': text, 'queue': queue,
                             'created_at_utc': row['created_at_utc']}
                 return {'job_id': row['job_id'], 'status': 'conflict',
-                        'reason': 'idempotency_key reused with different text'}
+                        'reason': 'idempotency_key reused with different text or queue'}
 
-        job_id = 'job_' + secrets.token_hex(12)
+        job_id = f'{queue}_' + secrets.token_hex(4) + '.job'
         self._conn.execute(
             'INSERT INTO jobs (job_id, text, created_at_utc, status, updated_at_utc,'
-            ' direction, idempotency_key, owner) VALUES (?,?,?,?,?,?,?,?)',
-            (job_id, text, now, 'pending', now, direction, idempotency_key, owner))
+            ' direction, idempotency_key, owner, queue) VALUES (?,?,?,?,?,?,?,?,?)',
+            (job_id, text, now, 'pending', now, direction, idempotency_key, owner, queue))
         self._conn.commit()
         return self.get_message(job_id)
 
@@ -132,7 +158,7 @@ class Queue:
             'SELECT job_id, status, direction, created_at_utc, updated_at_utc,'
             ' substr(text,1,120) AS text,'
             ' CASE WHEN reply IS NOT NULL THEN length(reply) ELSE NULL END AS reply_len,'
-            ' claimed_by, lease_until_epoch'
+            ' claimed_by, lease_until_epoch, queue'
             ' FROM jobs ORDER BY created_at_utc DESC LIMIT ?', (limit,)).fetchall()
         return [dict(r) for r in rows]
 
@@ -144,7 +170,99 @@ class Queue:
             return None
         return {'job_id': row['job_id'], 'text': row['text'],
                 'created_at_utc': row['created_at_utc'], 'status': row['status'],
-                'reply': row['reply'], 'direction': row['direction']}
+                'reply': row['reply'], 'direction': row['direction'],
+                'queue': row['queue']}
+
+    def claim_for_chat(self, job_id: str, consumer_id: str,
+                       lease_seconds: float = CHAT_CLAIM_DEFAULT_S) -> dict:
+        consumer_id = validate_consumer_id(consumer_id)
+        lease_seconds = _chat_lease_seconds(lease_seconds)
+        now_epoch = time.time()
+        now_iso = utc_now_iso()
+        conn = self._conn
+        conn.execute('BEGIN IMMEDIATE')
+        try:
+            row = conn.execute('SELECT * FROM jobs WHERE job_id=?', (job_id,)).fetchone()
+            if row is None:
+                conn.execute('COMMIT')
+                return {'job_id': job_id, 'status': 'not_found'}
+            if row['direction'] != 'to_chatgpt':
+                conn.execute('COMMIT')
+                return {'job_id': job_id, 'status': 'conflict',
+                        'reason': 'claim allowed only for to_chatgpt'}
+            if row['reply'] is not None or row['status'] == 'replied':
+                conn.execute('COMMIT')
+                return {'job_id': job_id, 'status': 'already_replied',
+                        'queue': row['queue']}
+            active = (row['claimed_by'] is not None
+                      and row['lease_until_epoch'] is not None
+                      and row['lease_until_epoch'] >= now_epoch)
+            if active and row['claimed_by'] != consumer_id:
+                conn.execute('COMMIT')
+                return {'job_id': job_id, 'status': 'already_claimed',
+                        'lease_until_epoch': row['lease_until_epoch'],
+                        'queue': row['queue']}
+            lease_until = now_epoch + lease_seconds
+            if active and row['claimed_by'] == consumer_id:
+                conn.execute('UPDATE jobs SET lease_until_epoch=?, updated_at_utc=? WHERE job_id=?',
+                             (lease_until, now_iso, job_id))
+                idempotent = True
+            else:
+                conn.execute(
+                    'UPDATE jobs SET claimed_by=?, claimed_at_utc=?, lease_until_epoch=?,'
+                    ' attempts=COALESCE(attempts,0)+1, updated_at_utc=? WHERE job_id=?',
+                    (consumer_id, now_iso, lease_until, now_iso, job_id))
+                idempotent = False
+            conn.execute('COMMIT')
+            return {'job_id': job_id, 'status': 'claimed', 'text': row['text'],
+                    'created_at_utc': row['created_at_utc'], 'direction': row['direction'],
+                    'queue': row['queue'], 'lease_until_epoch': lease_until,
+                    'idempotent': idempotent}
+        except Exception:
+            conn.execute('ROLLBACK')
+            raise
+
+    def put_claimed_reply(self, job_id: str, consumer_id: str, text: str,
+                          max_bytes: int = MAX_TEXT_BYTES) -> dict:
+        consumer_id = validate_consumer_id(consumer_id)
+        if len(text.encode('utf-8')) > max_bytes:
+            raise ValueError(f'text > {max_bytes} bytes')
+        now_epoch = time.time()
+        now_iso = utc_now_iso()
+        conn = self._conn
+        conn.execute('BEGIN IMMEDIATE')
+        try:
+            row = conn.execute('SELECT * FROM jobs WHERE job_id=?', (job_id,)).fetchone()
+            if row is None:
+                conn.execute('COMMIT')
+                return {'job_id': job_id, 'status': 'not_found'}
+            if row['direction'] != 'to_chatgpt':
+                conn.execute('COMMIT')
+                return {'job_id': job_id, 'status': 'conflict',
+                        'reason': 'claimed reply allowed only for to_chatgpt'}
+            if row['reply'] is not None:
+                conn.execute('COMMIT')
+                if row['reply'] == text:
+                    return {'job_id': job_id, 'status': 'replied',
+                            'reply': text, 'idempotent': True}
+                return {'job_id': job_id, 'status': 'conflict',
+                        'reason': 'different reply to answered job'}
+            if row['claimed_by'] != consumer_id:
+                conn.execute('COMMIT')
+                return {'job_id': job_id, 'status': 'not_owner'}
+            if row['lease_until_epoch'] is None or row['lease_until_epoch'] < now_epoch:
+                conn.execute('COMMIT')
+                return {'job_id': job_id, 'status': 'lease_expired'}
+            conn.execute(
+                'UPDATE jobs SET reply=?, status=?, claimed_by=NULL, claimed_at_utc=NULL,'
+                ' lease_until_epoch=NULL, completed_at_utc=?, completed_by=?, updated_at_utc=?'
+                ' WHERE job_id=? AND reply IS NULL AND claimed_by=?',
+                (text, 'replied', now_iso, consumer_id, now_iso, job_id, consumer_id))
+            conn.execute('COMMIT')
+            return {'job_id': job_id, 'status': 'replied', 'reply': text}
+        except Exception:
+            conn.execute('ROLLBACK')
+            raise
 
     def put_reply(self, job_id: str, text: str, max_bytes: int = MAX_TEXT_BYTES) -> dict:
         """Записать ответ. Идемпотентен для одинакового; другой — conflict."""
@@ -269,14 +387,15 @@ class Queue:
                 # связанный отчёт to_chatgpt (parent_job_id, идемпотентно)
                 report_key = f'report:{job_id}'
                 from sqlite3 import IntegrityError
-                report_job = 'job_' + secrets.token_hex(12)
+                report_job = f'{row["queue"] or "test"}_' + secrets.token_hex(4) + '.job'
                 try:
                     conn.execute(
                         'INSERT INTO jobs (job_id, text, created_at_utc, status,'
                         ' updated_at_utc, direction, idempotency_key, owner,'
-                        ' parent_job_id) VALUES (?,?,?,?,?,?,?,?,?)',
+                        ' parent_job_id, queue) VALUES (?,?,?,?,?,?,?,?,?,?)',
                         (report_job, report_text or row['text'], now, 'pending', now,
-                         'to_chatgpt', report_key, row['owner'] or 'owner', job_id))
+                         'to_chatgpt', report_key, row['owner'] or 'owner', job_id,
+                         row['queue'] or 'test'))
                     created = True
                 except IntegrityError:
                     existing = conn.execute(
