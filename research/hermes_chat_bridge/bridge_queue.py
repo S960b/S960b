@@ -100,16 +100,22 @@ class Queue:
     # --- локальная CLI (только владелец) ---
     def put_message(self, text: str, max_bytes: int = MAX_TEXT_BYTES,
                     direction: str = 'to_chatgpt', idempotency_key: str | None = None,
-                    owner: str = 'owner', queue: str = 'test') -> dict:
+                    owner: str = 'owner', queue: str = 'test',
+                    label: str | None = None) -> dict:
         """Создать задачу с направлением; вернуть job_id/text/created/status.
 
         to_hermes требует idempotency_key: повтор ключа+текста возвращает
         исходный job_id (status=pending, idempotent=True); ключ+другой текст
         -> conflict. to_chatgpt (CLI) сохраняет прежнее поведение без ключа.
+
+        label: человекочитаемый префикс job_id (отражает контекст задачи),
+        например 'paper_analysis' -> job_id 'paper_analysis_ab12cd34.job'.
+        Если не задан - берётся queue (обратная совместимость).
         """
         if direction not in ('to_chatgpt', 'to_hermes'):
             raise ValueError(f'bad direction: {direction}')
         queue = validate_queue_name(queue)
+        prefix = validate_queue_name(label) if label is not None else queue
         if len(text.encode('utf-8')) > max_bytes:
             raise ValueError(f'text > {max_bytes} bytes')
         if direction == 'to_hermes' and not idempotency_key:
@@ -131,7 +137,7 @@ class Queue:
                 return {'job_id': row['job_id'], 'status': 'conflict',
                         'reason': 'idempotency_key reused with different text or queue'}
 
-        job_id = f'{queue}_' + secrets.token_hex(4) + '.job'
+        job_id = f'{prefix}_' + secrets.token_hex(4) + '.job'
         self._conn.execute(
             'INSERT INTO jobs (job_id, text, created_at_utc, status, updated_at_utc,'
             ' direction, idempotency_key, owner, queue) VALUES (?,?,?,?,?,?,?,?,?)',
@@ -387,7 +393,15 @@ class Queue:
                 # связанный отчёт to_chatgpt (parent_job_id, идемпотентно)
                 report_key = f'report:{job_id}'
                 from sqlite3 import IntegrityError
-                report_job = f'{row["queue"] or "test"}_' + secrets.token_hex(4) + '.job'
+                # префикс отчёта = контекст родителя (label), если он был задан;
+                # иначе очередь. job_id вида '<label>_<8hex>.job' -> берём '<label>'.
+                _base = job_id[:-4] if job_id.endswith('.job') else job_id
+                _parts = _base.rsplit('_', 1)
+                if len(_parts) == 2 and len(_parts[1]) == 8:
+                    _prefix = _parts[0]
+                else:
+                    _prefix = row["queue"] or "test"
+                report_job = f'{_prefix}_' + secrets.token_hex(4) + '.job'
                 try:
                     conn.execute(
                         'INSERT INTO jobs (job_id, text, created_at_utc, status,'

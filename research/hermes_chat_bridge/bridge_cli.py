@@ -30,9 +30,10 @@ def main():
     if cmd == 'put':
         text = sys.argv[2] if len(sys.argv) > 2 else ''
         if not text:
-            print('usage: bridge-cli put "текст" [queue]'); return 1
+            print('usage: bridge-cli put "текст" [queue] [label]'); return 1
         queue = sys.argv[3] if len(sys.argv) > 3 else 'test'
-        r = q.put_message(text, queue=queue)
+        label = sys.argv[4] if len(sys.argv) > 4 else None
+        r = q.put_message(text, queue=queue, label=label)
         print(f"job_id={r['job_id']} status={r['status']} queue={r.get('queue', queue)}")
         bridge = bs.BridgeApp(bs.BRIDGE_HOST and 'http://127.0.0.1:8765')
         n = bridge.emit_test_event(r['job_id'])
