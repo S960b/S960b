@@ -96,7 +96,7 @@ function esc(s){ return String(s).replace(/</g,'&lt;'); }
 function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg;
   t.style.opacity=1; setTimeout(()=>t.style.opacity=0, 2200); }
 async function act(jobId, action, label){
-  if(!confirm(label+'?\n'+jobId)) return;
+  if(!confirm(label+'?\\n'+jobId)) return;
   try{
     const r = await fetch('/api/action', {method:'POST',
       headers:{'Content-Type':'application/json'},
