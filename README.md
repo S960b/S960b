@@ -14,7 +14,7 @@ Authorized penetration testing and security assessment case studies.
 
 Writeups and technical notes from CTF competitions, structured as `ctf/<event>/<type>/<challenge>`.
 
-- [pwnsec / Web - PHault: blind SQL injection](ctf/pwnsec/web/)
+- [CTF writeups](ctf/) - all competitions and categories: pwnsec, FortiD 2026, Sunshine 2026, pwnsec/web/PHault and more.
 
 
 ## Research
@@ -28,8 +28,7 @@ Quantitative market microstructure research (authorized, public market data only
   taker/taker), quality dashboard. No trading, no keys, no secrets.
 - [Paper seven-day run - status](research/paper_seven_day/STATUS.md) - live status of the
   experimental 7-day paper runner (SOLUSDT/BTCUSDT Donchian, systemd paper-seven-day +
-  checkpoint timer). Note: its branch `chatgpt/paper-seven-day-2026-10-08` is NOT merged;
-  the status file lives on `main` so a fresh agent can find the recovery steps.
+  checkpoint timer). Scripts merged into `main` 2026-10-14.
 
 ## Automation (personal daily ops)
 
