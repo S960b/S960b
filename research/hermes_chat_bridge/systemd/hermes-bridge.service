@@ -1,0 +1,18 @@
+[Unit]
+Description=Hermes<->ChatGPT bridge MCP server (port 8765)
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=600
+StartLimitBurst=8
+
+[Service]
+Type=simple
+WorkingDirectory=/home/kali/S960b/research/hermes_chat_bridge
+ExecStart=/home/kali/.venvs/bridge-clean/bin/python /home/kali/.local/state/hermes-bridge/start_bridge.py
+Restart=on-failure
+RestartSec=5
+StandardOutput=append:/home/kali/.local/state/hermes-bridge/bridge_server.log
+StandardError=append:/home/kali/.local/state/hermes-bridge/bridge_server.log
+
+[Install]
+WantedBy=default.target

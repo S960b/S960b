@@ -1,0 +1,16 @@
+[Unit]
+Description=Hermes<->ChatGPT bridge taskboard (port 8787)
+After=network-online.target hermes-bridge.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/kali/S960b/research/hermes_chat_bridge
+ExecStart=/home/kali/.venvs/bridge-clean/bin/python /home/kali/S960b/research/hermes_chat_bridge/taskboard.py
+Restart=on-failure
+RestartSec=5
+StandardOutput=append:/home/kali/.local/state/hermes-bridge/taskboard.log
+StandardError=append:/home/kali/.local/state/hermes-bridge/taskboard.log
+
+[Install]
+WantedBy=default.target
