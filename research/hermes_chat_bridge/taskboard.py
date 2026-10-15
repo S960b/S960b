@@ -65,6 +65,7 @@ td.jid { color:#79c0ff; }
 .btn:hover { border-color:#3b82f6; color:#fff; }
 .btn.go { border-color:#2d5c3a; color:#7ee787; }
 .btn.danger { border-color:#5a1d1d; color:#ff9c9c; }
+.jcopy { padding:0 5px; margin-left:6px; font-size:12px; line-height:1.4; }
 #err { color:#ff9c9c; font-size:13px; }
 #toast { position:fixed; bottom:16px; right:16px; background:#1c212b; color:#d7dae0;
   border:1px solid #2d3543; border-radius:8px; padding:8px 14px; font-size:13px;
@@ -73,10 +74,10 @@ td.jid { color:#79c0ff; }
 <h1>Bridge taskboard</h1>
 <div class="sub">Hermes &harr; ChatGPT &middot; <span id="updated">-</span> &middot; автообновление 5с</div>
 <div class="tunnel">
-  <b>Текущий туннель (для ChatGPT):</b><br>
+  <b>Постоянный адрес моста (для ChatGPT):</b><br>
   <a id="tunnelLink" href="#" target="_blank" rel="noopener">-</a>
   <button class="btn" id="copyTunnel" style="margin-left:8px">⧉ копировать</button>
-  <div class="hint">URL меняется при перезапуске hermes-tunnel.service. Обновляется автоматически.</div>
+  <div class="hint">Tailscale Funnel. Адрес не меняется.</div>
 </div>
 <div class="filters" id="filters"></div>
 <div id="err"></div>
@@ -105,6 +106,13 @@ async function act(jobId, action, label){
     if(d.ok){ toast('OK: '+jobId+' -> '+action+' (rows='+d.rowcount+')'); load(); }
     else { toast('ОШИБКА: '+(d.error||'?')); }
   }catch(e){ toast('fetch error: '+e); }
+}
+function copyJob(jobId, btn){
+  const done = ()=>{ toast('job_id скопирован'); };
+  const cb = ()=>{ if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(jobId).then(done).catch(()=>fallbackCopy(jobId));
+    } else fallbackCopy(jobId); };
+  cb();
 }
 function actionBtns(j){
   let b = '';
@@ -139,7 +147,8 @@ async function load(){
       const stl = j.claimed_by ? 'st-claimed' : 'st-'+j.status;
       const who = j.claimed_by ? j.claimed_by : (j.completed_by ? j.completed_by : '-');
       const rep = (j.reply_len!=null)? j.reply_len+'б' : (j.reply ? 'да' : '-');
-      return '<tr><td class="jid mono">'+esc(j.job_id)+'</td>'+
+      return '<tr><td class="jid mono">'+esc(j.job_id)+
+        '<button class="btn jcopy" title="копировать job_id" onclick="copyJob(\\''+j.job_id+'\\')">⧉</button></td>'+
         '<td class="dir-'+j.direction+'">'+j.direction.replace('to_','')+'</td>'+
         '<td><span class="q">'+esc(j.queue)+'</span></td>'+
         '<td>'+el(st,stl)+'</td>'+

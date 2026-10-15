@@ -1,6 +1,0 @@
-[Unit]
-Description=Sync current trycloudflare tunnel URL to taskboard file
-
-[Service]
-Type=oneshot
-ExecStart=/home/kali/.local/state/hermes-bridge/update_tunnel_url.sh
