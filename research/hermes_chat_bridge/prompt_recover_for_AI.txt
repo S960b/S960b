@@ -5,11 +5,10 @@
 - readmefirst.txt (тот же каталог, research/hermes_chat_bridge/) — человеческий
   гайд: назначение моста, два режима (обычный чат / Work), запуск, частые
   ошибки, статус. После восстановления по этому файлу обязательно сверься с
-  readmefirst.txt: в нём текущие инструменты, полный job_id-формат и фраза
-  для Work.
-- ВАЖНО: оба файла не правятся во время активной разработки; после её
-  завершения проводится финальная ревизия обоих под последнюю версию кода
-  (решение владельца 2026-10-07).
+  readmefirst.txt: в нём текущие инструменты, формат job_id, постоянный URL
+  и чек-лист для человека.
+- ВАЖНО: оба файла прошли финальную ревизию 2026-10-15 под текущую схему
+  публичного доступа (Tailscale Funnel вместо cloudflared — туннели удалены).
 
 Ты — ИИ-агент (Hermes/DeepSeek/аналогичный). Тебе нужно с нуля, на чистой
 операционной системе (после потери диска) поднять проект MCP-моста между
@@ -28,18 +27,28 @@
   -> запуск Hermes CLI -> отчёт» без ручных команд.
 - Git: https://github.com/S960b/S960b , каталог research/hermes_chat_bridge.
   SSH: git@github.com:S960b/S960b.git (ключ id_ed25519).
-- Актуальное состояние: 86 passed / 3 xfailed; подтверждённый реальный обмен;
-  финальный коммит на момент последней публикации можно взять из
-  `git log -1 --oneline` после клонирования.
+- ПУБЛИЧНЫЙ ДОСТУП (с 2026-10-15): постоянный адрес через Tailscale Funnel
+      https://kali.tail12eeb2.ts.net  ->  127.0.0.1:8765
+  MCP-эндпоинт: https://kali.tail12eeb2.ts.net/mcp. Адрес НЕ меняется.
+- Актуальное состояние и формат job_id ({метка}_{8hex}.job, напр.
+  test_1f1a1e9a.job) — см. readmefirst.txt и CURRENT_STATE.md.
 
 ========================================================================
 2. ПРЕДВАРИТЕЛЬНЫЕ ТРЕБОВАНИЯ (установить, если нет)
 ========================================================================
 - Linux (проверено на Debian/Kali), Python 3.13.x, git.
 - venv (python3-venv), pip.
-- cloudflared (для публичного туннеля):
-    curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o ~/cloudflared
-    chmod +x ~/cloudflared
+- Tailscale + Funnel (вместо старого cloudflared — тот удалён):
+    curl -fsSL https://tailscale.com/install.sh | sh
+    sudo systemctl enable --now tailscaled
+    sudo tailscale up
+      # авторизация ноды: в браузере открывается login.tailscale.com;
+      # ВХОД ЧЕРЕЗ GITHUB-АККАУНТ (пользователь S960b) — это важно,
+      # tailnet называется S960b, нода kali (см. tailscale status:
+      # строка вида «100.x.x.x  kali  S960b@  linux»).
+    sudo tailscale funnel --bg --https=443 8765
+      # выпускает HTTPS-сертификат и пробрасывает на мост;
+      # проверить: tailscale funnel status -> https://kali.tail12eeb2.ts.net
 - Hermes CLI (нужен только для worker):
     curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash
 - У пользователя есть SSH-ключ к GitHub (S960b/S960b) или токен HTTPS.
@@ -51,12 +60,15 @@
     git clone git@github.com:S960b/S960b.git ~/S960b   (или HTTPS)
     cd ~/S960b/research/hermes_chat_bridge
 
-Прочитай README.md, DESIGN_WORKER.md и REPORT_3.md — это описание контракта
-и известных ограничений. Перед запуском чего-либо выполни:
+Прочитай README.md, DESIGN_WORKER.md и CURRENT_STATE.md — это описание
+контракта и текущего состояния. Перед запуском чего-либо выполни:
 
     python3 -m venv .venv
     .venv/bin/python -m pip install -r requirements.txt
     .venv/bin/python -m pip check       # должно быть: No broken requirements
+
+(На рабочей машине используется постоянный venv ~/.venvs/bridge-clean —
+НЕ в /tmp, там был баг с ребутом.)
 
 ========================================================================
 4. ПРОВЕРКА ИЗОЛЯЦИИ И ТЕСТЫ (обязательно, до запуска сервера)
@@ -64,12 +76,11 @@
     cd ~/S960b/research/hermes_chat_bridge
     PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 .venv/bin/python -m pytest tests -q --tb=short
 
-Ожидается: ~86 passed, 3 xfailed (xfail — известные ограничения, НЕ ошибки).
+Ожидается: зелёный прогон (точное число см. в выводе; на момент ревизии
+113 passed / 3 xfailed; xfail — известные ограничения, НЕ ошибки).
 Автотест конфигурации fail-closed: тесты НЕ имеют доступа к реальной сети и
-рабочей БД. Дополнительно можно прогнать изолированный HTTP-смоук:
-
-    .venv/bin/python scripts/run_isolated_http_e2e.py   # ожидается 12 passed
-    .venv/bin/python scripts/verify_pilot_startup.py    # ожидается 5 checks
+рабочей БД. Дополнительно можно прогнать изолированный HTTP-смоук (см.
+scripts/ в репозитории).
 
 ========================================================================
 5. ВАЖНЫЕ ПРАВИЛА БЕЗОПАСНОСТИ (читай до запуска)
@@ -83,11 +94,12 @@
 - Сервер БЕЗ явного пути к БД не запускается (by design). Используй НОВУЮ
   пустую пилотную БД, не пытайся мигрировать старую.
 - Не запускай против рабочего окружения до зелёных тестов.
-- Туннель quick URL меняется при каждом запуске; после смены URL нужно
-  пересоздавать коннектор в ChatGPT (см. раздел 8).
+- Tailscale Funnel не добавляет авторизацию — снаружи мост защищён ТОЛЬКО
+  OAuth-слоем самого моста (SCOPE bridge, логин владельца owner/BRIDGE_PASS).
+  Это ОК, но помни: /ping публичный, /mcp без токена = 401.
 
 ========================================================================
-6. ЗАПУСК СЕРВЕРА (локально, до туннеля)
+6. ЗАПУСК СЕРВЕРА (локально, до Funnel)
 ========================================================================
 ДОПУСТИМО запускать с BRIDGE_BASE=http://127.0.0.1:8765 только для проверки;
 для реального подключения ChatGPT нужен публичный URL (раздел 7).
@@ -103,29 +115,43 @@
 Проверка локально:
     .venv/bin/python bridge_server.py &   # или в своём process manager
     curl -s http://127.0.0.1:8765/ping
-    # {"ok":"ok","version":"0.2.0","git_revision":"<sha>","process_mode":"single-process-pilot"}
+    # {"ok":"ok","version":"0.2.x","git_revision":"<sha>","process_mode":"single-process-pilot"}
 
 Проверь, что git_revision совпадает с `git rev-parse HEAD` в чистом checkout.
-Если известно ожидаемое значение, можно проверить стартап-скриптом с указанием
-ожидаемого коммита.
 
 ========================================================================
-7. ПУБЛИЧНЫЙ ТУННЕЛЬ И BRIDGE_BASE
+7. ПУБЛИЧНЫЙ ДОСТУП: TAILSCALE FUNNEL И BRIDGE_BASE
 ========================================================================
-Запусти туннель (держать работающим вместе с сервером):
-    ~/cloudflared tunnel --url http://127.0.0.1:8765 --no-autoupdate
+Вместо cloudflared (удалён) используется Tailscale Funnel с ПОСТОЯННЫМ адресом:
 
-Из вывода возьми адрес вида https://<random-subdomain>.trycloudflare.com.
+    sudo tailscale funnel --bg --https=443 8765
+    tailscale funnel status
+    # -> # Funnel on: https://kali.tail12eeb2.ts.net
+    #    |-- / proxy http://127.0.0.1:8765
+
 ЗАМЕНИ BRIDGE_BASE на этот адрес, перезапусти сервер!!! (issuer OAuth,
-Host-allowlist и redirect-адреса строятся от BRIDGE_BASE).
+Host-allowlist и redirect-адреса строятся от BRIDGE_BASE):
 
-    export BRIDGE_BASE=https://<random-subdomain>.trycloudflare.com
+    export BRIDGE_BASE=https://kali.tail12eeb2.ts.net
     # перезапусти bridge_server.py с новым BRIDGE_BASE
 
-Проверь публично:
-    curl -s https://<random-subdomain>.trycloudflare.com/ping
-    curl -s https://<random-subdomain>.trycloudflare.com/.well-known/oauth-authorization-server
-        # issuer должен равняться твоему trycloudflare-адресу
+Проверь публично (первый запрос после старта Funnel может занять несколько
+секунд — выпуск TLS-сертификата; повтори при таймауте):
+    curl -s https://kali.tail12eeb2.ts.net/ping
+    curl -s https://kali.tail12eeb2.ts.net/.well-known/oauth-authorization-server
+        # issuer должен равняться твоему ts.net-адресу
+    curl -s -X POST https://kali.tail12eeb2.ts.net/mcp \
+         -H 'content-type: application/json' -d '{}'   # ожидается 401 (auth)
+
+Если Funnel не работает («No serve config») — сначала включить в админке
+Tailscale (login.tailscale.com/f/funnel?node=..., вход через GitHub S960b),
+потом повторить команду funnel.
+
+Сервисы (systemd user, автозапуск через Linger):
+    hermes-bridge.service     — MCP-сервер на 127.0.0.1:8765
+    hermes-taskboard.service  — таск-борд на 127.0.0.1:8787
+Системный: tailscaled.service (обязательно enabled, чтобы адрес пережил ребут:
+    sudo systemctl enable --now tailscaled)
 
 ========================================================================
 8. ПОДКЛЮЧЕНИЕ CHATGPT (ЧЕЛОВЕК, ВАЖНО!)
@@ -136,17 +162,18 @@ Host-allowlist и redirect-адреса строятся от BRIDGE_BASE).
 
 ПОДСКАЗКА ДЛЯ ЧЕЛОВЕКА (скажи пользователю следующее):
 
-「В Work-чате ChatGPT (chatgpt.com/work) создай/подключи кастомный MCP-плагин:
+「В чате ChatGPT (обычном или Work) создай/подключи кастомный MCP-плагин:
 1) Нажми Apps/Connectors -> Add / Connect app -> Custom MCP server.
 2) Название: Hermes Bridge (любое).
 3) URL сервера (вставить ТОЧНО, включая /mcp):
-   https://<random-subdomain>.trycloudflare.com/mcp
+   https://kali.tail12eeb2.ts.net/mcp
 4) Оставь OAuth (не «без аутентификации»).
 5) Откроется форма входа — введи:
    Пользователь: owner
-   Пароль: (значение BRIDGE_PASS, которое агент передаст тебе локально,
-           либо ты сам заглянешь в ~/.local/state/hermes-bridge/BRIDGE_PASS)
-6) После «Connected» напиши в том же Work-чате ChatGPT фразу:
+   Пароль: (значение BRIDGE_PASS; файл
+           ~/.local/state/hermes-bridge/pilot-20261004T140717Z/
+           pilot_environment.private.json, ключ BRIDGE_PASS)
+6) После «Connected» напиши в том же чате фразу:
    «Подпишись на событие hermes.message.created от моста и при получении
    задачи читай её через bridge_get_message, отвечай через bridge_put_reply.」
 7) Дождись, когда ChatGPT подтвердит подписку.」
@@ -161,9 +188,9 @@ Host-allowlist и redirect-адреса строятся от BRIDGE_BASE).
 ========================================================================
 1) Положи задачу:
     BRIDGE_DB_PATH=/abs/path/to/NEW-pilot.db .venv/bin/python bridge_cli.py \
-        put 'Тестовая задача. Ответь одним предложением.'
-    # -> job_id=..., events_queued=1 (если подписка активна)
-2) В Work-чате ChatGPT пользователь пишет:
+        put 'Тестовая задача. Ответь одним предложением.' test roundtrip
+    # -> job_id=roundtrip_<8hex>.job, events_queued=1 (если подписка активна)
+2) В чате ChatGPT пользователь пишет:
     «Прочитай новую задачу из моста (bridge_get_message) и ответь на неё
     через bridge_put_reply.»
 3) Проверь ответ:
@@ -210,14 +237,18 @@ Worker запускает локальный Hermes CLI в цикле (нуже�
 - exactly-once HTTP-доставка не гарантируется; мульти-пользовательской
   изоляции нет (мост однопользовательский).
 - Секреты (BRIDGE_PASS, whsec) НЕ хранить в Git/логах.
+- Tailscale Funnel: только порты 443/8443/10000, только TLS, свой домен НЕ
+  поддержать (только *.ts.net). Адрес постоянный — переподключать плагин
+  из-за смены URL не нужно.
 
 ========================================================================
 12. ЧТО СЧИТАТЬ УСПЕХОМ
 ========================================================================
-1) pytest зелёный (~86 passed, 3 xfailed);
+1) pytest зелёный (~113 passed, 3 xfailed на момент ревизии);
 2) сервер отвечает /ping с git_revision = HEAD;
-3) публичный URL отдаёт metadata OAuth с правильным issuer;
-4) пользователь создал плагин в Work-чате и подписка active=1;
+3) публичный URL (https://kali.tail12eeb2.ts.net) отдаёт metadata OAuth
+   с правильным issuer;
+4) пользователь создал плагин в чате и подписка active=1;
 5) реальный roundtrip job -> ChatGPT -> ответ в консоли (status=replied).
 
 Если на любом шаге что-то не сходится — честно скажи, на каком шаге и какой
