@@ -1,32 +1,42 @@
 # Hermes - CURRENT STATE (передача контекста между сессиями)
 
-Обновлён: 2026-10-15. Читается за ~1 минуту. Все подробности - в памяти, скиллах и git (ссылки внизу).
+Обновлён: 2026-10-15 (вечер). Читается за ~1 минуту. Все подробности - в памяти, скиллах и git (ссылки внизу).
 
 ## 0. САМОЕ ВАЖНОЕ (незакрытый хвост)
 
-1. **Именованный Cloudflare-туннель создан и РАБОТАЕТ** (id `5891694c-8db9-49e4-97be-ab9ee449e799`),
-   сервис `hermes-tunnel-named.service` (active). Ведёт `s960b-bridge.is-a.dev -> http://127.0.0.1:8765`.
-   Токен - секрет: `/home/kali/.cloudflared/hermes-bridge.token` (0600, не в git).
-2. **Домен** `s960b-bridge.is-a.dev` - PR в is-a.dev/register **создан юзером**, ждём мержа.
-   Файл: `domains/s/s960b-bridge.json` (правильный путь, records CNAME -> `5891694c-....cfargotunnel.com`).
-   DNS пока: 104.18.4.103/5.103 (это НЕ наш туннель, это страница is-a.dev). `dig CNAME` пусто.
-3. **Пока работает старый quick-туннель**: `attribute-appliance-hotel-regardless.trycloudflare.com`
-   (BRIDGE_BASE и таск-борд указывают на него). ChatGPT ходит на него, всё работает.
-4. **После мержа PR** (когда DNS отдаст CNAME на cfargotunnel) сделать:
-   - `BRIDGE_BASE` -> `https://s960b-bridge.is-a.dev` (обновится автоматически нашим таймером, но проверить);
-   - `systemctl --user disable --now hermes-tunnel.service` (выключить старый quick-туннель);
-   - проверить `curl https://s960b-bridge.is-a.dev/ping` -> 200, OAuth discovery, POST /mcp;
-   - дать юзеру постоянный адрес `https://s960b-bridge.is-a.dev/mcp` (вписать в плагин ChatGPT);
-   - обновить `current_tunnel_url.txt` файл (таск-борд показывает его) - тоже на новый адрес.
+1. **МОСТ ПЕРЕКЛЮЧЁН НА ПОСТОЯННЫЙ HTTPS-АДРЕС ЧЕРЕЗ TAILSCALE FUNNEL (2026-10-15):**
+   `https://kali.tail12eeb2.ts.net` -> `http://127.0.0.1:8765` (MCP endpoint `/mcp`).
+   BRIDGE_BASE в `pilot_environment.private.json` = `https://kali.tail12eeb2.ts.net`,
+   OAuth issuer отдаётся с новым адресом, /ping 200, /mcp без токена = 401 (auth работает).
+   Quick-туннель `hermes-tunnel.service` ПОКА ЖИВ как запасной путь, но автосинк
+   `hermes-tunnel-url.timer` ОТКЛЮЧЁН (иначе перезаписал бы BRIDGE_BASE обратно).
+   `current_tunnel_url.txt` = `https://kali.tail12eeb2.ts.net`.
+2. **is-a.dev домен — ЗАКРЫТАЯ ВЕТКА, НЕ ИСПОЛЬЗОВАТЬ**: PR #56644 не смержен (закрыт ботом,
+   незаполненный шаблон). Их CI ЗАПРЕЩАЕТ CNAME на `.cfargotunnel.com` (проверено тестами:
+   `disallowed-cnames.json`). Пытаться переоткрывать PR бессмысленно.
+3. **Осталось сделать**:
+   - `sudo systemctl enable --now tailscaled` (автозапуск Tailscale после ребута; ВАЖНО);
+   - вписать в плагин ChatGPT постоянный адрес `https://kali.tail12eeb2.ts.net/mcp`
+     (переподключить OAuth — старый trycloudflare issuer кэшируется);
+   - после подтверждения, что ChatGPT работает через новый адрес, ОТКЛЮЧИТЬ quick-туннель:
+     `systemctl --user disable --now hermes-tunnel.service hermes-tunnel-url.timer hermes-tunnel-url.service`;
+   - `mitmdump` (transparent-прокси на 443, `/tmp/mitmconf`) убит 2026-10-15, чтобы освободить 443
+     для Funnel — если понадобится, поднять заново.
+4. **Tailscale**: нода `kali` (100.102.200.90) в tailnet `S960b`, FQDN `kali.tail12eeb2.ts.net`,
+   Funnel включён на 443. `tailscaled.service` установлен, но автозапуск НЕ включён (см. п.3).
 
 ## 1. Cервисы (все active, автозапуск через systemd user + Linger)
 
 - `hermes-bridge.service` - MCP-мост Hermes<->ChatGPT, порт 8765.
-- `hermes-tunnel.service` - СТАРЫЙ quick-туннель (временный, выключить после мержа домена).
-- `hermes-tunnel-named.service` - НОВЫЙ именованный туннель (config: `~/.cloudflared/config.yml`).
+- `hermes-tunnel.service` - СТАРЫЙ quick-туннель (временный запасной путь, отключить после
+  подтверждения работы через Tailscale).
+- `hermes-tunnel-named.service` - именованный CF-туннель (не используется, домена нет; можно выключить).
 - `hermes-tunnel-url.timer` - каждые 60с: синк URL + BRIDGE_BASE + рестарт моста при смене.
+  **ОТКЛЮЧЁН** (иначе перезаписал бы BRIDGE_BASE на trycloudflare-адрес).
 - `hermes-taskboard.service` - таск-борд, порт 8787 (localhost).
 - `paper-seven-day.service` - 7-дневный paper-забег (SOL/BTC).
+- `tailscaled.service` (системный) - Tailscale Daemon, нода `kali` в tailnet `S960b`,
+  Funnel на 443 -> 127.0.0.1:8765. **НЕ включён в автозапуск - сделать `sudo systemctl enable --now tailscaled`.**
 
 ## 2. Важные среды/файлы (секреты НЕ печатать)
 
@@ -39,7 +49,8 @@
 
 ## 3. Незакрытые хвосты
 
-1. **Домен** (см. п.0) - ждём мержа PR, потом переключение.
+1. **Переключение на Tailscale** (см. п.0): включить автозапуск tailscaled, вписать адрес в плагин
+   ChatGPT, после подтверждения отключить quick-туннель.
 2. **Paper-забег**: дедлайн 2026-10-15 23:56 МСК. После финиша собрать итоговый отчёт по чек-листу
    ChatGPT (в памяти/струях: A-F: equity, maxDD, reconcile, MTM позиций, раздельные выводы, НЕ переходить
    в live, новый uninterrupted run). Статус валидности: INTERRUPTED (~57% аптайма). Сервис active.
@@ -64,5 +75,6 @@
 ## 5. Как продолжить в новой сессии
 
 Просто скажи: "ознакомься с research/hermes_chat_bridge/CURRENT_STATE.md и продолжай".
-Агент прочитает этот файл (маленький) и подхватит. Если хвост по домену уже закрыт -
-начни с проверки DNS: `dig +short s960b-bridge.is-a.dev CNAME` (должен вернуть <id>.cfargotunnel.com).
+Агент прочитает этот файл (маленький) и подхватит. Проверка постоянного адреса:
+`curl -s https://kali.tail12eeb2.ts.net/ping` (должен вернуть `{"ok":"ok",...}`) и
+`tailscale funnel status` (Funnel on, proxy -> 127.0.0.1:8765).
