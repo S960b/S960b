@@ -1,15 +1,22 @@
 # Hermes - CURRENT STATE (передача контекста между сессиями)
 
-Обновлён: 2026-10-15. Читается за ~1 минуту. Все подробности - в памяти, скиллах и git (ссылки внизу).
+Обновлён: 2026-10-15 (вечер). Читается за ~1 минуту. Все подробности - в памяти, скиллах и git (ссылки внизу).
 
 ## 0. САМОЕ ВАЖНОЕ (незакрытый хвост)
 
 1. **Именованный Cloudflare-туннель создан и РАБОТАЕТ** (id `5891694c-8db9-49e4-97be-ab9ee449e799`),
    сервис `hermes-tunnel-named.service` (active). Ведёт `s960b-bridge.is-a.dev -> http://127.0.0.1:8765`.
    Токен - секрет: `/home/kali/.cloudflared/hermes-bridge.token` (0600, не в git).
-2. **Домен** `s960b-bridge.is-a.dev` - PR в is-a.dev/register **создан юзером**, ждём мержа.
-   Файл: `domains/s/s960b-bridge.json` (правильный путь, records CNAME -> `5891694c-....cfargotunnel.com`).
-   DNS пока: 104.18.4.103/5.103 (это НЕ наш туннель, это страница is-a.dev). `dig CNAME` пусто.
+2. **Домен `s960b-bridge.is-a.dev` - PR НЕ СМЕРЖЕН, ЗАКРЫТ БОТОМ (ПРОВЕРЕНО 2026-10-15).**
+   Причина: PR #56644 в is-a.dev/register был **closed, not merged** - бот `is-a-dev-bot` отклонил
+   за НЕЗАПОЛНЕННЫЙ шаблон ("Incomplete PR template"). Файл форка верный
+   (`S960b/register/main`, `domains/s/s960b-bridge.json`, records CNAME ->
+   `5891694c-8db9-49e4-97be-ab9ee449e799.cfargotunnel.com`), но в upstream**`domains/s/s960b-bridge.json` = 404**.
+   DNS: `dig CNAME` пусто, `A` = 104.18.4.103/5.103 (CF-плейсхолдер is-a.dev, НЕ наш туннель).
+   Вывод: переключение на постоянный адрес СЕЙЧАС НЕВОЗМОЖНО - домен не зарезолвлен.
+   Нужно ПЕРЕОТКРЫТЬ PR с полностью заполненным шаблоном (чекбоксы TOS/структура/reachable/
+   software/non-commercial/contact/website_link + website preview/purpose). GH CLI/токена нет,
+   есть только SSH-ключ -> создание PR через API невозможно, нужна пользовательская сессия.
 3. **Пока работает старый quick-туннель**: `attribute-appliance-hotel-regardless.trycloudflare.com`
    (BRIDGE_BASE и таск-борд указывают на него). ChatGPT ходит на него, всё работает.
 4. **После мержа PR** (когда DNS отдаст CNAME на cfargotunnel) сделать:
