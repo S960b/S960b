@@ -1,0 +1,15 @@
+[Unit]
+Description=Cloudflare named tunnel hermes-bridge (stable URL, no more quick-tunnel churn)
+After=network-online.target hermes-bridge.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/home/kali/hermes-chat-bridge/cloudflared tunnel --config /home/kali/.cloudflared/config.yml run --token-file /home/kali/.cloudflared/hermes-bridge.token
+Restart=on-failure
+RestartSec=5
+StandardOutput=append:/home/kali/.local/state/hermes-bridge/cloudflared_named.log
+StandardError=append:/home/kali/.local/state/hermes-bridge/cloudflared_named.log
+
+[Install]
+WantedBy=default.target

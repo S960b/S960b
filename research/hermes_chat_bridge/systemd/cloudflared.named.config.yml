@@ -1,0 +1,4 @@
+ingress:
+  - hostname: s960b-bridge.is-a.dev
+    service: http://127.0.0.1:8765
+  - service: http_status:404
