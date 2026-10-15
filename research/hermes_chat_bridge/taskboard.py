@@ -115,14 +115,24 @@ function copyJob(jobId, btn){
   cb();
 }
 function actionBtns(j){
+  const del = '<button class="btn danger" title="удалить навсегда" onclick="act(\\''+j.job_id+'\\',\\'delete\\',\\'Удалить навсегда?\\')">🗑</button>';
   let b = '';
   if(j.status==='pending' && j.direction==='to_hermes'){
-    b += '<button class="btn go" onclick="act(\\''+j.job_id+'\\',\\'complete\\',\\'Завершить (completed, admin)\\')">✓ завершить</button>';
-    b += '<button class="btn danger" onclick="act(\\''+j.job_id+'\\',\\'fail\\',\\'Закрыть (failed)\\')">✕ закрыть</button>';
+    b += '<button class="btn go" onclick="act(\\''+j.job_id+'\\',\\'complete\\',\\'Завершить (completed, admin)\\\')">✓ завершить</button>';
+    b += '<button class="btn danger" onclick="act(\\''+j.job_id+'\\',\\'fail\\',\\'Закрыть (failed)\\\')">✕ закрыть</button>';
+    b += del;
   } else if(j.status==='pending' && j.direction==='to_chatgpt'){
-    b += '<button class="btn danger" onclick="act(\\''+j.job_id+'\\',\\'fail\\',\\'Закрыть (failed)\\')">✕ закрыть</button>';
+    b += '<button class="btn danger" onclick="act(\\''+j.job_id+'\\',\\'fail\\',\\'Закрыть (failed)\\\')">✕ закрыть</button>';
+    b += del;
+  } else if(j.status==='replied'){
+    b += '<button class="btn go" onclick="act(\\''+j.job_id+'\\',\\'complete\\',\\'Завершить (completed, admin)\\\')">✓ завершить</button>';
+    b += del;
+  } else if(j.status==='completed'){
+    b += '<button class="btn go" onclick="act(\\''+j.job_id+'\\',\\'reopen\\',\\'Вернуть в очередь (pending)\\\')">↺ вернуть</button>';
+    b += del;
   } else if(j.status==='failed'){
-    b += '<button class="btn go" onclick="act(\\''+j.job_id+'\\',\\'reopen\\',\\'Вернуть в очередь (pending)\\')">↺ вернуть</button>';
+    b += '<button class="btn go" onclick="act(\\''+j.job_id+'\\',\\'reopen\\',\\'Вернуть в очередь (pending)\\\')">↺ вернуть</button>';
+    b += del;
   }
   return b || '<span class="meta">-</span>';
 }
@@ -240,7 +250,7 @@ def fetch_stats():
 def apply_action(job_id: str, action: str) -> tuple[bool, int, str]:
     """Admin actions per the bridge skill (completed_by='hermes-admin',
     no report row creation - documented admin path). Returns (ok, rowcount, err)."""
-    if action not in ('complete', 'fail', 'reopen'):
+    if action not in ('complete', 'fail', 'reopen', 'delete'):
         return False, 0, f'unknown action: {action}'
     now = __import__('datetime').datetime.now(__import__('datetime').timezone.utc) \
         .isoformat().replace('+00:00', 'Z')
@@ -248,13 +258,14 @@ def apply_action(job_id: str, action: str) -> tuple[bool, int, str]:
     conn.execute('PRAGMA busy_timeout=15000')
     try:
         if action == 'complete':
+            # pending to_hermes (в т.ч. claimed) или replied (ChatGPT ответил) -> completed
             cur = conn.execute(
                 "UPDATE jobs SET status='completed',"
                 " reply=COALESCE(reply,'завершено вручную из taskboard (admin)'),"
                 " completed_at_utc=?, completed_by='hermes-admin',"
                 " claimed_by=NULL, claimed_at_utc=NULL, lease_until_epoch=NULL,"
                 " updated_at_utc=?"
-                " WHERE job_id=? AND status='pending' AND direction='to_hermes'",
+                " WHERE job_id=? AND ((status='pending' AND direction='to_hermes') OR status='replied')",
                 (now, now, job_id))
         elif action == 'fail':
             cur = conn.execute(
@@ -265,13 +276,16 @@ def apply_action(job_id: str, action: str) -> tuple[bool, int, str]:
                 " updated_at_utc=?"
                 " WHERE job_id=? AND status='pending'",
                 (now, now, job_id))
-        else:  # reopen
+        elif action == 'reopen':
+            # failed ИЛИ completed -> pending (откат закрытия)
             cur = conn.execute(
                 "UPDATE jobs SET status='pending',"
                 " completed_at_utc=NULL, completed_by=NULL,"
                 " updated_at_utc=?"
-                " WHERE job_id=? AND status='failed'",
+                " WHERE job_id=? AND status IN ('failed','completed')",
                 (now, job_id))
+        else:  # delete — физическое удаление строки (необратимо)
+            cur = conn.execute("DELETE FROM jobs WHERE job_id=?", (job_id,))
         conn.commit()
         rc = cur.rowcount
         conn.close()
