@@ -1,0 +1,1527 @@
+.func main
+ const r10 65
+ putc r10
+ nl
+ const r3 1
+ hopen r6 r3
+ const r10 66
+ putc r10
+ nl
+ call setup r12
+ const r10 67
+ putc r10
+ nl
+ hflush r6
+ const r10 68
+ putc r10
+ nl
+ const r1 8
+ buf r30 r1
+ mov r31 r30
+ const r32 168
+ ringpeek r30 r32
+ const r10 70
+ putc r10
+ nl
+ const r33 0
+ getb r34 r31 r33
+ print r34
+ nl
+ const r33 1
+ getb r34 r31 r33
+ print r34
+ nl
+ const r33 2
+ getb r34 r31 r33
+ print r34
+ nl
+ const r33 3
+ getb r34 r31 r33
+ print r34
+ nl
+ const r33 4
+ getb r34 r31 r33
+ print r34
+ nl
+ const r33 5
+ getb r34 r31 r33
+ print r34
+ nl
+ const r33 6
+ getb r34 r31 r33
+ print r34
+ nl
+ const r33 7
+ getb r34 r31 r33
+ print r34
+ nl
+ const r10 82
+ putc r10
+ nl
+ const r1 128
+ buf r40 r1
+ mov r41 r40
+ hread r6 r41
+ const r10 83
+ putc r10
+ nl
+ print r41
+ nl
+ exit
+.end
+.func setup
+ const r1 16
+ buf r0 r1
+ const r0 0
+ const r1 16
+ buf r5 r1
+ hexport r5 worker
+ ret r0
+.end
+.func worker
+ const r10 87
+ putc r10
+ nl
+ gc
+ gc
+ const r10 71
+ putc r10
+ nl
+ const r1 256
+ buf r7 r1
+ const r126 1
+ const r125 32
+ shl r126 r126 r125
+ const r90 1
+ sub r126 r126 r90
+ const r124 255
+ const r90 8
+ buf r8 r90
+ mov r9 r8
+ const r91 152
+ ringpeek r8 r91
+ const r40 0
+ const r41 0
+ const r110 0
+ getb r111 r9 r110
+ or r40 r40 r111
+ const r110 1
+ getb r111 r9 r110
+ const r112 8
+ shl r113 r111 r112
+ or r40 r40 r113
+ const r110 2
+ getb r111 r9 r110
+ const r112 16
+ shl r113 r111 r112
+ or r40 r40 r113
+ const r110 3
+ getb r111 r9 r110
+ const r112 24
+ shl r113 r111 r112
+ or r40 r40 r113
+ const r110 4
+ getb r111 r9 r110
+ or r41 r41 r111
+ const r110 5
+ getb r111 r9 r110
+ const r112 8
+ shl r113 r111 r112
+ or r41 r41 r113
+ const r110 6
+ getb r111 r9 r110
+ const r112 16
+ shl r113 r111 r112
+ or r41 r41 r113
+ const r110 7
+ getb r111 r9 r110
+ const r112 24
+ shl r113 r111 r112
+ or r41 r41 r113
+ const r20 -18693945
+ and r20 r20 r126
+ const r21 -1212709486
+ and r21 r21 r126
+ const r22 2085723633
+ const r23 -921514840
+ and r23 r23 r126
+ const r24 -369964327
+ and r24 r24 r126
+ const r25 -1480748143
+ and r25 r25 r126
+ const r26 1648855781
+ const r27 -704330072
+ and r27 r27 r126
+ const r38 1
+ const r39 0
+ xor r20 r20 r38
+ xor r21 r21 r39
+ add r100 r24 r26
+ shr r101 r100 r125
+ add r102 r25 r27
+ add r102 r102 r101
+ and r28 r100 r126
+ and r29 r102 r126
+ const r107 13
+ const r108 19
+ shl r103 r24 r107
+ shr r105 r25 r108
+ and r103 r103 r126
+ or r103 r103 r105
+ shl r104 r25 r107
+ shr r106 r24 r108
+ and r104 r104 r126
+ or r104 r104 r106
+ mov r24 r103
+ mov r25 r104
+ xor r24 r24 r28
+ xor r25 r25 r29
+ mov r30 r20
+ mov r31 r21
+ add r100 r22 r20
+ shr r101 r100 r125
+ add r102 r23 r21
+ add r102 r102 r101
+ and r22 r100 r126
+ and r23 r102 r126
+ mov r103 r29
+ mov r104 r28
+ mov r28 r103
+ mov r29 r104
+ const r107 16
+ const r108 16
+ shl r103 r30 r107
+ shr r105 r31 r108
+ and r103 r103 r126
+ or r103 r103 r105
+ shl r104 r31 r107
+ shr r106 r30 r108
+ and r104 r104 r126
+ or r104 r104 r106
+ mov r30 r103
+ mov r31 r104
+ xor r30 r30 r22
+ xor r31 r31 r23
+ add r100 r22 r24
+ shr r101 r100 r125
+ add r102 r23 r25
+ add r102 r102 r101
+ and r22 r100 r126
+ and r23 r102 r126
+ const r107 17
+ const r108 15
+ shl r103 r24 r107
+ shr r105 r25 r108
+ and r103 r103 r126
+ or r103 r103 r105
+ shl r104 r25 r107
+ shr r106 r24 r108
+ and r104 r104 r126
+ or r104 r104 r106
+ mov r24 r103
+ mov r25 r104
+ add r100 r28 r30
+ shr r101 r100 r125
+ add r102 r29 r31
+ add r102 r102 r101
+ and r28 r100 r126
+ and r29 r102 r126
+ const r107 21
+ const r108 11
+ shl r103 r30 r107
+ shr r105 r31 r108
+ and r103 r103 r126
+ or r103 r103 r105
+ shl r104 r31 r107
+ shr r106 r30 r108
+ and r104 r104 r126
+ or r104 r104 r106
+ mov r30 r103
+ mov r31 r104
+ xor r24 r24 r22
+ xor r25 r25 r23
+ xor r30 r30 r28
+ xor r31 r31 r29
+ mov r103 r23
+ mov r104 r22
+ mov r22 r103
+ mov r23 r104
+ add r100 r28 r24
+ shr r101 r100 r125
+ add r102 r29 r25
+ add r102 r102 r101
+ and r28 r100 r126
+ and r29 r102 r126
+ add r100 r22 r30
+ shr r101 r100 r125
+ add r102 r23 r31
+ add r102 r102 r101
+ and r22 r100 r126
+ and r23 r102 r126
+ const r107 13
+ const r108 19
+ shl r103 r24 r107
+ shr r105 r25 r108
+ and r103 r103 r126
+ or r103 r103 r105
+ shl r104 r25 r107
+ shr r106 r24 r108
+ and r104 r104 r126
+ or r104 r104 r106
+ mov r24 r103
+ mov r25 r104
+ xor r24 r24 r28
+ xor r25 r25 r29
+ const r107 16
+ const r108 16
+ shl r103 r30 r107
+ shr r105 r31 r108
+ and r103 r103 r126
+ or r103 r103 r105
+ shl r104 r31 r107
+ shr r106 r30 r108
+ and r104 r104 r126
+ or r104 r104 r106
+ mov r30 r103
+ mov r31 r104
+ xor r30 r30 r22
+ xor r31 r31 r23
+ mov r103 r29
+ mov r104 r28
+ mov r28 r103
+ mov r29 r104
+ add r100 r22 r24
+ shr r101 r100 r125
+ add r102 r23 r25
+ add r102 r102 r101
+ and r22 r100 r126
+ and r23 r102 r126
+ const r107 17
+ const r108 15
+ shl r103 r24 r107
+ shr r105 r25 r108
+ and r103 r103 r126
+ or r103 r103 r105
+ shl r104 r25 r107
+ shr r106 r24 r108
+ and r104 r104 r126
+ or r104 r104 r106
+ mov r24 r103
+ mov r25 r104
+ add r100 r28 r30
+ shr r101 r100 r125
+ add r102 r29 r31
+ add r102 r102 r101
+ and r28 r100 r126
+ and r29 r102 r126
+ const r107 21
+ const r108 11
+ shl r103 r30 r107
+ shr r105 r31 r108
+ and r103 r103 r126
+ or r103 r103 r105
+ shl r104 r31 r107
+ shr r106 r30 r108
+ and r104 r104 r126
+ or r104 r104 r106
+ mov r30 r103
+ mov r31 r104
+ xor r24 r24 r22
+ xor r25 r25 r23
+ xor r20 r30 r28
+ xor r21 r31 r29
+ xor r26 r38 r28
+ xor r27 r39 r29
+ mov r103 r23
+ mov r104 r22
+ mov r22 r103
+ mov r23 r104
+ const r38 0
+ const r39 0
+ xor r20 r20 r38
+ xor r21 r21 r39
+ add r100 r24 r26
+ shr r101 r100 r125
+ add r102 r25 r27
+ add r102 r102 r101
+ and r28 r100 r126
+ and r29 r102 r126
+ const r107 13
+ const r108 19
+ shl r103 r24 r107
+ shr r105 r25 r108
+ and r103 r103 r126
+ or r103 r103 r105
+ shl r104 r25 r107
+ shr r106 r24 r108
+ and r104 r104 r126
+ or r104 r104 r106
+ mov r24 r103
+ mov r25 r104
+ xor r24 r24 r28
+ xor r25 r25 r29
+ mov r30 r20
+ mov r31 r21
+ add r100 r22 r20
+ shr r101 r100 r125
+ add r102 r23 r21
+ add r102 r102 r101
+ and r22 r100 r126
+ and r23 r102 r126
+ mov r103 r29
+ mov r104 r28
+ mov r28 r103
+ mov r29 r104
+ const r107 16
+ const r108 16
+ shl r103 r30 r107
+ shr r105 r31 r108
+ and r103 r103 r126
+ or r103 r103 r105
+ shl r104 r31 r107
+ shr r106 r30 r108
+ and r104 r104 r126
+ or r104 r104 r106
+ mov r30 r103
+ mov r31 r104
+ xor r30 r30 r22
+ xor r31 r31 r23
+ add r100 r22 r24
+ shr r101 r100 r125
+ add r102 r23 r25
+ add r102 r102 r101
+ and r22 r100 r126
+ and r23 r102 r126
+ const r107 17
+ const r108 15
+ shl r103 r24 r107
+ shr r105 r25 r108
+ and r103 r103 r126
+ or r103 r103 r105
+ shl r104 r25 r107
+ shr r106 r24 r108
+ and r104 r104 r126
+ or r104 r104 r106
+ mov r24 r103
+ mov r25 r104
+ add r100 r28 r30
+ shr r101 r100 r125
+ add r102 r29 r31
+ add r102 r102 r101
+ and r28 r100 r126
+ and r29 r102 r126
+ const r107 21
+ const r108 11
+ shl r103 r30 r107
+ shr r105 r31 r108
+ and r103 r103 r126
+ or r103 r103 r105
+ shl r104 r31 r107
+ shr r106 r30 r108
+ and r104 r104 r126
+ or r104 r104 r106
+ mov r30 r103
+ mov r31 r104
+ xor r24 r24 r22
+ xor r25 r25 r23
+ xor r30 r30 r28
+ xor r31 r31 r29
+ mov r103 r23
+ mov r104 r22
+ mov r22 r103
+ mov r23 r104
+ add r100 r28 r24
+ shr r101 r100 r125
+ add r102 r29 r25
+ add r102 r102 r101
+ and r28 r100 r126
+ and r29 r102 r126
+ add r100 r22 r30
+ shr r101 r100 r125
+ add r102 r23 r31
+ add r102 r102 r101
+ and r22 r100 r126
+ and r23 r102 r126
+ const r107 13
+ const r108 19
+ shl r103 r24 r107
+ shr r105 r25 r108
+ and r103 r103 r126
+ or r103 r103 r105
+ shl r104 r25 r107
+ shr r106 r24 r108
+ and r104 r104 r126
+ or r104 r104 r106
+ mov r24 r103
+ mov r25 r104
+ xor r24 r24 r28
+ xor r25 r25 r29
+ const r107 16
+ const r108 16
+ shl r103 r30 r107
+ shr r105 r31 r108
+ and r103 r103 r126
+ or r103 r103 r105
+ shl r104 r31 r107
+ shr r106 r30 r108
+ and r104 r104 r126
+ or r104 r104 r106
+ mov r30 r103
+ mov r31 r104
+ xor r30 r30 r22
+ xor r31 r31 r23
+ mov r103 r29
+ mov r104 r28
+ mov r28 r103
+ mov r29 r104
+ add r100 r22 r24
+ shr r101 r100 r125
+ add r102 r23 r25
+ add r102 r102 r101
+ and r22 r100 r126
+ and r23 r102 r126
+ const r107 17
+ const r108 15
+ shl r103 r24 r107
+ shr r105 r25 r108
+ and r103 r103 r126
+ or r103 r103 r105
+ shl r104 r25 r107
+ shr r106 r24 r108
+ and r104 r104 r126
+ or r104 r104 r106
+ mov r24 r103
+ mov r25 r104
+ add r100 r28 r30
+ shr r101 r100 r125
+ add r102 r29 r31
+ add r102 r102 r101
+ and r28 r100 r126
+ and r29 r102 r126
+ const r107 21
+ const r108 11
+ shl r103 r30 r107
+ shr r105 r31 r108
+ and r103 r103 r126
+ or r103 r103 r105
+ shl r104 r31 r107
+ shr r106 r30 r108
+ and r104 r104 r126
+ or r104 r104 r106
+ mov r30 r103
+ mov r31 r104
+ xor r24 r24 r22
+ xor r25 r25 r23
+ xor r20 r30 r28
+ xor r21 r31 r29
+ xor r26 r38 r28
+ xor r27 r39 r29
+ mov r103 r23
+ mov r104 r22
+ mov r22 r103
+ mov r23 r104
+ mov r38 r40
+ mov r39 r41
+ xor r20 r20 r38
+ xor r21 r21 r39
+ add r100 r24 r26
+ shr r101 r100 r125
+ add r102 r25 r27
+ add r102 r102 r101
+ and r28 r100 r126
+ and r29 r102 r126
+ const r107 13
+ const r108 19
+ shl r103 r24 r107
+ shr r105 r25 r108
+ and r103 r103 r126
+ or r103 r103 r105
+ shl r104 r25 r107
+ shr r106 r24 r108
+ and r104 r104 r126
+ or r104 r104 r106
+ mov r24 r103
+ mov r25 r104
+ xor r24 r24 r28
+ xor r25 r25 r29
+ mov r30 r20
+ mov r31 r21
+ add r100 r22 r20
+ shr r101 r100 r125
+ add r102 r23 r21
+ add r102 r102 r101
+ and r22 r100 r126
+ and r23 r102 r126
+ mov r103 r29
+ mov r104 r28
+ mov r28 r103
+ mov r29 r104
+ const r107 16
+ const r108 16
+ shl r103 r30 r107
+ shr r105 r31 r108
+ and r103 r103 r126
+ or r103 r103 r105
+ shl r104 r31 r107
+ shr r106 r30 r108
+ and r104 r104 r126
+ or r104 r104 r106
+ mov r30 r103
+ mov r31 r104
+ xor r30 r30 r22
+ xor r31 r31 r23
+ add r100 r22 r24
+ shr r101 r100 r125
+ add r102 r23 r25
+ add r102 r102 r101
+ and r22 r100 r126
+ and r23 r102 r126
+ const r107 17
+ const r108 15
+ shl r103 r24 r107
+ shr r105 r25 r108
+ and r103 r103 r126
+ or r103 r103 r105
+ shl r104 r25 r107
+ shr r106 r24 r108
+ and r104 r104 r126
+ or r104 r104 r106
+ mov r24 r103
+ mov r25 r104
+ add r100 r28 r30
+ shr r101 r100 r125
+ add r102 r29 r31
+ add r102 r102 r101
+ and r28 r100 r126
+ and r29 r102 r126
+ const r107 21
+ const r108 11
+ shl r103 r30 r107
+ shr r105 r31 r108
+ and r103 r103 r126
+ or r103 r103 r105
+ shl r104 r31 r107
+ shr r106 r30 r108
+ and r104 r104 r126
+ or r104 r104 r106
+ mov r30 r103
+ mov r31 r104
+ xor r24 r24 r22
+ xor r25 r25 r23
+ xor r30 r30 r28
+ xor r31 r31 r29
+ mov r103 r23
+ mov r104 r22
+ mov r22 r103
+ mov r23 r104
+ add r100 r28 r24
+ shr r101 r100 r125
+ add r102 r29 r25
+ add r102 r102 r101
+ and r28 r100 r126
+ and r29 r102 r126
+ add r100 r22 r30
+ shr r101 r100 r125
+ add r102 r23 r31
+ add r102 r102 r101
+ and r22 r100 r126
+ and r23 r102 r126
+ const r107 13
+ const r108 19
+ shl r103 r24 r107
+ shr r105 r25 r108
+ and r103 r103 r126
+ or r103 r103 r105
+ shl r104 r25 r107
+ shr r106 r24 r108
+ and r104 r104 r126
+ or r104 r104 r106
+ mov r24 r103
+ mov r25 r104
+ xor r24 r24 r28
+ xor r25 r25 r29
+ const r107 16
+ const r108 16
+ shl r103 r30 r107
+ shr r105 r31 r108
+ and r103 r103 r126
+ or r103 r103 r105
+ shl r104 r31 r107
+ shr r106 r30 r108
+ and r104 r104 r126
+ or r104 r104 r106
+ mov r30 r103
+ mov r31 r104
+ xor r30 r30 r22
+ xor r31 r31 r23
+ mov r103 r29
+ mov r104 r28
+ mov r28 r103
+ mov r29 r104
+ add r100 r22 r24
+ shr r101 r100 r125
+ add r102 r23 r25
+ add r102 r102 r101
+ and r22 r100 r126
+ and r23 r102 r126
+ const r107 17
+ const r108 15
+ shl r103 r24 r107
+ shr r105 r25 r108
+ and r103 r103 r126
+ or r103 r103 r105
+ shl r104 r25 r107
+ shr r106 r24 r108
+ and r104 r104 r126
+ or r104 r104 r106
+ mov r24 r103
+ mov r25 r104
+ add r100 r28 r30
+ shr r101 r100 r125
+ add r102 r29 r31
+ add r102 r102 r101
+ and r28 r100 r126
+ and r29 r102 r126
+ const r107 21
+ const r108 11
+ shl r103 r30 r107
+ shr r105 r31 r108
+ and r103 r103 r126
+ or r103 r103 r105
+ shl r104 r31 r107
+ shr r106 r30 r108
+ and r104 r104 r126
+ or r104 r104 r106
+ mov r30 r103
+ mov r31 r104
+ xor r24 r24 r22
+ xor r25 r25 r23
+ xor r20 r30 r28
+ xor r21 r31 r29
+ xor r26 r38 r28
+ xor r27 r39 r29
+ mov r103 r23
+ mov r104 r22
+ mov r22 r103
+ mov r23 r104
+ const r38 0
+ const r39 0
+ xor r20 r20 r38
+ xor r21 r21 r39
+ add r100 r24 r26
+ shr r101 r100 r125
+ add r102 r25 r27
+ add r102 r102 r101
+ and r28 r100 r126
+ and r29 r102 r126
+ const r107 13
+ const r108 19
+ shl r103 r24 r107
+ shr r105 r25 r108
+ and r103 r103 r126
+ or r103 r103 r105
+ shl r104 r25 r107
+ shr r106 r24 r108
+ and r104 r104 r126
+ or r104 r104 r106
+ mov r24 r103
+ mov r25 r104
+ xor r24 r24 r28
+ xor r25 r25 r29
+ mov r30 r20
+ mov r31 r21
+ add r100 r22 r20
+ shr r101 r100 r125
+ add r102 r23 r21
+ add r102 r102 r101
+ and r22 r100 r126
+ and r23 r102 r126
+ mov r103 r29
+ mov r104 r28
+ mov r28 r103
+ mov r29 r104
+ const r107 16
+ const r108 16
+ shl r103 r30 r107
+ shr r105 r31 r108
+ and r103 r103 r126
+ or r103 r103 r105
+ shl r104 r31 r107
+ shr r106 r30 r108
+ and r104 r104 r126
+ or r104 r104 r106
+ mov r30 r103
+ mov r31 r104
+ xor r30 r30 r22
+ xor r31 r31 r23
+ add r100 r22 r24
+ shr r101 r100 r125
+ add r102 r23 r25
+ add r102 r102 r101
+ and r22 r100 r126
+ and r23 r102 r126
+ const r107 17
+ const r108 15
+ shl r103 r24 r107
+ shr r105 r25 r108
+ and r103 r103 r126
+ or r103 r103 r105
+ shl r104 r25 r107
+ shr r106 r24 r108
+ and r104 r104 r126
+ or r104 r104 r106
+ mov r24 r103
+ mov r25 r104
+ add r100 r28 r30
+ shr r101 r100 r125
+ add r102 r29 r31
+ add r102 r102 r101
+ and r28 r100 r126
+ and r29 r102 r126
+ const r107 21
+ const r108 11
+ shl r103 r30 r107
+ shr r105 r31 r108
+ and r103 r103 r126
+ or r103 r103 r105
+ shl r104 r31 r107
+ shr r106 r30 r108
+ and r104 r104 r126
+ or r104 r104 r106
+ mov r30 r103
+ mov r31 r104
+ xor r24 r24 r22
+ xor r25 r25 r23
+ xor r30 r30 r28
+ xor r31 r31 r29
+ mov r103 r23
+ mov r104 r22
+ mov r22 r103
+ mov r23 r104
+ add r100 r28 r24
+ shr r101 r100 r125
+ add r102 r29 r25
+ add r102 r102 r101
+ and r28 r100 r126
+ and r29 r102 r126
+ add r100 r22 r30
+ shr r101 r100 r125
+ add r102 r23 r31
+ add r102 r102 r101
+ and r22 r100 r126
+ and r23 r102 r126
+ const r107 13
+ const r108 19
+ shl r103 r24 r107
+ shr r105 r25 r108
+ and r103 r103 r126
+ or r103 r103 r105
+ shl r104 r25 r107
+ shr r106 r24 r108
+ and r104 r104 r126
+ or r104 r104 r106
+ mov r24 r103
+ mov r25 r104
+ xor r24 r24 r28
+ xor r25 r25 r29
+ const r107 16
+ const r108 16
+ shl r103 r30 r107
+ shr r105 r31 r108
+ and r103 r103 r126
+ or r103 r103 r105
+ shl r104 r31 r107
+ shr r106 r30 r108
+ and r104 r104 r126
+ or r104 r104 r106
+ mov r30 r103
+ mov r31 r104
+ xor r30 r30 r22
+ xor r31 r31 r23
+ mov r103 r29
+ mov r104 r28
+ mov r28 r103
+ mov r29 r104
+ add r100 r22 r24
+ shr r101 r100 r125
+ add r102 r23 r25
+ add r102 r102 r101
+ and r22 r100 r126
+ and r23 r102 r126
+ const r107 17
+ const r108 15
+ shl r103 r24 r107
+ shr r105 r25 r108
+ and r103 r103 r126
+ or r103 r103 r105
+ shl r104 r25 r107
+ shr r106 r24 r108
+ and r104 r104 r126
+ or r104 r104 r106
+ mov r24 r103
+ mov r25 r104
+ add r100 r28 r30
+ shr r101 r100 r125
+ add r102 r29 r31
+ add r102 r102 r101
+ and r28 r100 r126
+ and r29 r102 r126
+ const r107 21
+ const r108 11
+ shl r103 r30 r107
+ shr r105 r31 r108
+ and r103 r103 r126
+ or r103 r103 r105
+ shl r104 r31 r107
+ shr r106 r30 r108
+ and r104 r104 r126
+ or r104 r104 r106
+ mov r30 r103
+ mov r31 r104
+ xor r24 r24 r22
+ xor r25 r25 r23
+ xor r20 r30 r28
+ xor r21 r31 r29
+ xor r26 r38 r28
+ xor r27 r39 r29
+ mov r103 r23
+ mov r104 r22
+ mov r22 r103
+ mov r23 r104
+ const r103 536870912
+ xor r21 r21 r103
+ mov r28 r24
+ mov r29 r25
+ add r100 r26 r24
+ shr r101 r100 r125
+ add r102 r27 r25
+ add r102 r102 r101
+ and r32 r100 r126
+ and r33 r102 r126
+ const r107 13
+ const r108 19
+ shl r103 r28 r107
+ shr r105 r29 r108
+ and r103 r103 r126
+ or r103 r103 r105
+ shl r104 r29 r107
+ shr r106 r28 r108
+ and r104 r104 r126
+ or r104 r104 r106
+ mov r28 r103
+ mov r29 r104
+ add r100 r20 r22
+ shr r101 r100 r125
+ add r102 r21 r23
+ add r102 r102 r101
+ and r34 r100 r126
+ and r35 r102 r126
+ const r107 16
+ const r108 16
+ shl r103 r20 r107
+ shr r105 r21 r108
+ and r103 r103 r126
+ or r103 r103 r105
+ shl r104 r21 r107
+ shr r106 r20 r108
+ and r104 r104 r126
+ or r104 r104 r106
+ mov r20 r103
+ mov r21 r104
+ xor r20 r20 r34
+ xor r21 r21 r35
+ xor r28 r28 r32
+ xor r29 r29 r33
+ mov r103 r33
+ mov r104 r32
+ mov r32 r103
+ mov r33 r104
+ add r100 r34 r28
+ shr r101 r100 r125
+ add r102 r35 r29
+ add r102 r102 r101
+ and r34 r100 r126
+ and r35 r102 r126
+ const r107 17
+ const r108 15
+ shl r103 r28 r107
+ shr r105 r29 r108
+ and r103 r103 r126
+ or r103 r103 r105
+ shl r104 r29 r107
+ shr r106 r28 r108
+ and r104 r104 r126
+ or r104 r104 r106
+ mov r28 r103
+ mov r29 r104
+ mov r30 r20
+ mov r31 r21
+ xor r28 r28 r34
+ xor r29 r29 r35
+ add r100 r32 r20
+ shr r101 r100 r125
+ add r102 r33 r21
+ add r102 r102 r101
+ and r32 r100 r126
+ and r33 r102 r126
+ mov r103 r35
+ mov r104 r34
+ mov r34 r103
+ mov r35 r104
+ const r107 21
+ const r108 11
+ shl r103 r30 r107
+ shr r105 r31 r108
+ and r103 r103 r126
+ or r103 r103 r105
+ shl r104 r31 r107
+ shr r106 r30 r108
+ and r104 r104 r126
+ or r104 r104 r106
+ mov r30 r103
+ mov r31 r104
+ xor r30 r30 r32
+ xor r31 r31 r33
+ add r100 r32 r28
+ shr r101 r100 r125
+ add r102 r33 r29
+ add r102 r102 r101
+ and r32 r100 r126
+ and r33 r102 r126
+ const r107 13
+ const r108 19
+ shl r103 r28 r107
+ shr r105 r29 r108
+ and r103 r103 r126
+ or r103 r103 r105
+ shl r104 r29 r107
+ shr r106 r28 r108
+ and r104 r104 r126
+ or r104 r104 r106
+ mov r28 r103
+ mov r29 r104
+ xor r28 r28 r32
+ xor r29 r29 r33
+ add r100 r34 r30
+ shr r101 r100 r125
+ add r102 r35 r31
+ add r102 r102 r101
+ and r34 r100 r126
+ and r35 r102 r126
+ const r107 16
+ const r108 16
+ shl r103 r30 r107
+ shr r105 r31 r108
+ and r103 r103 r126
+ or r103 r103 r105
+ shl r104 r31 r107
+ shr r106 r30 r108
+ and r104 r104 r126
+ or r104 r104 r106
+ mov r30 r103
+ mov r31 r104
+ xor r30 r30 r34
+ xor r31 r31 r35
+ mov r103 r33
+ mov r104 r32
+ mov r32 r103
+ mov r33 r104
+ add r100 r34 r28
+ shr r101 r100 r125
+ add r102 r35 r29
+ add r102 r102 r101
+ and r34 r100 r126
+ and r35 r102 r126
+ const r107 17
+ const r108 15
+ shl r103 r28 r107
+ shr r105 r29 r108
+ and r103 r103 r126
+ or r103 r103 r105
+ shl r104 r29 r107
+ shr r106 r28 r108
+ and r104 r104 r126
+ or r104 r104 r106
+ mov r28 r103
+ mov r29 r104
+ add r100 r32 r30
+ shr r101 r100 r125
+ add r102 r33 r31
+ add r102 r102 r101
+ and r32 r100 r126
+ and r33 r102 r126
+ const r107 21
+ const r108 11
+ shl r103 r30 r107
+ shr r105 r31 r108
+ and r103 r103 r126
+ or r103 r103 r105
+ shl r104 r31 r107
+ shr r106 r30 r108
+ and r104 r104 r126
+ or r104 r104 r106
+ mov r30 r103
+ mov r31 r104
+ xor r28 r28 r34
+ xor r29 r29 r35
+ mov r103 r35
+ mov r104 r34
+ mov r34 r103
+ mov r35 r104
+ xor r30 r30 r32
+ xor r31 r31 r33
+ const r103 536870912
+ xor r33 r33 r103
+ mov r36 r34
+ mov r37 r35
+ const r103 255
+ xor r36 r36 r103
+ add r100 r32 r28
+ shr r101 r100 r125
+ add r102 r33 r29
+ add r102 r102 r101
+ and r32 r100 r126
+ and r33 r102 r126
+ add r100 r36 r30
+ shr r101 r100 r125
+ add r102 r37 r31
+ add r102 r102 r101
+ and r36 r100 r126
+ and r37 r102 r126
+ const r107 13
+ const r108 19
+ shl r103 r28 r107
+ shr r105 r29 r108
+ and r103 r103 r126
+ or r103 r103 r105
+ shl r104 r29 r107
+ shr r106 r28 r108
+ and r104 r104 r126
+ or r104 r104 r106
+ mov r28 r103
+ mov r29 r104
+ xor r28 r28 r32
+ xor r29 r29 r33
+ mov r103 r33
+ mov r104 r32
+ mov r32 r103
+ mov r33 r104
+ const r107 16
+ const r108 16
+ shl r103 r30 r107
+ shr r105 r31 r108
+ and r103 r103 r126
+ or r103 r103 r105
+ shl r104 r31 r107
+ shr r106 r30 r108
+ and r104 r104 r126
+ or r104 r104 r106
+ mov r30 r103
+ mov r31 r104
+ xor r30 r30 r36
+ xor r31 r31 r37
+ add r100 r36 r28
+ shr r101 r100 r125
+ add r102 r37 r29
+ add r102 r102 r101
+ and r36 r100 r126
+ and r37 r102 r126
+ const r107 17
+ const r108 15
+ shl r103 r28 r107
+ shr r105 r29 r108
+ and r103 r103 r126
+ or r103 r103 r105
+ shl r104 r29 r107
+ shr r106 r28 r108
+ and r104 r104 r126
+ or r104 r104 r106
+ mov r28 r103
+ mov r29 r104
+ xor r28 r28 r36
+ xor r29 r29 r37
+ add r100 r32 r30
+ shr r101 r100 r125
+ add r102 r33 r31
+ add r102 r102 r101
+ and r32 r100 r126
+ and r33 r102 r126
+ const r107 21
+ const r108 11
+ shl r103 r30 r107
+ shr r105 r31 r108
+ and r103 r103 r126
+ or r103 r103 r105
+ shl r104 r31 r107
+ shr r106 r30 r108
+ and r104 r104 r126
+ or r104 r104 r106
+ mov r30 r103
+ mov r31 r104
+ xor r30 r30 r32
+ xor r31 r31 r33
+ mov r103 r37
+ mov r104 r36
+ mov r36 r103
+ mov r37 r104
+ add r100 r32 r28
+ shr r101 r100 r125
+ add r102 r33 r29
+ add r102 r102 r101
+ and r32 r100 r126
+ and r33 r102 r126
+ add r100 r36 r30
+ shr r101 r100 r125
+ add r102 r37 r31
+ add r102 r102 r101
+ and r36 r100 r126
+ and r37 r102 r126
+ const r107 13
+ const r108 19
+ shl r103 r28 r107
+ shr r105 r29 r108
+ and r103 r103 r126
+ or r103 r103 r105
+ shl r104 r29 r107
+ shr r106 r28 r108
+ and r104 r104 r126
+ or r104 r104 r106
+ mov r28 r103
+ mov r29 r104
+ xor r28 r28 r32
+ xor r29 r29 r33
+ mov r103 r33
+ mov r104 r32
+ mov r32 r103
+ mov r33 r104
+ const r107 16
+ const r108 16
+ shl r103 r30 r107
+ shr r105 r31 r108
+ and r103 r103 r126
+ or r103 r103 r105
+ shl r104 r31 r107
+ shr r106 r30 r108
+ and r104 r104 r126
+ or r104 r104 r106
+ mov r30 r103
+ mov r31 r104
+ xor r30 r30 r36
+ xor r31 r31 r37
+ add r100 r36 r28
+ shr r101 r100 r125
+ add r102 r37 r29
+ add r102 r102 r101
+ and r36 r100 r126
+ and r37 r102 r126
+ const r107 17
+ const r108 15
+ shl r103 r28 r107
+ shr r105 r29 r108
+ and r103 r103 r126
+ or r103 r103 r105
+ shl r104 r29 r107
+ shr r106 r28 r108
+ and r104 r104 r126
+ or r104 r104 r106
+ mov r28 r103
+ mov r29 r104
+ xor r28 r28 r36
+ xor r29 r29 r37
+ add r100 r32 r30
+ shr r101 r100 r125
+ add r102 r33 r31
+ add r102 r102 r101
+ and r32 r100 r126
+ and r33 r102 r126
+ const r107 21
+ const r108 11
+ shl r103 r30 r107
+ shr r105 r31 r108
+ and r103 r103 r126
+ or r103 r103 r105
+ shl r104 r31 r107
+ shr r106 r30 r108
+ and r104 r104 r126
+ or r104 r104 r106
+ mov r30 r103
+ mov r31 r104
+ xor r30 r30 r32
+ xor r31 r31 r33
+ mov r103 r37
+ mov r104 r36
+ mov r36 r103
+ mov r37 r104
+ add r100 r32 r28
+ shr r101 r100 r125
+ add r102 r33 r29
+ add r102 r102 r101
+ and r32 r100 r126
+ and r33 r102 r126
+ add r100 r36 r30
+ shr r101 r100 r125
+ add r102 r37 r31
+ add r102 r102 r101
+ and r36 r100 r126
+ and r37 r102 r126
+ const r107 13
+ const r108 19
+ shl r103 r28 r107
+ shr r105 r29 r108
+ and r103 r103 r126
+ or r103 r103 r105
+ shl r104 r29 r107
+ shr r106 r28 r108
+ and r104 r104 r126
+ or r104 r104 r106
+ mov r28 r103
+ mov r29 r104
+ xor r28 r28 r32
+ xor r29 r29 r33
+ mov r103 r33
+ mov r104 r32
+ mov r32 r103
+ mov r33 r104
+ const r107 16
+ const r108 16
+ shl r103 r30 r107
+ shr r105 r31 r108
+ and r103 r103 r126
+ or r103 r103 r105
+ shl r104 r31 r107
+ shr r106 r30 r108
+ and r104 r104 r126
+ or r104 r104 r106
+ mov r30 r103
+ mov r31 r104
+ xor r30 r30 r36
+ xor r31 r31 r37
+ add r100 r36 r28
+ shr r101 r100 r125
+ add r102 r37 r29
+ add r102 r102 r101
+ and r36 r100 r126
+ and r37 r102 r126
+ const r107 17
+ const r108 15
+ shl r103 r28 r107
+ shr r105 r29 r108
+ and r103 r103 r126
+ or r103 r103 r105
+ shl r104 r29 r107
+ shr r106 r28 r108
+ and r104 r104 r126
+ or r104 r104 r106
+ mov r28 r103
+ mov r29 r104
+ xor r28 r28 r36
+ xor r29 r29 r37
+ add r100 r32 r30
+ shr r101 r100 r125
+ add r102 r33 r31
+ add r102 r102 r101
+ and r32 r100 r126
+ and r33 r102 r126
+ const r107 21
+ const r108 11
+ shl r103 r30 r107
+ shr r105 r31 r108
+ and r103 r103 r126
+ or r103 r103 r105
+ shl r104 r31 r107
+ shr r106 r30 r108
+ and r104 r104 r126
+ or r104 r104 r106
+ mov r30 r103
+ mov r31 r104
+ xor r30 r30 r32
+ xor r31 r31 r33
+ mov r103 r37
+ mov r104 r36
+ mov r36 r103
+ mov r37 r104
+ add r100 r32 r28
+ shr r101 r100 r125
+ add r102 r33 r29
+ add r102 r102 r101
+ and r32 r100 r126
+ and r33 r102 r126
+ add r100 r36 r30
+ shr r101 r100 r125
+ add r102 r37 r31
+ add r102 r102 r101
+ and r36 r100 r126
+ and r37 r102 r126
+ const r107 13
+ const r108 19
+ shl r103 r28 r107
+ shr r105 r29 r108
+ and r103 r103 r126
+ or r103 r103 r105
+ shl r104 r29 r107
+ shr r106 r28 r108
+ and r104 r104 r126
+ or r104 r104 r106
+ mov r28 r103
+ mov r29 r104
+ xor r28 r28 r32
+ xor r29 r29 r33
+ mov r103 r33
+ mov r104 r32
+ mov r32 r103
+ mov r33 r104
+ const r107 16
+ const r108 16
+ shl r103 r30 r107
+ shr r105 r31 r108
+ and r103 r103 r126
+ or r103 r103 r105
+ shl r104 r31 r107
+ shr r106 r30 r108
+ and r104 r104 r126
+ or r104 r104 r106
+ mov r30 r103
+ mov r31 r104
+ xor r30 r30 r36
+ xor r31 r31 r37
+ add r100 r36 r28
+ shr r101 r100 r125
+ add r102 r37 r29
+ add r102 r102 r101
+ and r36 r100 r126
+ and r37 r102 r126
+ const r107 17
+ const r108 15
+ shl r103 r28 r107
+ shr r105 r29 r108
+ and r103 r103 r126
+ or r103 r103 r105
+ shl r104 r29 r107
+ shr r106 r28 r108
+ and r104 r104 r126
+ or r104 r104 r106
+ mov r28 r103
+ mov r29 r104
+ xor r28 r28 r36
+ xor r29 r29 r37
+ add r100 r32 r30
+ shr r101 r100 r125
+ add r102 r33 r31
+ add r102 r102 r101
+ and r32 r100 r126
+ and r33 r102 r126
+ const r107 21
+ const r108 11
+ shl r103 r30 r107
+ shr r105 r31 r108
+ and r103 r103 r126
+ or r103 r103 r105
+ shl r104 r31 r107
+ shr r106 r30 r108
+ and r104 r104 r126
+ or r104 r104 r106
+ mov r30 r103
+ mov r31 r104
+ xor r30 r30 r32
+ xor r31 r31 r33
+ mov r103 r37
+ mov r104 r36
+ mov r36 r103
+ mov r37 r104
+ xor r28 r28 r30
+ xor r29 r29 r31
+ xor r28 r28 r32
+ xor r29 r29 r33
+ xor r28 r28 r36
+ xor r29 r29 r37
+ const r110 112
+ const r111 1
+ bset r7 r110 r111
+ const r110 116
+ const r111 0
+ bset r7 r110 r111
+ const r112 0
+ shr r113 r28 r112
+ and r113 r113 r124
+ const r110 120
+ bset r7 r110 r113
+ const r112 8
+ shr r113 r28 r112
+ and r113 r113 r124
+ const r110 121
+ bset r7 r110 r113
+ const r112 16
+ shr r113 r28 r112
+ and r113 r113 r124
+ const r110 122
+ bset r7 r110 r113
+ const r112 24
+ shr r113 r28 r112
+ and r113 r113 r124
+ const r110 123
+ bset r7 r110 r113
+ const r112 0
+ shr r113 r29 r112
+ and r113 r113 r124
+ const r110 124
+ bset r7 r110 r113
+ const r112 8
+ shr r113 r29 r112
+ and r113 r113 r124
+ const r110 125
+ bset r7 r110 r113
+ const r112 16
+ shr r113 r29 r112
+ and r113 r113 r124
+ const r110 126
+ bset r7 r110 r113
+ const r112 24
+ shr r113 r29 r112
+ and r113 r113 r124
+ const r110 127
+ bset r7 r110 r113
+ const r112 0
+ shr r113 r40 r112
+ and r113 r113 r124
+ const r110 136
+ bset r7 r110 r113
+ const r112 8
+ shr r113 r40 r112
+ and r113 r113 r124
+ const r110 137
+ bset r7 r110 r113
+ const r112 16
+ shr r113 r40 r112
+ and r113 r113 r124
+ const r110 138
+ bset r7 r110 r113
+ const r112 24
+ shr r113 r40 r112
+ and r113 r113 r124
+ const r110 139
+ bset r7 r110 r113
+ const r112 0
+ shr r113 r41 r112
+ and r113 r113 r124
+ const r110 140
+ bset r7 r110 r113
+ const r112 8
+ shr r113 r41 r112
+ and r113 r113 r124
+ const r110 141
+ bset r7 r110 r113
+ const r112 16
+ shr r113 r41 r112
+ and r113 r113 r124
+ const r110 142
+ bset r7 r110 r113
+ const r112 24
+ shr r113 r41 r112
+ and r113 r113 r124
+ const r110 143
+ bset r7 r110 r113
+ const r10 77
+ putc r10
+ nl
+ ret r1
+.end
