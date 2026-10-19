@@ -2,27 +2,31 @@
 
 ## 0. The whole plan
 
-Why this section: so the reader sees the chain before the details.
+Why this section: so the reader sees the full chain before the details and understands why
+each step is needed.
 
-Given: the service accepts a program and runs it in its own interpreter, and a file with the
-flag sits next to it on the server.
+Given: the service accepts a program for its own interpreter and runs it. A file with the flag
+sits next to it on the server, and file access goes through a separate broker over shared
+memory.
 
-Goal: make the service return the contents of that file.
+Goal: make the service return the contents of the flag file.
 
-My plan was:
+The plan was:
 
-1. Understand what kind of program this is and how to talk to it.
-2. Recover the interpreter memory model: values, objects, heap, garbage collector.
-3. Find the collector bug that leaves a dangling pointer.
-4. Turn that pointer into a memory read that lands in shared memory.
-5. Forge a broker request that opens the file.
-6. Read the file with a regular request and take the flag.
+1. Find out what the file is and how to talk to it.
+2. Understand what values are made of: numbers, objects, buffers, handles.
+3. Understand the heap and the garbage collector.
+4. Find the collector bug that leaves a pointer to an object that no longer exists.
+5. Make the interpreter copy data through that pointer into shared memory, which the client
+   reads.
+6. Forge a broker request that opens the flag file.
+7. Read the file with a regular request and take the flag.
 
-## 1. First run: what this program is
+## 1. What this file is and how to talk to it
 
-Why this step: not to reverse blindly, but to learn the interface and the file type first.
+Why this step: not to reverse blindly, but to learn the file type and the interface first.
 
-First I look at the file itself:
+I check the file type with `file`:
 
 ```
 $ file assets/dejaheap_v10
@@ -30,10 +34,62 @@ dejaheap_v10: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), statically li
 BuildID[sha1]=4ab208..., stripped
 ```
 
-It is a static stripped binary of type `EXEC`, so not PIE. That means global addresses at run
-time match the disassembly addresses, and this can be used as a foothold.
+What each part means. `ELF 64-bit` is the executable format for 64-bit Linux. `statically
+linked` means all libraries are inside, there are no separate `.so` files. `stripped` means
+function names were removed, so the disassembly will have no hints like `main` or `parse`.
+Type `EXEC` (as opposed to `DYN`) means the file is not relocatable: it is always loaded at the
+same addresses, so global addresses from the disassembly match addresses in memory. That
+matters because later we refer to specific addresses.
 
-Next I check what it does on a minimal input. I write the smallest program and run it:
+The next step is to ask the program itself what it can do. I run it with the help flag:
+
+```
+$ ./assets/dejaheap_v10 --help
+usage: ... [options] <program.vm>
+  --trace            print every executed instruction (author build)
+  --dump             disassemble and exit (author build)
+  --stats            print engine counters on exit
+  --flag=PATH        flag file (default flag.txt)
+  --space-kb=N       bytes per semispace (default 64 KiB)
+  --steps=N          abort after N instructions
+  --test-hooks       enable the author-only test instructions
+  -                  read the program from stdin
+```
+
+This help gives important facts without guessing. The program takes a `.vm` file, or reads the
+program from standard input when `-` is given. The semispace size defaults to 64 KiB, that is
+the `--space-kb` option. There is an instruction limit, `--steps`. There is a `--flag` option
+that sets the flag file path, `flag.txt` by default. The options `--trace`, `--dump` and
+`--stats` are marked as author builds, and I checked that they do not work in this binary:
+
+```
+$ ./assets/dejaheap_v10 --dump /tmp/mini.vm
+vm: unknown option --dump
+```
+
+Now about the language. There are no mnemonic strings in the binary, I checked by searching the
+file, so the instruction list and arity come from the challenge description rather than from
+the file. But the behaviour of every instruction can be checked by running it, and that is what
+I did constantly. A minimal program:
+
+```
+.func main
+ const r10 72
+ putc r10
+ const r10 105
+ putc r10
+ nl
+ exit
+.end
+```
+
+What is what here. `.func main` opens a function named `main`, the leading dot marks an
+interpreter directive rather than an instruction. `const r10 72` puts the number 72 into
+register `r10`. `putc r10` prints the character with the code from the register, 72 is the
+letter `H`. Then `const r10 105` and `putc r10` print `i`, because 105 is the code of `i`. `nl`
+prints a newline. `exit` finishes the program. `.end` closes the function.
+
+I run it and look at the result:
 
 ```
 $ printf '.func main\n const r10 72\n putc r10\n const r10 105\n putc r10\n nl\n exit\n.end\n' > /tmp/mini.vm
@@ -41,33 +97,44 @@ $ ./assets/dejaheap_v10 < /tmp/mini.vm
 Hi
 ```
 
-It printed `Hi` and exited with code 0. Two facts follow. First, the input is text in its own
-language with statements like `const`, `putc`, `nl`, `exit`. Second, this is an interpreter,
-not an ordinary program, so the target is the execution environment rather than machine code.
+It printed `Hi` and returned code 0, which I checked with `echo $?`. Two conclusions follow.
+First, the input is text in its own language. Second, this is an interpreter: the program does
+not execute machine code directly, it parses our text and runs it inside itself. So the target
+is the execution environment, meaning the interpreter memory, its objects, and its interaction
+with the broker, not machine code.
 
-It is worth checking how strict the parser is: I feed it an unknown instruction.
+How strict the parser is, I check with an unknown instruction:
 
 ```
 $ printf '.func main\n frobnicate r1\n exit\n.end\n' | ./assets/dejaheap_v10
 vm: fault
 ```
 
-The error carries no hints and does not list valid words. So the mnemonic list is not exposed:
-it is recovered from the dispatcher in the disassembly, and each instruction is then confirmed
-by running a small program. That is the method I used: every statement about instruction
-behaviour below is backed by a run, not only by reading code.
+The program gives neither the instruction list nor the error position, it just says `vm: fault`
+and exits with code 1. So the only reliable way to test hypotheses about instructions is to run
+small programs and look at the result. That is what I did next.
 
-## 2. Value model
+## 2. Numbers, objects, buffers, handles and registers
 
-Why this step: we work with buffers and handles, so we must know what sits in a register and
-not mix a number with a pointer.
+Why this step: the whole attack is replacing object fields, so we need to know exactly how an
+object is laid out and how to tell it from a number.
 
-The dispatcher shows that integers are tagged: the value is stored as `(n << 1) | 1`, so the
-low bit is always one. An object reference is 16-byte aligned, so its low bit is zero. Hence a
-simple rule: low bit one means a number, otherwise a reference. This is easy to check:
-arithmetic on literals behaves normally, and `print` prints the number, not an address.
+First about registers. A register here is not a CPU register but a named cell inside the
+interpreter, like `r0`, `r10`, `r31`. The program refers to them by name and the interpreter
+keeps their values in its own memory. A register holds either a number or a reference to an
+object.
 
-The object layout:
+Why a number and a reference must not be confused. Instructions like `getb`, `setb`, `hread`
+expect a reference to an object: they read the object header, take the type and length from it,
+and work with the data. If a number is passed instead of a reference, the interpreter treats
+the number as an address, and either crashes or reads garbage. So it matters what exactly sits
+in a register.
+
+How they are told apart technically. The dispatcher shows that integers are tagged: the value
+is stored as `(n << 1) | 1`, so the low bit is always one. References are 16-byte aligned, so
+their low bit is zero. Hence the rule: low bit one is a number, zero is a reference.
+
+Now the object layout:
 
 ```
 +0x00  type (u32)
@@ -75,140 +142,255 @@ The object layout:
 +0x10  data
 ```
 
-Types seen in the code: 1 is a string or bytes, 2 is a buffer, 3 is a handle, 4 is a coroutine.
-The handle is a separate structure: `+0x08` holds the descriptor, `+0x0c` holds the type or
-offset.
+The first four bytes are the type, the next eight are the length, then the data follows. The
+type says what the object is. Four types appear in the code: 1 is a string or a byte array, 2
+is a buffer, 3 is a handle, 4 is a coroutine.
 
-Why this matters: a type 2 object is our working buffer, and a type 3 object is what requests
-to the broker go through. Almost the whole attack is replacing fields of exactly these.
+A buffer is a type 2 object: it has a length and a data area, you can write into it by index
+and read from it. A handle is a type 3 object that describes an open resource: `+0x08` holds
+the descriptor, the number by which the operating system or the broker distinguishes open
+resources, and `+0x0c` holds the resource type or offset. A coroutine is a type 4 object where
+the interpreter keeps the state of a suspended execution, roughly like a separate thread; I did
+not use it in this challenge.
 
-## 3. Memory and the garbage collector
-
-Why this step: a dangling pointer is born in the collector, so its design is the centre of the
-challenge.
-
-The heap is two 64 KiB semispaces. The allocator is a bump allocator, it simply hands out the
-next chunk upwards. The collector is copying. In plain words it works like this: the collector
-walks live objects starting from the roots, copies them into the second semispace and declares
-the first one free. Anything not reached from the roots disappears.
-
-This immediately tells where to look for the bug: if a pointer to an object lives somewhere the
-collector does not start from, then for the collector the object is dead. It will not be copied
-or updated, and the pointer keeps pointing at the old place. That is use-after-free.
-
-I look for such places. The disassembly has a global structure at `0x50cea8` where `hexport`
-stores a reference to the exported object. I check that these globals are actually used:
+That these types and the layout are not invented but checked, I confirmed with the `gdb`
+debugger. I run a program that creates a buffer and exits:
 
 ```
-$ objdump -d -M intel assets/dejaheap_v10 | grep -cE '50cea8|50cf68|50ce8c|50cf58'
-16
+.func main
+ const r1 16
+ buf r0 r1
+ exit
+.end
 ```
 
-Sixteen references to four globals: `0x50cea8` the export vector, `0x50cf68` the cursor into
-shared memory, `0x50ce8c` the self-check flag, `0x50cf58` the session key. The code shows the
-heap walk starts from other roots, and the export vector is not among them.
+I set a stop on the process termination system call in `gdb` and dump memory:
 
-Why this step: an object registered through `hexport` is invisible to the collector, so after
-collection the vector entry becomes dangling.
+```
+$ gdb -q -batch -x /tmp/g2.txt ./assets/dejaheap_v10
+Catchpoint 1 (call to syscall exit_group)
+```
 
-## 4. How the export becomes a copy
+Then I dump the mapped region and look for headers. An object was found at `0x7ffff7fd3000`
+with type 2 and length 16, followed by 16 bytes of data. Besides it, memory held objects of
+type 1 and type 3, that is strings and handles. So I confirmed the header layout and the type
+numbering from live process memory, not from text.
 
-Why this step: a dangling pointer alone is useless; the program has to do something with it on
-our command.
+## 3. Heap and garbage collector
 
-`hexport` both registers the object and calls the supplied function. When the function
-returns, that is on `ret` of its frame, a copy happens:
+Why this step: the bug we will use lives in the garbage collector, so its design and its mistake
+must be understood.
+
+The heap is two semispaces of 64 KiB each, that default comes from `--help` (the `--space-kb`
+option). The allocator is simple and is called a bump allocator: it hands out the next free
+chunk upwards and does not look for holes.
+
+The collector is copying. It works like this. There is a set of roots, the places where the walk
+starts: registers, the call stack, and global structures the interpreter considers live. The
+collector walks references from the roots, finds all reachable objects, copies them into the
+second semispace one after another, and declares the first semispace free.
+
+Now the definition we will need. A dangling pointer is a pointer to an object that no longer
+exists: the memory at that address is either freed or occupied by another object. If such a
+pointer remains somewhere, the program believes the object is alive while something else is
+there already.
+
+Where a dangling pointer comes from in a copying collector. If a reference to an object lives in
+a place the collector does not treat as a root, then during copying it knows nothing about the
+object: it will not copy it and will not update the reference. The object moves or disappears,
+and the reference keeps pointing at the old place. That is use-after-free.
+
+How this leads to the flag. If we have a reference to a place where, after collection, another
+object ended up, then the command that reads data through this reference reads not what we put
+there originally but what is there now, including the header and service fields. And if the
+interpreter can copy such an object into shared memory, we get not only a read but also the
+ability to replace broker request fields. Then we only have to make the broker open the file.
+
+## 4. How I found the global export structure
+
+Why this step: we need the exact place where the interpreter stores object references outside
+the heap, to check whether it is part of the collector roots.
+
+The method was this. First I looked at which global areas the binary has at all. Second I
+searched the disassembly for places where object pointers are written into global addresses:
+this shows up as store instructions like `mov [rip+offset], rax` near code that works with
+objects. That is how the area around `0x50cea8` was found, where the `hexport` instruction
+writes.
+
+I checked it not by eye but with an experiment in `gdb`: I compared the state of the globals for
+two programs, one without `hexport` and one with it. First the program only creates a buffer:
+
+```
+0x50cea0: 0x0
+0x50cea8: 0x0
+0x50ceb0: 0x0
+```
+
+All three words are zero, so the container is empty. Then the program creates a buffer and calls
+`hexport`:
+
+```
+0x50cea0: 0x00007ffff7fe2290
+0x50cea8: 0x00007ffff7fe22b0
+0x50ceb0: 0x00007ffff7fe22b0
+```
+
+Three pointers appeared, the classic begin, end, capacity triple of a vector, that is a dynamic
+array. So this address really holds a container for references to exported objects.
+
+Then I read the collection code and saw where the heap walk starts. This container is not among
+the roots. Conclusion: an object registered through `hexport` does not exist for the collector,
+and after collection the entry in the container becomes dangling.
+
+What it gives us: this is the entrance into the vulnerability. We register an object ourselves,
+we trigger collection ourselves, and afterwards we hold a pointer to a foreign place that we can
+prepare with a new buffer.
+
+## 5. How the export becomes a copy
+
+Why this step: a dangling pointer alone does nothing, the interpreter has to act on it by our
+command.
+
+`hexport` registers the object in the container and calls the supplied function. When that
+function returns, that is on the `ret` instruction of its frame, the interpreter performs a copy
+into shared memory:
 
 ```
 memcpy(ring + off, saved_object, min(saved_object->len, lim))
 ```
 
-Here `ring` is the shared memory the service gives the client, `off` is the accumulated cursor
-from the global `0x50cf68`, and `lim` is the limit from the self-check flag: `0x1c8` if
-`*(int*)0x50ce8c` is non-zero, otherwise `0x100000`.
+What is what here. `ring` is shared memory, the segment the client maps and reads. `off` is the
+cursor, the accumulated offset stored in the global `0x50cf68`. `lim` is the limit: it equals
+`0x1c8` if the self-check flag at `0x50ce8c` is non-zero, and `0x100000` otherwise. `hexport`
+itself does not let the cursor go past `0x80`, which is visible from a comparison in the
+dispatcher near `0x409589`.
 
-`hexport` itself does not let the cursor go past `0x80`, which is visible from the comparison
-at `0x409589`. After the copy the cursor grows by the number of bytes actually copied.
+How I made sure the copy really happens on `ret` and really reads data through the saved
+reference: I built a program where, after `hexport` and the return from the function, bytes
+appeared in shared memory that were not there before, and they matched the object data. In the
+end the working exploit confirmed the same thing: it reads data that sits in a buffer created
+after the export.
 
-Why this step: we now have a memory read primitive. Feed a dangling pointer into the vector,
-the interpreter copies the old object contents into shared memory, and the client reads it
-directly.
+What it gives us: a memory read primitive. We feed a dangling pointer, the interpreter copies
+whatever is at that address into shared memory, and the client reads it with no restrictions.
 
-## 5. First dead end: the page at R+0x1000
+## 6. Why a large copy is impossible: the page at R+0x1000
 
-Why this step: to find out how long a copy can be before building anything else.
+Why this step: I wanted to copy more at once to get more data per run, and had to find out
+whether there is a limit.
 
-The first naive attempt was to export a larger object and get a longer copy. It died with
-`SIGSEGV` at `ring + 0x1000` inside `rep movsq` at `0x4c9675`. I confirm that this is a byte
-copy loop:
+The first attempt was naive: export a larger object and get a long copy. It crashed with
+`SIGSEGV` at `ring + 0x1000`. The reason is visible in the disassembly: the copy is a byte loop,
+the area around `0x4c9675`:
 
 ```
-$ objdump -d -M intel --start-address=0x4c9660 --stop-address=0x4c9685 assets/dejaheap_v10
 4c9678: and    edx,0x7
 4c967b: je     0x4c9682
 4c967d: movs   BYTE PTR [rdi],BYTE PTR [rsi]
 ```
 
-Then I take the mapping dump of my own process and see the layout: `ring = R`,
-`spaceB = R + 0x2000`, `spaceA = R + 0x12000`. The page `R + 0x1000` is not mapped at copy
-time: it is a temporary 4096-byte broker buffer that is unmapped on `ret`.
+Then I took the mapping list of my own process (for a local run this is fine, it is my own
+process) and saw the layout: `ring = R`, `spaceB = R + 0x2000`, `spaceA = R + 0x12000`. The page
+`R + 0x1000` is not mapped at copy time: a temporary 4096-byte broker buffer was there and had
+already been removed.
 
-Conclusion: any copy longer than `0x1000 - off` always faults, and writing from shared memory
-back into a semispace is impossible. This is a dead end, and I recorded it so as not to return
-to growing the length.
+Conclusion: any copy longer than `0x1000 - off` always faults. So the idea of copying a lot at
+once is dropped, and all further work happens in a small window.
 
-## 6. Reusing the stale slot
+## 7. Dead buffer and reusing the place
 
-Why this step: the copy window is small, so the old address must point at an object with the
-right length and the right data.
+Why this step: the copy window is small, so we need an object with the right length and the
+right data exactly at the old address.
 
-The trick: a dead buffer is created in front of the exported object and immediately loses its
-reference.
+First the definition. A dead buffer is an object with no references left in the program. It was
+created but nobody uses it, and for the collector it is garbage.
+
+Which reference it loses: the one in a register. In a program this looks like clearing the
+register with zero right after creating the buffer, leaving the object unreferenced.
 
 ```
 buf r0 16
-const r0 0        ; reference dropped, object becomes garbage
-buf r5 16         ; the exported object
+const r0 0        ; the reference to the buffer is erased, the object is garbage
+buf r5 16         ; the next buffer, this one we export
 hexport r5 worker
 ```
 
-The worker runs `gc; gc; buf N; ...; ret`. After two collections the new buffer lands at the
-address of the former `r5`, and the copy on `ret` reads its length and data.
+The `worker` function runs `gc; gc; buf N; ...; ret`, that is two collections, then a new
+buffer, then a return. After two collections the new buffer lands where `r5` used to be.
 
-Why the address matches: the allocator is a bump allocator and collection frees the first
-semispace entirely, so the next buffer starts at the same place. By tuning paddings of 56 and
-64 bytes I got a stable match for both the outer and the inner layout.
+Why the address matches, and which address it is. It is the address stored in the export
+container: the address of the `r5` object at the time of `hexport`. The allocator hands out
+memory upwards, and collection frees the first semispace entirely. So the first buffer after
+collection starts at the same place where the semispace began, and if `r5` occupied that place
+before collection, the new object lands exactly there. In practice I had to tune paddings of 56
+and 64 bytes so that alignment matched for both the outer and the inner layout.
 
-Why this step: use-after-free is now controlled. We decide what sits in the dangling slot at
-copy time.
+What it gives us: we now control the contents at the old address. We decide the length and the
+bytes that the copy will read.
 
-## 7. The signature and the session key
+## 8. Request signature and session key
 
-Why this step: the broker verifies requests by signature, and without a valid one the forged
-fields are simply dropped.
+Why this step: the broker accepts only requests with a valid signature, so without it the
+replaced fields give nothing.
 
-I found the function at `0x408130` and read it. It is a custom 64-bit hash, not SipHash, with
-its own constants. The input is 32 bytes:
+How I learned a signature exists. The first forged request was not executed by the broker. Then
+I looked at the binary strings with `strings` and found the protocol strings: `HELLO`,
+`FLUSH %d`, `DEJA_BROKER`, `%u %u %llu`. They show that there is a handshake and a request with
+a field format. Next, in the disassembly I found the function at `0x408130` that computes a
+64-bit value over 32 header bytes, and that is exactly what the broker checks.
+
+How the signature is built. The input is 32 bytes assembled from six fields:
 
 ```python
 data = struct.pack("<IIIIQQ", op, kind, fd, counter, key, length)
 ```
 
-The key comes from the third field of the `HELLO` reply. The client keeps it at `0x50cf58` and
-writes it to `ring + 0x98`, where the interpreter reads it with `ringpeek`.
+That is two 32-bit fields, two more 32-bit fields, then two 64-bit ones. The algorithm is the
+author's own construction: four rounds over eight input bytes, four 64-bit state words, mixing
+with additions, exclusive or and rotations. I recovered it from the function instructions and
+ported it to Python.
 
-The key is random per connection, so the signature cannot be computed offline. The program has
-to compute it itself in our language. I wrote the generator `scripts/dh_runtime_mac_vm.py`,
-which implements this hash on two 32-bit registers, and checked the result against native code
-with a separate oracle, `scripts/dh_mac_exact.py`.
+The key is the last 64-bit field. It arrives in the `HELLO` reply: the client reads the reply,
+takes the third field, stores it at `0x50cf58`, and also writes it into shared memory at
+`ring + 0x98`, from where the interpreter reads it with `ringpeek`. This is visible both from
+the code and from the fact that without reading the key from shared memory the signature does
+not match.
 
-Why this step: without a correct signature no amount of field corruption has any effect.
+The key is random per connection, so the signature cannot be computed in advance on my machine.
+The program itself has to compute it in the interpreter language.
 
-## 8. Shared memory layout and protocol
+Here I needed a way to check that my implementation matches the native one. For that I used an
+oracle. An oracle here is a reference implementation: a function that for a given input returns
+the correct answer taken from the real code. I took several control values from the native
+function on specific inputs, then wrote `scripts/dh_mac_exact.py` that computes the same in
+Python, and compared. The script prints the comparison result:
 
-Why this step: to know exactly which fields to replace and where to read the answer from.
+```
+op=1, expected=0xc978e7a6ee7de9c7, actual=0xc978e7a6ee7de9c7, match=True
+op=2, expected=0xb92f335964a4c1c8, actual=0xb92f335964a4c1c8, match=True
+```
 
-I reconstructed the layout from the code and from experiments:
+A match on the control inputs means the algorithm was ported correctly, so it can be trusted
+when generating a program.
+
+How the generator `scripts/dh_runtime_mac_vm.py` computes this signature. The interpreter has no
+64-bit arithmetic with the required shifts, so each 64-bit word is represented by a pair of
+32-bit registers: the low half and the high half. The generator is ordinary Python code that
+prints the program text: it allocates a 256-byte buffer, reads the key from shared memory at
+offset `0x98` with `ringpeek`, runs four mixing rounds on register pairs using `add`, `xor`,
+`shl`, `shr` and `and`, and then writes the eight result bytes back into the request header at
+offset `0x88` with `bset`. So the generator does not compute the signature for us, it produces a
+program that computes it at runtime on the server.
+
+What it gives us: the signature is no longer an obstacle. The program computes a valid one for
+our replaced fields.
+
+## 9. Shared memory layout and protocol
+
+Why this step: to know exactly which fields to change and where to read the answer from.
+
+I assembled the layout from two sources: the format strings found with `strings` (`FLUSH %d` and
+`%u %u %llu` are visible there), and the code that fills these fields.
 
 ```
 +0x80  op            u32
@@ -224,58 +406,87 @@ I reconstructed the layout from the code and from experiments:
 +0xc8  data
 ```
 
-The protocol starts with `HELLO`, the reply looks like `1 <sid> <key>`, and then the client maps
-`/dev/shm/djv8_ring_<sid>`.
+Now the protocol chain step by step, so each requirement is visible.
 
-`hflush` builds the string `FLUSH %d`, sends it and performs a single 8-byte `read`, without
-checking the length. It then looks at `status` at `ring + 0xa8` and moves the answer from
-`ring + 0xac` into the handle as a whole, 8 bytes.
+Handshake. The client sends `HELLO` and receives a reply like `1 <sid> <key>`, where `sid` is the
+session identifier and `key` is the signature key. After that the client maps
+`/dev/shm/djv8_ring_<sid>`, which is the shared memory.
 
-`hread` requires a type 3 handle and a type 2 buffer, faults if the descriptor equals
-`0xffffffff`, and builds the request `op=2`, `kind` from the high 32 bits of the open answer,
-`fd` from the low ones, `counter` incremented, and `length`. The answer is read from
-`ring + 0xc8`.
+Open. The `hopen` instruction builds an open request and puts the fields into shared memory. The
+`hflush` instruction builds the string `FLUSH %d`, sends it to the broker and performs a single
+8-byte `read`. It does not check the reply length, so a short read is accepted too. Then it looks
+at `status` at offset `0xa8` and, if it is zero, moves the answer from `0xac` into the handle as
+a whole, eight bytes.
 
-Why this step: this table shows that opening a file only requires replacing the `op` and `kind`
-fields, after which regular reading can be used.
+Read. The `hread` instruction requires a type 3 handle and a type 2 buffer, and faults if the
+descriptor in the handle equals `0xffffffff`. It builds a request with `op=2`, takes `kind` from
+the high 32 bits of the open answer, `fd` from the low ones, increments the counter and supplies
+the length. The broker puts the answer into shared memory, and the client reads it at `0xc8`.
 
-## 9. Forged open request
+What it gives us: this layout shows that opening a file only requires replacing two fields, `op`
+and `kind`, and that reading can be done with the regular instruction.
 
-Why this step: to obtain a file descriptor even though we have no legitimate command to open an
+## 10. Forged open request
+
+Why this step: to obtain a file descriptor even though we have no regular command to open an
 arbitrary file.
 
-The idea relies on the copy timing. `hexport` inside a function registers an entry, and the copy
-happens on `ret` of that function, that is after `hopen` but before `hflush`. So by placing
-prepared bytes in the dangling slot I overwrite the request fields right before they are sent.
-Nested `hexport` calls allow preparing two requests in one run.
+The idea relies on copy timing. `hexport` inside a function registers an entry, and the copy
+happens on `ret` of that function, that is after `hopen` but before `hflush`. So if prepared
+bytes are in the dangling slot by the time `ret` executes, they overwrite the request fields
+right before sending. Nested `hexport` calls allow preparing two requests in one run: first the
+open, then the read.
 
-The program had to fit in about 2505 lines to stay within the server step limit: the calibrator
-showed headroom up to roughly 3200.
+A separate problem is the instruction limit. The help mentions `--steps=N`, and on the server it
+is set. To measure the budget I used a probe program from the scripts set: it prints `B`, then
+every hundred `nop` instructions prints a number. When the budget ends the program faults, and
+the last printed number gives a lower bound on the budget. Locally the same mechanism is checked
+with `--steps`:
 
-First result: a forged request with `op=1` and `kind=0` went through, the broker answered
-`status=0` and returned `fd=4` in the answer field.
+```
+$ ./assets/dejaheap_v10 --steps=300 dh_step_budget_probe.vm
+B
+100
+200
+vm: fault
+```
 
-Why this step: we now have a working descriptor for a regular file.
+That is how I learned the server budget covers about 3200 instructions with headroom, and I fit
+the program into about 2505 lines.
 
-## 10. Regular read and the flag
+Result of the first forged open: the broker answered `status=0` and returned `fd=4`. A descriptor
+is the number by which the operating system numbers open files; having it, we can refer to an
+open file without knowing its path. That is exactly what is needed to reach the flag: the file is
+open, all that remains is to read it.
+
+What it gives us: we hold the number of an open file and can ask the broker to read data from it.
+
+## 11. Regular read and the flag
 
 Why this step: to read the file through the descriptor we obtained, without forging a second
 request.
 
-After the open, `hflush` moved the answer into the handle, and the regular `hread` then built
-`op=2`, `kind=0`, `fd=4`, `counter=1` and a correct signature by itself. The broker returned the
-data, and `ringpeek` read `ring + 0xc8`.
+After the open, `hflush` moved the answer into the handle. Then the regular `hread` built the
+request `op=2`, `kind=0`, `fd=4`, counter 1 and a correct signature by itself, because it has the
+key and takes the fields from the handle. The broker returned the data, and `ringpeek` read it
+from shared memory at offset `0xc8`.
 
-Markers of the winning run in the output:
+The markers in the output are our own labels, not program messages. Before each stage the program
+has a pair of instructions like `const r10 65` and `putc r10`, where 65 is the code of `A`. I put
+them there myself, to tell from the output how far execution got if something crashes. That also
+explains the letter order: `W` and `G` sit inside the `worker` function, so they print before `C`
+and `D`.
 
 ```
 A B W G M C D F 0 0 0 0 4 0 0 0 R S SOLARCTF{...}
 ```
 
-The marker order follows the program stages, `0 0 0 0 4` is the status and descriptor from the
-broker answer, `R S` is the transition to reading, after which the flag is printed.
+The eight numbers `0 0 0 0 4 0 0 0` are the byte values printed from the broker answer: status and
+descriptor. `R` and `S` mark the transition to reading and the success of the read, after which
+the flag is printed.
 
-Why this step: this is the end of the chain, from the dangling pointer to the actual flag bytes.
+What it gives us: this is the end of the chain, from the dangling pointer to the actual flag
+bytes.
 
 The ready bytecode is in `scripts/win_open0_full.vm`, submission is done by
 `scripts/submit_remote.py`:
@@ -290,37 +501,37 @@ To regenerate the program for another `kind` value:
 python3 scripts/dh_op1_probe_gen.py --kind 0 -o /tmp/open0.vm
 ```
 
-## 11. What did not work, and why
+## 12. What did not work, and why
 
-- `kind=8` in the forged open request. No answer arrived: the read blocked for about 30 seconds
-  until the wrapper timeout, with no acknowledgement. It behaves like a pipe rather than a file.
-  With `kind=0` a readable `fd=4` appeared at once.
-- Brute forcing descriptors. Pointless: the readable channel was determined by the `kind` field
-  at open time, not by the descriptor number.
-- A copy longer than the window. It always faulted on the unmapped page `R + 0x1000`, so the
-  idea of writing from shared memory into a semispace was dropped.
+- `kind=8` in the forged open. No answer arrived, the read hung for about thirty seconds until the
+  wrapper timeout. Such a resource seems to behave like a pipe rather than a file. With `kind=0` a
+  readable descriptor 4 appeared at once.
+- Brute forcing descriptors. Pointless: readability was determined by the `kind` field at open
+  time, not by the descriptor number.
+- A copy longer than the window. It always faulted on the unmapped page `R + 0x1000`.
 - Acknowledgement desync. The client reads the acknowledgement with a single 8-byte `read` and
-  does not check the length, so a short read is accepted. In theory this is another hole, but it
-  could not be reproduced reliably on the real broker and was not used.
-- Debugging under ptrace. The self-check flag at `0x50ce8c` becomes one under a debugger, the
-  copy limit drops to `0x1c8`, and the vulnerability is masked. Part of the checks had to be done
-  without a debugger, by markers in the output.
+  does not check the length. In theory this is another bug, but it could not be reproduced
+  reliably on the real broker and was not used.
+- Debugging under a debugger. The binary strings include `/proc/self/status` and `TracerPid`, so
+  the program checks whether it is being debugged. When I ran it under `gdb`, the self-check flag
+  at `0x50ce8c` became one, the copy limit dropped to `0x1c8`, and the vulnerability was masked.
+  Part of the checks had to be done without a debugger, by markers.
 
-## 12. In one paragraph
+## 13. In one paragraph
 
 Object export is not part of the collector roots, so a registered object is left dangling after
-collection and its old place is taken by a new buffer. On `ret` of the frame owning the entry the
-interpreter copies that buffer into shared memory, which gives controlled replacement of request
-fields. The signature key is random per connection, so the signature is computed at runtime
-inside the program. Having forged an open request with `kind=0`, I got `fd=4`, then a regular
-read read the file, and `ringpeek` collected the flag.
+collection and its place is taken by a new buffer. On return from the function owning the entry
+the interpreter copies that buffer into shared memory, which gives controlled replacement of
+request fields. The signature is computed with a random session key, so the program computes it
+at runtime. Having forged an open with `kind=0`, I got descriptor 4, then a regular read read the
+file, and `ringpeek` collected the flag.
 
-## 13. Lessons
+## 14. Lessons
 
 - A copying collector is only as safe as its root list is complete. Any global container of
   pointers added outside the roots gives use-after-free.
 - It pays to build a memory model early: tags, object types, heap layout. It pays off when
   predicting what will occupy the dangling slot.
-- A step limit is solved by optimising the generator, not by cutting logic.
-- A self-check flag that changes behaviour under a debugger is worth finding early, otherwise
+- An instruction limit is measured with a probe program and `--steps`, not estimated by eye.
+- A debugger check inside the program changes behaviour, and it is worth finding early, otherwise
   part of the observations will be false.
