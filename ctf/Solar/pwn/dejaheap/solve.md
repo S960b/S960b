@@ -68,8 +68,9 @@ vm: unknown option --dump
 ```
 
 Now about the language. There are no mnemonic strings in the binary, I checked by searching the
-file, so the instruction list and arity come from the challenge description rather than from
-the file. But the behaviour of every instruction can be checked by running it, and that is what
+file. So the instruction list and the number of arguments each instruction takes, which is called
+its arity, are known from the challenge description rather than from the file. That is why I
+checked every instruction by running it. But the behaviour of every instruction can be checked by running it, and that is what
 I did constantly. A minimal program:
 
 ```
@@ -478,7 +479,7 @@ explains the letter order: `W` and `G` sit inside the `worker` function, so they
 and `D`.
 
 ```
-A B W G M C D F 0 0 0 0 4 0 0 0 R S SOLARCTF{...}
+A B W G M C D F 0 0 0 0 4 0 0 0 R S SOLARCTF{31a...fe4}
 ```
 
 The eight numbers `0 0 0 0 4 0 0 0` are the byte values printed from the broker answer: status and
