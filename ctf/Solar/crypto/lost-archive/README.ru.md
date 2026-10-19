@@ -23,6 +23,5 @@
 - `assets/generate.py`, `assets/output.txt` - условие в исходном виде
 - `scripts/solve_rsa_partial.py` - солвер
 - `scripts/run_kali.sh` - обёртка, ставит локальные зависимости и запускает солвер
-- `evidence/` - сводка прогона и заметки по времени
 
 Полный путь решения описан в `solve.ru.md`.

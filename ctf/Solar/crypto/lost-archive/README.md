@@ -23,6 +23,5 @@ Files:
 - `assets/generate.py`, `assets/output.txt` - the challenge as shipped
 - `scripts/solve_rsa_partial.py` - solver
 - `scripts/run_kali.sh` - wrapper that installs local dependencies and starts the solver
-- `evidence/` - run summary and timing notes
 
 A full solving path is in `solve.md`.

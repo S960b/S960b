@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""RSA high bits known, Coppersmith/Howgrave-Graham, no Sage.
+"""RSA high bits known, Coppersmith/Howgrave-Graham lattice reduction.
 
 Default: guess top 5 of the 506 unknown prime bits, reduce 59-dim lattices
 via bundled flatter from `pip install flatn`, recover roots using modular gcd+CRT.

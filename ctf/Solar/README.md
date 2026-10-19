@@ -11,15 +11,14 @@
 - **Context:** held alongside the Russian Cyber Security Week
 
 Structure: `<category>/<challenge>/` with `README.md` (task context), `solve.md` (solving
-path), `scripts/` (solver and tooling), `assets/` (files as shipped),
-`evidence/` (raw artifacts such as logs and captured output).
+path), `scripts/` (solver and tooling), `assets/` (files as shipped).
 
 Rules for this folder:
 
 - `README.md` and `solve.md` are English and are the versions published to the remote.
   `README.ru.md` and `solve.ru.md` are Russian copies for local reading.
 - Flags are masked everywhere as `SOLARCTF{...}`. The full flag string never appears in
-  the repository, including scripts and evidence.
+  the repository, including scripts and assets.
 - Instance hosts are masked as `<host>`.
 - Heavy artifacts are not copied; a path reference and the generating command are given
   instead.
