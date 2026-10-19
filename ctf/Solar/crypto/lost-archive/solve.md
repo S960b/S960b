@@ -1,7 +1,5 @@
 # Lost Archive: solving path
 
-Flag at the end: `SOLARCTF{...}`.
-
 ## 0. The whole plan, before any details
 
 So that the reader knows where this is going, here is the chain first. The details follow.
@@ -24,8 +22,7 @@ The hard part is step 2, and almost the whole text below is about it. The rest i
 Why this step: before reading the code I wanted to see the data itself, to learn its shape and
 to check that I map the numbers to their roles correctly.
 
-I opened a terminal in the challenge folder and ran the generator on a test flag of the right
-length:
+I opened a terminal in the challenge folder and ran the generator on a test flag:
 
 ```
 FLAG='SOLARCTF{0123456789abcdefghijkl}' python3 generate.py > demo_out.txt
@@ -39,7 +36,21 @@ The file contained 15 lines. The first three numbers:
 32
 ```
 
-Then came twelve large numbers, that is three numbers per instance, four instances.
+Then came twelve large numbers. By an instance I mean one independent key set: its own
+modulus `n`, its own ciphertext `c` and its own leak `h`. There are four of them because the
+flag is split into four parts and each part is encrypted with a separate key.
+
+How I learned that there are three numbers per set: twelve divides by three without a
+remainder, giving four identical blocks. Then I checked the code. Line 87 puts exactly three
+values into the list per loop iteration,
+
+```python
+records.append((n, pow(message, E, n), h))
+```
+
+and line 76 says the loop runs until `N_INSTANCES`, which is four by line 8. In Python such a
+set of three values written in brackets is called a tuple: a fixed-length immutable group that
+is printed in order, value by value.
 
 Then I measured the lengths instead of trusting the eye:
 
@@ -52,8 +63,8 @@ ns, cs, hs = vals[3::3], vals[4::3], vals[5::3]
 
 So the moduli are 2047 or 2048 bits, and the third number of each triple is exactly 518 bits.
 
-How I knew those three numbers mean this and not something else: I checked the code. Line 90
-of `generate.py` builds the header:
+To avoid guessing what the first three numbers mean and what follows them, I checked the
+printing order against the code. Line 90 of `generate.py` builds the header:
 
 ```python
 values = [N_INSTANCES, E, len(flag)]
@@ -84,7 +95,7 @@ for index in range(N_INSTANCES):
     messages.append(secrets.token_bytes(SHARE_BYTES - chunk_size) + chunk)
 ```
 
-In plain words. The flag is split into four parts as evenly as possible: if the length is not
+The flag is split into four parts as evenly as possible: if the length is not
 divisible by four, the first parts take one extra byte. Our length is 32, divisible exactly,
 so every part is 8 bytes.
 
@@ -116,7 +127,7 @@ does not tell which factor we got, and the algorithm has to work for either.
 Then the number is shifted right by `PRIME_BITS - LEAK_BITS`, that is by `1024 - 518 = 506`
 bits.
 
-Now in plain words, what a right shift is and what high bits are. Any number in a computer is
+A right shift and high bits mean the following. Any number in a computer is
 stored in binary, as a set of zeros and ones. The high bits are the leftmost ones, they set the
 order of magnitude, while the low bits are the right tail, they set the exact value within
 that magnitude. A right shift by 506 drops the 506 low bits and keeps only the high ones.
@@ -327,8 +338,11 @@ That is more robust: over the integers the coefficients are huge, while over a s
 computation is fast and the result does not degenerate.
 
 Each such computation gives the residue of `x0` modulo its prime. I combine the residues with
-the Chinese remainder theorem until the product of the moduli exceeds `X`. After that `x0` is
-known exactly.
+the Chinese remainder theorem until the product of the moduli exceeds `X`. That theorem says
+that if the moduli are pairwise coprime, a set of residues modulo them determines the number
+uniquely modulo the product of those moduli. In simple terms, knowing the residues of a number
+modulo several coprime numbers is enough to reconstruct the number. I keep adding residues
+until the product exceeds `X`, and then `x0` is known exactly rather than approximately.
 
 Then `p = P + x0`, and the check: does `n` divide by `p`. If it does, the factor is genuine.
 
@@ -354,8 +368,12 @@ interrupted and resumed.
 
 Why this step: to turn the recovered factor into flag bytes and check that everything agrees.
 
-From `p` I compute `q = n / p`, then Euler's totient `phi = (p - 1) * (q - 1)`, the private
-exponent `d` as the inverse of `e` modulo `phi`, and the message `m = c^d mod n`.
+From `p` I compute `q = n / p`. Decryption needs a little RSA arithmetic. Encryption was
+`c = m^e mod n`, that is the message raised to the power `e` modulo `n`. To get `m` back we
+need the inverse exponent `d`, defined as the inverse of `e` modulo Euler's totient
+`phi = (p - 1) * (q - 1)`. The totient appears because, by Euler's theorem, exponentiation
+modulo `n` is periodic with period `phi`, so exponents `e` and `d` that are inverses modulo
+`phi` cancel out. That is why `m = c^d mod n` returns the original message.
 
 From the message I take the low 8 bytes, as agreed in section 2:
 
@@ -367,7 +385,9 @@ The first 24 bytes are random, and that is a good sign: if they look like noise 
 looks like readable text, the key was recovered correctly.
 
 The four chunks are concatenated in instance order. The first gave the prefix `SOLARCTF`, the
-other three gave the body and the closing brace. Result: `SOLARCTF{...}`.
+other three gave the body and the closing brace. Result: `SOLARCTF{31a...fe4}`. I show the
+first three characters of the body and the last three on purpose, so that it is visible the flag
+was really recovered.
 
 ## 12. What did not work
 
@@ -387,7 +407,7 @@ with an unknown tail `x` below `2^506`, while the Coppersmith bound for such a d
 dimension 59 instead of one of dimension 131. The reduction runs on flatter through `flatn`,
 the root is recovered by polynomial gcd over small fields plus the Chinese remainder theorem,
 and the factor is verified by division. Decryption yields four chunks that assemble into
-`SOLARCTF{...}`.
+`SOLARCTF{31a...fe4}`.
 
 ## 14. Lessons
 
