@@ -41,16 +41,37 @@ The launcher `UnrealDuckClient.exe` is about 167 KB, far too small for a game, i
 the main process. The real code is in
 `UnrealDuck/Binaries/Win64/UnrealDuckClient-Win64-Shipping.exe`, about 143 MB.
 
-The pair `utoc` and `ucas` is the IoStore format that Unreal uses from UE4.25 onward: `utoc` is
-the index, `ucas` is the data. The `pak` file is the older package format and appears as well.
-For these I take two tools: `retoc` for IoStore and `repak` for pak.
+The file sizes immediately hint at which is which:
+
+```
+$ ls -l --block-size=K UnrealDuck/Content/Paks
+ 2803K global.ucas
+    1K global.utoc
+10759K UnrealDuck-WindowsClient.pak
+283116K UnrealDuck-WindowsClient.ucas
+   213K UnrealDuck-WindowsClient.utoc
+```
+
+An index of 213 KB next to 283 MB of data looks like a table of contents plus content, but that
+is a guess, not knowledge. To check it I googled the extensions `.utoc` and `.ucas` themselves.
+The search leads to the Epic documentation on IoStore: it is an Unreal container where `utoc`
+holds the index (a table of chunks and a list of packages) and `ucas` holds the data, and the two
+files only work as a pair. The pair `global.utoc` and `global.ucas` is shared engine data, the
+pair `UnrealDuck-WindowsClient` is the game content. A `.pak` file is the older Unreal container,
+it sits next to them in this build, and it has to be checked too so that no part of the content
+is missed. Ready-made tools exist for both formats: `retoc` for IoStore and `repak` for pak, and
+those are what I use.
 
 ## 2. Container structure
 
-Why this step: to learn how many packages are inside and which compression is used, because
-that decides which tool can unpack them.
+Why this step: to learn how many packages are inside, which compression they use, and whether
+the pak holds anything, because that decides what to unpack and with which tool.
 
-First a dump of the first index bytes to see the header myself:
+I start with the index because it is the table of contents of the container: without it there is
+no way to list assets or learn the compression. First I tried to read the index with my own
+script, following a description of the IoStore header layout. The script failed on its very
+first read: at the expected offsets there were meaningless values. To see what was wrong I
+dumped the first bytes of the file:
 
 ```
 $ head -c 32 UnrealDuck/Content/Paks/UnrealDuck-WindowsClient.utoc | xxd
@@ -58,11 +79,17 @@ $ head -c 32 UnrealDuck/Content/Paks/UnrealDuck-WindowsClient.utoc | xxd
 00000010: 0800 0000 9000 0000 0100 0000 2c00 0000
 ```
 
-The first sixteen bytes are the text string `-==--==--==--==-`, so someone prepended a banner
-before the real header. Then the IoStore header starts: `08 00 00 00` is version 8,
-`90 00 00 00` is the header size of 144 bytes.
+The first sixteen bytes are the text string `-==--==--==--==-`. A container header cannot start
+with readable text, so this is not part of it, but a banner someone prepended to the file. The
+way to check this is to shift: if I read not from zero but from byte sixteen, then version `08`
+and header size `90 00 00 00`, that is 144 bytes, land exactly where they belong, and every
+following field agrees. At that offset my parser reads the whole index and returns the package
+list. It also shows the limitation: a parser that looks for the header strictly at offset zero
+will not work on this file. `retoc` reads it fine because it skips the unexpected leading bytes
+itself.
 
-Then I read the index with the tool:
+Then, instead of parsing the index by hand, I hand it to `retoc`. First the summary: how many
+chunks and packages, which compression they use, where the content mounts.
 
 ```
 $ retoc info UnrealDuck/Content/Paks/UnrealDuck-WindowsClient.utoc
@@ -72,7 +99,16 @@ $ retoc info UnrealDuck/Content/Paks/UnrealDuck-WindowsClient.utoc
   chunks: 2126
   packages: 504
   compression_methods: [Oodle]
+```
 
+The summary answers two questions at once. The package count of 504 means this is not a monolith
+but 504 separate assets, so the search will go by name rather than by offset in a file. The
+`Oodle` compression means unpacking needs a tool that supports this codec: plain `unzip` gets
+nothing here.
+
+To see what those 504 packages consist of, I read the index line by line:
+
+```
 $ retoc list UnrealDuck/Content/Paks/UnrealDuck-WindowsClient.utoc | head -3
 UnrealDuck-WindowsClient 7aba7a84b764bf1300000001 ExportBundleData
 UnrealDuck-WindowsClient 8efe6173efa8192200000001 ExportBundleData
@@ -81,18 +117,35 @@ UnrealDuck-WindowsClient 6ff734fd30628e8c00000002 BulkData
 
 What this means. A chunk is a storage unit inside IoStore, with an identifier and a type. Type
 `ExportBundleData` is asset data, `BulkData` is large nested data such as textures,
-`ShaderCode` is shaders. A package is the logical unit corresponding to one asset. `Oodle`
-compression is a proprietary codec, so unpacking needs a tool that supports it, plain `unzip`
-does not work here.
+`ShaderCode` is shaders. A package is the logical unit corresponding to one asset. The listing
+was needed to show that asset names are not in the table of contents: only chunk identifiers are
+visible here, and the names have to come from the packages themselves after unpacking.
 
-Separately I check the pak:
+Now the pak. The number of entries says nothing on its own, so I look not at how many files are
+inside but at which ones:
 
 ```
-$ repak info UnrealDuck/Content/Paks/UnrealDuck-WindowsClient.pak
-version: V11
-compression: Oodle
-1662 file entries
+$ repak list UnrealDuck/Content/Paks/UnrealDuck-WindowsClient.pak | cut -d/ -f1 | sort | uniq -c
+   1652 Engine
+     10 UnrealDuck
+
+$ repak list UnrealDuck/Content/Paks/UnrealDuck-WindowsClient.pak | grep '^UnrealDuck/'
+UnrealDuck/AssetRegistry.bin
+UnrealDuck/Config/DefaultEngine.ini
+UnrealDuck/Config/DefaultGame.ini
+UnrealDuck/Config/DefaultInput.ini
+UnrealDuck/Content/ShaderTypeInfo-Global-PCD3D_SM5-PCD3D_SM5.stinfo
+UnrealDuck/Content/ShaderTypeInfo-Global-PCD3D_SM6-PCD3D_SM6.stinfo
+UnrealDuck/Content/ShaderTypeInfo-UnrealDuck-PCD3D_SM5-PCD3D_SM5.stinfo
+UnrealDuck/Content/ShaderTypeInfo-UnrealDuck-PCD3D_SM6-PCD3D_SM6.stinfo
+UnrealDuck/Plugins/UnrealDuck.upluginmanifest
+UnrealDuck/UnrealDuck.uproject
 ```
+
+The conclusion: the pak holds engine configs, a shader cache and `AssetRegistry.bin` (a registry
+listing asset paths), but no game assets at all. So the whole content under study is in IoStore,
+the file to work with is `UnrealDuck-WindowsClient.utoc`, and the pak is only good for taking the
+configs and the registry. That check is exactly why `repak info` was needed.
 
 ## 3. Unpacking into plain formats
 
@@ -118,8 +171,9 @@ are what the analysis works with.
 Why this step: to pull object names out of the assets, so we know which entities the game has
 and how they are named.
 
-A classic Unreal package starts with `FPackageFileSummary`, which holds the name table `NameMap`
-and the export map `ExportMap`. I wrote the parser for these structures in
+The unpacked files can already be opened, but this is a binary format, so I googled its
+description. A classic Unreal package starts with `FPackageFileSummary`, which holds the name
+table `NameMap` and the export map `ExportMap`. Following that description I wrote the parser in
 `scripts/duck_map_layout.py`. The script reads the magic `0x9e2a83c1`, checks the package
 version, extracts names and exports, and writes `layout.json` and `names.txt`.
 
@@ -134,7 +188,13 @@ The summary shows `legacy: -9`, `cooked: True` and `uses_unversioned_properties:
 negative legacy version means UE5, and `unversioned` means property names are not written into
 the file, so they cannot be read as plain text without class descriptions.
 
-The blueprints look the same. For example, `BP_ThirdPersonPlayerController` has
+The content tree keeps producing files with the `BP_` prefix, and they deserve a stop. A blueprint
+is the way to write game logic in Unreal without C++: you build a graph of nodes in the editor,
+and the result is stored as an ordinary asset with the `BP_` prefix. I learned this when I googled
+what the files like `BP_ThirdPersonPlayerController.uasset` in `Content/ThirdPerson/Blueprints`
+are, and why there is no program text inside such a file.
+
+The blueprints look the same as the map. For example, `BP_ThirdPersonPlayerController` has
 `UnrealDuckPlayerController` in its name table, and `BP_ThirdPersonGameMode` has
 `UnrealDuckGameMode`. So a blueprint is a thin wrapper over a native C++ class, and the logic
 lives in native code, not in the graph.
@@ -179,12 +239,14 @@ confirms the function was found correctly.
 Why this step: the disassembly shows the functions exist, but not which controller fields they
 read and in which order they are called. That is faster to see at runtime.
 
-For this I used Frida, a tool that attaches to a running process and places hooks on functions.
-The script `scripts/duck_watch_all.py` hooks the found RVAs and prints arguments on every call,
-and `scripts/duck_capture_payload2.py` specifically hooks `ClientReceivePayload` and saves the
-received bytes to a file.
+I looked for a way to watch the runtime like this: I read how other people intercept calls in
+someone else's process. That is how I found Frida, a tool that attaches to a running process and
+places hooks on functions by address. The script `scripts/duck_watch_all.py` hooks the found RVAs
+and prints arguments on every call, and `scripts/duck_capture_payload2.py` specifically hooks
+`ClientReceivePayload` and saves the received bytes to a file.
 
-The hooks revealed the layout of the player controller:
+The first argument of these functions is the controller object itself, so the hooks show not only
+the values but also the offsets they live at. The result was this layout:
 
 - offset `0x808` holds a pointer to the letters array `Codes`,
 - offset `0x810` holds the letter count in that array,
@@ -202,9 +264,12 @@ unpacked assets and the pak in two encodings, plain and UTF-16, found neither `I
 `DUCKS` nor `ALOTT`. So the sequence is defined by the server logic, not stored as text in the
 files.
 
-Then I determined it in the game: I sent letters through `ServerPushCheatLetter` and watched the
-server reaction. That produced three sets, one per route: `ILOVE` for route 0, `DUCKS` for
-route 1, `ALOTT` for route 2. Together they form `I LOVE DUCKS A LOT`.
+Then I determined it in the game. The mechanic is this: the controller accepts exactly five
+letters, and after the fifth the server either confirms the set or rejects it. So the set can be
+searched: I submitted five-letter candidates and watched the server answer. Rejected variants
+looked no different from each other, while confirmed ones formed a meaningful phrase, so the
+search converged quickly on three sets, one per route: `ILOVE` for route 0, `DUCKS` for route 1,
+`ALOTT` for route 2. Together they form `I LOVE DUCKS A LOT`.
 
 ## 8. Automating the playthrough
 
