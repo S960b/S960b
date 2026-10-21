@@ -36,9 +36,8 @@ Files:
 
 - `scripts/01_wav_to_tap.py` - AFSK and UART decoder, restores the TAP from the WAV
 - `scripts/02_tap_to_flag.py` - checks the TAP blocks, extracts the Z80 code and decrypts the string
-- `scripts/03_spectrum.py` - spectrogram of a fragment via numpy and matplotlib
 - `assets/ventilator303.tap` - the recovered TAP
-- `assets/fsk_detail.png` - spectrogram of the digital part, built by the third script
+- `assets/fsk_detail.png` - spectrogram of the digital part, built with `sox`
 
 The 15 MB recording itself is not copied into the repository, it is part of the task input.
 

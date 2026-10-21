@@ -51,8 +51,8 @@ there are 44 100 such numbers per second, `16 bit` means each number takes 16 bi
 one channel. There are 7 408 810 samples in total, that is 168.0002 seconds. I write the `sha256`
 hash down so every later number belongs to exactly this file.
 
-The work needs Python 3 with NumPy and matplotlib, plus `xxd` to look at bytes. No Spectrum
-emulator is required.
+The work needs Python 3 with NumPy (the decoder uses it), `sox` for the spectrogram and `xxd` to
+look at bytes. No Spectrum emulator is required.
 
 ## 2. The hint about the station
 
@@ -74,34 +74,39 @@ Why this step: to see which frequencies the signal consists of, because that dec
 it.
 
 A spectrogram is an image where the horizontal axis is time, the vertical axis is frequency, and
-brightness shows loudness at that frequency. If the recording contains two steady tones, on such an
-image they look like two horizontal bands, and the frequencies are visible at once.
+brightness shows loudness at that frequency. Two steady tones look like two horizontal bands, and
+the frequencies are visible at once.
 
-`sox` was not installed on my system, so I built the image with my own script
-`scripts/03_spectrum.py`. It reads the WAV, takes a fragment, cuts it into windows of 1024 samples
-with a step of 128, computes a Fourier transform for each window (which is what gives the
-distribution of energy over frequencies) and stacks the results into an image:
-
-```
-$ python3 scripts/03_spectrum.py ventilator303.wav --start 15 --length 0.25 --out fsk_detail.png
-saved fsk_detail.png frames 79 window 1024
-strongest frequencies: [1163, 1206, 1766, 1809, 2369, 2412]
-```
-
-The image is in `assets/fsk_detail.png`. The script also prints the strongest frequencies, and they
-fall into two groups: around 1200 Hz and around 2400 Hz, while the split into 1163 and 1206, 2369
-and 2412 is a consequence of the finite window, not separate tones.
-
-If the reader has `sox`, the same image can be produced with one command:
+I googled how to build such an image, and the first answer was the `sox` utility: it has a ready
+`spectrogram` mode. I install it and build the image with one command:
 
 ```
 $ sox ventilator303.wav -n trim 15 0.25 spectrogram -x 1200 -y 512 -z 80 -o fsk_detail.png
 ```
 
+What the parameters mean. `ventilator303.wav` is the input file, `-n` means the sound is not written
+anywhere, it is only needed for the computation. `trim 15 0.25` takes a fragment that starts at
+second 15 and lasts 0.25 seconds, that is the digital part and not speech. `spectrogram` is the
+mode that builds the image. `-x 1200` sets the image width in pixels, `-y 512` the height, `-z 80`
+the dynamic range in decibels, that is how quiet a detail still gets drawn. `-o fsk_detail.png` is
+the output file name.
+
+How `sox` computes it. The fragment is cut into short windows, and a Fourier transform is computed
+for every window. A Fourier transform is a way to decompose a piece of signal into frequencies: it
+takes a set of samples and returns how much energy falls on each frequency. Windows are needed
+because the signal changes over time: computing the spectrum of the whole recording at once gives
+an averaged picture, while a short window shows what sounds at that moment. The windows then follow
+one another, and the set of spectra is assembled into the image.
+
+The ready image is in `assets/fsk_detail.png`. In the digital part two horizontal bands are visible:
+the lower one near 1.2 kHz and the upper one near 2.4 kHz. Below and above them there is nothing
+stable, so the signal consists of two tones, not of noise and not of speech.
+
 The arithmetic matters next. At 44 100 samples per second one period of a 1200 Hz tone occupies
 `44100 / 1200 = 36.75` samples, and one period of a 2400 Hz tone occupies `44100 / 2400 = 18.375`
 samples. So the distance between neighbouring zero crossings of the signal tells which tone sounds
-at the moment.
+at the moment. The exact values 1200 and 2400 Hz were later confirmed by the fact that a decoder
+with this model restored the file byte for byte, but that is the next section.
 
 ## 4. What AFSK is and how to get bytes out of it
 
@@ -114,9 +119,11 @@ Here the lower tone of 1200 Hz means zero, the upper tone of 2400 Hz means one, 
 
 I googled how such a signal is received. The general principle of AFSK demodulation is this: find
 the moments where the signal crosses zero, measure the distance between crossings, derive the
-frequency from it and turn that into a bit. I did not use ready modem decoders for this recording:
-the frequencies and the structure here are specific, and my own twenty lines of code are easier to
-read and more reliable.
+frequency from it and turn that into a bit.
+
+Next I looked for a ready decoder for such parameters and did not find one: ordinary modem programs
+expect other frequencies and another data format. So I built my own from that principle, it takes
+twenty lines and the whole behaviour is visible.
 
 The second layer is `UART`, a way to pack bits into bytes. Every byte is sent as an `8N1` frame: one
 start bit at zero level, eight data bits with the least significant first, and one stop bit at one
