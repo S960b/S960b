@@ -168,15 +168,21 @@ $ ./scripts/duck_extract.sh UnrealDuck/Content/Paks out
 [repak] UnrealDuck-WindowsClient
 ```
 
-После распаковки индекс путей даёт около 635 имён контентных путей. Среди них:
+После распаковки индекс даёт 635 файлов в дереве контейнера. Скрипт печатает их так, как они
+записаны внутри, вместе с номером chunk'а:
 
 ```
-/Game/Menu/Lvl_MainMenu
-/Game/ThirdPerson/Lvl_ThirdPerson
-/Game/ThirdPerson/Blueprints/BP_ThirdPersonPlayerController
-/Game/ThirdPerson/Blueprints/BP_ThirdPersonCharacter
-/Game/ThirdPerson/Blueprints/BP_ThirdPersonGameMode
+1712 ../../../UnrealDuck/Content/ThirdPerson/Lvl_ThirdPerson.umap
+  95 ../../../UnrealDuck/Content/Menu/Lvl_MainMenu.umap
+1629 ../../../UnrealDuck/Content/ThirdPerson/Blueprints/BP_ThirdPersonPlayerController.uasset
+1827 ../../../UnrealDuck/Content/ThirdPerson/Blueprints/BP_ThirdPersonGameMode.uasset
+1649 ../../../UnrealDuck/Content/ThirdPerson/Blueprints/BP_ThirdPersonCharacter.uasset
 ```
+
+В терминах редактора Unreal корень проекта `UnrealDuck/Content` соответствует `/Game`, поэтому
+дальше я называю эти объекты коротко, например `/Game/ThirdPerson/Lvl_ThirdPerson`. Полный
+список лежит в `assets/unrealduck_paths.txt`, список именно проектных файлов в
+`assets/unrealduck_project_assets.txt`.
 
 Карт в сборке две: главное меню и тренировочная арена. Отдельной карты для секретного уровня
 нет. Это подтвердилось и по строкам исполняемого файла: там лежит описание единственного
@@ -608,9 +614,10 @@ Message received
 идут байты изображения, которые UI превращает в текстуру.
 
 Первое прочтение было неверным: я прочитал слово как `pyth` и флаг не принялся. На более
-чётком снимке оказалось `p4th`, это намёк на path finding. Кроме того, по пометке на картинке
-строчными пишется и префикс, и тело. Ещё один неоднозначный символ в теле пришлось разбирать
-отдельно, это цифра ноль в `0n`, а не буква `o`. После исправлений флаг был принят сервером:
+чётком снимке оказалось `p4th`, это намёк на path finding. Пометка `all lowercase` относится
+только к телу флага внутри скобок: префикс `SOLARCTF` пишется заглавными, а тело строчными.
+Ещё один неоднозначный символ в теле пришлось разбирать отдельно, это цифра ноль в `0n`, а не
+буква `o`. После исправлений флаг был принят сервером:
 
 ```
 SOLARCTF{unr...d0ws}

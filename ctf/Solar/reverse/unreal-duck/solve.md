@@ -165,15 +165,20 @@ $ ./scripts/duck_extract.sh UnrealDuck/Content/Paks out
 [repak] UnrealDuck-WindowsClient
 ```
 
-After unpacking, the path index gives about 635 content path names. Among them:
+After unpacking, the index gives 635 files in the container tree. The script prints them the way
+they are stored inside, together with the chunk number:
 
 ```
-/Game/Menu/Lvl_MainMenu
-/Game/ThirdPerson/Lvl_ThirdPerson
-/Game/ThirdPerson/Blueprints/BP_ThirdPersonPlayerController
-/Game/ThirdPerson/Blueprints/BP_ThirdPersonCharacter
-/Game/ThirdPerson/Blueprints/BP_ThirdPersonGameMode
+1712 ../../../UnrealDuck/Content/ThirdPerson/Lvl_ThirdPerson.umap
+  95 ../../../UnrealDuck/Content/Menu/Lvl_MainMenu.umap
+1629 ../../../UnrealDuck/Content/ThirdPerson/Blueprints/BP_ThirdPersonPlayerController.uasset
+1827 ../../../UnrealDuck/Content/ThirdPerson/Blueprints/BP_ThirdPersonGameMode.uasset
+1649 ../../../UnrealDuck/Content/ThirdPerson/Blueprints/BP_ThirdPersonCharacter.uasset
 ```
+
+In Unreal editor terms the project root `UnrealDuck/Content` corresponds to `/Game`, so below I
+call these objects shortly, for example `/Game/ThirdPerson/Lvl_ThirdPerson`. The full list is in
+`assets/unrealduck_paths.txt`, the project-only list in `assets/unrealduck_project_assets.txt`.
 
 There are two maps in the build: the main menu and the training ground. There is no separate map
 for a secret level. The executable strings confirm it: they describe the single public level.
@@ -598,10 +603,10 @@ Inside was an image with a hand-written flag and the note `all lowercase`. That 
 the UI turns into a texture.
 
 The first reading was wrong: I read the word as `pyth` and the flag was rejected. On a clearer
-snapshot it turned out to be `p4th`, a hint at path finding. Also, per the note on the image, the
-prefix and the body are both written in lowercase. One more ambiguous character in the body had to
-be settled separately: it is the digit zero in `0n`, not the letter `o`. After the fixes the flag
-was accepted by the server:
+snapshot it turned out to be `p4th`, a hint at path finding. The `all lowercase` note applies only
+to the flag body inside the braces: the `SOLARCTF` prefix is uppercase, the body is lowercase. One
+more ambiguous character in the body had to be settled separately: it is the digit zero in `0n`,
+not the letter `o`. After the fixes the flag was accepted by the server:
 
 ```
 SOLARCTF{unr...d0ws}
