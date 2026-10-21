@@ -405,10 +405,12 @@ RouteRPC routeId=0 codesCount=5
 | `PC+0x7B0` | упакованное состояние пяти символов (`packed`) |
 | `PC+0x7C0` | счётчик обработанных маршрутов (`progress`) |
 | `PC+0x7C8` | текущий `RouteId`, значение `255` означает, что маршрута нет |
+| `PC+0x7D0` | массив результатов по маршрутам, его счётчик по `+0x7D8` |
 | `PC+0x7E0` | внутреннее смешанное состояние (`mixed`) |
 | `PC+0x7E4` | локальный признак полного прохождения (`localComplete`) |
-| `PC+0x7E8` | указатель на массив вычисленных 32-битных результатов |
+| `PC+0x7E8` | второй массив тех же результатов, счётчик по `+0x7F0` |
 | `PC+0x7F0` | число элементов в этом массиве |
+| `PC+0x7F8` | сводное значение по всем записям профиля |
 | `PC+0x800` | признак блокировки ввода после пяти символов (`locked`) |
 | `PC+0x804` | состояние прокрутки (`rolling`) |
 | `PC+0x808` | указатель на массив накопленных букв |
@@ -512,6 +514,24 @@ uint32_t symbol(char c, uint32_t key = 0x2f6cb09a) {
 }
 ```
 
+Что модель не выдумана, видно по коду обработчика клавиши. Ключ берётся из профиля, а не из
+константы в коде: по `0x14438f970` стоит `mov esi,DWORD PTR [rax+0x50]`, где `rax` это
+указатель профиля. Дальше идёт ровно та же арифметика:
+
+```
+$ objdump -d -M intel --start-address=0x14438f9ce --stop-address=0x14438f9f3 UnrealDuckClient-Win64-Shipping.exe
+   14438f9ce: 83 f6 e5              xor    esi,0xffffffe5
+   14438f9d1: 2b c1                 sub    eax,ecx
+   14438f9d6: 6b d8 1b              imul   ebx,eax,0x1b
+   14438f9d9: 03 de                 add    ebx,esi
+   14438f9db: 83 e3 3f              and    ebx,0x3f
+   14438f9e5: c1 e8 03              shr    eax,0x3
+   14438f9e8: 33 c3                 xor    eax,ebx
+   14438f9ea: 6b c0 0d              imul   eax,eax,0xd
+   14438f9ed: 83 c0 11              add    eax,0x11
+   14438f9f0: 83 e0 3f              and    eax,0x3f
+```
+
 То есть 0..25 это только значения `LetterCode`, которые уходят в RPC, а внутри микшера
 происходит дополнительный шаг. Пять значений накапливаются в трёх состояниях, начальные
 значения равны нулю:
@@ -527,8 +547,36 @@ E = E2;
 S = S2;
 ```
 
-Эти три состояния и есть наблюдаемые из Frida `packed`, `mixed` и `rolling`. Расчёт для
-одного маршрута по записи `p = {a,b,c,d,e,f}`:
+Каждая из четырёх констант встречается в файле ровно один раз, и все они лежат в одном месте:
+
+```
+$ objdump -d -M intel --start-address=0x14438fa05 --stop-address=0x14438fa5c UnrealDuckClient-Win64-Shipping.exe
+   14438fa05: 8b 97 b0 07 00 00     mov    edx,DWORD PTR [rdi+0x7b0]
+   14438fa0b: c1 e2 06              shl    edx,0x6
+   14438fa0e: 0b d0                 or     edx,eax
+   14438fa10: 81 e2 ff ff ff 3f     and    edx,0x3fffffff
+   14438fa16: ff c0                 inc    eax
+   14438fa18: 89 97 b0 07 00 00     mov    DWORD PTR [rdi+0x7b0],edx
+   14438fa1e: 69 c8 9b 1f e3 54     imul   ecx,eax,0x54e31f9b
+   14438fa24: 69 c2 79 3b 5d 1f     imul   eax,edx,0x1f5d3b79
+   14438fa2a: 33 8f 04 08 00 00     xor    ecx,DWORD PTR [rdi+0x804]
+   14438fa30: c1 c9 19              ror    ecx,0x19
+   14438fa33: 81 c1 ef 91 8b 2c     add    ecx,0x2c8b91ef
+   14438fa39: 89 8f 04 08 00 00     mov    DWORD PTR [rdi+0x804],ecx
+   14438fa3f: 33 ca                 xor    ecx,edx
+   14438fa41: 81 c1 11 2d 64 7b     add    ecx,0x7b642d11
+   14438fa47: c1 c9 17              ror    ecx,0x17
+   14438fa4a: 33 c8                 xor    ecx,eax
+   14438fa4c: 83 bf 10 08 00 00 05  cmp    DWORD PTR [rdi+0x810],0x5
+   14438fa53: 89 8f e0 07 00 00     mov    DWORD PTR [rdi+0x7e0],ecx
+   14438fa59: 0f 94 c0              sete   al
+   14438fa5c: 88 87 00 08 00 00     mov    BYTE PTR [rdi+0x800],al
+```
+
+Эти три состояния и есть наблюдаемые из Frida `packed`, `mixed` и `rolling`: `+0x7b0`, `+0x7e0`
+и `+0x804`. Заодно видно, откуда берётся блокировка: `cmp [rdi+0x810],0x5` и `sete` пишут в
+`+0x800` единицу ровно тогда, когда накоплено пять букв. Расчёт для одного маршрута по записи
+`p = {a,b,c,d,e,f}`:
 
 ```cpp
 uint32_t t = rotr(E + p.b, 21) ^ rotr(p.f + R, 27);
@@ -540,7 +588,82 @@ t ^= rotr(R + 0x36d5e22bu + p.d, 19);
 return t ^ p.e;
 ```
 
+Порядок операций и все сдвиги видны в самой функции расчёта. Она начинается с поиска записи по
+номеру маршрута: `cmp BYTE PTR [rbx+0x4],sil` сравнивает байт по смещению `+0x04` записи с
+номером маршрута, а шаг перебора `add rbx,0x1c` это те самые 28 байт:
+
+```
+$ objdump -d -M intel --start-address=0x14438b942 --stop-address=0x14438b9b0 UnrealDuckClient-Win64-Shipping.exe
+   14438b942: 8b 4b 18              mov    ecx,DWORD PTR [rbx+0x18]
+   14438b945: 44 8b 8f b0 07 00 00  mov    r9d,DWORD PTR [rdi+0x7b0]
+   14438b94c: 44 8b 43 08           mov    r8d,DWORD PTR [rbx+0x8]
+   14438b950: 44 8b 97 e0 07 00 00  mov    r10d,DWORD PTR [rdi+0x7e0]
+   14438b95c: 45 03 d0              add    r10d,r8d
+   14438b95f: 41 c1 ca 15           ror    r10d,0x15
+   14438b963: 42 8d 04 09           lea    eax,[rcx+r9*1]
+   14438b967: c1 c8 1b              ror    eax,0x1b
+   14438b96a: 44 33 d0              xor    r10d,eax
+   14438b96d: 41 c1 c8 1d           ror    r8d,0x1d
+   14438b971: 8b 43 10              mov    eax,DWORD PTR [rbx+0x10]
+   14438b974: 44 33 c1              xor    r8d,ecx
+   14438b977: 33 87 04 08 00 00     xor    eax,DWORD PTR [rdi+0x804]
+   14438b985: 44 03 d0              add    r10d,eax
+   14438b988: 41 8d 81 2b e2 d5 36  lea    eax,[r9+0x36d5e22b]
+   14438b98f: 44 33 13              xor    r10d,DWORD PTR [rbx]
+   14438b992: 03 43 10              add    eax,DWORD PTR [rbx+0x10]
+   14438b995: 41 c1 ca 19           ror    r10d,0x19
+   14438b999: c1 c8 13              ror    eax,0x13
+   14438b99c: 45 03 d0              add    r10d,r8d
+   14438b99f: 44 33 d0              xor    r10d,eax
+   14438b9ad: 44 33 53 14           xor    r10d,DWORD PTR [rbx+0x14]
+```
+
+Сверка по строкам: `add r10d,r8d` и `ror 0x15` дают `rotr(E + p.b, 21)`, `lea eax,[rcx+r9]` и
+`ror 0x1b` дают `rotr(p.f + R, 27)`, `mov eax,[rbx+0x10]` и `xor [rdi+0x804]` это `p.d ^ S`,
+`ror 0x19` это `rotr(t, 25)`, `ror 0x1d` и `xor ecx` это `rotr(p.b, 29) ^ p.f`, `lea
+eax,[r9+0x36d5e22b]` с `ror 0x13` это последний член с `p.d`, и в конце `xor [rbx+0x14]` это
+`^ p.e`. Поле `p.c` по смещению `+0x0C` в этой функции не читается вообще.
+
 Арифметика 32-битная, с переполнением по модулю `2^32`, `rotr` это циклический сдвиг вправо.
+
+Дальше функция считает сводное значение по всем записям, и здесь наконец видно, зачем в профиле
+константы `+0x38` и `+0x54`. Начальное значение берётся из `+0x54` и смешивается с константой
+`0x58c13e27`, а `+0x38` добавляется на каждой записи:
+
+```
+$ objdump -d -M intel --start-address=0x14438b9d5 --stop-address=0x14438ba3e UnrealDuckClient-Win64-Shipping.exe
+   14438b9d5: 44 8b 55 54           mov    r10d,DWORD PTR [rbp+0x54]
+   14438b9dd: 41 81 f2 27 3e c1 58  xor    r10d,0x58c13e27
+   14438ba13: 41 8b 51 0c           mov    edx,DWORD PTR [r9+0xc]
+   14438ba17: 41 03 d0              add    edx,r8d
+   14438ba1c: 80 c1 03              add    cl,0x3
+   14438ba26: d3 c2                 rol    edx,cl
+   14438ba28: 41 33 d2              xor    edx,r10d
+   14438ba2e: 81 c2 8b a3 97 4d     add    edx,0x4d97a38b
+   14438ba34: 03 55 38              add    edx,DWORD PTR [rbp+0x38]
+   14438ba37: 44 03 d2              add    r10d,edx
+   14438ba3a: 41 c1 ca 19           ror    r10d,0x19
+   14438ba3e: 44 33 d0              xor    r10d,eax
+```
+
+Здесь уже участвует `p.c` (`[r9+0xc]`), но только в сводном значении, а не в проверке одного
+маршрута. Сводное значение сохраняется в `PC+0x7F8`, после чего вызывается проверка завершения
+по `0x144395f10` и отправка `ServerRecordFrame`, где `rdx` это номер маршрута, а `r8` это
+`PC+0x808`, то есть массив букв:
+
+```
+$ objdump -d -M intel --start-address=0x14438ba4a --stop-address=0x14438ba6f UnrealDuckClient-Win64-Shipping.exe
+   14438ba4a: 41 8b c2              mov    eax,r10d
+   14438ba50: 48 89 87 f8 07 00 00  mov    QWORD PTR [rdi+0x7f8],rax
+   14438ba57: e8 b4 a4 00 00     call   0x144395f10
+   14438ba5c: 4c 8d 87 08 08 00 00  lea    r8,[rdi+0x808]
+   14438ba63: 40 0f b6 d6           movzx  edx,sil
+   14438ba67: 48 8b cf              mov    rcx,rdi
+   14438ba6a: e8 01 63 ff ff     call   0x144381d70
+```
+
+Отсюда же понятно, почему подбор кода не требовал трогать сервер: клиент сам считает и
+результат маршрута, и сводное значение, а сервер получает уже готовый номер маршрута и буквы.
 
 Здесь была ошибка, из-за которой первая версия перебора не находила ничего: в двух выражениях
 нужно поле `p.d` (это смещение записи `+0x10`), а я использовал `p.c` (`+0x0C`). Поэтому

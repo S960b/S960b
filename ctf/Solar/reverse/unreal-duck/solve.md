@@ -396,10 +396,12 @@ values and the offsets they live at. For this build the picture is:
 | `PC+0x7B0` | packed state of the five characters (`packed`) |
 | `PC+0x7C0` | processed route counter (`progress`) |
 | `PC+0x7C8` | current `RouteId`, `255` means no active route |
+| `PC+0x7D0` | per-route results array, its count at `+0x7D8` |
 | `PC+0x7E0` | internal mixed state (`mixed`) |
 | `PC+0x7E4` | local full completion flag (`localComplete`) |
-| `PC+0x7E8` | pointer to the array of computed 32-bit results |
+| `PC+0x7E8` | second array of the same results, its count at `+0x7F0` |
 | `PC+0x7F0` | number of elements in that array |
+| `PC+0x7F8` | aggregate value over all profile records |
 | `PC+0x800` | input lock after five characters (`locked`) |
 | `PC+0x804` | rolling state |
 | `PC+0x808` | pointer to the accumulated letters array |
@@ -500,6 +502,24 @@ uint32_t symbol(char c, uint32_t key = 0x2f6cb09a) {
 }
 ```
 
+That the model is not invented is visible in the key handler code. The key comes from the profile,
+not from a code constant: at `0x14438f970` there is `mov esi,DWORD PTR [rax+0x50]`, where `rax` is
+the profile pointer. Then exactly the same arithmetic follows:
+
+```
+$ objdump -d -M intel --start-address=0x14438f9ce --stop-address=0x14438f9f3 UnrealDuckClient-Win64-Shipping.exe
+   14438f9ce: 83 f6 e5              xor    esi,0xffffffe5
+   14438f9d1: 2b c1                 sub    eax,ecx
+   14438f9d6: 6b d8 1b              imul   ebx,eax,0x1b
+   14438f9d9: 03 de                 add    ebx,esi
+   14438f9db: 83 e3 3f              and    ebx,0x3f
+   14438f9e5: c1 e8 03              shr    eax,0x3
+   14438f9e8: 33 c3                 xor    eax,ebx
+   14438f9ea: 6b c0 0d              imul   eax,eax,0xd
+   14438f9ed: 83 c0 11              add    eax,0x11
+   14438f9f0: 83 e0 3f              and    eax,0x3f
+```
+
 So 0..25 are only the `LetterCode` values that go into the RPC, while the mixer adds another step.
 The five values accumulate into three states, all starting at zero:
 
@@ -514,8 +534,36 @@ E = E2;
 S = S2;
 ```
 
-Those three states are exactly the `packed`, `mixed` and `rolling` values observed in Frida. The
-computation for one route with a record `p = {a,b,c,d,e,f}`:
+Each of the four constants occurs in the file exactly once, and all of them sit in one place:
+
+```
+$ objdump -d -M intel --start-address=0x14438fa05 --stop-address=0x14438fa5c UnrealDuckClient-Win64-Shipping.exe
+   14438fa05: 8b 97 b0 07 00 00     mov    edx,DWORD PTR [rdi+0x7b0]
+   14438fa0b: c1 e2 06              shl    edx,0x6
+   14438fa0e: 0b d0                 or     edx,eax
+   14438fa10: 81 e2 ff ff ff 3f     and    edx,0x3fffffff
+   14438fa16: ff c0                 inc    eax
+   14438fa18: 89 97 b0 07 00 00     mov    DWORD PTR [rdi+0x7b0],edx
+   14438fa1e: 69 c8 9b 1f e3 54     imul   ecx,eax,0x54e31f9b
+   14438fa24: 69 c2 79 3b 5d 1f     imul   eax,edx,0x1f5d3b79
+   14438fa2a: 33 8f 04 08 00 00     xor    ecx,DWORD PTR [rdi+0x804]
+   14438fa30: c1 c9 19              ror    ecx,0x19
+   14438fa33: 81 c1 ef 91 8b 2c     add    ecx,0x2c8b91ef
+   14438fa39: 89 8f 04 08 00 00     mov    DWORD PTR [rdi+0x804],ecx
+   14438fa3f: 33 ca                 xor    ecx,edx
+   14438fa41: 81 c1 11 2d 64 7b     add    ecx,0x7b642d11
+   14438fa47: c1 c9 17              ror    ecx,0x17
+   14438fa4a: 33 c8                 xor    ecx,eax
+   14438fa4c: 83 bf 10 08 00 00 05  cmp    DWORD PTR [rdi+0x810],0x5
+   14438fa53: 89 8f e0 07 00 00     mov    DWORD PTR [rdi+0x7e0],ecx
+   14438fa59: 0f 94 c0              sete   al
+   14438fa5c: 88 87 00 08 00 00     mov    BYTE PTR [rdi+0x800],al
+```
+
+Those three states are exactly the `packed`, `mixed` and `rolling` values observed in Frida:
+`+0x7b0`, `+0x7e0` and `+0x804`. The lock is visible too: `cmp [rdi+0x810],0x5` and `sete` write
+a one into `+0x800` exactly when five letters are accumulated. The computation for one route with
+a record `p = {a,b,c,d,e,f}`:
 
 ```cpp
 uint32_t t = rotr(E + p.b, 21) ^ rotr(p.f + R, 27);
@@ -527,7 +575,82 @@ t ^= rotr(R + 0x36d5e22bu + p.d, 19);
 return t ^ p.e;
 ```
 
+The operation order and every shift are visible in the computation function itself. It starts by
+looking up the record by route number: `cmp BYTE PTR [rbx+0x4],sil` compares the byte at record
+offset `+0x04` with the route number, and the loop step `add rbx,0x1c` is exactly those 28 bytes:
+
+```
+$ objdump -d -M intel --start-address=0x14438b942 --stop-address=0x14438b9b0 UnrealDuckClient-Win64-Shipping.exe
+   14438b942: 8b 4b 18              mov    ecx,DWORD PTR [rbx+0x18]
+   14438b945: 44 8b 8f b0 07 00 00  mov    r9d,DWORD PTR [rdi+0x7b0]
+   14438b94c: 44 8b 43 08           mov    r8d,DWORD PTR [rbx+0x8]
+   14438b950: 44 8b 97 e0 07 00 00  mov    r10d,DWORD PTR [rdi+0x7e0]
+   14438b95c: 45 03 d0              add    r10d,r8d
+   14438b95f: 41 c1 ca 15           ror    r10d,0x15
+   14438b963: 42 8d 04 09           lea    eax,[rcx+r9*1]
+   14438b967: c1 c8 1b              ror    eax,0x1b
+   14438b96a: 44 33 d0              xor    r10d,eax
+   14438b96d: 41 c1 c8 1d           ror    r8d,0x1d
+   14438b971: 8b 43 10              mov    eax,DWORD PTR [rbx+0x10]
+   14438b974: 44 33 c1              xor    r8d,ecx
+   14438b977: 33 87 04 08 00 00     xor    eax,DWORD PTR [rdi+0x804]
+   14438b985: 44 03 d0              add    r10d,eax
+   14438b988: 41 8d 81 2b e2 d5 36  lea    eax,[r9+0x36d5e22b]
+   14438b98f: 44 33 13              xor    r10d,DWORD PTR [rbx]
+   14438b992: 03 43 10              add    eax,DWORD PTR [rbx+0x10]
+   14438b995: 41 c1 ca 19           ror    r10d,0x19
+   14438b999: c1 c8 13              ror    eax,0x13
+   14438b99c: 45 03 d0              add    r10d,r8d
+   14438b99f: 44 33 d0              xor    r10d,eax
+   14438b9ad: 44 33 53 14           xor    r10d,DWORD PTR [rbx+0x14]
+```
+
+Line by line: `add r10d,r8d` and `ror 0x15` give `rotr(E + p.b, 21)`, `lea eax,[rcx+r9]` and
+`ror 0x1b` give `rotr(p.f + R, 27)`, `mov eax,[rbx+0x10]` and `xor [rdi+0x804]` are `p.d ^ S`,
+`ror 0x19` is `rotr(t, 25)`, `ror 0x1d` and `xor ecx` are `rotr(p.b, 29) ^ p.f`, `lea
+eax,[r9+0x36d5e22b]` with `ror 0x13` is the last term with `p.d`, and finally `xor [rbx+0x14]` is
+`^ p.e`. Field `p.c` at offset `+0x0C` is not read in this function at all.
+
 The arithmetic is 32-bit with wraparound modulo `2^32`, `rotr` is a cyclic shift right.
+
+The function then computes an aggregate over all records, and that is where the profile constants
+`+0x38` and `+0x54` finally make sense. The initial value comes from `+0x54` and is mixed with the
+constant `0x58c13e27`, while `+0x38` is added on every record:
+
+```
+$ objdump -d -M intel --start-address=0x14438b9d5 --stop-address=0x14438ba3e UnrealDuckClient-Win64-Shipping.exe
+   14438b9d5: 44 8b 55 54           mov    r10d,DWORD PTR [rbp+0x54]
+   14438b9dd: 41 81 f2 27 3e c1 58  xor    r10d,0x58c13e27
+   14438ba13: 41 8b 51 0c           mov    edx,DWORD PTR [r9+0xc]
+   14438ba17: 41 03 d0              add    edx,r8d
+   14438ba1c: 80 c1 03              add    cl,0x3
+   14438ba26: d3 c2                 rol    edx,cl
+   14438ba28: 41 33 d2              xor    edx,r10d
+   14438ba2e: 81 c2 8b a3 97 4d     add    edx,0x4d97a38b
+   14438ba34: 03 55 38              add    edx,DWORD PTR [rbp+0x38]
+   14438ba37: 44 03 d2              add    r10d,edx
+   14438ba3a: 41 c1 ca 19           ror    r10d,0x19
+   14438ba3e: 44 33 d0              xor    r10d,eax
+```
+
+Here `p.c` (`[r9+0xc]`) does participate, but only in the aggregate, not in the single route
+check. The aggregate is stored in `PC+0x7F8`, after which the completion check at `0x144395f10`
+runs and `ServerRecordFrame` is sent, with `rdx` as the route number and `r8` as `PC+0x808`, that
+is the letters array:
+
+```
+$ objdump -d -M intel --start-address=0x14438ba4a --stop-address=0x14438ba6f UnrealDuckClient-Win64-Shipping.exe
+   14438ba4a: 41 8b c2              mov    eax,r10d
+   14438ba50: 48 89 87 f8 07 00 00  mov    QWORD PTR [rdi+0x7f8],rax
+   14438ba57: e8 b4 a4 00 00     call   0x144395f10
+   14438ba5c: 4c 8d 87 08 08 00 00  lea    r8,[rdi+0x808]
+   14438ba63: 40 0f b6 d6           movzx  edx,sil
+   14438ba67: 48 8b cf              mov    rcx,rdi
+   14438ba6a: e8 01 63 ff ff     call   0x144381d70
+```
+
+This also shows why the code search never needed the server: the client computes both the route
+result and the aggregate itself, and the server only receives a finished route number and letters.
 
 There was a mistake here that made the first brute force find nothing: two expressions need field
 `p.d` (record offset `+0x10`) and I used `p.c` (`+0x0C`). So instead of trusting the disassembly, I
