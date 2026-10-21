@@ -50,7 +50,8 @@ Files:
 - `scripts/duck_solve_corrected.cpp` - local code search
 - `scripts/duck_auto_guide.py` - automatic code input with genuine keyboard events
 - `scripts/duck_dump_profile.py` - dumps the route profile from memory and checks the constants
-- `assets/` - container path list, project asset list, search output
+- `assets/` - container path list, project asset list, search output and the reward screenshot
+  `flag_message.png` with the flag body masked
 
 Heavy artifacts (the build itself and the unpacked content) are not copied into the repository.
 

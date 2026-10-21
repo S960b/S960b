@@ -755,13 +755,18 @@ The first reading was wrong: I read the word as `pyth` and the flag was rejected
 snapshot it turned out to be `p4th`, a hint at path finding. The `all lowercase` note applies only
 to the flag body inside the braces: on the image the body is lowercase and the prefix uppercase.
 The correspondence does not fix the prefix case unambiguously, so I will not claim it as a
-requirement. One
-more ambiguous character in the body had to be settled separately: it is the digit zero in `0n`,
-not the letter `o`. After the fixes the flag was accepted by the server:
+requirement. One more ambiguous character in the body had to be settled separately: it is the
+digit zero in `0n`, not the letter `o`. After the fixes the flag was accepted by the server:
 
 ```
 SOLARCTF{unr...d0ws}
 ```
+
+![Message received window with the hand-written reward](assets/flag_message.png)
+
+The screenshot of this window is in `assets/flag_message.png`. The flag body is masked there so the
+writeup can be published: only the beginning and the end of the string stay visible, as in the
+block above.
 
 I show the beginning and the end of the string on purpose, so it is visible that the flag was
 really obtained.
