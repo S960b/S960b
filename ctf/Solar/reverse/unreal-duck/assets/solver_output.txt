@@ -1,0 +1,6 @@
+A=41 B=49 C=57 D=0 E=46 F=4 G=23 H=43 I=24 J=58 K=28 L=21 M=29 N=37 O=18 P=52 Q=7 R=27 S=35 T=54 U=12 V=6 W=25 X=33 Y=14 Z=36
+JJJJJ route=[bfb582b1 f2392df9 e6980dd1] state=[3aebaeba 9e9c5582 821d8db8]
+FOUND route=2 password=ALOTT R=29552db6 E=25ca4e57 S=04c5c966
+FOUND route=1 password=DUCKS R=00339723 E=6bd74bb7 S=22f2f8f7
+FOUND route=0 password=ILOVE R=185521ae E=f8a15b7a S=beb3bf30
+trials=11881376 hits=[1,1,1]
