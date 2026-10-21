@@ -64,10 +64,8 @@ it sits next to them, and it has to be checked too so that no part of the conten
 Ready-made tools exist for both formats: `retoc` for IoStore and `repak` for pak.
 
 I start with the index because it is the table of contents of the container: without it there is no
-way to list assets or learn the compression. First I tried to read the index with my own script,
-following a description of the IoStore header layout. The script failed on its very first read: at
-the expected offsets there were meaningless values. To see what was wrong I dumped the first bytes
-of the file:
+way to list assets or learn the compression. To compare the layout with the format description I
+dump the first bytes of the file:
 
 ```
 $ head -c 32 UnrealDuck/Content/Paks/UnrealDuck-WindowsClient.utoc | xxd
@@ -75,13 +73,12 @@ $ head -c 32 UnrealDuck/Content/Paks/UnrealDuck-WindowsClient.utoc | xxd
 00000010: 0800 0000 9000 0000 0100 0000 2c00 0000
 ```
 
-The first sixteen bytes are the text string `-==--==--==--==-`. A container header cannot start
-with readable text, so this is not part of it, but a banner someone prepended to the file. The way
-to check this is to shift: if I read not from zero but from byte sixteen, then version `08` and
-header size `90 00 00 00`, that is 144 bytes, land exactly where they belong, and every following
-field agrees. At that offset my parser reads the whole index and returns the package list. It also
-shows the limitation: a parser that looks for the header strictly at offset zero will not work on
-this file. `retoc` reads it fine because it skips the unexpected leading bytes itself.
+The first sixteen bytes are the string `-==--==--==--==-`. At first I took it for a banner at the
+start of the file, until I googled the IoStore header description. In the format this is the
+signature field of `FIoStoreTocHeader`, and it sits exactly at offset zero. The second file proves
+it: `global.utoc` starts with the same sixteen bytes `2d3d 3d2d 2d3d 3d2d 2d3d 3d2d 2d3d 3d2d`.
+Then version `08 00 00 00` sits at offset `0x10`, header size `90 00 00 00`, that is 144 bytes, at
+`0x14`, and every following field agrees.
 
 Then, instead of parsing the index by hand, I hand it to `retoc`. First the summary:
 
@@ -111,9 +108,11 @@ UnrealDuck-WindowsClient 6ff734fd30628e8c00000002 BulkData
 
 What this means. A chunk is a storage unit inside IoStore, with an identifier and a type. Type
 `ExportBundleData` is asset data, `BulkData` is large nested data such as textures, `ShaderCode`
-is shaders. A package is the logical unit corresponding to one asset. The listing was needed to
-show that asset names are not in the table of contents: only chunk identifiers are visible here,
-and the names have to come from the packages themselves after unpacking.
+is shaders. A package is the logical unit corresponding to one asset. `retoc list` prints only
+chunk identifiers, but the index does carry names: the header has a
+separate name size field (`namelen 32`) and a separate directory, and my script
+`scripts/unrealduck_utoc_index.py` reads it directly and gets 142 directories, 635 files and 745
+name table entries. That path list is what `assets/unrealduck_paths.txt` holds.
 
 Now the pak. The number of entries says nothing on its own, so I look not at how many files are
 inside but at which ones:
@@ -211,8 +210,9 @@ why there is no program text inside such a file.
 
 The blueprints look the same as the map: `BP_ThirdPersonPlayerController` has
 `UnrealDuckPlayerController` in its name table, and `BP_ThirdPersonGameMode` has
-`UnrealDuckGameMode`. So a blueprint is a thin wrapper over a native C++ class, and the logic lives
-in native code.
+`UnrealDuckGameMode`. So a blueprint inherits a native C++ class. The class name in the name table
+alone does not prove there is no logic in the blueprint: only the executable analysis below shows
+that.
 
 A side check: can the answer be extracted from the level geometry. In `Lvl_ThirdPerson.umap` and
 `.uexp` I recovered the export list and about 55 `StaticMeshComponent` components, 53 of them game
@@ -313,7 +313,7 @@ The first version of the hook failed immediately with a memory read error:
 access violation accessing 0x7fff6db44600
 ```
 
-The cause was that the address was computed without the real module base. I added diagnostics:
+I did not establish the exact cause, so instead of guessing I added checks:
 `Process.enumerateModules()`, module lookup by exact name, a check that `RVA < module.size`,
 `Process.findRangeByAddress`, an executable page check and a machine code signature comparison.
 For the reward receiver it came out like this:
@@ -382,8 +382,11 @@ is `packed`), the processed route counter at `PC+0x7C0` (`progress`), the curren
 with its count at `PC+0x7D8`.
 
 Then the mixer states: `PC+0x7E0` is `mixed`, `PC+0x804` is `rolling`. The full completion flag is
-at `PC+0x7E4` (`localComplete`), the second array of the same results at `PC+0x7E8` with its count
-at `PC+0x7F0`, and the aggregate over all profile records at `PC+0x7F8`.
+at `PC+0x7E4` (`localComplete`), and the aggregate over all profile records at `PC+0x7F8`.
+
+There are two result arrays and their values differ: `PC+0x7D0` gets the value before the final
+exclusive or with `p.e`, while `PC+0x7E8` gets it after. Their counters differ too: `PC+0x7D8` for
+the first and `PC+0x7F0` for the second, and the completion check reads the second one.
 
 Input: `PC+0x800` is the lock after five characters (`locked`), `PC+0x808` points to the
 accumulated letters array and `PC+0x810` holds their count (`Codes.Num`).
@@ -411,12 +414,17 @@ not a guess: the offset is read in the code twice, on route activation and on ro
 The full completion condition at `VA 0x144395F10` looks like this after reversing:
 
 ```cpp
-if (progress == profile_record_count) {
+if (progress >= profile_record_count) {
     uint32_t bits = 0;
     for (uint32_t x : computed) bits |= x;
     if (bits == 0) localComplete = 1;
 }
 ```
+
+The comparison is non-strict, and the code shows it: `cmp DWORD PTR [rbx+0x7c0],r9d`, where `r9d`
+is the profile record count from `+0x48`, is followed by `jl` to the exit, so success is possible
+at `progress >= count`. For a normal playthrough, where the counter reaches exactly three, the
+difference does not matter, but as a condition these are not the same thing.
 
 It is easy to fool yourself here: zeros in the cells of routes not yet processed do not mean
 success. For example `computed=[0, 0xF2392DF9, 0]` with `progress=1` means one record was checked,
@@ -745,7 +753,9 @@ the UI turns into a texture.
 
 The first reading was wrong: I read the word as `pyth` and the flag was rejected. On a clearer
 snapshot it turned out to be `p4th`, a hint at path finding. The `all lowercase` note applies only
-to the flag body inside the braces: the `SOLARCTF` prefix is uppercase, the body is lowercase. One
+to the flag body inside the braces: on the image the body is lowercase and the prefix uppercase.
+The correspondence does not fix the prefix case unambiguously, so I will not claim it as a
+requirement. One
 more ambiguous character in the body had to be settled separately: it is the digit zero in `0n`,
 not the letter `o`. After the fixes the flag was accepted by the server:
 

@@ -12,8 +12,8 @@
   все адреса в разборе относятся именно к этой сборке.
 - `UnrealDuck/Content/Paks/` с контейнерами `global.utoc`, `global.ucas`,
   `UnrealDuck-WindowsClient.utoc`, `UnrealDuck-WindowsClient.ucas` и
-  `UnrealDuck-WindowsClient.pak`. Индекс IoStore начинается с шестнадцатибайтового
-  текстового баннера, дальше идёт обычный заголовок версии 8.
+  `UnrealDuck-WindowsClient.pak`. Индекс IoStore начинается со шестнадцатибайтовой сигнатуры
+  `-==--==--==--==-`, дальше по смещению `0x10` идёт версия 8, по `0x14` размер заголовка 144.
 
 Опорные факты:
 

@@ -13,8 +13,8 @@ What the build contains:
   writeup belongs to exactly this build.
 - `UnrealDuck/Content/Paks/` with the containers `global.utoc`, `global.ucas`,
   `UnrealDuck-WindowsClient.utoc`, `UnrealDuck-WindowsClient.ucas` and
-  `UnrealDuck-WindowsClient.pak`. The IoStore index starts with a sixteen-byte text banner,
-  followed by a normal version 8 header.
+  `UnrealDuck-WindowsClient.pak`. The IoStore index starts with the sixteen-byte signature
+  `-==--==--==--==-`, then version 8 at offset `0x10` and a header size of 144 at `0x14`.
 
 Key facts:
 
