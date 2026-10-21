@@ -409,6 +409,22 @@ A route is turned on by a game trigger, its handler at `VA 0x144391670` sets `Ro
 the accumulation. The finish trigger at `VA 0x144391890` calls the computation at
 `VA 0x14438B8A0` and sends `ServerRecordFrame(RouteId, Codes)`.
 
+How the trigger gets the controller is visible in the same handlers. The third handler argument
+(`r8` in the Win64 calling convention) is the pawn that crossed the zone, and the controller
+pointer sits in that pawn at offset `0x2E8`. Both handlers use the very same instruction:
+
+```
+$ objdump -d -M intel --start-address=0x1443916b4 --stop-address=0x1443916c0 UnrealDuckClient-Win64-Shipping.exe
+   1443916b4: 48 8b 9b e8 02 00 00   mov rbx,QWORD PTR [rbx+0x2e8]
+
+$ objdump -d -M intel --start-address=0x1443918d4 --stop-address=0x1443918e0 UnrealDuckClient-Win64-Shipping.exe
+   1443918d4: 48 8b 9b e8 02 00 00   mov rbx,QWORD PTR [rbx+0x2e8]
+```
+
+A class check follows immediately: a call to `0x14437bac0` and a comparison against the slot at
+`+0x48`, which is the ordinary Unreal cast. So `0x2E8` is the pawn `Controller` field, and it is
+not a guess: the offset is read in the code twice, on route activation and on route finish.
+
 The full completion condition at `VA 0x144395F10` looks like this after reversing:
 
 ```cpp
@@ -427,18 +443,46 @@ not two solved routes. I made exactly this mistake at first and decided one rout
 
 Why this step: without the check function there is no way to understand the code or to search it.
 
-The `DuckRouteProfileAsset` profile is created by native code, not by a separate asset lying in the
-content under its own name: its records are built in a function around `VA 0x144380750`. So I took
-the profile from the memory of the running game:
+The `DuckRouteProfileAsset` profile is created by native code, it does not lie in the content as a
+separate asset under its own name. I looked for that place by the record constants: they are
+written as immediate operands in the function starting at `VA 0x144380750`.
 
 ```
-Profile record count = 3
-profile+0x50 = 0x2F6CB09A
-profile+0x54 = 0x2FD2EEE2
+$ objdump -d -M intel --start-address=0x1443808ef --stop-address=0x144380910 UnrealDuckClient-Win64-Shipping.exe
+   1443808ef: b9 1c 00 00 00        mov    ecx,0x1c
+   1443808f4: c7 46 50 9a b0 6c 2f  mov    DWORD PTR [rsi+0x50],0x2f6cb09a
+   1443808fb: 41 b8 03 00 00 00     mov    r8d,0x3
+   144380901: c7 46 54 e2 ee d2 2f  mov    DWORD PTR [rsi+0x54],0x2fd2eee2
+   144380908: c7 46 38 58 e9 72 29  mov    DWORD PTR [rsi+0x38],0x2972e958
 ```
 
-The field `profile+0x38 = 0x2972E958` was found in the native initialisation. The three records of
-28 bytes (`0x1C`) each look like this:
+That shows the profile layout. The record size `0x1c` is exactly those 28 bytes, the record count
+is three, and offsets `+0x38`, `+0x50` and `+0x54` hold three profile constants. Some record values
+come not from code but from a constant pool in `.rdata`: at `0x14711a990` lie `0x45d39389`,
+`0xb2dcbf59`, `0x6f4b4eda` and `0x17d98198`, and at `0x14711aaf0` lie `0x39c19d54`, `0x158b4d73`,
+`0x583a99d9` and `0xb01e4f4d`. The record array is a `TArray` at offset `+0x40`: the data pointer
+first, then the count at `+0x48`.
+
+Hence the working layout of one record: `+0x00` is `a`, `+0x04` the route number, `+0x08` is `b`,
+`+0x0C` is `c`, `+0x10` is `d`, `+0x14` is `e`, `+0x18` is `f`. The route number inside a record is
+one more check: it equals the record index, so records cannot be mixed up.
+
+The profile can be dumped from the live game with `scripts/duck_dump_profile.py`. It hooks route
+activation and the `ServerRecordFrame` sender, takes the controller from `Pawn+0x2E8`, reads the
+profile pointer from `PC+0x7A8` and prints the header and every record:
+
+```
+$ py -m pip install frida
+$ py scripts/duck_dump_profile.py --pid 1234 --out profile_dump.json
+attached, module base 0x7ff6a1c40000
+dump source=activation_pawn controller=0x... profile=0x... MATCH
+```
+
+`MATCH` means the dumped values equal the expected constants of this build, which are hardcoded in
+the script for comparison. The mixer key in the default argument `0x2f6cb09a` equals
+`profile+0x50`, one more confirmation that the reconstructed formula belongs to this profile.
+
+The three records of 28 bytes (`0x1C`) each look like this:
 
 | Record | `a` | `b` | `c` | `d` | `e` | `f` |
 | ---: | --- | --- | --- | --- | --- | --- |

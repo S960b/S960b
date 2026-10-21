@@ -49,6 +49,7 @@ Files:
 - `scripts/duck_capture_payload.py` - simpler payload interceptor
 - `scripts/duck_solve_corrected.cpp` - local code search
 - `scripts/duck_auto_guide.py` - automatic code input with genuine keyboard events
+- `scripts/duck_dump_profile.py` - dumps the route profile from memory and checks the constants
 - `assets/` - container path list, project asset list, search output
 
 Heavy artifacts (the build itself and the unpacked content) are not copied into the repository.
