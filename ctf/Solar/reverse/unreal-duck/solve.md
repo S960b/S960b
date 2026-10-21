@@ -38,17 +38,13 @@ $ sha256sum unreal_duck/UnrealDuck/Binaries/Win64/UnrealDuckClient-Win64-Shippin
 d0aff10fbd7e980dc9edcaa8cc95d232a37b11c7eb977ad9e66784cec532b802
 ```
 
-Build composition:
-
-| Object | Size, bytes | Purpose |
-| --- | ---: | --- |
-| `UnrealDuckClient.exe` | 167 424 | launcher, also PE64 |
-| `Binaries/Win64/UnrealDuckClient-Win64-Shipping.exe` | 143 861 760 | main game code, PE64 x86-64 |
-| `Content/Paks/UnrealDuck-WindowsClient.ucas` | 289 910 624 | IoStore data |
-| `Content/Paks/UnrealDuck-WindowsClient.utoc` | 217 399 | IoStore index |
-| `Content/Paks/UnrealDuck-WindowsClient.pak` | 11 017 197 | separate pak |
-| `Content/Paks/global.utoc` | 722 | engine index |
-| `Content/Paks/global.ucas` | 2 870 272 | engine data |
+I took the sizes with `stat`, so every address below belongs to a verified build. The launcher
+`UnrealDuckClient.exe` is 167 424 bytes and is PE64 too. The main code is in
+`Binaries/Win64/UnrealDuckClient-Win64-Shipping.exe`, 143 861 760 bytes, PE64 x86-64. The content
+sits in `Content/Paks`: IoStore data `UnrealDuck-WindowsClient.ucas` takes 289 910 624 bytes, the
+index `UnrealDuck-WindowsClient.utoc` takes 217 399 bytes, the separate
+`UnrealDuck-WindowsClient.pak` takes 11 017 197 bytes. The engine pair is smaller: `global.utoc` is
+722 bytes and `global.ucas` is 2 870 272 bytes.
 
 The hash helped later: the first attempt to place a hook ended with `access violation`, and
 checking the module name, its base and the function bytes removed the uncertainty (section 6).
@@ -180,8 +176,9 @@ In Unreal editor terms the project root `UnrealDuck/Content` corresponds to `/Ga
 call these objects shortly, for example `/Game/ThirdPerson/Lvl_ThirdPerson`. The full list is in
 `assets/unrealduck_paths.txt`, the project-only list in `assets/unrealduck_project_assets.txt`.
 
-There are two maps in the build: the main menu and the training ground. There is no separate map
-for a secret level. The executable strings confirm it: they describe the single public level.
+The build has one game map, the training ground `/Game/ThirdPerson/Lvl_ThirdPerson`. The second map
+file, `Lvl_MainMenu`, is the menu screen, and a menu is not a level. The executable string says the
+same, it describes exactly one public level:
 
 ```
 Current public level. Additional routes may appear later
@@ -189,9 +186,7 @@ without exposing their map paths in the menu.
 ```
 
 Next to it I found the level list initialisation at `VA 0x144380A20`: it creates one entry
-`training_ground`, sets `bVisibleInMenu=1` and points to `/Game/ThirdPerson/Lvl_ThirdPerson`. Hence
-an important negative result: a menu system with a visibility field does not mean a second
-unlockable level exists. I did not develop the hidden map hypothesis any further.
+`training_ground`, sets `bVisibleInMenu=1` and points to `/Game/ThirdPerson/Lvl_ThirdPerson`.
 
 The unpacked files can already be opened, but this is a binary format, so I googled its
 description. A classic Unreal package starts with `FPackageFileSummary`, which holds the name
@@ -224,14 +219,10 @@ A side check: can the answer be extracted from the level geometry. In `Lvl_Third
 blocks: roughly 20 cubes, 12 ramps, 9 cylinders and 12 quarter cylinders. Coordinates are in the
 `XY ±2000` range, heights mostly `0`, `-100` and `200`, rotations multiples of 90 degrees. To read
 the serialised transforms I matched four component layouts, judging them by whether the values made
-sense:
-
-| Component size, bytes | RelativeLocation | RelativeRotation | RelativeScale |
-| ---: | ---: | ---: | ---: |
-| 113 | +21 | +45 | +69 |
-| 102 | +10 | +34 | +58 |
-| 91 | +23 | default | +47 |
-| 80 | +12 | default | +36 |
+sense. The layouts came out like this. With a component size of 113 bytes, `RelativeLocation` is read at
+offset +21, `RelativeRotation` at +45 and `RelativeScale` at +69. With 102 bytes it is +10, +34 and
++58. With 91 bytes only +23 and +47 remain, there is no rotation in the record. With 80 bytes it is
++12 and +36, again with no rotation.
 
 That confirmed the arena is read correctly, but there is no plain flag text in the arrangement of
 the blocks. The scripts for it stayed in `scripts/duck_smc_decode.py`,
@@ -259,25 +250,19 @@ In Unreal such functions are declared as `UFunction` and called through the refl
 its handler. To get the code I looked for registration tables of the form "name pointer, `exec...`
 wrapper pointer" and for the virtual table of the game `PlayerController`.
 
-The resulting addresses for this build (virtual addresses, image base `0x140000000`):
+The resulting addresses for this build (virtual addresses, image base `0x140000000`) are these.
+The `exec` wrappers of the server functions are at `ServerPushCheatLetter` `0x144383940`,
+`ServerRecordFrame` `0x1443839C0`, `ServerApplyLocalProfile` `0x144383860` and
+`ClientReceivePayload` `0x144382C50`. The client side sends go through `0x144381D30` for
+`ServerPushCheatLetter`, `0x144381D70` for `ServerRecordFrame` and `0x144381E30` for
+`ServerSendChat`.
 
-| Purpose | VA |
-| --- | ---: |
-| `ServerPushCheatLetter`, `exec` wrapper | `0x144383940` |
-| `ServerRecordFrame`, `exec` wrapper | `0x1443839C0` |
-| `ServerApplyLocalProfile`, `exec` wrapper | `0x144383860` |
-| `ClientReceivePayload`, `exec` wrapper | `0x144382C50` |
-| client side send of `ServerPushCheatLetter` | `0x144381D30` |
-| client side send of `ServerRecordFrame` | `0x144381D70` |
-| client side send of `ServerSendChat` | `0x144381E30` |
-| letter key handling | `0x14438F5F0` |
-| route activation zone entry | `0x144391670` |
-| route completion zone entry | `0x144391890` |
-| route check value computation | `0x14438B8A0` |
-| overall completion check | `0x144395F10` |
-| `ClientReceivePayload` implementation | `0x144394600` |
-| received message UI | `0x144393210` |
-| menu level list creation | `0x144380A20` |
+The route logic sits at these addresses: letter key handling `0x14438F5F0`, route activation zone
+entry `0x144391670`, route completion zone entry `0x144391890`, route check value computation
+`0x14438B8A0`, overall completion check `0x144395F10`.
+
+The reward and the interface: the `ClientReceivePayload` implementation is `0x144394600`, the
+received message UI is `0x144393210`, the menu level list creation is `0x144380A20`.
 
 I verify the addresses with a disassembler so I am not working from random offsets:
 
@@ -348,13 +333,10 @@ reward does not come for free.
 Why this step: to understand what the game counts as code input, otherwise there is no way to
 explain where the accumulated characters come from.
 
-The log showed three different send functions, not one shared chat command:
-
-| RPC | Client wrapper VA | Caller |
-| --- | ---: | ---: |
-| `ServerPushCheatLetter` | `0x144381D30` | `0x14438F77A` |
-| `ServerRecordFrame` | `0x144381D70` | `0x14438BA6A` |
-| `ServerSendChat` | `0x144381E30` | `0x144394F49` |
+The log showed three different send functions, not one shared chat command.
+`ServerPushCheatLetter` has wrapper `0x144381D30` and its caller is `0x14438F77A`.
+`ServerRecordFrame` has wrapper `0x144381D70` and its caller is `0x14438BA6A`. `ServerSendChat` has
+wrapper `0x144381E30` and its caller is `0x144394F49`.
 
 `ServerPushCheatLetter` takes a number from 0 to 25: key `A` gives 0, `B` gives 1 and so on. The
 game listens to Latin keys not only while the chat is open, so the log was full of `0`, `3`, `18`,
@@ -369,7 +351,10 @@ RouteCompletion routeId=0/1/2
 RouteRPC routeId=0 codesCount=0
 ```
 
-A separate experiment showed that letters really are recorded:
+A separate experiment showed that letters really are recorded. I deliberately pressed five
+different keys in a row without walking around: `D`, then `W`, then `D`, then `D`, then `F`. The
+log shows the counter growing from one to five, which letters accumulated, and that the lock
+engaged after the fifth one:
 
 ```
 codesCount 1 -> 2 -> 5
@@ -378,9 +363,10 @@ locked = 1
 RouteRPC routeId=0 codesCount=5
 ```
 
-No reward reply came: the arbitrary set failed the check. But the important part became clear: the
-set is limited to five letters, after the fifth input is locked, and ordinary walking interferes
-because it mixes in its own characters.
+The `codesCount` and `codes` lines are printed by the hook in `scripts/duck_auto_guide.py`: it
+reads `PC+0x810` and the array at `PC+0x808`. No reward reply came for that set, it failed the
+check. But the important part became clear: the set is limited to five letters, after the fifth
+input is locked, and ordinary walking interferes because it mixes in its own characters.
 
 ## 8. Player controller state
 
@@ -390,22 +376,17 @@ decoding every call by hand.
 The first argument of these functions is the controller object itself, so the hooks show both the
 values and the offsets they live at. For this build the picture is:
 
-| Offset | Purpose |
-| --- | --- |
-| `PC+0x7A8` | pointer to `DuckRouteProfileAsset` |
-| `PC+0x7B0` | packed state of the five characters (`packed`) |
-| `PC+0x7C0` | processed route counter (`progress`) |
-| `PC+0x7C8` | current `RouteId`, `255` means no active route |
-| `PC+0x7D0` | per-route results array, its count at `+0x7D8` |
-| `PC+0x7E0` | internal mixed state (`mixed`) |
-| `PC+0x7E4` | local full completion flag (`localComplete`) |
-| `PC+0x7E8` | second array of the same results, its count at `+0x7F0` |
-| `PC+0x7F0` | number of elements in that array |
-| `PC+0x7F8` | aggregate value over all profile records |
-| `PC+0x800` | input lock after five characters (`locked`) |
-| `PC+0x804` | rolling state |
-| `PC+0x808` | pointer to the accumulated letters array |
-| `PC+0x810` | accumulated letter count (`Codes.Num`) |
+The profile pointer is at `PC+0x7A8`, the packed state of the five characters at `PC+0x7B0` (that
+is `packed`), the processed route counter at `PC+0x7C0` (`progress`), the current route number at
+`PC+0x7C8`, where `255` means there is no route. Per-route results go into the array at `PC+0x7D0`
+with its count at `PC+0x7D8`.
+
+Then the mixer states: `PC+0x7E0` is `mixed`, `PC+0x804` is `rolling`. The full completion flag is
+at `PC+0x7E4` (`localComplete`), the second array of the same results at `PC+0x7E8` with its count
+at `PC+0x7F0`, and the aggregate over all profile records at `PC+0x7F8`.
+
+Input: `PC+0x800` is the lock after five characters (`locked`), `PC+0x808` points to the
+accumulated letters array and `PC+0x810` holds their count (`Codes.Num`).
 
 A route is turned on by a game trigger, its handler at `VA 0x144391670` sets `RouteId` and clears
 the accumulation. The finish trigger at `VA 0x144391890` calls the computation at
@@ -484,13 +465,11 @@ dump source=activation_pawn controller=0x... profile=0x... MATCH
 the script for comparison. The mixer key in the default argument `0x2f6cb09a` equals
 `profile+0x50`, one more confirmation that the reconstructed formula belongs to this profile.
 
-The three records of 28 bytes (`0x1C`) each look like this:
-
-| Record | `a` | `b` | `c` | `d` | `e` | `f` |
-| ---: | --- | --- | --- | --- | --- | --- |
-| 0 | `0x6f37aa0b` | `0x112bb232` | `0x29b1711a` | `0x45d39389` | `0xb2dcbf59` | `0x6f4b4eda` |
-| 1 | `0x17d98198` | `0x42413596` | `0x73257244` | `0x57d52250` | `0x2523ab39` | `0x203585fc` |
-| 2 | `0x2f48611f` | `0x39c19d54` | `0x158b4d73` | `0x583a99d9` | `0xb01e4f4d` | `0x2b74299a` |
+The three records of 28 bytes (`0x1C`) look like this. Record zero: `a` is `0x6f37aa0b`, `b` is
+`0x112bb232`, `c` is `0x29b1711a`, `d` is `0x45d39389`, `e` is `0xb2dcbf59`, `f` is `0x6f4b4eda`.
+Record one: `a` is `0x17d98198`, `b` is `0x42413596`, `c` is `0x73257244`, `d` is `0x57d52250`,
+`e` is `0x2523ab39`, `f` is `0x203585fc`. Record two: `a` is `0x2f48611f`, `b` is `0x39c19d54`,
+`c` is `0x158b4d73`, `d` is `0x583a99d9`, `e` is `0xb01e4f4d`, `f` is `0x2b74299a`.
 
 The next question was what the computation does. The reconstructed model turns a character `c` into
 a 6-bit value:
@@ -690,13 +669,8 @@ trials=11881376 hits=[1,1,1]
 
 The first two lines are the check on that same `JJJJJ`: the state values and the result match the
 live ones, so the search can be trusted. Next it is visible that for each route exactly one set
-zeroes the required value:
-
-| RouteId | Five letters | Result |
-| ---: | --- | ---: |
-| 0 | `ILOVE` | `0x00000000` |
-| 1 | `DUCKS` | `0x00000000` |
-| 2 | `ALOTT` | `0x00000000` |
+zeroes the required value. For route 0 that is `ILOVE` with result `0x00000000`, for route 1 it is
+`DUCKS` and again `0x00000000`, for route 2 it is `ALOTT` and `0x00000000` once more.
 
 The answers spell `I LOVE DUCKS A LOT`. That is an independent sanity check: if the function had
 been reconstructed wrongly, three sets in a row would hardly form a meaningful phrase.
@@ -793,8 +767,8 @@ really obtained.
   no text in their arrangement.
 - Greek trigrams from `CoreRedirects` (`EXIDNKVP`). I tried A1Z26, ROT and index sums, no provable
   decoding came out, and it was not the answer.
-- The hidden second map hypothesis. `KnownLevels` and `bVisibleInMenu` exist, but the build has one
-  map and no extra `.umap`.
+- The idea of a second map. `KnownLevels` and `bVisibleInMenu` exist in the build, but there is one
+  map and no extra `.umap` in the container.
 - Writing directly into the letters array and calling the RPC by hand. The controller pointer was
   unavailable, the call failed with `access violation 0x0`, and the `R`, `E`, `S` states do not
   update that way.

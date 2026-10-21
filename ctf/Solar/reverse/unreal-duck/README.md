@@ -22,8 +22,8 @@ Key facts:
   1662 entries but no game assets: only engine configs, a shader cache and `AssetRegistry.bin`.
 - Packages have `legacy: -9` and `uses_unversioned_properties: True`, so this is UE5 and property
   names are not stored in the files.
-- The build has two maps, the main menu and the training ground. There is no separate map for a
-  secret level, and no second unlockable level in the menu.
+- The build has one game map, the training ground `Lvl_ThirdPerson`. The second map file,
+  `Lvl_MainMenu`, is the menu screen, and a menu is not a level.
 - The logic is in native code. The executable strings include the RPC functions
   `ServerPushCheatLetter`, `ServerRecordFrame`, `ClientReceivePayload` and a few more. Server RPCs
   are empty in the client build, the check runs in a server build that is not in the archive, but
