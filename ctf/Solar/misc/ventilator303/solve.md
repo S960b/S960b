@@ -261,7 +261,52 @@ There is no plain flag in the strings. A second observation: 15 378 bytes out of
 with the byte `0x5A`, the code of the letter `Z`. Such uniform padding means the interesting part of
 the program sits at the beginning of the block, not spread across it.
 
-## 7. Finding the decryption loop and the date
+## 7. What the program itself did
+
+Why this section: to show that the TAP carried not just a ciphertext line but a small program with
+a loader and a screen splash. It also checks that the structure was understood correctly: the code
+draws a frame, prints the title and calls exactly that decryption loop.
+
+The BASIC loader with my comments, the program itself has none:
+
+```
+10 BORDER 1: PAPER 1: INK 6: CLS                ; colours: border 1, paper 1, ink 6, clear the screen
+20 PRINT AT 10,8;FLASH 1;"VENTILATOR-303"       ; flashing title at row 10
+30 PRINT AT 12,8;"LOADING FOR THOSE WHO WAIT"   ; caption below it
+40 LOAD ""CODE                                  ; load the code block at the address from its header, 0x8000
+50 RANDOMIZE USR 32768                          ; run the code at address 32768, that is 0x8000
+```
+
+What is worth knowing about these lines. Spectrum BASIC stores a program not as text but as tokens:
+commands are single-byte codes, which is why the TAP shows `F5` in place of `PRINT`, `AC` in place
+of `AT` and `EF` in place of `LOAD`. `LOAD ""CODE` without an address takes the address from the
+header of the block being loaded, which is why line 40 has none. `USR` is a call into machine code
+at the given address, and `RANDOMIZE` in front of it resets the random number generator before the
+call.
+
+The machine code starts like this:
+
+```
+8000  cd 8c 80   call 0x808C      ; clear the screen: pixels to zero, attributes 0x16, paper 1 ink 6
+8003  21 0c 83   ld   hl,0x830C   ; HL on the table of custom graphics characters
+8006  22 7b 5c   ld   (0x5C7B),hl ; store its address in the system variable UDG
+8009  cd 03 81   call 0x8103      ; draw the outer frame from those characters
+800c  cd 54 81   call 0x8154      ; draw the inner corners
+800f  cd b0 81   call 0x81B0      ; a short beep through port 0xFE
+8012  21 7d 83   ld   hl,0x837D   ; data for the print routine
+8015  cd d5 81   call 0x81D5      ; print it
+```
+
+After that the program prints three centred lines, `VENTILATOR-303`, `GALAKSIJA DEMO` and
+`YOU TAPED US RIGHT`, colours them, draws the remaining lines, and at `0x807D` calls `0x82A2`: that
+same loop that decrypts 43 bytes and places the characters at the screen positions from the table.
+At the end it prints a single character, sets the border to black and enters an endless loop so the
+picture stays on screen.
+
+The flag is not in the block, neither in the strings nor in the data: it is not stored, it is
+computed at the moment it is shown, which is why `strings` finds nothing.
+
+## 8. Finding the decryption loop and the date
 
 Why this step: to see which tables the program reads and where the key comes from.
 
@@ -309,7 +354,7 @@ The table at `0x83D8` holds 43 bytes and is a permutation: sorted, its values ar
 numbers 0 to 42 with no repeats. A permutation is a rule that places a character not at its own
 position but at the position it names. That is why plain XOR without the table gives a jumble.
 
-## 8. Reconstructing the generator line by line
+## 9. Reconstructing the generator line by line
 
 Why this step: without the state update there are no key bytes, and without the key not a single
 character decrypts.
@@ -421,7 +466,7 @@ multiplier `0x41C64E6D`. The shift-and-add multiplication gives `0x86125CA5`, an
 multiplication modulo `2^32` gives the same. After adding `0x3039` the result is `0x86128CDE`, and
 that is exactly the state the solver shows on the first step. The routine is read correctly.
 
-## 9. What a linear congruential generator is
+## 10. What a linear congruential generator is
 
 Why this section: to name what was reconstructed and to explain how it works.
 
@@ -443,7 +488,7 @@ could encrypt the text by XOR with the bytes of this sequence and be sure everyo
 date would get the same result. The word "pseudo-random" matters more than "random": the numbers
 look random but are fully predictable once the initial value and the formula are known.
 
-## 10. How bytes become letters
+## 11. How bytes become letters
 
 Why this section: to put the whole final stage together, because this is where understanding is
 most often lost.
@@ -508,7 +553,7 @@ ciphertext @ 0x8403: 3fb5f6caf766ac81...46ec3a
 FLAG: SOLARCTF{YuG...80Z}
 ```
 
-## 11. The flag
+## 12. The flag
 
 Why this step: to fix the result and the part that is easy to spoil.
 
@@ -525,7 +570,7 @@ Inside the body some characters are digits, not letters: a zero instead of the l
 instead of `I` occur in several places. Rewriting them as letters breaks the string, because the
 check compares exact characters.
 
-## 12. What did not work and why
+## 13. What did not work and why
 
 - Speech recognition. There is speech at the start and at the end of the recording, but the data
   lives in the digital part, and speech-to-text over noise gives nothing.
@@ -538,7 +583,7 @@ check compares exact characters.
 - Taking the low byte of the state as the key. The code uses the byte at `0x83C6`, that is bits 16
   to 23, and with the low byte the text does not come together.
 
-## 13. In one paragraph
+## 14. In one paragraph
 
 The recording turned out to be not a radio broadcast but a digital transmission of a program: a
 1200-baud AFSK signal with tones at 1200 and 2400 Hz, 8N1 frames, synchronised on `0x55` at 14.99
@@ -549,7 +594,7 @@ In that code I found a loop over 43 characters that takes the initial state `0x1
 task date, runs a generator with multiplier `0x41C64E6D` and increment `0x3039`, XORs the ciphertext
 with the state byte from bits 16 to 23 and places the result according to the permutation table.
 
-## 14. Conclusions
+## 15. Conclusions
 
 - The first action is listening: a recognisable cassette loading sound set the direction at once and
   saved hours that would have gone into speech recognition.
