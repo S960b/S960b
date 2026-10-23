@@ -154,8 +154,8 @@ the necessary part myself.
 
 Why this step: to learn how the resources are encrypted, because without that they cannot be read.
 
-The honest order of events: at first we did not know. There was a guess that resources named `brain`
-and `skin` are encoded somehow, but by what was unknown. So I dumped the whole disassembly of the
+There was a guess that resources named `brain` and `skin` are encoded somehow, but by what was
+unknown. So I dumped the whole disassembly of the
 library into a text file and looked for things unusual for plain code: rare constants, references to
 resource names, byte loops.
 
