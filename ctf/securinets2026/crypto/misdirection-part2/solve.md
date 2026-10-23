@@ -10,6 +10,11 @@ Given: the sources of a service with a bot (`bot.js`, `authenticator.js`, `auth-
 ciphertext of the hint. The site with WebAuthn registration and login is closed, but the bot sources
 are open.
 
+Two notes on names, to avoid confusion. The portal lists the task as `Misdirection: Part 2` in the
+Cryptography category, while the source archive is called `misdir.zip` and some materials refer to
+the task simply as Misdirection. The hint ciphertext came with the task statement: it is not inside
+`misdir.zip`, I checked by searching all sources.
+
 Goal: get the flag stored in the encrypted hint.
 
 The plan came out like this:
@@ -28,6 +33,11 @@ The bundle holds the bot sources. `bot.js` starts a headless browser, opens the 
 a random user and logs in. `authenticator.js` contains a hand-made WebAuthn implementation:
 registration and login. `admin.rs` is the server side in Rust, and the `/report` handler that starts
 the bot lives there.
+
+The service also has a purely business path to the flag: the `/api/flag` route returns it to a user
+whose balance is at least five million, while topping up `/api/admin/add_funds` is available only to
+an administrator. We did not use that path, the flag came from the hint, but it is worth mentioning:
+the service had two different ways to reach the flag, and the admin key matters for both.
 
 On top of that the task provided the hint ciphertext. It is in `assets/hint_ciphertext.hex`, 64
 bytes, that is exactly four AES blocks.
@@ -117,6 +127,10 @@ python3 scripts/solve_misdir.py --listen --port 8877
 python3 scripts/solve_misdir.py --trigger --base 'https://<host>' --tunnel 'https://<tunnel>.trycloudflare.com'
 ```
 
+Before that the solver sends a deliberately wrong link to `/report`, so the server names the
+expected prefix in its error message, and takes `FRONTEND_URL` from that answer. It does not have to
+be invented, the service hands it over.
+
 The page the bot opens calls `forgeAuthentication` in its browser twice: with `rpId` `example.com`
 and `example.org`. Both signatures, together with `authenticatorData` and `clientDataJSON`, go to our
 server, which parses them.
@@ -155,8 +169,10 @@ is not `d` itself but SHA-256 of its hexadecimal notation in lowercase, without 
 key = hashlib.sha256(f'{d:064x}'.encode()).digest()
 ```
 
-That detail had to be found: with a key made of the `d` bytes themselves, and with variants such as
-reversed byte order, the output is garbage.
+That detail had to be found, and it also explains a message from the bundled solver. There the key
+was taken as `d.to_bytes(32, 'big')` and the padding was removed as standard PKCS7, which is why the
+script printed `PKCS7 padding invalid`: with the `d` bytes themselves, with reversed byte order and
+with ordinary PKCS7 the decryption does not come together.
 
 The padding is non-standard too. After decryption the end holds 28 bytes of value `0x1c`, that is
 28. For AES the block is 16 bytes, and ordinary PKCS7 cannot add more than 16 bytes, so automatic
