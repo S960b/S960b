@@ -35,7 +35,7 @@ is reading Python instead of disassembling.
 - `m/x_d03594116a69.py` - the exit room, which runs `exec(state.script)`;
 - `runner.py` / `server.py` - the TCP wrapper.
 
-There is no flag in the local files; the flag string is `hitcon{...}`.
+There is no flag in the local files; the flag string is `hitcon{br4nd_n3..._c0ntrol}`.
 
 ## 2. The mechanism: lazy imports as a switch
 

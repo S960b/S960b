@@ -244,3 +244,5 @@ gadget chain redirects the stack into the controlled region, runs
   copy routine on the actual boot.
 - A one-bit, one-shot MSR flip is enough for full kernel pwn: pick the
   syscalls, not the gadgets, and let the DF copy do both leak and overwrite.
+
+Flag: `hitcon{Card_Eff...shell!!!}`

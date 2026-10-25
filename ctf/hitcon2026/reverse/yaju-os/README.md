@@ -5,7 +5,7 @@
 - **Points / Solves:** 160 pts
 - **Date:** 2026-10-24
 - **Remote:** `<host>:6402` (raw HCI/H4 over TCP, not a shell)
-- **Flag:** `hitcon{...}` (masked)
+- **Flag:** `hitcon{0m43 y4r... n3 sugi}` (masked)
 - **Files:** `assets/yaju-os-e0b330b2a3740d63.tar.gz` (original handout), `assets/board_flash.bin` (256 KiB nRF51422 firmware)
 - **Description (official):** "My IOT homework_new folder（1）_ver.114514(final）"
 

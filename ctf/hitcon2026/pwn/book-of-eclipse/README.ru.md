@@ -5,7 +5,7 @@
 - **Очки / Решений:** 156 очков
 - **Дата:** 2026-10-24
 - **Remote:** `<host>:13370` (TCP, обёртка с PoW и скачиванием эксплойта, QEMU)
-- **Флаг:** `hitcon{...}` (замаскирован)
+- **Флаг:** `hitcon{Card_Eff...shell!!!}` (замаскирован)
 - **Файлы:** `assets/bzImage`, `assets/initramfs.cpio`, `assets/kernel.config`, `assets/run.sh`, `assets/solve_pow.py`
 - **Описание (выведено из бокса):** разовый драйвер ядра позволяет перевернуть любой один бит `IA32_FMASK`; получи root и прочитай `/flag.txt`.
 

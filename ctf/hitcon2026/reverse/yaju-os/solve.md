@@ -207,3 +207,5 @@ it over ATT in the same HCI session and extracts the flag.
 - A bootloader that checks CRC but not signatures is a code-execution primitive
   by design; a 176-byte Thumb payload that publishes data over the registered
   attribute is enough to exfiltrate anything MMIO exposes.
+
+Flag: `hitcon{0m43 y4r... n3 sugi}`

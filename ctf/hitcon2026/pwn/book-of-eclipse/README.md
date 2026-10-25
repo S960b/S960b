@@ -5,7 +5,7 @@
 - **Points / Solves:** 156 pts
 - **Date:** 2026-10-24
 - **Remote:** `<host>:13370` (TCP, holds a PoW gate, download-your-exploit QEMU wrapper)
-- **Flag:** `hitcon{...}` (masked)
+- **Flag:** `hitcon{Card_Eff...shell!!!}` (masked)
 - **Files:** `assets/bzImage`, `assets/initramfs.cpio`, `assets/kernel.config`, `assets/run.sh`, `assets/solve_pow.py`, `assets/initramfs_init`, `assets/initramfs_driver_book-of-eclipse.ko`
 - **Description (inferred from the box):** a one-shot kernel driver lets you flip any single bit of `IA32_FMASK`; reach root and read `/flag.txt`.
 

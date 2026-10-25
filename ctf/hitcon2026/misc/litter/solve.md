@@ -243,3 +243,5 @@ the bottom of the picture.
 - Damaged S-box + canceled final round key = known-plaintext key recovery with a
   maybe-30-lines check; verify with an independent authenticator (GCM tag), never with
   "it looks like a PNG".
+
+Flag: `hitcon{too_many..._pudding}`

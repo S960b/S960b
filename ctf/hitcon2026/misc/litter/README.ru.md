@@ -5,7 +5,7 @@
 - **Очки / Решений:** 197 очков
 - **Дата:** 2026-10-24
 - **Remote:** веб-часть на инстансере (замаскирован `<host>`), других сервисов нет
-- **Флаг:** `hitcon{...}` (замаскирован)
+- **Флаг:** `hitcon{too_many..._pudding}` (замаскирован)
 - **Файлы:** `assets/flag.png.ltr` (похищенное изображение), `assets/encryptor` (ARM64 ELF из веб-части)
 - **Описание (официальное):** "My precious pudding image got ransomed :tear: Someone help me."
 

@@ -5,7 +5,7 @@
 - **Очки / Решений:** 179 очков
 - **Дата:** 2026-10-24
 - **Remote:** `<host>:9999` (TCP-сервер лабиринта)
-- **Флаг:** `hitcon{...}` (замаскирован)
+- **Флаг:** `hitcon{br4nd_n3..._c0ntrol}` (замаскирован)
 - **Файлы:** `assets/lazy-maze-d040a24eb3619536.tar.gz` (оригинальный архив)
 - **Описание (официальное):** "I got stuck in the maze, and it seems to be moving :eyes: Help me escape the maze!"
 

@@ -157,3 +157,5 @@ decode to the flag.
   collapses them into one equation system.
 - When a proof system's randomness is reproducible, commitments become
   verifiers: matching `A` over the candidate vote set decides the hidden input.
+
+Flag: `hitcon{cuz_@_th..._..._...}`

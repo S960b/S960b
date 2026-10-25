@@ -6,7 +6,7 @@
 - **Date:** 2026-10-24
 - **Author:** whale120
 - **Remote:** N/A (offline bundle with a PCAP)
-- **Flag:** `hitcon{...}` (masked)
+- **Flag:** `hitcon{cuz_@_th..._..._...}` (masked)
 - **Files:** `assets/voteme-27f2656eaea4fcf2.tar.gz` (original handout)
 - **Description (official):** "Vote for me, myself and I."
 

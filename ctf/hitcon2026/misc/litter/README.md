@@ -5,7 +5,7 @@
 - **Points / Solves:** 197 pts
 - **Date:** 2026-10-24
 - **Remote:** instancer-hosted web part (masked `<host>`), no other service
-- **Flag:** `hitcon{...}` (masked)
+- **Flag:** `hitcon{too_many..._pudding}` (masked)
 - **Files:** `assets/flag.png.ltr` (ransomed image), `assets/encryptor` (ARM64 ELF from the web part)
 - **Description (official):** "My precious pudding image got ransomed :tear: Someone help me."
 
