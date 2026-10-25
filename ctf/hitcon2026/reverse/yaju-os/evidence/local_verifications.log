@@ -1,0 +1,14 @@
+# Local checks run when assembling this complete archive:
+$ python3 solution/yaju_solve.py --offline-check
+OFFLINE_PASS: vector, SVC, init packet; image length 176 CRC16 0x11cc
+
+$ python3 solution/magic_proof.py source/yaju-os/artifacts/board_runtime/board_flash.bin
+MAGIC_PROOF_PASS 11451419198100
+
+$ clang -target armv6m-none-eabi -c solution/yaju_payload.S -o build/yaju_payload.o
+$ clang -target armv6m-none-eabi -fuse-ld=lld -nostdlib -Wl,-T,solution/yaju.ld build/yaju_payload.o -o build/yaju_payload.elf
+$ llvm-objcopy -O binary build/yaju_payload.elf /tmp/yaju_rebuild.bin
+$ cmp solution/yaju_payload.bin /tmp/yaju_rebuild.bin
+REBUILD_EXACT_MATCH
+
+# Remote success evidence is supplied by the user, not rerun in this environment.

