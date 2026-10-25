@@ -1,0 +1,57 @@
+import socket, hashlib, re, time, sys
+
+HOST = "<host>"
+PORT = 13370
+
+s = socket.create_connection((HOST, PORT), timeout=20)
+s.settimeout(0.5)
+
+def read_until(patterns, timeout=30):
+    data = b""
+    end = time.time() + timeout
+    while time.time() < end:
+        try:
+            c = s.recv(65536)
+        except socket.timeout:
+            continue
+        except Exception as e:
+            print(f"\n[recv error {e}]")
+            break
+        if not c:
+            print("\n[connection closed]")
+            break
+        data += c
+        sys.stdout.write(c.decode(errors="replace"))
+        sys.stdout.flush()
+        if any(re.search(p, data) for p in patterns):
+            break
+    return data
+
+banner = read_until([rb"Your Answer"], 20)
+m = re.search(rb"Prefix: (\w+)", banner)
+if not m:
+    print("\n[!] no prefix")
+    sys.exit(1)
+prefix = m.group(1).decode()
+print(f"\n[*] prefix={prefix}")
+t0 = time.time()
+i = 0
+while True:
+    if hashlib.sha256((prefix + str(i)).encode()).hexdigest().startswith("000000"):
+        break
+    i += 1
+print(f"\n[*] pow answer={i} in {time.time()-t0:.1f}s")
+s.sendall(str(i).encode() + b"\n")
+read_until([rb"\(y/n\)"], 15)
+s.sendall(b"n\n")
+data = read_until([rb"~ \$", rb"/ \$", rb"# "], 90)
+time.sleep(1)
+s.sendall(b"cat /proc/cpuinfo | grep -m1 flags\n")
+time.sleep(1)
+s.sendall(b"cat /proc/version\n")
+time.sleep(1)
+s.sendall(b"ls -l /dev/book-of-eclipse /flag.txt 2>&1\n")
+read_until([rb"~ \$", rb"/ \$", rb"# "], 20)
+read_until([b"__never__"], 5)
+print("\n[*] session end")
+s.close()

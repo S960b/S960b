@@ -1,0 +1,57 @@
+================================
+[!] solver/solve_pow.py <prefix> can caculate answer!
+[+] Prefix: PDmTxNWwZQunwscH
+[!] Your Answer : 
+[*] prefix=PDmTxNWwZQunwscH
+
+[*] pow answer=14501009 in 8.4s
+14501009
+[+] Correct PoW!
+================================
+[!] Start !!!!!
+[?] NEED_UPLOAD_EXPLOIT (y/n)y
+[!] Give me your exploit url, you can run **/tmp/e**
+[!] Input your exploit url : 
+[*] url=https://<file-host>/<file-id>.bin
+https://<file-host>/<file-id>.bin
+[!] Wait ... your challenge will start ...
+Exploit supplied
+qemu-system-x86_64: warning: host doesn't support requested feature: CPUID.07H:EDX.fsrm [bit 4]
+qemu-system-x86_64: warning: host doesn't support requested feature: CPUID.80000001H:ECX.svm [bit 2]
+c[?7l[2J[0mSeaBIOS (version 1.16.3-debian-1.16.3-2)
+
+
+
+iPXE (https://ipxe.org) 00:03.0 CA00 PCI2.10 PnP PMM+0EFCADD0+0EF0ADD0 CA00
+
+Press Ctrl-B to configure iPXE (PCI 00:03.0)...
+                                                                               
+
+
+
+Booting from ROM...
+
+c[?7l[2J~ $ id
+
+uid=1000 gid=1000 groups=1000
+
+~ $ /tmp/e
+
+[*] uid=1000
+
+[*] ioctl=0 errno=0
+
+[*] slide=4a00000 base=ffffffff85a00000
+
+[*] win=401c10 rsp=7f5778fdfff8
+
+[*] trigger
+
+
+
+[FLAG] hitcon{...}
+
+
+
+~ $ 
+[*] session end
