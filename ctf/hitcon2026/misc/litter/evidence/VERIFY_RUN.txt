@@ -1,0 +1,33 @@
+LITTER/5 nonce 4bc0da6728a5cb2e9c854a52 length 1621331 tag 5336b3766e2e6c0ab825cea36231809c
+Initial strong byte proposals {2: 'bf', 3: 'b8', 5: '36', 8: '31', 10: '44'}
+IDAT found: first_offset=495, chunk_length=16384; score=77/161 (47.8%)
+Other high-scoring candidates: []
+K[00] = a5 / zero-S-box votes 20/33
+K[01] = ce / zero-S-box votes 17/33
+K[02] = bf / zero-S-box votes 18/33
+K[03] = b8 / zero-S-box votes 15/32
+K[04] = 29 / zero-S-box votes 13/32
+K[05] = 36 / zero-S-box votes 15/32
+K[06] = 8d / zero-S-box votes 19/32
+K[07] = 1e / zero-S-box votes 13/32
+K[08] = 31 / zero-S-box votes 14/32
+K[09] = f8 / zero-S-box votes 13/32
+K[10] = 44 / zero-S-box votes 15/32
+K[11] = 5e / zero-S-box votes 17/32
+K[12] = 4d / zero-S-box votes 12/32
+K[13] = 53 / zero-S-box votes 16/32
+K[14] = 01 / zero-S-box votes 14/32
+K[15] = 39 / zero-S-box votes 15/33
+K[16] = 20 / zero-S-box votes 16/33
+K[17] = 83 / zero-S-box votes 19/33
+K[18] = e5 / zero-S-box votes 16/33
+K[19] = 4e / zero-S-box votes 16/34
+K[20] = d2 / zero-S-box votes 15/34
+K[21] = a2 / zero-S-box votes 16/34
+K[22] = 3a / zero-S-box votes 13/34
+K[23] = 96 / zero-S-box votes 16/33
+Recovered 24-byte derived key: a5cebfb829368d1e31f8445e4d5301392083e54ed2a23a96
+Recovered original 24-byte seed: a37a974a901dc4e245231c13784621a3152c943e2c8947c1
+GCM tag computed: 5336b3766e2e6c0ab825cea36231809c
+GCM tag expected: 5336b3766e2e6c0ab825cea36231809c
+FLAG_PNG_RECOVERED /mnt/data/litter_solved/flag_recovered.png bytes 1621331 PNG_CRC_ALL_PASS 104 chunks

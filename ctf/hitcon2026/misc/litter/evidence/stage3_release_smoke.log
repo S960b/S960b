@@ -1,0 +1,4 @@
+[release-smoke] GET signed release archive
+[release-smoke] fixture_root=tests/fixtures/release
+[release-smoke] status=200 content_type=application/gzip
+[release-smoke] archive member: encryptor
