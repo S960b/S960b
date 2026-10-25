@@ -1,0 +1,182 @@
+
+/mnt/data/eclipse_analysis/root/driver/book-of-eclipse.ko:     file format elf64-x86-64
+
+
+Disassembly of section .text:
+
+0000000000000000 <__pfx_book_of_eclipse_ioctl>:
+   0:	90                   	nop
+   1:	90                   	nop
+   2:	90                   	nop
+   3:	90                   	nop
+   4:	90                   	nop
+   5:	90                   	nop
+   6:	90                   	nop
+   7:	90                   	nop
+   8:	90                   	nop
+   9:	90                   	nop
+   a:	90                   	nop
+   b:	90                   	nop
+   c:	90                   	nop
+   d:	90                   	nop
+   e:	90                   	nop
+   f:	90                   	nop
+
+0000000000000010 <book_of_eclipse_ioctl>:
+  10:	f3 0f 1e fa          	endbr64
+  14:	41 54                	push   r12
+  16:	55                   	push   rbp
+  17:	53                   	push   rbx
+  18:	48 81 ec 08 01 00 00 	sub    rsp,0x108
+  1f:	65 48 8b 04 25 28 00 	mov    rax,QWORD PTR gs:0x28
+  26:	00 00 
+  28:	48 89 84 24 00 01 00 	mov    QWORD PTR [rsp+0x100],rax
+  2f:	00 
+  30:	31 c0                	xor    eax,eax
+  32:	81 fe 00 45 00 41    	cmp    esi,0x41004500
+  38:	0f 85 0f 01 00 00    	jne    14d <book_of_eclipse_ioctl+0x13d>
+  3e:	48 c7 c7 00 00 00 00 	mov    rdi,0x0
+			41: R_X86_64_32S	.data+0x60
+  45:	48 89 d5             	mov    rbp,rdx
+  48:	49 c7 c4 8e ff ff ff 	mov    r12,0xffffffffffffff8e
+  4f:	e8 00 00 00 00       	call   54 <book_of_eclipse_ioctl+0x44>
+			50: R_X86_64_PLT32	mutex_lock-0x4
+  54:	80 3d 00 00 00 00 00 	cmp    BYTE PTR [rip+0x0],0x0        # 5b <book_of_eclipse_ioctl+0x4b>
+			56: R_X86_64_PC32	.bss-0x5
+  5b:	74 36                	je     93 <book_of_eclipse_ioctl+0x83>
+  5d:	48 c7 c7 00 00 00 00 	mov    rdi,0x0
+			60: R_X86_64_32S	.data+0x60
+  64:	e8 00 00 00 00       	call   69 <book_of_eclipse_ioctl+0x59>
+			65: R_X86_64_PLT32	mutex_unlock-0x4
+  69:	48 8b 84 24 00 01 00 	mov    rax,QWORD PTR [rsp+0x100]
+  70:	00 
+  71:	65 48 2b 04 25 28 00 	sub    rax,QWORD PTR gs:0x28
+  78:	00 00 
+  7a:	0f 85 e0 00 00 00    	jne    160 <book_of_eclipse_ioctl+0x150>
+  80:	48 81 c4 08 01 00 00 	add    rsp,0x108
+  87:	4c 89 e0             	mov    rax,r12
+  8a:	5b                   	pop    rbx
+  8b:	5d                   	pop    rbp
+  8c:	41 5c                	pop    r12
+  8e:	e9 00 00 00 00       	jmp    93 <book_of_eclipse_ioctl+0x83>
+			8f: R_X86_64_PLT32	__x86_return_thunk-0x4
+  93:	ba 00 01 00 00       	mov    edx,0x100
+  98:	48 89 ee             	mov    rsi,rbp
+  9b:	48 89 e7             	mov    rdi,rsp
+  9e:	49 c7 c4 f2 ff ff ff 	mov    r12,0xfffffffffffffff2
+  a5:	e8 00 00 00 00       	call   aa <book_of_eclipse_ioctl+0x9a>
+			a6: R_X86_64_PLT32	_copy_from_user-0x4
+  aa:	48 85 c0             	test   rax,rax
+  ad:	75 ae                	jne    5d <book_of_eclipse_ioctl+0x4d>
+  af:	83 3c 24 1f          	cmp    DWORD PTR [rsp],0x1f
+  b3:	49 c7 c4 ea ff ff ff 	mov    r12,0xffffffffffffffea
+  ba:	77 a1                	ja     5d <book_of_eclipse_ioctl+0x4d>
+  bc:	65 ff 05 00 00 00 00 	inc    DWORD PTR gs:[rip+0x0]        # c3 <book_of_eclipse_ioctl+0xb3>
+			bf: R_X86_64_PC32	pcpu_hot+0x4
+  c3:	b9 84 00 00 c0       	mov    ecx,0xc0000084
+  c8:	0f 32                	rdmsr
+  ca:	31 ed                	xor    ebp,ebp
+  cc:	89 eb                	mov    ebx,ebp
+  ce:	66 90                	xchg   ax,ax
+  d0:	48 c1 e2 20          	shl    rdx,0x20
+  d4:	48 09 c2             	or     rdx,rax
+  d7:	49 89 d4             	mov    r12,rdx
+  da:	85 ed                	test   ebp,ebp
+  dc:	74 3e                	je     11c <book_of_eclipse_ioctl+0x10c>
+  de:	65 ff 0d 00 00 00 00 	dec    DWORD PTR gs:[rip+0x0]        # e5 <book_of_eclipse_ioctl+0xd5>
+			e1: R_X86_64_PC32	pcpu_hot+0x4
+  e5:	74 72                	je     159 <book_of_eclipse_ioctl+0x149>
+  e7:	4c 63 e3             	movsxd r12,ebx
+  ea:	85 db                	test   ebx,ebx
+  ec:	0f 85 6b ff ff ff    	jne    5d <book_of_eclipse_ioctl+0x4d>
+  f2:	c6 05 00 00 00 00 01 	mov    BYTE PTR [rip+0x0],0x1        # f9 <book_of_eclipse_ioctl+0xe9>
+			f4: R_X86_64_PC32	.bss-0x5
+  f9:	45 31 e4             	xor    r12d,r12d
+  fc:	e9 5c ff ff ff       	jmp    5d <book_of_eclipse_ioctl+0x4d>
+ 101:	48 c1 e2 20          	shl    rdx,0x20
+ 105:	bf 84 00 00 c0       	mov    edi,0xc0000084
+ 10a:	48 09 c2             	or     rdx,rax
+ 10d:	49 89 d4             	mov    r12,rdx
+ 110:	89 ea                	mov    edx,ebp
+ 112:	4c 89 e6             	mov    rsi,r12
+ 115:	e8 00 00 00 00       	call   11a <book_of_eclipse_ioctl+0x10a>
+			116: R_X86_64_PLT32	do_trace_read_msr-0x4
+ 11a:	eb be                	jmp    da <book_of_eclipse_ioctl+0xca>
+ 11c:	8b 04 24             	mov    eax,DWORD PTR [rsp]
+ 11f:	b9 84 00 00 c0       	mov    ecx,0xc0000084
+ 124:	49 0f bb c4          	btc    r12,rax
+ 128:	4c 89 e2             	mov    rdx,r12
+ 12b:	44 89 e0             	mov    eax,r12d
+ 12e:	48 c1 ea 20          	shr    rdx,0x20
+ 132:	0f 30                	wrmsr
+ 134:	31 c0                	xor    eax,eax
+ 136:	89 c3                	mov    ebx,eax
+ 138:	66 90                	xchg   ax,ax
+ 13a:	eb a2                	jmp    de <book_of_eclipse_ioctl+0xce>
+ 13c:	89 c2                	mov    edx,eax
+ 13e:	4c 89 e6             	mov    rsi,r12
+ 141:	bf 84 00 00 c0       	mov    edi,0xc0000084
+ 146:	e8 00 00 00 00       	call   14b <book_of_eclipse_ioctl+0x13b>
+			147: R_X86_64_PLT32	do_trace_write_msr-0x4
+ 14b:	eb 91                	jmp    de <book_of_eclipse_ioctl+0xce>
+ 14d:	49 c7 c4 e7 ff ff ff 	mov    r12,0xffffffffffffffe7
+ 154:	e9 10 ff ff ff       	jmp    69 <book_of_eclipse_ioctl+0x59>
+ 159:	e8 00 00 00 00       	call   15e <book_of_eclipse_ioctl+0x14e>
+			15a: R_X86_64_PLT32	__SCT__preempt_schedule-0x4
+ 15e:	eb 87                	jmp    e7 <book_of_eclipse_ioctl+0xd7>
+ 160:	e8 00 00 00 00       	call   165 <book_of_eclipse_lock+0xc5>
+			161: R_X86_64_PLT32	__stack_chk_fail-0x4
+
+Disassembly of section .init.text:
+
+0000000000000000 <__pfx_init_module>:
+   0:	90                   	nop
+   1:	90                   	nop
+   2:	90                   	nop
+   3:	90                   	nop
+   4:	90                   	nop
+   5:	90                   	nop
+   6:	90                   	nop
+   7:	90                   	nop
+   8:	90                   	nop
+   9:	90                   	nop
+   a:	90                   	nop
+   b:	90                   	nop
+   c:	90                   	nop
+   d:	90                   	nop
+   e:	90                   	nop
+   f:	90                   	nop
+
+0000000000000010 <init_module>:
+  10:	f3 0f 1e fa          	endbr64
+  14:	48 c7 c7 00 00 00 00 	mov    rdi,0x0
+			17: R_X86_64_32S	.data
+  1b:	e9 00 00 00 00       	jmp    20 <__UNIQUE_ID_author270+0x4>
+			1c: R_X86_64_PLT32	misc_register-0x4
+
+Disassembly of section .exit.text:
+
+0000000000000000 <__pfx_cleanup_module>:
+   0:	90                   	nop
+   1:	90                   	nop
+   2:	90                   	nop
+   3:	90                   	nop
+   4:	90                   	nop
+   5:	90                   	nop
+   6:	90                   	nop
+   7:	90                   	nop
+   8:	90                   	nop
+   9:	90                   	nop
+   a:	90                   	nop
+   b:	90                   	nop
+   c:	90                   	nop
+   d:	90                   	nop
+   e:	90                   	nop
+   f:	90                   	nop
+
+0000000000000010 <cleanup_module>:
+  10:	f3 0f 1e fa          	endbr64
+  14:	48 c7 c7 00 00 00 00 	mov    rdi,0x0
+			17: R_X86_64_32S	.data
+  1b:	e9 00 00 00 00       	jmp    20 <__UNIQUE_ID_author270+0x4>
+			1c: R_X86_64_PLT32	misc_deregister-0x4

@@ -181,6 +181,13 @@ page table, does `swapgs` and `iretq`. The expected frame at its `rsp` base is
 ROP chain above; the trampoline restores user mode correctly and `win()`
 executes.
 
+The intermediate stage is visible in the retained crash logs too: the first
+working privilege-lift chain (short `pop rdi; ret` / `commit_creds`) already
+produced a post-mortem with `UID: 0`, but the process died in
+`native_irq_return_iret` / `fixup_bad_iret` - bare `iretq` with no user CR3
+switch. That confirms the chain reached `commit_creds(&init_cred)` before the
+return path was fixed with the KPTI-safe trampoline.
+
 `win()` opens `/flag.txt`, reads it and writes it to stdout. The remote run
 printed the flag.
 
