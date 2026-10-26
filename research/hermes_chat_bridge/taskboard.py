@@ -69,6 +69,25 @@ def fetch_stats():
     return [{'direction': r[0], 'status': r[1], 'count': r[2]} for r in rows]
 
 
+def delete_task(task_id: str, confirmed: bool = False) -> dict:
+    """Delete exactly one confirmed conversation and its turns, atomically."""
+    if not isinstance(task_id, str) or not task_id.strip() or confirmed is not True:
+        return {'ok': False, 'error': 'task_id and explicit confirmation are required'}
+    with closing(sqlite3.connect(DB, timeout=15)) as conn:
+        with conn:
+            conn.execute('BEGIN IMMEDIATE')
+            if conn.execute('SELECT 1 FROM bridge_tasks WHERE task_id=?', (task_id,)).fetchone() is None:
+                return {'ok': False, 'error': 'task not found'}
+            # Stop queued notifications from retaining/replaying deleted message bodies.
+            if conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='deliveries'").fetchone():
+                conn.execute('DELETE FROM deliveries WHERE CASE WHEN json_valid(payload) THEN '
+                             "json_extract(payload,'$.job_id') IN (SELECT job_id FROM jobs WHERE task_id=?) "
+                             "OR json_extract(payload,'$.task_id')=? ELSE 0 END", (task_id, task_id))
+            count = conn.execute('DELETE FROM jobs WHERE task_id=?', (task_id,)).rowcount
+            conn.execute('DELETE FROM bridge_tasks WHERE task_id=?', (task_id,))
+    return {'ok': True, 'task_id': task_id, 'deleted_jobs': count}
+
+
 def apply_action(job_id: str, action: str) -> tuple[bool, int, str]:
     """Admin actions per the bridge skill (completed_by='hermes-admin',
     no report row creation - documented admin path). Returns (ok, rowcount, err)."""
@@ -136,9 +155,18 @@ class H(BaseHTTPRequestHandler):
             try:
                 with closing(_conn_ro()) as conn:
                     conn.row_factory = sqlite3.Row
-                    tasks = fetch_tasks(conn)
+                    tasks = fetch_tasks(conn, include_history=False)
                 self._send(200, json.dumps({'tasks': tasks, 'tunnel_url':
                     TUNNEL_URL_FILE.read_text().strip() if TUNNEL_URL_FILE.exists() else ''}).encode())
+            except Exception as e:
+                self._send(500, json.dumps({'error': str(e)}).encode())
+        elif urllib.parse.urlparse(self.path).path == '/api/tasks/history':
+            from task_view import fetch_task_history
+            try:
+                with closing(_conn_ro()) as conn:
+                    conn.row_factory = sqlite3.Row
+                    task = fetch_task_history(conn, q(self.path).get('task_id', ''))
+                self._send(200 if task else 404, json.dumps({'task': task}).encode())
             except Exception as e:
                 self._send(500, json.dumps({'error': str(e)}).encode())
         elif self.path.startswith('/api/jobs'):
@@ -159,6 +187,29 @@ class H(BaseHTTPRequestHandler):
             self._send(404, b'{"error":"not found"}')
 
     def do_POST(self):
+        if self.path == '/api/tasks/delete':
+            # Local-only admin UI: no cross-origin, simple-form or oversized writes.
+            origin = self.headers.get('Origin')
+            host = self.headers.get('Host', '')
+            if (urllib.parse.urlparse('http://' + host).hostname not in ('127.0.0.1', 'localhost', '::1')
+                    or (origin is not None and origin != 'http://' + host)
+                    or self.headers.get('Content-Type', '').split(';')[0].strip() != 'application/json'):
+                self._send(403, b'{"ok":false,"error":"same-origin JSON request required"}')
+                return
+            try:
+                n = int(self.headers.get('Content-Length', '0'))
+                if not 0 < n <= 4096:
+                    raise ValueError('invalid request size')
+                body = json.loads(self.rfile.read(n))
+                if not isinstance(body, dict):
+                    raise ValueError('JSON object required')
+                result = delete_task(body.get('task_id'), body.get('confirmed', False))
+                self._send(200 if result['ok'] else 400, json.dumps(result).encode())
+            except (ValueError, TypeError) as e:
+                self._send(400, json.dumps({'ok': False, 'error': str(e)}).encode())
+            except sqlite3.Error:
+                self._send(500, b'{"ok":false,"error":"database deletion failed"}')
+            return
         if not self.path.startswith('/api/action'):
             self._send(404, b'{"error":"not found"}')
             return
