@@ -86,6 +86,7 @@ class Queue:
             'completed_by': 'TEXT',
             'attempts': 'INTEGER NOT NULL DEFAULT 0',  # попытки дочерней задачи
             'queue': "TEXT NOT NULL DEFAULT 'test'",
+            'task_id': 'TEXT',
         }
         for name, ddl in adds.items():
             if name not in cols:
@@ -95,13 +96,27 @@ class Queue:
             'CREATE UNIQUE INDEX IF NOT EXISTS jobs_idem_uniq'
             ' ON jobs(owner, direction, idempotency_key)'
             ' WHERE idempotency_key IS NOT NULL')
+        self._conn.execute('CREATE TABLE IF NOT EXISTS bridge_tasks ('
+                           'task_id TEXT PRIMARY KEY, title TEXT NOT NULL, owner TEXT NOT NULL)')
+        # Preserve old rows; only explicit parent links are safe to group.
+        self._conn.execute('UPDATE jobs SET task_id=job_id WHERE task_id IS NULL')
+        self._conn.execute('WITH RECURSIVE roots(job_id, root) AS ('
+                           'SELECT job_id, task_id FROM jobs WHERE parent_job_id IS NULL '
+                           'UNION SELECT j.job_id, r.root FROM jobs j JOIN roots r '
+                           'ON j.parent_job_id=r.job_id) '
+                           'UPDATE jobs SET task_id=(SELECT root FROM roots '
+                           'WHERE roots.job_id=jobs.job_id) WHERE job_id IN (SELECT job_id FROM roots)')
+        self._conn.execute('INSERT OR IGNORE INTO bridge_tasks SELECT task_id, '
+                           'substr(text,1,100), owner FROM jobs ORDER BY created_at_utc')
+        self._conn.execute('CREATE INDEX IF NOT EXISTS jobs_task ON jobs(task_id, created_at_utc)')
         self._conn.commit()
 
     # --- локальная CLI (только владелец) ---
     def put_message(self, text: str, max_bytes: int = MAX_TEXT_BYTES,
                     direction: str = 'to_chatgpt', idempotency_key: str | None = None,
                     owner: str = 'owner', queue: str = 'test',
-                    label: str | None = None) -> dict:
+                    label: str | None = None, task_id: str | None = None,
+                    title: str | None = None) -> dict:
         """Создать задачу с направлением; вернуть job_id/text/created/status.
 
         to_hermes требует idempotency_key: повтор ключа+текста возвращает
@@ -130,19 +145,52 @@ class Queue:
                 'SELECT * FROM jobs WHERE owner=? AND direction=? AND idempotency_key=?',
                 (owner, direction, idempotency_key)).fetchone()
             if row is not None:
-                if row['text'] == text and row['queue'] == queue:
+                if (row['text'] == text and row['queue'] == queue
+                        and (task_id is None or row['task_id'] == task_id)):
                     return {'job_id': row['job_id'], 'status': row['status'],
                             'idempotent': True, 'text': text, 'queue': queue,
-                            'created_at_utc': row['created_at_utc']}
+                            'created_at_utc': row['created_at_utc'], 'task_id': row['task_id']}
                 return {'job_id': row['job_id'], 'status': 'conflict',
                         'reason': 'idempotency_key reused with different text or queue'}
 
         job_id = f'{prefix}_' + secrets.token_hex(4) + '.job'
-        self._conn.execute(
-            'INSERT INTO jobs (job_id, text, created_at_utc, status, updated_at_utc,'
-            ' direction, idempotency_key, owner, queue) VALUES (?,?,?,?,?,?,?,?,?)',
-            (job_id, text, now, 'pending', now, direction, idempotency_key, owner, queue))
-        self._conn.commit()
+        with self._conn:
+            self._conn.execute('BEGIN IMMEDIATE')
+            # Recheck under the write lock: concurrent retry must not create two turns.
+            if idempotency_key:
+                previous = self._conn.execute(
+                    'SELECT * FROM jobs WHERE owner=? AND direction=? AND idempotency_key=?',
+                    (owner, direction, idempotency_key)).fetchone()
+                if previous is not None:
+                    if (previous['text'] == text and previous['queue'] == queue
+                            and (task_id is None or previous['task_id'] == task_id)):
+                        return {**dict(previous), 'idempotent': True}
+                    return {'job_id': previous['job_id'], 'status': 'conflict',
+                            'reason': 'idempotency_key reused with different payload'}
+            if task_id is not None:
+                task = self._conn.execute('SELECT * FROM bridge_tasks WHERE task_id=? AND owner=?',
+                                          (task_id, owner)).fetchone()
+                if task is None:
+                    return {'job_id': None, 'status': 'not_found', 'task_id': task_id}
+                pending = self._conn.execute("SELECT job_id FROM jobs WHERE task_id=? AND status='pending'",
+                                             (task_id,)).fetchone()
+                if pending:
+                    return {'job_id': pending['job_id'], 'task_id': task_id,
+                            'status': 'task_busy', 'reason': 'finish current turn before sending another'}
+            else:
+                task_id = 'task_' + secrets.token_hex(6)
+                if not title:
+                    try:
+                        payload = json.loads(text)
+                        title = payload.get('goal') if isinstance(payload, dict) else None
+                    except (ValueError, TypeError):
+                        pass
+                self._conn.execute('INSERT INTO bridge_tasks VALUES (?,?,?)',
+                                   (task_id, str(title or (text.splitlines()[0] if text else 'Без названия'))[:100], owner))
+            self._conn.execute(
+                'INSERT INTO jobs (job_id, text, created_at_utc, status, updated_at_utc,'
+                ' direction, idempotency_key, owner, queue, task_id) VALUES (?,?,?,?,?,?,?,?,?,?)',
+                (job_id, text, now, 'pending', now, direction, idempotency_key, owner, queue, task_id))
         return self.get_message(job_id)
 
     def _rate_ok(self, owner: str) -> bool:
@@ -177,7 +225,7 @@ class Queue:
         return {'job_id': row['job_id'], 'text': row['text'],
                 'created_at_utc': row['created_at_utc'], 'status': row['status'],
                 'reply': row['reply'], 'direction': row['direction'],
-                'queue': row['queue']}
+                'queue': row['queue'], 'task_id': row['task_id']}
 
     def claim_for_chat(self, job_id: str, consumer_id: str,
                        lease_seconds: float = CHAT_CLAIM_DEFAULT_S) -> dict:
@@ -196,6 +244,9 @@ class Queue:
                 conn.execute('COMMIT')
                 return {'job_id': job_id, 'status': 'conflict',
                         'reason': 'claim allowed only for to_chatgpt'}
+            if row['status'] in ('completed', 'failed'):
+                conn.execute('COMMIT')
+                return {'job_id': job_id, 'status': row['status'], 'task_id': row['task_id']}
             if row['reply'] is not None or row['status'] == 'replied':
                 conn.execute('COMMIT')
                 return {'job_id': job_id, 'status': 'already_replied',
@@ -221,6 +272,7 @@ class Queue:
                 idempotent = False
             conn.execute('COMMIT')
             return {'job_id': job_id, 'status': 'claimed', 'text': row['text'],
+                    'task_id': row['task_id'],
                     'created_at_utc': row['created_at_utc'], 'direction': row['direction'],
                     'queue': row['queue'], 'lease_until_epoch': lease_until,
                     'idempotent': idempotent}
@@ -253,6 +305,9 @@ class Queue:
                             'reply': text, 'idempotent': True}
                 return {'job_id': job_id, 'status': 'conflict',
                         'reason': 'different reply to answered job'}
+            if row['status'] != 'pending':
+                conn.execute('COMMIT')
+                return {'job_id': job_id, 'status': row['status']}
             if row['claimed_by'] != consumer_id:
                 conn.execute('COMMIT')
                 return {'job_id': job_id, 'status': 'not_owner'}
@@ -276,7 +331,7 @@ class Queue:
             raise ValueError(f'text > {max_bytes} bytes')
         row = self._conn.execute(
             'UPDATE jobs SET reply=?, status=?, updated_at_utc=?'
-            ' WHERE job_id=? AND reply IS NULL',
+            " WHERE job_id=? AND reply IS NULL AND status='pending'",
             (text, 'replied', utc_now_iso(), job_id)).rowcount
         self._conn.commit()
         if row:
@@ -406,10 +461,10 @@ class Queue:
                     conn.execute(
                         'INSERT INTO jobs (job_id, text, created_at_utc, status,'
                         ' updated_at_utc, direction, idempotency_key, owner,'
-                        ' parent_job_id, queue) VALUES (?,?,?,?,?,?,?,?,?,?)',
+                        ' parent_job_id, queue, task_id) VALUES (?,?,?,?,?,?,?,?,?,?,?)',
                         (report_job, report_text or row['text'], now, 'pending', now,
                          'to_chatgpt', report_key, row['owner'] or 'owner', job_id,
-                         row['queue'] or 'test'))
+                         row['queue'] or 'test', row['task_id']))
                     created = True
                 except IntegrityError:
                     existing = conn.execute(

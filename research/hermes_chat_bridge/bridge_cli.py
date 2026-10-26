@@ -27,13 +27,29 @@ def main():
     q = Q(bs.DB_PATH)
     cmd = sys.argv[1] if len(sys.argv) > 1 else 'help'
 
-    if cmd == 'put':
+    if cmd in ('put', 'task', 'send'):
         text = sys.argv[2] if len(sys.argv) > 2 else ''
         if not text:
             print('usage: bridge-cli put "текст" [queue] [label]'); return 1
         queue = sys.argv[3] if len(sys.argv) > 3 else 'test'
         label = sys.argv[4] if len(sys.argv) > 4 else None
-        r = q.put_message(text, queue=queue, label=label)
+        # Optional fifth positional argument continues a stable task.
+        task_id = sys.argv[5] if len(sys.argv) > 5 else None
+        title, idem = None, None
+        if cmd == 'task':
+            if len(sys.argv) != 4:
+                print('usage: bridge-cli task "название" "первое сообщение"'); return 1
+            title, text, queue, label, task_id = sys.argv[2], sys.argv[3], 'test', None, None
+        elif cmd == 'send':
+            if len(sys.argv) != 5:
+                print('usage: bridge-cli send task_id "сообщение" idempotency_key'); return 1
+            task_id, text, idem = sys.argv[2:5]
+            queue, label = 'test', None
+        r = q.put_message(text, queue=queue, label=label, task_id=task_id,
+                          title=title, idempotency_key=idem)
+        if r['status'] != 'pending':
+            print(json.dumps(r, ensure_ascii=False)); return 1
+        print(f"task_id={r['task_id']}")
         print(f"job_id={r['job_id']} status={r['status']} queue={r.get('queue', queue)}")
         bridge = bs.BridgeApp(bs.BRIDGE_HOST and 'http://127.0.0.1:8765')
         n = bridge.emit_test_event(r['job_id'])
