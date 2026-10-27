@@ -200,8 +200,16 @@ class Worker:
 
     def _create_report(self, state: dict, completed_step: str, report: dict) -> dict:
         message = build_report_message(state['goal'], completed_step, report)
+        if not state.get('task_id') and state.get('current_job_id'):
+            previous = self.queue.get_message(state['current_job_id'])
+            if previous:
+                state['task_id'] = previous['task_id']
         job = self.queue.put_message(json.dumps(message, ensure_ascii=False),
-                                     queue=state.get('queue', 'test'))
+                                     queue=state.get('queue', 'test'),
+                                     task_id=state.get('task_id'))
+        if job['status'] != 'pending':
+            raise RuntimeError(f'cannot send task report: {job}')
+        state['task_id'] = job['task_id']
         state['report_job_id'] = job['job_id']
         state['current_job_id'] = job['job_id']
         state['completed_step'] = completed_step

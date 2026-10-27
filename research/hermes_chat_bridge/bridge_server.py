@@ -826,6 +826,7 @@ class BridgeApp:
             'direction': (job or {}).get('direction') or 'to_chatgpt',
             'status': (job or {}).get('status') or 'pending',
             'queue': effective_queue,
+            'task_id': (job or {}).get('task_id'),
         }
         subs = [s for s in self.store.active_subscriptions()
                 if s['event'] == 'hermes.message.created'
@@ -929,7 +930,7 @@ def make_mcp_server(base_url: str, bridge: BridgeApp) -> MCPServer:
             return {'job_id': job_id, 'status': 'not_found'}
         return {'job_id': msg['job_id'], 'text': msg['text'],
                 'created_at_utc': msg['created_at_utc'], 'status': msg['status'],
-                'reply': msg['reply'], 'queue': msg['queue']}
+                'reply': msg['reply'], 'queue': msg['queue'], 'task_id': msg['task_id']}
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=True, openWorldHint=False), meta={'securitySchemes': [{'type': 'oauth2', 'scopes': [SCOPE]}]})
     async def bridge_put_reply(job_id: str, text: str,
@@ -951,9 +952,12 @@ def make_mcp_server(base_url: str, bridge: BridgeApp) -> MCPServer:
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=True, openWorldHint=False), meta={'securitySchemes': [{'type': 'oauth2', 'scopes': [SCOPE]}]})
     async def bridge_put_message(text: str, idempotency_key: str,
-                                 queue: str = 'test') -> dict:
+                                 queue: str = 'test', task_id: str | None = None,
+                                 title: str | None = None) -> dict:
         """Создать НОВОЕ сообщение Hermes (ChatGPT->Hermes, direction=to_hermes).
 
+        Для продолжения беседы ОБЯЗАТЕЛЬНО передай её task_id из get_message.
+        Без task_id создаётся новая беседа; title — её название, не queue.
         Только owner. Требуется клиентский idempotency_key: повтор с тем же
         ключом и тем же текстом возвращает исходный job_id; тот же ключ с
         другим текстом — conflict. Событие hermes.message.created НЕ
@@ -966,7 +970,7 @@ def make_mcp_server(base_url: str, bridge: BridgeApp) -> MCPServer:
             raise MCPError(code=-32602, message=str(e))
         return bridge.queue.put_message(text, direction='to_hermes',
                                         idempotency_key=idempotency_key,
-                                        queue=queue)
+                                        queue=queue, task_id=task_id, title=title)
 
     @mcp.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=True, openWorldHint=False), meta={'securitySchemes': [{'type': 'oauth2', 'scopes': [SCOPE]}]})
     async def bridge_subscribe(event: str = 'hermes.message.created',
@@ -1114,6 +1118,7 @@ def jsonable_events_list() -> dict:
                                'created_at_utc': {'type': 'string'},
                                'direction': {'type': 'string'},
                                'status': {'type': 'string'},
+                               'task_id': {'type': ['string', 'null']},
                                'queue': {'type': 'string'}},
                 'required': ['job_id', 'created_at_utc', 'direction', 'status', 'queue'],
                 'additionalProperties': False,
