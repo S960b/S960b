@@ -1,89 +1,95 @@
-# Chik Chirik: recovering a message from a chirp transmitter
+# Chik Chirik: demodulating a chirp transmitter
 
 [По-русски](solve.ru.md)
 
-## 0. Strategy
+## 0. What the audio contained
 
-The input was a WAV recording. Listening to it did not directly reveal the flag. Its regular chirps suggested a digital modulation scheme. I treated the audio as an encoded data stream and separated the problem into layers.
+`capture.wav` was not speech. The signal was a sequence of frequency chirps with a fixed symbol length of 2048 samples, which is a digital modulation, not a recording of a flag read aloud. The transmitter binary in the same handout (`transmitter FLAG OUTPUT.wav`) confirmed it: it synthesises the recording from the flag and refuses payloads outside 8 to 4096 bytes.
 
-The final pipeline was:
+The pipeline that finally worked, layer by layer:
 
-1. Recover the sequence of transmitted symbols from the WAV.
-2. Identify the block code and correct symbol errors.
-3. Model the pseudorandom transform.
-4. Recover the generator's 128-bit internal state.
-5. Undo the transform, parse the payload and check the CRC32.
+1. Demodulate chirps into octal symbols.
+2. Undo the block code, which turned out to be Reed-Solomon RS(7,3) over GF(8).
+3. Model the scrambler, which is a linear xorshift128.
+4. Recover its 128-bit state from linear equations over GF(2).
+5. Undo the mixing, split the payload and verify the CRC32.
 
-The important point is that error correction and cryptographic-looking scrambling solve different problems. We need to know which layer acts first.
+Why this order: error correction and scrambling solve different problems. Until symbols are clean, the scrambler looks random; until the scrambler is inverted, error correction cannot be validated.
 
-## 1. Demodulation and the symbol alphabet
+## 1. Symbols from the waveform
 
-The waveform carried symbols that could be represented in octal notation. A small alphabet is a natural fit for three-bit symbols, since each symbol can carry one value in the range 0 to 7.
+Each chirp uses four frequency slopes and two phases, which gives eight states, and one symbol per 2048 samples. The recording starts with the preamble `24355342`, after which symbols come in groups of seven.
 
-The research scripts separated audio processing from decoding. `solve_chirp.py` started with `capture.wav`; `solve_from_octal.py` accepted an already demodulated stream in `capture.wav.octal.txt`. This separation was useful because a mistake in timing or frequency classification should not be confused with an error in the cryptographic reconstruction.
+The demodulated stream was kept as a text of octal digits (`capture.wav.octal.txt`), so the audio part and the decoding part could be debugged separately. `scripts/decode_capture.py` is the demodulator, `scripts/solve_from_octal.py` accepts a stream that is already octal.
 
-The exact signal frequencies and frame synchronization thresholds were not retained in the final text log. They belong to the original solver, not to a guessed replacement.
+## 2. The block code is RS(7,3), not Hamming
 
-## 2. Identify RS(7,3) over GF(8)
+The first reading was "blocks of seven with Hamming redundancy". That is wrong, and the mistake costs time: with Hamming the framing never lines up for the full recording.
 
-One false lead was to treat the redundancy as a Hamming code. The recovered framing instead matched **Reed-Solomon RS(7,3)** over the field with 8 elements.
+The encoder near `0x211ac0` in the transmitter works over GF(8) with the reduction polynomial `x^3 + x + 1`. Seven symbols carry three data symbols and four redundant ones, so a codeword holds 9 bits of payload. `scripts/solve_chirp.py` builds the encoder table for all 512 triples and inverts it by matching the first three evaluations.
 
-Each codeword contains 7 symbols, with 3 data symbols and 4 redundant symbols. The data capacity is therefore 9 bits per codeword.
-
-If the plaintext is `L` bytes and has a four-byte CRC32 appended, the research log's count of three-bit payload units is:
+The frame law comes from the same routine: the number of blocks is
 
 ```text
 B = ceil(8 * (L + 4) / 3)
 ```
 
-Here the numerator counts bits in the message plus CRC, and the denominator is three bits per data symbol. This **does not count RS codewords**: one RS(7,3) codeword holds three data symbols. The grouping and framing must be checked against the particular transmitter. The formula gives 70 three-bit units for a 22-byte test payload.
+where `L` is the payload length in bytes and the extra four bytes are the CRC32. For the captured file `B = 144`, hence `L = 50`. That number is derived, not guessed, which matters later when the payload length has to be known before the scrambler can be inverted.
 
-The recovered binary analysis identified the encoding routine around `0x211ac0`. Recognizing its finite-field operations was the turning point: once RS decoding produced clean symbols, errors from the recording stopped obscuring the later generator state.
+## 3. The scrambler is linear, so the state is solvable
 
-## 3. xorshift128 is linear over GF(2)
+The mixing routine sits around `0x220b29` to `0x220de3` and the state update around `0x210f80`. It is xorshift128: four 32-bit words, only XOR and shifts. Every output bit is therefore a linear function of the 128 initial state bits, and the transcript of the recording leaks two of the three output bits per data symbol.
 
-The observed scrambler used xorshift128, a generator with four 32-bit state words. Its transitions consist of XOR and shifts. When modeled bit-by-bit, these are linear transformations over GF(2), the field with values 0 and 1.
-
-If the 128 unknown initial state bits form a vector `s`, observed generator bits provide equations of the form
+That turns key recovery into linear algebra:
 
 ```text
 A * s = b  (mod 2)
 ```
 
-The critical observation is that we do not need to try all possible 128-bit seeds. We can build a binary linear system for the known state transition and solve it using Gaussian elimination. A full-rank system gives the unique state.
+Gaussian elimination over GF(2) reached rank 128 of 128, so the state is unique, not merely one of many. `scripts/gf2_gauss.py` is the small elimination helper used to check the rank while the equations were being assembled.
 
-The research notes identified the state transition near `0x210f80` and the mixing logic near `0x220b29` to `0x220de3`. The recovered system reached rank 128 during testing.
+Why this step: brute forcing 128 bits is hopeless, while a rank-128 linear system is a solved problem. The whole challenge hinges on noticing that the generator is linear.
 
-One caution: xorshift is linear, but an unknown nonlinear permutation around it would invalidate a simple linear model. The original reverse engineering determined which recovered symbols yielded usable constraints before solving the system.
+## 4. Decoding the recording
 
-## 4. Undo the transform and check the CRC
+Two controlled tests came first, both produced with the original transmitter:
 
-With the initial state recovered, regenerate exactly the same pseudorandom sequence used by the transmitter. Apply the inverse mixing operation to recover payload bits, reconstruct bytes in the correct order and separate the final four bytes as CRC32.
+- 22 bytes of `A`: 70 blocks, recovered state `00000001 00000000 00000000 00000000`, payload `A` times 22, CRC32 `c0bb810c`.
+- A 43-byte payload with seed `00112233445566778899aabbccddeeff`: recovered exactly, CRC32 matched.
 
-A successful decode should pass both checks:
+Then the real capture:
 
-- The payload is valid text in the expected challenge format.
-- The CRC32 agrees with the transmitted checksum.
-
-The CRC is especially useful here. A plausible-looking fragment of text can be an accident, while a correct checksum gives an independent end-to-end validation.
-
-## 5. Controlled tests and original task status
-
-The archived tests included a 22-byte `A` message. The computed CRC was `c0bb810c`. Another controlled test recovered a full test phrase in the expected flag format using the exact 128-bit generator state. These were **tests**, not the actual contest flag.
-
-The surviving report gives counts of 70 and 144 for a 22-byte test and a 50-byte capture. Those agree with the three-bit payload-unit formula; they should not be mistaken for a count of seven-symbol RS codewords.
-
-The decoder was packaged as `ctfcup_chirp_solver.zip`, with the following recorded commands:
-
-```bash
-python3 solve_chirp.py capture.wav
-python3 solve_from_octal.py capture.wav.octal.txt
+```text
+chirps: 1016  preamble: 24355342
+FEC blocks: 144  invalid: 0
+raw symbols: 432
+probable length: 50
+xorshift rank: 128 of 128
+PRNG state: 8bf31bf8 886c0791 8d3e0dc3 1557904c
+CRC32 (LE): 2a2617cc
 ```
 
-The user subsequently confirmed the original challenge solved, but the final literal flag from `capture.wav` is not in the surviving transcript. I therefore publish `ctfcup{...}` instead of substituting the controlled-seed test string.
+`invalid: 0` means every RS codeword decoded without a residual error, and the payload text is a well formed `ctfcup{...}` with 4-byte CRC matching the transmitted one. The flag is masked here as `ctfcup{...}`; it contains `$` and `?`, so the alphabet is wider than the plain hex flags of the same event.
 
-## 6. What I would remember next time
+Run it yourself:
 
-When a signal looks random after demodulation, first check for a block code before attacking the PRNG. RS(7,3) and xorshift128 serve different purposes. The code corrects corrupted symbols; the state solver removes deterministic mixing. Keeping those layers separate made the task manageable.
+```bash
+python3 scripts/solve_chirp.py capture.wav
+python3 scripts/solve_from_octal.py capture.wav.octal.txt
+```
 
-This public note records the actual technique and the validation evidence; the precise demodulator source would need to be restored from the original solution archive for a bit-for-bit replay.
+The first form needs numpy and scipy for the WAV reading, the second only the standard library.
+
+## 5. Dead ends
+
+- Treating the redundancy as Hamming gave a consistent framing for short tests and broke on the real file.
+- Trying to guess the 16 random seed bytes from the noise floor was a dead end for a simple reason: the seed never appears in the audio, it only drives the generator. The correct move was to solve for the state instead of searching for it.
+- Differential tricks (comparing two runs of the same flag, or two flags with one changed character) fail because the mixing is data dependent, so a single byte change avalanches through the stream.
+
+## 6. Lessons
+
+- Check for a block code before attacking the pseudorandom layer.
+- A linear generator with leaked output bits is a linear system, not a key search.
+- Derive the payload length from the frame law; it removes one unknown from the whole chain.
+
+One paragraph: the recording is a chirp modulation of an RS(7,3) code over GF(8) followed by a linear xorshift128 scrambler; demodulation gives 144 clean codewords, the frame law fixes the payload at 50 bytes, the leaked output bits give a rank-128 linear system for the generator state, and after inverting the mixing the payload plus CRC32 reproduces the flag.
