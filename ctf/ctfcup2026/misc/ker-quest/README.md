@@ -8,8 +8,8 @@
 - **Type:** multi-stage misc, crypto, forensics, reversing and OSINT
 - **Flag:** `ctfcup{...}` (masked)
 
-The challenge starts with a question about the author's first CTF. Each completed task provides the password or clue needed to open the next archive. Later stages move between corrupted images, a jigsaw puzzle, a MIPS program, recorded audio, an ELF, packet capture, a real-world location, JavaScript and a final substitution cipher.
+Nine layers, each one giving the password for the next archive: a question about the author's first CTF, a PNG with a wrong IHDR height, a sixty-fragment jigsaw, a MIPS crackme, a spoken NATO password, Base64 hidden in an image, one packet among ten thousand, a hotel photo from Akihabara, an obfuscated JavaScript constant, and finally ROT13.
 
-It is worth documenting each password and the evidence for it. Blind ZIP brute force would hide the reason these different artifacts exist. The full progression is in [solve.md](solve.md).
+Every archive is WinZip AES with an HMAC, so each password in the chain is confirmed cryptographically before the next layer is attempted. That property is what makes the writeup reproducible: the passwords `2015`, `myfirstsolvedforensicstask2016`, `takearesttraveller`, `easyreverseforeveryone`, `th3r34l0n3p4ssw0rd1337`, `ohnicetoseeyouin2036year`, `glinomesieforever`, `superhotelpremierakihabara` and `junkjunkjunkjunkcode` were re-tested against the original archives. Packet 1337 of the capture needs its own password `1337` before it reveals the next one.
 
-The research archive from the event was named `ker_quest_compact.zip`; it contains a PNG repair result and experimental jigsaw assembly tools. A later handoff included more of the puzzle material. The remaining final stages are reconstructed from recorded solution notes rather than repackaged as original challenge files.
+The progression is in [solve.md](solve.md); `scripts/restore_ihdr.py` reproduces the PNG repair and checks the header CRC.
