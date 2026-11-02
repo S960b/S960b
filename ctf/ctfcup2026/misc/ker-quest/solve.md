@@ -4,7 +4,14 @@
 
 ## 0. The shape
 
-This is not one cipher. It is a chain: open layer N, read what it says, use that as the password for layer N+1, repeat. Every archive is AES-256 WinZip with an HMAC, so "unzip printed something" is not evidence; the HMAC has to pass. That rule saved us from several attractive wrong passwords.
+This is not one cipher. It is a chain: open layer N, read what it says, use that as the password for layer N+1, repeat.
+
+The chain mixes two container formats, and the difference matters for verification:
+
+- `task2.zip`, `task3.zip`, `task4.zip`, `task5.zip`, `task7.zip`, `task8.zip`, `task9.zip` and the small archives inside the packet capture are WinZip AES-256. Those carry an HMAC over the plaintext, so a wrong password fails loudly and a correct one is cryptographically confirmed. `unzip_aes.py` is the helper that checks it.
+- `task6.rar` is RAR5. It has its own password verification, but not the same HMAC construction, so it is opened with `unrar x -p...` and checked by whether extraction completes.
+
+That distinction is why "unzip printed something" is not evidence for the ZIP layers; for RAR5 the successful extraction is the check. Both rules saved us from several attractive wrong passwords.
 
 The layers, in order: a question about a year, a broken PNG header, a jigsaw, a MIPS crackme, a spoken spelling alphabet, an image with Base64, a packet capture among ten thousand decoys, an OSINT photo, obfuscated JavaScript, and finally ROT13.
 

@@ -39,9 +39,11 @@ M = Matrix(rows)
 basis = (M - 1337 * eye(40)).nullspace()
 ```
 
-The nullspace has dimension 1, so the direction is unique. The basis vector comes out with a common denominator of 125; multiplying by it gives integers in the printable range. No other normalization satisfies `M v = 1337 v` over integers, so there is no ambiguity in sign or scale.
+The nullspace has dimension 1, so the direction is unique. The basis vector comes out with a common denominator of 125, and multiplying by it gives integers in the printable range.
 
-Why this step: a one dimensional nullspace means the first eigenvectors we find are the answer, and the integer normalization doubles as a correctness check.
+Being precise about what the dimension proves: an eigenvector is defined up to a scalar, so every multiple of the basis vector satisfies `M v = 1337 v` as well. The dimension only says the line is one, not that the scale is fixed. What pins the answer down is the second set of constraints: the components must be printable ASCII, the first seven must read `ctfcup{` and the last must be `}`, and the whole string must be accepted by the binary and match its embedded SHA-256. Those constraints select exactly one point on the line, and it is the one we print.
+
+Why this step: a one dimensional nullspace reduces 40 unknown bytes to a single scalar, and the printable and format constraints fix that scalar, so the search collapses to one candidate.
 
 ## 3. From vector to text
 
@@ -74,4 +76,4 @@ The first form reads the ELF at offset `0x3220`, writes `scripts/matrix.json` an
 - Exact arithmetic beats floating point when the acceptance test is byte-exact.
 - The shape of the data (1600 values, 40 by 40) is often a stronger hint than any string in the binary.
 
-One paragraph: the binary stores a 40 by 40 integer matrix in `.rodata` and accepts an input only if the matrix scales it by 1337; the nullspace of `M - 1337 I` is one dimensional, its integer normalization is printable ASCII, and the binary plus its embedded SHA-256 check confirm the recovered string.
+One paragraph: the binary stores a 40 by 40 integer matrix in `.rodata` and accepts an input only if the matrix scales it by 1337; the nullspace of `M - 1337 I` is one dimensional, printability and the flag format fix the scale along that line, and the binary plus its embedded SHA-256 check confirm the recovered string.

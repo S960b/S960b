@@ -73,9 +73,15 @@ With `s' = F(s, c)` available, the rest is graph search:
 - 139 states are reachable
 - exactly one state, `0x7f`, produces `(1, 1, 0)` when the newline arrives
 
-The unique path from `0xA0` to `0x7f` is the accepted string. Breadth-first search over the whole reachable set is exhaustive here, so the answer is not a lucky hit.
+Breadth-first search returns the shortest path from `0xA0` to `0x7f`, and that path is the string we submit. What the search proves, and what it does not, is worth separating:
 
-Why this step: the state space is 256 states by 256 characters, small enough to explore completely, and the accepting condition is a single state.
+- the accepting state is unique among the 139 reachable states, so every accepted string ends in `0x7f`;
+- breadth-first search guarantees that the first path found is a shortest one, so the string is minimal in length;
+- it does not prove that the accepted string is the only one. A longer walk could revisit `0x7f` before the newline and still be accepted. The mutation tests below are consistent with a single short path, but they do not rule that out in general.
+
+For this challenge the shortest path is the answer we needed, and its length matches the expected flag format.
+
+Why this step: the state space is 256 states by 256 characters, small enough to explore completely, and the accepting condition is a single state, so a shortest path search is both cheap and sufficient.
 
 ## 6. Verification on the original bitstream
 
@@ -112,4 +118,4 @@ The script prints the reachable state count and the flag line.
 - A constant output does not mean a dead checker; it can mean the result is hidden in state that is only observed at a delimiter.
 - When the state space is finite and small, exhaustive search over a faithful model beats guessing.
 
-One paragraph: the challenge is an iCE40 design whose checker reports a constant `f` for every line and only reveals the accepting state at the newline; after rebuilding the netlist with IceStorm and modelling the eight-bit state machine in Python, a breadth-first search over 139 reachable states finds the single accepting state `0x7f`, and the path to it is the flag.
+One paragraph: the challenge is an iCE40 design whose checker reports a constant `f` for every line and only reveals the accepting state at the newline; after rebuilding the netlist with IceStorm and modelling the eight-bit state machine in Python, a breadth-first search over 139 reachable states finds the single accepting state `0x7f`, and the shortest path to it is the flag.

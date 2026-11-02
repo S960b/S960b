@@ -26,7 +26,11 @@ The demodulated stream was kept as a text of octal digits (`capture.wav.octal.tx
 
 The first reading was "blocks of seven with Hamming redundancy". That is wrong, and the mistake costs time: with Hamming the framing never lines up for the full recording.
 
-The encoder near `0x211ac0` in the transmitter works over GF(8) with the reduction polynomial `x^3 + x + 1`. Seven symbols carry three data symbols and four redundant ones, so a codeword holds 9 bits of payload. `scripts/solve_chirp.py` builds the encoder table for all 512 triples and inverts it by matching the first three evaluations.
+The encoder near `0x211ac0` in the transmitter works over GF(8) with the reduction polynomial `x^3 + x + 1`. Seven symbols carry three data symbols and four redundant ones.
+
+The bit accounting is where it is easy to go wrong, so state it exactly. One codeword is seven octal symbols, that is 21 bits on the wire. The three data symbols hold 9 bits of encoded data, and the four redundant symbols protect them. But only 3 of those 9 bits are message bits. The other 6 are the bits the transmitter exposes from its xorshift128 stream at that position of the payload, and they exist precisely so the receiver can rebuild the generator state. The payload rate is therefore 3 bits per codeword, which is exactly where the `ceil(8 * (L + 4) / 3)` law comes from: the divisor 3 is the number of message bits per codeword, not the number of data bits.
+
+`scripts/solve_chirp.py` builds the encoder table for all 512 triples and inverts it by matching the first three evaluations.
 
 The frame law comes from the same routine: the number of blocks is
 

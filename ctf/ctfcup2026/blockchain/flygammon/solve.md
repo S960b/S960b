@@ -69,7 +69,19 @@ Why this step: the streak is monotone only if each commit is preceded by a check
 
 The server returned the flag once the contract reported solved. It is masked in this repository as `ctfcup{...}`.
 
-What is reproducible from the surviving bundle: the VRF recovery (`scripts/verify_vrf.py`), the plan, the legality check, and the Rust parity check. What is not in the repository: the wallet key, the live RPC endpoint and the transaction hashes of the final run.
+The archived bundle is published in `scripts/` and `assets/`:
+
+- `scripts/verify_vrf.py` - checks `pow(G, s, P) == H` for a recovered exponent
+- `scripts/flysolve.py`, `scripts/flyengine.py`, `scripts/keccak_ref.py` - dice prediction, rules and the ported 2-ply evaluation
+- `scripts/flynative.rs`, `scripts/build_native.sh`, `scripts/compare_native.py` - the Rust policy and the parity checker that produced the 332 of 332 result
+- `scripts/verify_plan.py` - independent legality check of a plan (679 half-turns)
+- `scripts/play_live.py`, `scripts/resume_play_fast.py` - the guarded replayer and the batched, resumable version with pre-signed nonces
+- `scripts/flygammon_preflight.py`, `scripts/flygammon_anvil_probe.py` - instance sanity check and the probe that showed `anvil_setStorageAt` is refused
+- `assets/plan_15_first_instance.json` - a complete generated plan with moves for every turn; running `python3 scripts/verify_plan.py assets/plan_15_first_instance.json` reports `PASS: 15 consecutive locally simulated wins, 757 checked plies, 386 player moves, 305 last gameId`, which is how the first-instance plan is identified
+
+Two limits are stated plainly rather than patched over. The committed plan is the first-instance plan (ids 26 to 305), because the second-instance plan was generated in a working directory that did not survive. The second deployment's `P`, `H` and secret were different and only their prefixes remain in the log (`P=894...`, `H=597...`, `s=61536...970`), so the plan cannot be regenerated and the successful run's transaction log, including hashes, is not recoverable. What does survive for the final run is its plan id list, the half-turn and parity counts, and the timings quoted above.
+
+The wallet key and the live RPC endpoint are not published.
 
 ## 6. The flaw
 
