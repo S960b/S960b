@@ -2,20 +2,25 @@
 
 [English](README.md)
 
-Шесть райтапов по заданиям, сданным командой 31 октября 2026 года, в той же структуре, что и [Solar CTF](../Solar/README.ru.md). Основные тексты на английском, русские версии имеют суффикс `.ru.md`.
+Одиннадцать райтапов по заданиям, сданным командой 31 октября 2026 года, в той же структуре, что и [Solar CTF](../Solar/README.ru.md). Основные тексты на английском, русские версии имеют суффикс `.ru.md`.
 
-Соревнование проходило на [CTFCUP](https://game.ctfcup.online/) в формате jeopardy. Флаг обёрнут в `ctfcup{...}`; внутренний алфавит не фиксирован, в большинстве задач это строчный hex, но как минимум в одной встречается пунктуация. Здесь только отбор 31 октября.
+Соревнование проходило на [CTFCUP](https://game.ctfcup.online/) в формате jeopardy. Флаг обёрнут в `ctfcup{...}`; внутренний алфавит не фиксирован, в большинстве задач это строчный hex, но как минимум в одной встречается пунктуация. В части деплоев hex-суффикс выдаётся под конкретный инстанс, поэтому значение надо читать с того инстанса, который решаешь. Здесь только отбор 31 октября.
 
 ## Задачи
 
 | Задача | Баллы | Категория | Суть |
 | --- | ---: | --- | --- |
-| [ker quest](misc/ker-quest/README.ru.md) | 400 | misc | девять слоёв: битый IHDR, пазл, MIPS, аудио NATO, pcap, OSINT, JavaScript, ROT13 |
 | [Ровный робот (flygammon)](blockchain/flygammon/README.ru.md) | 642 | crypto / blockchain | VRF с гладким порядком, предсказанные кости, `skip()` сохраняет серию |
-| [Traverse](reverse/traverse/README.ru.md) | 207 | reverse | битстрим iCE40, восьмибитный автомат, обход 139 состояний |
+| [ker quest](misc/ker-quest/README.ru.md) | 400 | misc | девять слоёв: битый IHDR, пазл, MIPS, аудио NATO, pcap, OSINT, JavaScript, ROT13 |
+| [Russian Post: Trust Level](mobile/russian-post/README.ru.md) | 337 | mobile | приманка в сборщике запроса, цепочный XOR контейнера |
 | [Chik Chirik](crypto/chik-chirik/README.ru.md) | 229 | crypto / аудио | чирпы, RS(7,3) над GF(8), линейный xorshift128 |
+| [Traverse](reverse/traverse/README.ru.md) | 207 | reverse | битстрим iCE40, восьмибитный автомат, обход 139 состояний |
+| [Codex (Святой Кодекс)](web/codex/README.ru.md) | 115 | web | бот кладёт флаг в scope, заданный дефолтом в коде |
 | [MMM](reverse/mmm/README.ru.md) | 100 | reverse / математика | матрица 40 на 40, собственный вектор для 1337 |
 | [MeowSim: Schrodinger Edition](mobile/meowsim-schrodinger/README.ru.md) | 100 | mobile | условие на состояние плюс ключ SHA-256 и XOR |
+| [Snake](misc/snake/README.ru.md) | 100 | misc | поле 61 клетка, гамильтонов цикл |
+| [Weird RSA](crypto/weird-rsa/README.ru.md) | 100 | крипто | учебный RSA над `GF(257)[x]`, факторизация не нужна |
+| [My Own FS](misc/my-own-fs/README.ru.md) | 100 | misc | самодельная ФС, удалённый инод всё ещё хранит файл |
 
 ## Как устроены райтапы
 
