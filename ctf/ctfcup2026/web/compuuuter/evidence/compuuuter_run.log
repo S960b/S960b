@@ -1,0 +1,5 @@
+[*] Uploading 6001 nodes ...
+[*] Graph id: ae1597a76f254296bb3e08e3ca9bce26
+[*] Attempt 1: compute -> wait 0.3s -> PATCH(type=1337)
+[+] Decoded output: ctfcup{...}
+[FLAG] ctfcup{...}
