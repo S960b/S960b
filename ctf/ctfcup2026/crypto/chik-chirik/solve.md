@@ -30,13 +30,13 @@ One false lead was to treat the redundancy as a Hamming code. The recovered fram
 
 Each codeword contains 7 symbols, with 3 data symbols and 4 redundant symbols. The data capacity is therefore 9 bits per codeword.
 
-If the plaintext is `L` bytes and has a four-byte CRC32 appended, the expected number of codewords is:
+If the plaintext is `L` bytes and has a four-byte CRC32 appended, the research log's count of three-bit payload units is:
 
 ```text
 B = ceil(8 * (L + 4) / 3)
 ```
 
-Here the numerator counts bits in the message plus CRC, and the denominator is three bits per original data symbol. The exact implementation's framing turns those data symbols into seven-symbol RS blocks. This calculation helped check whether a decoded capture had a plausible length.
+Here the numerator counts bits in the message plus CRC, and the denominator is three bits per data symbol. This **does not count RS codewords**: one RS(7,3) codeword holds three data symbols. The grouping and framing must be checked against the particular transmitter. The formula gives 70 three-bit units for a 22-byte test payload.
 
 The recovered binary analysis identified the encoding routine around `0x211ac0`. Recognizing its finite-field operations was the turning point: once RS decoding produced clean symbols, errors from the recording stopped obscuring the later generator state.
 
@@ -71,7 +71,7 @@ The CRC is especially useful here. A plausible-looking fragment of text can be a
 
 The archived tests included a 22-byte `A` message. The computed CRC was `c0bb810c`. Another controlled test recovered a full test phrase in the expected flag format using the exact 128-bit generator state. These were **tests**, not the actual contest flag.
 
-The surviving report gives approximately 70 blocks for the short test and 144 blocks for a 50-byte capture. That is consistent with the size model and helps detect dropped symbols.
+The surviving report gives counts of 70 and 144 for a 22-byte test and a 50-byte capture. Those agree with the three-bit payload-unit formula; they should not be mistaken for a count of seven-symbol RS codewords.
 
 The decoder was packaged as `ctfcup_chirp_solver.zip`, with the following recorded commands:
 
