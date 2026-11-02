@@ -2,7 +2,7 @@
 
 [English](README.md)
 
-Четырнадцать райтапов по заданиям, сданным командой 31 октября 2026 года, в той же структуре, что и [Solar CTF](../Solar/README.ru.md). Основные тексты на английском, русские версии имеют суффикс `.ru.md`.
+Пятнадцать райтапов по заданиям, сданным командой 31 октября 2026 года, в той же структуре, что и [Solar CTF](../Solar/README.ru.md). Основные тексты на английском, русские версии имеют суффикс `.ru.md`.
 
 Соревнование проходило на [CTFCUP](https://game.ctfcup.online/) в формате jeopardy. Флаг обёрнут в `ctfcup{...}`; внутренний алфавит не фиксирован, в большинстве задач это строчный hex, но как минимум в одной встречается пунктуация. В части деплоев hex-суффикс выдаётся под конкретный инстанс, поэтому значение надо читать с того инстанса, который решаешь. Здесь только отбор 31 октября.
 
@@ -15,6 +15,7 @@
 | [compuuuter](web/compuuuter/README.ru.md) | 100 | web | гонка между проверкой и использованием, коллизии хешей как задержка |
 | [Burmalda](reverse/burmalda/README.ru.md) | 100 | reverse | пакет Godot HTML5, флаг собирается клиентской ЛКГ |
 | [ker quest](misc/ker-quest/README.ru.md) | 400 | misc | девять слоёв: битый IHDR, пазл, MIPS, аудио NATO, pcap, OSINT, JavaScript, ROT13 |
+| [Uroki (Электронный журнал)](web/uroki/README.ru.md) | 394 | web | абсолютный путь в загрузке, подмена базы, pickle в расписании beat |
 | [Russian Post: Trust Level](mobile/russian-post/README.ru.md) | 337 | mobile | приманка в сборщике запроса, цепочный XOR контейнера |
 | [Chik Chirik](crypto/chik-chirik/README.ru.md) | 229 | crypto / аудио | чирпы, RS(7,3) над GF(8), линейный xorshift128 |
 | [Traverse](reverse/traverse/README.ru.md) | 207 | reverse | битстрим iCE40, восьмибитный автомат, обход 139 состояний |
