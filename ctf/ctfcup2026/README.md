@@ -2,7 +2,7 @@
 
 [Русская версия](README.ru.md)
 
-Six challenge writeups from the team submissions on October 31, 2026, in the same layout as [Solar CTF](../Solar/README.md). Main texts are English; Russian translations end with `.ru.md`.
+Writeups for challenges from the CTFCUP 2026 qualifier on October 31, 2026. Main texts are in English; Russian translations end with `.ru.md`.
 
 The competition used a Jeopardy-style board on [CTFCUP](https://game.ctfcup.online/). Flags are wrapped in `ctfcup{...}`; the inner alphabet is not fixed, most tasks use lowercase hex, but at least one uses punctuation as well. This collection covers the October 31 qualifier only.
 
@@ -21,6 +21,6 @@ The competition used a Jeopardy-style board on [CTFCUP](https://game.ctfcup.onli
 
 Each directory has a short `README.md` describing the challenge and a `solve.md` explaining why each step was taken. Both have Russian companions. `scripts/` holds the solvers and helpers that were actually used, `assets/` and `evidence/` are used only where the material can be redistributed.
 
-Flags are masked as `ctfcup{...}`, the same rule as in the Solar writeups. Live instance addresses, wallet private keys and session secrets are not published.
+Flags are masked as `ctfcup{...}`. Live instance addresses, wallet private keys and session secrets are not published.
 
 Every task in this collection was solved and accepted during the event. Where a step can be replayed from a surviving artifact, the text says how; where an artifact no longer exists (a live instance, a wallet key, a deleted working directory), the text says so instead of inventing it.
