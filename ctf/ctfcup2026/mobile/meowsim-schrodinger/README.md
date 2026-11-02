@@ -1,14 +1,16 @@
 # MeowSim: Schrodinger Edition
 
-[Русская версия](README.ru.md) | [Full solve](solve.md)
+[Русская версия](README.ru.md) | [Solving path](solve.md)
 
 - **Event:** CTFCUP 2026 qualifier
 - **Points:** 100
-- **Category:** mobile, Android reversing
-- **Challenge page:** https://game.ctfcup.online/tasks/mobile-schrodinger-cat
+- **Category:** mobile / Android reversing
+- **Task:** https://game.ctfcup.online/tasks/mobile-schrodinger-cat
 - **Attachment:** `cat.apk`
 - **Flag:** `ctfcup{...}` (masked)
 
-A deliberately contradictory virtual cat can be both alive and dead. The Android application has a hidden vault guarded by state predicates. The solve was static: inspect `classes.dex`, identify the gate in `QuantumState`, then reconstruct how `FlagVault` decrypts the embedded bytes. No Android emulator was needed.
+The APK is a small Kotlin app (`ru.ctf.meowsim`) with a SQLite box store, two shared preferences and a flag vault. `QuantumState.canOpenFlagVault()` requires the pet to be alive and the box to report the cat dead and in superposition at the same time, stability at least 90, no measurement, and no tamper flag.
 
-The exact original APK is not republished here. Read [solve.md](solve.md) for the method and the confirmed final state.
+The lab feature `RestoreExperimentActivity` restores the box from a snapshot independently of the observer record, which is what makes that state reachable; `stabilize()` supplies stability 92. `FlagVault` then derives a SHA-256 key from `observerToken | boxSeal | stability | catAlive | catDead | superposition | observed | "meowsim-v1"` and XORs the 23-byte encrypted array with `sha256(key || be32(counter))` blocks.
+
+`scripts/decrypt_flag.py <no args>` reproduces the plaintext from the defaults.
