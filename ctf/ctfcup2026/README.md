@@ -2,7 +2,7 @@
 
 [Русская версия](README.ru.md)
 
-Thirteen challenge writeups from the team submissions on October 31, 2026, in the same layout as [Solar CTF](../Solar/README.md). Main texts are English; Russian translations end with `.ru.md`.
+Fourteen challenge writeups from the team submissions on October 31, 2026, in the same layout as [Solar CTF](../Solar/README.md). Main texts are English; Russian translations end with `.ru.md`.
 
 The competition used a Jeopardy-style board on [CTFCUP](https://game.ctfcup.online/). Flags are wrapped in `ctfcup{...}`; the inner alphabet is not fixed, most tasks use lowercase hex, but at least one uses punctuation as well. Some deployments issue the hex suffix per instance, so the value has to be read from the instance being solved. This collection covers the October 31 qualifier only.
 
@@ -13,6 +13,7 @@ The competition used a Jeopardy-style board on [CTFCUP](https://game.ctfcup.onli
 | [Rovny robot (flygammon)](blockchain/flygammon/README.md) | 642 | crypto / blockchain | smooth-order VRF, predicted dice, `skip()` keeps the streak |
 | [filter](pwn/filter/README.md) | 100 | pwn | neural bigram check in front of writable executable memory |
 | [compuuuter](web/compuuuter/README.md) | 100 | web | time-of-check race, hash collisions as a delay |
+| [Burmalda](reverse/burmalda/README.md) | 100 | reverse | Godot HTML5 package, flag decoded by the client-side LCG |
 | [ker quest](misc/ker-quest/README.md) | 400 | misc | nine layers: broken PNG header, jigsaw, MIPS, NATO audio, pcap, OSINT, JavaScript, ROT13 |
 | [Russian Post: Trust Level](mobile/russian-post/README.md) | 337 | mobile | decoy request builder, chained XOR container |
 | [Chik Chirik](crypto/chik-chirik/README.md) | 229 | crypto / audio | chirps, RS(7,3) over GF(8), linear xorshift128 |
