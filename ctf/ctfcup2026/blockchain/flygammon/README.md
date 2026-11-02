@@ -9,6 +9,8 @@
 - **Attachments:** `flygammon-handout.tgz`, with contract and bot model
 - **Flag:** `ctfcup{...}` (masked)
 
-A backgammon-like contract required fifteen consecutive wins against an automated opponent. The difficulty was not finding a simple illegal move. Instead, the game used a predictable VRF whose secret exponent was recoverable with Pohlig-Hellman because the relevant group order was smooth. That let us predict dice for future games and choose favorable game IDs.
+A backgammon-like contract required fifteen consecutive wins against an automated opponent. The weakness was the randomness: `P - 1` was smooth, so Pohlig-Hellman recovered the VRF secret exponent and every future dice roll became predictable.
 
-We then modeled the opponent's two-ply policy, verified it against the original Rust bot and prepared an on-chain execution plan. The archived research reached an observed streak of 11 before instance expiry; the scoreboard later recorded the challenge submitted. [solve.md](solve.md) carefully distinguishes those two observations.
+The opponent's two-ply policy was reimplemented in Python and checked against the original Rust bot (332 of 332 decisions). `skip()` preserved the win streak while unfavorable game ids were discarded, so the plan only had to find fifteen winning ids. After an instance expired at a streak of 11, a second deployment with new parameters was solved from scratch: fifteen wins in about 318 seconds, `streak` 15, `isSolved()` true, flag returned by the server.
+
+Plan verification and the VRF check are in `scripts/verify_vrf.py` and described in [solve.md](solve.md).

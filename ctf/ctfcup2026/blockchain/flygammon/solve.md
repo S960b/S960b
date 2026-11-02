@@ -1,115 +1,85 @@
-# Flygammon: solving a 15-win blockchain game with a recovered VRF key
+# Flygammon: 15 wins against a predictable VRF
 
 [По-русски](solve.ru.md)
 
-## 0. The goal and the obstacle
+## 0. The obstacle
 
-The challenge was an on-chain, backgammon-like game against a bot. Its solved condition required **15 consecutive player wins**. Every game used dice generated through a verifiable-random-function-like construction, and the bot selected moves using a learned evaluation model.
+The contract runs a backgammon-like game against a bot and requires fifteen consecutive player wins. Dice look random, the opponent moves with a learned evaluation model, and a single bad roll resets the streak. Playing honestly is not a plan.
 
-At first glance this sounds like a strategy problem. But a single unlucky roll can reset a long winning streak. The better question was whether the supposedly random dice could be known before choosing which games to play.
-
-The approach had three layers:
+The way in was the randomness itself:
 
 1. Recover the hidden VRF exponent.
-2. Predict both players' dice for candidate game IDs.
-3. Simulate the full opponent policy and submit only favorable games.
+2. Predict both players' dice for any game id.
+3. Simulate the opponent policy and submit only games we win.
+4. Use the `skip()` bug to keep the streak while looking for the next such game.
 
-## 1. Why the VRF was predictable
+## 1. The VRF exponent is recoverable
 
-The public data included a finite-field modulus `P`, group element `G` and public value `H` satisfying
+The public parameters satisfy `H = G^s mod P`, which is a discrete logarithm. It is only hard if the group order is hard to factor. Here `P - 1` was smooth, the largest prime factor around one million, so Pohlig-Hellman plus the Chinese remainder theorem gives `s` quickly.
 
-```text
-H = G^s mod P
-```
-
-where `s` is the secret exponent. Recovering `s` appears to be a discrete logarithm problem. Usually that is difficult in a properly selected large prime-order group.
-
-Here the relevant group order was **smooth**. Its largest factor was around one million. This made Pohlig-Hellman practical. The algorithm solves discrete logs modulo each prime-power factor of the group order and combines the residues with the Chinese remainder theorem.
-
-The recovered value in the research archive was:
+For the first instance:
 
 ```text
 s = 357653648880297186077052514432982755682505315306081217084424960751681404340
+P = 88322446169367629588592423935113078568751125482404658974766148135586794479379
 ```
 
-The essential verification was:
+Verification is one line, `pow(G, s, P) == H`. The stronger check was byte-for-byte agreement between our `uFor(gameId, turn)` and the contract's own output on several sample pairs. Without that, recovering `s` proves nothing.
 
-```python
-assert pow(G, s, P) == H
-```
+Why this step: once the dice are computable, the game stops being a game of chance and becomes an offline search problem.
 
-The live work also reported byte-for-byte agreement of locally predicted `uFor()` outputs with the contract's outputs. Recovering `s` would not be useful otherwise.
+Important trap: a new instance is a new deployment. The second instance handed out different `P` and `H`, so both the secret and the whole plan had to be recomputed. Reusing the first plan would have failed on the first roll.
 
-## 2. Why knowing dice changes the game
+## 2. Why the streak survives skipping
 
-After the VRF secret was known, future dice were deterministic. The solver could inspect a game ID without spending a win on it.
+`skip()` increments `gameId` and resets the game, but it does not touch `streak`. So the player may discard any number of games between two wins. There is no penalty for searching for the next favorable id, only the cost of the transactions.
 
-The contract exposed `skip()`, so the player could move past unfavorable IDs until a good one appeared. The strategy did not involve forging a victory or bypassing the 15-win condition. It selected games for which the projected player had a winning line against the actual bot.
+Why this step: this is the actual bug. Everything else is prediction work; without `skip()` preserving the streak, even perfect dice knowledge would need fifteen wins in a row on consecutive ids.
 
-The offline plan identified these winning game IDs:
+## 3. The opponent is deterministic, so simulate it
+
+Knowing the dice is not enough: the bot's replies must be predicted too. The handout contains `model.fly` (92 820 bytes, that is 23 205 float32 weights, a 203-80-80-5 network) and the Rust source under `model-src` with the `choose_2ply` policy.
+
+The plan generator reimplements legal move generation and the two-ply evaluation in Python, with an expectation over the 21 dice combinations and a shortlist of eight moves for the one-ply pass. Float32 rounding matters near ties, which is why the last step was not Python at all: the original Rust binary `flynative` was built and used as the reference policy.
+
+Validation before touching the chain:
+
+- 679 half-turns of the final plan pass an independent legality checker.
+- Predicted opponent moves match the original Rust implementation for 332 of 332 compared decisions.
+
+Why this step: a plan that is legal but disagrees with the bot's tie-breaking loses the game it was built for.
+
+## 4. Executing on chain
+
+The first instance (plan ids 26 to 305, 291 skips) was played up to a streak of 11 and then the instance expired mid-run. That run is history, not the result.
+
+The successful run used a second instance with new parameters, a freshly recovered secret and a new plan:
 
 ```text
-26, 46, 67, 82, 85, 103, 117, 152,
-168, 204, 214, 253, 274, 297, 305
+6, 11, 34, 79, 138, 177, 184, 220, 273, 296, 325, 358, 407, 432, 482
 ```
 
-Its accounting required **291 skip operations** and **15 commit operations**. The game token budget supported the commits. The game IDs came from local simulation and should not be treated as a universal plan for a different contract deployment without fresh validation.
+The replayer was sped up in two ways: pre-signed sequential nonces allow the 467 `skip()` transactions to be sent as batches, and game state is read with a single JSON-RPC batch instead of six sequential calls. With that, all fifteen wins went through in about 318 seconds, `streak` reached 15 and `isSolved()` returned true.
 
-## 3. The opponent model was not random
+The Anvil debug method for writing storage directly (`anvil_setStorageAt`) was rejected by the competition RPC (`method not permitted`), so the win came from the prediction path only, with no state forgery.
 
-The handout included `model.fly`, a neural model file and Rust source under `model-src`. The binary model measured **92,820 bytes**, or **23,205 float32 weights**, corresponding to an **203 to 80 to 80 to 5** network.
+Why this step: the streak is monotone only if each commit is preceded by a check that the on-chain dice and board still match the simulation. The replayer does exactly that and resumes from the current `streak` after a dropped connection.
 
-This mattered because knowing the dice alone is not enough to guarantee a win. We must also predict which legal move the opponent will choose.
+## 5. Result and evidence
 
-The Rust agent used `choose_2ply`. The research reimplemented legal move generation and the two-ply evaluation in Python, including an expectation over 21 dice combinations and a shortlist of eight moves for one-ply evaluation. Getting the move ordering, board encoding and float32 arithmetic right was critical.
+The server returned the flag once the contract reported solved. It is masked in this repository as `ctfcup{...}`.
 
-The solver was verified two ways:
+What is reproducible from the surviving bundle: the VRF recovery (`scripts/verify_vrf.py`), the plan, the legality check, and the Rust parity check. What is not in the repository: the wallet key, the live RPC endpoint and the transaction hashes of the final run.
 
-- A full plan with **15 simulated wins** and **757 half-turns** passed independent legal-move checking.
-- The predicted opponent choices matched the original Rust implementation for **371 out of 371** compared decisions.
+## 6. The flaw
 
-When exact actions have equivalent resulting board states, the board is the meaningful check for future prediction. Small float rounding differences near ties still matter, which is why native Rust comparison was important.
+The game assumed dice are unpredictable to the player before committing. A smooth-order group broke that: the secret exponent falls to Pohlig-Hellman, and then the whole game is deterministic. Combined with `skip()` preserving the streak, the fifteen-win condition collapses into "find fifteen winning ids and pay for the transactions".
 
-## 4. Replay with verification after every transaction
+## 7. Lessons
 
-A live replayer must not blindly broadcast the whole plan. It should verify the expected contract and state, skip to the intended game ID, commit, wait for the oracle to post dice, and submit player moves only if the observed dice and board match the simulation.
+- Check the group order before assuming a discrete log is hard.
+- Recover, then verify against the live contract; a wrong secret looks exactly like a right one until you compare outputs.
+- Predict the opponent, not only the dice; ties are where naive ports lose.
+- Never reuse a plan across deployments.
 
-The original bundle was called `flygammon_15wins_solver.zip`. It contained:
-
-```text
-flyengine.py      rules and neural model
-flysolve.py       VRF rolls, planning and simulation
-plan_15.json      predicted 15-win sequence
-verify_plan.py    legality checks
-flynative.rs      original Rust policy comparison
-compare_native.py parity checker
-play_live.py      guarded RPC transaction replayer
-```
-
-The recorded offline validation commands were:
-
-```bash
-python3 -m pip install numpy pycryptodome
-python3 flysolve.py test --model ../handout/model.fly
-python3 verify_plan.py plan_15.json
-./build_native.sh ../handout/model-src
-python3 compare_native.py --plan plan_15.json --native ../handout/model-src/target/release/examples/flynative --model ../handout/model.fly
-```
-
-For live use, the recorded `play_live.py` accepted a dry run without `--execute`; broadcasting required `--execute`, a matching contract, Rust verification, a fresh instance and the player's own private key stored outside the repository.
-
-No wallet secret or live RPC endpoint is published.
-
-## 5. What actually happened online
-
-The offline plan was complete and independently checked. On live instances, the recorded progress reached a streak of **9**, later **11** consecutive wins, before an instance timeout. We did not preserve the terminal output showing the final jump from 11 to 15.
-
-Separately, the team submission list records **Rovny robot** as accepted on October 31, 2026, for **642 points**. That supports the event-level solved status, but does not supply the missing chain transaction hashes or exact final sequence.
-
-It would be misleading to write that the archived local simulation itself proves the final on-chain win. The two forms of evidence answer different questions.
-
-## 6. The central flaw
-
-The challenge's security depended on dice not being predictable to the player before the game. A smooth-order discrete log broke that assumption. Once the state of the supposed random process was known, the game became an offline search problem against a deterministic opponent.
-
-The most important part of the exploit was not a clever move during a single game. It was choosing which games to play after predicting the entire sequence.
+One paragraph: the contract's dice come from a VRF whose modulus group has a smooth order, so Pohlig-Hellman recovers the secret exponent; with dice predicted, a Python port of the Rust two-ply bot searches for winning game ids, `skip()` lets the player discard the rest without losing the streak, batched pre-signed transactions play the fifteen selected games in about five minutes, and the contract reports solved.
