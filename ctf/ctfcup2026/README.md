@@ -2,25 +2,25 @@
 
 [Русская версия](README.ru.md)
 
-This folder contains six challenge writeups from the team submissions on October 31, 2026. It follows the layout used in [Solar CTF](../Solar/README.md). The main texts are in English. Russian translations are in files ending with `.ru.md`.
+Six challenge writeups from the team submissions on October 31, 2026, in the same layout as [Solar CTF](../Solar/README.md). Main texts are English; Russian translations end with `.ru.md`.
 
-The competition used a Jeopardy-style task board on [CTFCUP](https://game.ctfcup.online/). The observed flag syntax was `ctfcup{[A-Za-z0-9_]+}`. This collection covers the October 31 qualifier, not the final event.
+The competition used a Jeopardy-style board on [CTFCUP](https://game.ctfcup.online/). Flags are wrapped in `ctfcup{...}`; the inner alphabet is not fixed, most tasks use lowercase hex, but at least one uses punctuation as well. This collection covers the October 31 qualifier only.
 
 ## Challenges
 
-| Challenge | Points | Notes |
-| --- | ---: | --- |
-| [ker quest](misc/ker-quest/README.md) | 400 | A multi-layer archive, forensics, reversing and OSINT journey |
-| [Traverse](reverse/traverse/README.md) | 207 | iCE40 FPGA bitstream and Python wrapper |
-| [MeowSim: Schrodinger Edition](mobile/meowsim-schrodinger/README.md) | 100 | Android static reversing and state-gated decryption |
-| [MMM](reverse/mmm/README.md) | 100 | A matrix hidden in ELF data |
-| [Chik Chirik](crypto/chik-chirik/README.md) | 229 | Acoustic symbols, Reed-Solomon and xorshift128 |
-| [Rovny robot (flygammon)](blockchain/flygammon/README.md) | 642 | VRF prediction and an offline-tested backgammon strategy |
+| Challenge | Points | Category | Notes |
+| --- | ---: | --- | --- |
+| [ker quest](misc/ker-quest/README.md) | 400 | misc | nine layers: broken PNG header, jigsaw, MIPS, NATO audio, pcap, OSINT, JavaScript, ROT13 |
+| [Rovny robot (flygammon)](blockchain/flygammon/README.md) | 642 | crypto / blockchain | smooth-order VRF, predicted dice, `skip()` keeps the streak |
+| [Traverse](reverse/traverse/README.md) | 207 | reverse | iCE40 bitstream, eight-bit state machine, BFS over 139 states |
+| [Chik Chirik](crypto/chik-chirik/README.md) | 229 | crypto / audio | chirps, RS(7,3) over GF(8), linear xorshift128 |
+| [MMM](reverse/mmm/README.md) | 100 | reverse / math | 40 by 40 matrix, eigenvector for 1337 |
+| [MeowSim: Schrodinger Edition](mobile/meowsim-schrodinger/README.md) | 100 | mobile | state gate plus SHA-256 key and XOR |
 
 ## How the writeups are organized
 
-Each directory has a short `README.md` describing the challenge and a `solve.md` that explains why each step was taken. Both have Russian companions. Code examples are explained in the text. Reusable helpers are included when their behavior can be reconstructed and verified.
+Each directory has a short `README.md` describing the challenge and a `solve.md` explaining why each step was taken. Both have Russian companions. `scripts/` holds the solvers and helpers that were actually used, `assets/` and `evidence/` are used only where the material can be redistributed.
 
-Flags are masked as `ctfcup{...}`, just as the Solar writeups mask theirs. No live instance addresses, wallet private keys or session secrets are published.
+Flags are masked as `ctfcup{...}`, the same rule as in the Solar writeups. Live instance addresses, wallet private keys and session secrets are not published.
 
-These are retrospectives based on the surviving chat logs and artifacts. A team scoreboard submission is evidence of acceptance, but it is not the same as a local replay. Where the final command or original attachment was not preserved, the text says so explicitly instead of inventing it.
+Every task in this collection was solved and accepted during the event. Where a step can be replayed from a surviving artifact, the text says how; where an artifact no longer exists (a live instance, a wallet key, a deleted working directory), the text says so instead of inventing it.
