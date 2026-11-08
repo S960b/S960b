@@ -24,9 +24,31 @@ LINK=/home/kali/linkedin
 LOG=/home/kali/.hermes/cron/os_linkedin_resilient.log
 TODAY=$(date +%Y-%m-%d)
 
-post_done() {
-  grep -q -- "$TODAY" "$LINK/PUBLISHED.md" 2>/dev/null && return 0
-  [ -f "$LINK/QUEUE/$TODAY.md" ] && return 0
+# v2 (2026-10-16): "covered" means PUBLISHED, NOT queued.
+# Case that forced this: 2026-10-16 the cron cycle hit its iteration budget right
+# after writing QUEUE/2026-10-16.md and never reached the API publish step, while
+# v1 post_done() treated the QUEUE file as "today covered" for the next attempts.
+post_published() {
+  grep -q -- "$TODAY" "$LINK/PUBLISHED.md" 2>/dev/null
+}
+
+# Publish a ready post directly from QUEUE via the official API (one attempt).
+# Returns 0 only when the API returned RESULT=PUBLISHED and the post was logged.
+publish_queued() {
+  local q="$LINK/QUEUE/$TODAY.md" out urn
+  [ -f "$q" ] || return 1
+  out=$(python3 "$LINK/publish_queued.py" "$q" 2>&1)
+  echo "$out" >>"$LOG"
+  case "$out" in
+    *RESULT=PUBLISHED*)
+      urn=$(echo "$out" | sed -n 's/^URN=//p')
+      mv "$q" "$LINK/PUBLISHED/$TODAY.md"
+      printf '\n## %s (auto-published from QUEUE by resilient wrapper v2)\n\nDATE: %s\nLINKEDIN POST ID/URL: %s\n' \
+        "$TODAY" "$TODAY" "${urn:-unknown}" >>"$LINK/PUBLISHED.md"
+      python3 "$LINK/tg_report.py" "LinkedIn $TODAY: auto-published queued post - https://www.linkedin.com/feed/update/${urn:-}/" >>"$LOG" 2>&1 || true
+      return 0
+      ;;
+  esac
   return 1
 }
 
@@ -37,8 +59,8 @@ tick_once() {
 
 echo "==== [$(date '+%F %T %Z')] LinkedIn resilient wrapper start (TODAY=$TODAY) ====" >>"$LOG"
 
-if post_done; then
-  echo "[$(date '+%F %T')] Today already covered - nothing to do." >>"$LOG"
+if post_published; then
+  echo "[$(date '+%F %T')] Today already published - nothing to do." >>"$LOG"
   exit 0
 fi
 
@@ -50,8 +72,21 @@ for i in "${!backoff[@]}"; do
     sleep "${backoff[$i]}"
   fi
   echo "[$(date '+%F %T')] --- attempt $((i+1))/${#backoff[@]} ---" >>"$LOG"
+
+  # 1) A queued post is NOT published yet - publish it directly.
+  #    Run the full cron cycle only when there is nothing queued (avoids burning
+  #    the agent's iteration budget on a cycle that would just re-queue).
+  if [ -f "$LINK/QUEUE/$TODAY.md" ]; then
+    if publish_queued; then
+      echo "[$(date '+%F %T')] SUCCESS after attempt $((i+1)) (published from QUEUE)." >>"$LOG"
+      exit 0
+    fi
+    echo "[$(date '+%F %T')] publish_queued failed on attempt $((i+1)); retrying later." >>"$LOG"
+    continue
+  fi
+
   tick_once
-  if post_done; then
+  if post_published; then
     echo "[$(date '+%F %T')] SUCCESS after attempt $((i+1))." >>"$LOG"
     exit 0
   fi

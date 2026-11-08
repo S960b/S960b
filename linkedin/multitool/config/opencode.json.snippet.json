@@ -1,0 +1,11 @@
+{
+  "//": "Paste this entry into the \"plugin\" array of ~/.config/gigatool/opencode.json, next to the existing entries.",
+  "plugin": [
+    [
+      "/home/kali/.config/gigatool/plugins/linkedin-daily.mjs",
+      {
+        "dry_run": false
+      }
+    ]
+  ]
+}
