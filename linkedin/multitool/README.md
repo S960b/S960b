@@ -102,9 +102,10 @@ touch ~/linkedin/.run-now
 
 3. **Content contract.** Copy `../shared/skill/SKILL.md` to
    `~/.config/gigatool/skills/linkedin-content-research/SKILL.md` so the agent can
-   load it as a skill. If it is not installed there, the cycle still works, but the
-   agent has to read the file from the Hermes path and says so in its log
-   ("skill not registered as loadable") - that is the current state, see §6.
+   load it as a skill (installed on this host 2026-11-08; the app picks skills up
+   at start, so restart it after copying). Without that copy the cycle still works,
+   but the agent has to read the file from the Hermes path and says so in its log
+   ("skill not registered as loadable").
 
 4. **Plugin**
 
@@ -150,9 +151,10 @@ touch ~/linkedin/.run-now
 
 ## 6. Known gaps / roadmap
 
-- **The skill is not registered in the app.** It lives only in the Hermes skill
-  store; MultiTool sessions read the file by path and log that the skill is not
-  loadable. Installing a copy under `~/.config/gigatool/skills/` fixes it (§4.3).
+- [x] **The skill is registered in the app** (2026-11-08: copy installed under
+  `~/.config/gigatool/skills/linkedin-content-research/`, active after the next app
+  start). Before that, MultiTool sessions read the file from the Hermes path and
+  logged "skill not registered as loadable".
 - **No token reminder inside the app.** The old reminder was Hermes cron job
   `1693af0de3c1` (2026-11-17), which cannot fire - the Hermes gateway is not
   running. The cycle itself writes `~/linkedin/REAUTH_NEEDED.md` and reports to
