@@ -92,3 +92,33 @@ Live, machine-specific files stay OUT of git: `~/linkedin/.credentials`,
   the Telegram bot username and chat id are masked or omitted.
 - The personal-fact gate in `shared/skill/SKILL.md` is the hard limit: only
   CONFIRMED background may appear as personal experience.
+
+---
+
+## 5. Manual post with an image
+
+When the user supplies the text and an image themselves, the autonomous cycle is
+not involved - the post is published by hand, logged so the 20:00 cycle sees the
+day as taken, and reported.
+
+```bash
+# 1) the day must still be free
+grep -c "<YYYY-MM-DD>" ~/linkedin/PUBLISHED.md    # 0 = free
+
+# 2) text goes into a plain file (a QUEUE-style "POST TEXT: ... ---" file also works)
+
+# 3) payload check, no network call
+python3 ~/linkedin/publish_image_post.py <image> <draft.txt> \
+  --title "<media title>" --alt "<alt text>" --dry-run
+
+# 4) live publish
+python3 ~/linkedin/publish_image_post.py <image> <draft.txt> \
+  --title "<media title>" --alt "<alt text>"
+```
+
+The script detects the image type from the file content (png / jpeg / gif),
+rejects anything else, takes the author URN from `GET /v2/userinfo` (no member id
+hardcoded) and requires `--title` / `--alt` - they are per-post metadata and must
+never be left over from a previous post. Then log the post in
+`~/linkedin/PUBLISHED/<date>.md`, add the summary row to `PUBLISHED.md`, note the
+day in `~/linkedin/RESEARCH/<date>.md` and send the Telegram report.
