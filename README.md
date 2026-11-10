@@ -19,7 +19,7 @@ Writeups and technical notes from CTF competitions, structured as `ctf/<event>/<
 
 ## Projects & infrastructure
 
-- [Hermes Chat Bridge](hermes_chat_bridge/) — connection between ChatGPT and the local AI agent (MultiTool / Hermes) on a computer. ChatGPT prepares tasks and code; the local agent runs jobs and reports results. Current Git-dialog implementation and documentation live in the separate private repository [S960b/agent-dialogs](https://github.com/S960b/agent-dialogs). The older queue-based implementation is preserved as a historical snapshot, not the current deployment guide.
+- [Hermes Chat Bridge](hermes_chat_bridge/) — a Git-backed bridge connecting ChatGPT with a local AI agent (MultiTool / Hermes). It coordinates tasks, maintains per-task conversation history, tracks handoffs and displays activity in a local taskboard.
 
 ## Research
 
