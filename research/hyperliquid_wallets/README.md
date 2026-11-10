@@ -24,7 +24,7 @@
 
 ## Оригинальный код и данные
 
-Сбор выполнялся агентом MT с локальными файлами `/home/kali/research/hyperliquid-public-wallet-audit-v1/`. Запрошены исходные скрипты для безопасного переноса в `scripts/`. **Не заменять их скриптом, написанным после просмотра результатов.** Сырые адресные выгрузки пока не опубликованы.
+Сбор и анализ выполнялись агентом MT локально. **Оригинальные** [`collect_fills.py`](scripts/collect_fills.py), [`analyze.py`](scripts/analyze.py) и [`corrective_audit.py`](scripts/corrective_audit.py) восстановлены и опубликованы без переписывания. ВАЖНО: исторический `analyze.py` содержит уже установленную **ошибку знака комиссии**; правильный пересчёт — `corrective_audit.py`. См. [`scripts/README.md`](scripts/README.md) для контрольных сумм и ограничений. Сырые fills/ledger-файлы в публичный Git не включены.
 
 Снимки SHA256: `raw_fills.json` `7512e9e3426d7080096a0ee83e0821dde0a1f74df7260dc4d4971accde6d302c`; `corrective_offline_audit.json` `c531dd2e56a2914e0379d24f5a97fbd9da283e6a5ce28de2920a64c5076ccf8c`. Git-диалог `task_0f269c61639e64d83469480e68ff8bcb`.
 

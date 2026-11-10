@@ -21,6 +21,6 @@
 
 ## Исходники
 
-Оригинальный скрипт MT `grid_shadow.py` (SHA256 `338fc6c946ff5a87bc4fa0c1329051d9c5a60721c1995535b77c207a64591387`) хранился на Kali как `/home/kali/Documents/BinanceResearch/grid_shadow.py`. Перед включением в публичный `scripts/` запрошен оригинал без секретов; не заменять его новым кодом задним числом. Результат `eth_30d.json` имеет SHA256 `3804a92197e111fed69b400253cca2aee7b400b1865c13824a8935951281c144`. Отдельные исходные отчёты — Git-диалог `task_d609795f9aa9af5c35cadae878e2e7c4`.
+Оригинальный неизменённый [`scripts/grid_shadow.py`](scripts/grid_shadow.py) (SHA256 `338fc6c946ff5a87bc4fa0c1329051d9c5a60721c1995535b77c207a64591387`) восстановлен с Kali и **опубликован**. Результат того же запуска [`eth_30d.json`](eth_30d.json) имеет SHA256 `3804a92197e111fed69b400253cca2aee7b400b1865c13824a8935951281c144`. Подробная история и параметры в [`scripts/README.md`](scripts/README.md); исходный Git-диалог `task_d609795f9aa9af5c35cadae878e2e7c4`. Снимок скриптов из приватной ветки `research/archive-local-scripts-20261110` @ `f91c2d54bd357f87b50667ddbc192c99d596cf7a`.
 
 Приватные Binance API, баланс пользователя и реальные ордера не использовались в этом тесте.
