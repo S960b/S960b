@@ -1,5 +1,7 @@
 # Cybersecurity Portfolio
 
+**English** | [Русский](README.ru.md)
+
 Cybersecurity / Penetration Testing / CTF
 
 This repository contains my practical cybersecurity work: authorized security assessments and CTF writeups.
@@ -23,16 +25,22 @@ Writeups and technical notes from CTF competitions, structured as `ctf/<event>/<
 
 ## Research
 
-Quantitative market microstructure research (authorized, public market data only).
+Independent, reproducible research into crypto-market data and trading hypotheses. Experiments are documented with methods, failure cases, limitations and available source code. **No verified strategy is presented as profitable or ready for live trading.** Research and simulations do not place real orders.
 
-- [SafeTrade Price-Lead Research](research/safetrade/) - does a small exchange (SafeTrade)
-  lag the top-3 spot venues (Binance/OKX/Bybit)? Latency research pipeline: concurrent
-  public-data collection, causal oracle (median of 3 external mids), premium b(t),
-  reach-to-target tests (informational vs executable), paper simulator (virtual 100 USDT,
-  taker/taker), quality dashboard. No trading, no keys, no secrets.
-- [Paper seven-day run - status](research/paper_seven_day/STATUS.md) - live status of the
-  experimental 7-day paper runner (SOLUSDT/BTCUSDT Donchian, systemd paper-seven-day +
-  checkpoint timer). Scripts merged into `main` 2026-10-14.
+**Start here:** [Research archive and project index](research/) · [Trading research audit (2026-11-10, Russian)](TRADING_RESEARCH_AUDIT_2026-11-10.md) · [Research validation protocol (Russian)](TRADING_RESEARCH_PROTOCOL.md).
+
+| Project | Research focus | Recorded outcome |
+|---|---|---|
+| [TP/SL Lab](research/tpsl_lab/) | BTC/ETH entry, exit, TP/SL and aggressive trade flow | Archived; no robust net edge found in tested rules |
+| [ETH Grid](research/eth_grid/) | ETH grid proxy versus ETH holding and a 50/50 portfolio | Closed / no-go after a separate frozen 7-day evaluation; all tested settings underperformed 50/50 |
+| [Hyperliquid Wallets](research/hyperliquid_wallets/) | Public wallet fills, fees and realized PnL | Archived with incomplete trade/funding history; no valid whole-wallet return estimate |
+| [NEWS Intelligence](research/) | News-driven BTC forecasts and market context | Historical phases documented; no independently verified profitable signal |
+| [Binance Copy](research/binance_copy/) | Limits of inferring copy-trading returns from leader performance | Insufficient evidence of replicable follower returns |
+| [SafeTrade](research/safetrade/) | Cross-venue price lead/lag and executable edge | Tested approaches did not establish a tradable edge |
+| [Paper Seven-Day](research/paper_seven_day/) | Paper strategy runner and evaluation | Experimental; no claim of proven profitability |
+| [Pionex](research/pionex/) | Exchange strategy investigation | Archived negative findings |
+
+The archive distinguishes **negative results**, **incomplete data** and **unfinished evaluations**. The audit and validation protocol are methodological references, not trading signals. No real trades are opened by these research projects.
 
 ## Automation (personal daily ops)
 
