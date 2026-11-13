@@ -27,7 +27,7 @@ Writeups and technical notes from CTF competitions, structured as `ctf/<event>/<
 
 Independent, reproducible research into crypto-market data and trading hypotheses. Experiments are documented with methods, failure cases, limitations and available source code. **No verified strategy is presented as profitable or ready for live trading.** Research and simulations do not place real orders.
 
-**Start here:** [Research archive and project index](research/) · [Trading research audit (2026-11-10, Russian)](TRADING_RESEARCH_AUDIT_2026-11-10.md) · [Research validation protocol (Russian)](TRADING_RESEARCH_PROTOCOL.md).
+**Start here:** [Research archive and project index](research/README.en.md) · [Trading research audit (2026-11-10, Russian)](TRADING_RESEARCH_AUDIT_2026-11-10.md) · [Research validation protocol (Russian)](TRADING_RESEARCH_PROTOCOL.md).
 
 | Project | Research focus | Recorded outcome |
 |---|---|---|
