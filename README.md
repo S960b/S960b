@@ -11,6 +11,7 @@ This repository contains my practical cybersecurity work: authorized security as
 Authorized penetration testing and security assessment case studies.
 
 - [API Security Assessment - GigaTool / MultiTool Gateway](pentest/gigatool/) - authorized black-box pentest of the backend API perimeter: token handling and DPoP binding, rate limiting, business logic and API issues
+- [MultiTool Desktop Security Research (November 2026)](pentest/multitool-desktop/) - separate static/dynamic review of an Electron AI client: IPC, credential persistence, gateway and execution boundaries, network trust, and targeted fuzzing. Seven-point summary; potential issues are distinguished from verified impact.
 
 ## CTF
 
