@@ -18,7 +18,7 @@ The sequence is:
 
 ## 1. Inspecting the artifact
 
-The supplied `rev-matryoshka/files/rev-matryoshka/matryoshka` was checked separately from the saved task record:
+The stripped ELF was part of the event's original downloadable archive. The public Git repository currently contains the analysis and solver, **not the binary**. To run the static-inspection commands below, first copy the downloaded binary to `assets/matryoshka`. Its file properties were checked directly:
 
 ```text
 ELF 64-bit LSB pie executable, x86-64, dynamically linked, stripped
