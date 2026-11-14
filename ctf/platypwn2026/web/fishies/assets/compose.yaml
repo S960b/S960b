@@ -1,0 +1,12 @@
+services:
+  challenge:
+    build: .
+    init: true
+    ports:
+      - "8080:80"
+    sysctls:
+      net.ipv4.ip_unprivileged_port_start: "0"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./flag.txt:/flag.txt:ro
