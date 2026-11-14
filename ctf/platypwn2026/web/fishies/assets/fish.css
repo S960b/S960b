@@ -1,0 +1,183 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+body {
+  color: #dff9ff;
+  background: #111;
+  font: 16px "DejaVu Sans Mono", "Liberation Mono", ui-monospace, monospace;
+}
+
+.pond {
+  position: fixed;
+  inset: 0;
+}
+
+.fish {
+  --color: hsl(calc(var(--hue) * 1deg) 78% 70%);
+  position: absolute;
+  top: var(--depth);
+  color: var(--color);
+  font-size: 40px;
+  text-decoration: none;
+  white-space: nowrap;
+  animation-duration: var(--duration);
+  animation-delay: var(--delay);
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+.fish--left {
+  animation-name: swim-left;
+}
+
+.fish--right {
+  animation-name: swim-right;
+}
+
+.fish__body {
+  display: inline-block;
+  padding: .6rem;
+  animation: bob 1.5s ease-in-out infinite alternate;
+}
+
+footer {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  padding: .55rem .7rem;
+  background: #222;
+  border: 1px solid #444;
+  border-width: 1px 0 0 1px;
+}
+
+button {
+  color: #dff9ff;
+}
+
+footer button {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+dialog {
+  width: min(36rem, calc(100% - 2rem));
+  color: #dff9ff;
+  background: #222;
+  border: 1px solid #555;
+}
+
+dialog form {
+  display: grid;
+  gap: 1rem;
+}
+
+dialog label {
+  display: grid;
+  gap: .4rem;
+}
+
+input,
+textarea {
+  width: 100%;
+  padding: .65rem;
+  color: inherit;
+  background: #111;
+  border: 1px solid #555;
+  font: inherit;
+}
+
+textarea {
+  min-height: 12rem;
+  resize: vertical;
+}
+
+dialog button {
+  justify-self: start;
+  padding: .5rem .7rem;
+  color: inherit;
+  background: #333;
+  border: 1px solid #555;
+  font: inherit;
+  cursor: pointer;
+}
+
+dialog .close {
+  position: absolute;
+  top: .35rem;
+  right: .45rem;
+  padding: 0;
+  background: none;
+  border: 0;
+  font-size: 1.4rem;
+}
+
+.fish-detail__ascii {
+  margin: 2rem 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  text-align: center;
+  font-family: inherit;
+  font-size: 40px;
+}
+
+.admin-form {
+  margin-top: 1rem;
+}
+
+output {
+  color: #ff9c9c;
+}
+
+@keyframes swim-left {
+  from {
+    left: 100vw;
+  }
+
+  to {
+    left: -30rem;
+  }
+}
+
+@keyframes swim-right {
+  from {
+    right: 100vw;
+  }
+
+  to {
+    right: -30rem;
+  }
+}
+
+@keyframes bob {
+  from {
+    transform: translateY(calc(var(--bob) * -1));
+  }
+
+  to {
+    transform: translateY(var(--bob));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fish {
+    animation-duration: calc(var(--duration) * 4);
+  }
+
+  .fish__body {
+    animation: none;
+  }
+}

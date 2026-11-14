@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Fishies</title>
+  <link rel="stylesheet" href="/static/fish.css">
+</head>
+<body>
+  <main class="pond">
+    {{#each fishes}}
+      <a class="fish fish--{{fishData.direction}}" href="#fish{{id}}" style="{{style}}">
+        <span class="fish__body"><span class="fish__ascii">{{ascii}}</span></span>
+      </a>
+    {{/each}}
+  </main>
+
+  <footer>
+    <button id="openSubmit" type="button">add fish</button>
+  </footer>
+
+  <dialog id="submitDialog">
+    <form id="submitForm">
+      <button class="close" type="button" data-close="submitDialog">x</button>
+      <label>fish <input id="ascii" value="&gt;&lt;&gt;" maxlength="2000"></label>
+      <label>fish data <textarea id="fishData" spellcheck="false">{
+  "duration": 10,
+  "depth": 50,
+  "bob": 5,
+  "delay": 0,
+  "hue": 190,
+  "direction": "left"
+}</textarea></label>
+      <button type="submit">release fish</button>
+      <output id="submitError"></output>
+    </form>
+  </dialog>
+
+  <dialog id="fishDialog"></dialog>
+
+  {{#each fishes}}
+    <template id="fish-{{id}}">
+      <section class="fish-detail" data-fish-id="{{id}}">
+        <form method="dialog"><button class="close" aria-label="Close">x</button></form>
+        <pre class="fish-detail__ascii">{{{reviewAscii}}}</pre>
+        <button type="button" data-report="{{id}}">report</button>
+        {{#if ../isAdmin}}
+          <form class="admin-form" data-admin-form="{{id}}">
+            <label>fish data <textarea name="fishData" spellcheck="false">{{adminFishData}}</textarea></label>
+            <button type="submit">save</button>
+            <output></output>
+          </form>
+        {{/if}}
+      </section>
+    </template>
+  {{/each}}
+
+  <script>
+    const submitDialog = document.getElementById('submitDialog');
+    const fishDialog = document.getElementById('fishDialog');
+    const fishHash = /^#fish(\d+)$/;
+
+    document.getElementById('openSubmit').addEventListener('click', () => submitDialog.showModal());
+    document.querySelector('[data-close="submitDialog"]').addEventListener('click', () => submitDialog.close());
+
+    document.getElementById('submitForm').addEventListener('submit', async event => {
+      event.preventDefault();
+      try {
+        const response = await fetch('/api/fish', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            ascii: document.getElementById('ascii').value,
+            fishData: JSON.parse(document.getElementById('fishData').value),
+          }),
+        });
+        const fish = await response.json();
+        location.href = '/#fish' + fish.id;
+      } catch (error) {
+        document.getElementById('submitError').value = error.message;
+      }
+    });
+
+    function openFishFromHash() {
+      const match = decodeURIComponent(location.hash).match(fishHash);
+      const fishTemplate = match && document.getElementById('fish-' + match[1]);
+      if (!fishTemplate) {
+        if (fishDialog.open) fishDialog.close();
+        return;
+      }
+      fishDialog.replaceChildren(fishTemplate.content.cloneNode(true));
+      if (!fishDialog.open) fishDialog.showModal();
+    }
+
+    fishDialog.addEventListener('close', () => {
+      if (fishHash.test(decodeURIComponent(location.hash))) {
+        history.replaceState(null, '', location.pathname + location.search);
+      }
+    });
+
+    fishDialog.addEventListener('click', async event => {
+      const button = event.target.closest('[data-report]');
+      if (!button) return;
+      button.disabled = true;
+      button.textContent = await fetch('/api/fish/' + button.dataset.report + '/report', {
+        method: 'POST',
+      }).then(response => response.text());
+    });
+
+    fishDialog.addEventListener('submit', async event => {
+      const form = event.target.closest('[data-admin-form]');
+      if (!form) return;
+      event.preventDefault();
+      const output = form.querySelector('output');
+      try {
+        const response = await fetch('/api/admin/fish/' + form.dataset.adminForm + '/fishData', {
+          method: 'PATCH',
+          headers: {'Content-Type': 'application/json'},
+          body: form.elements.fishData.value,
+        });
+        if (!response.ok) throw new Error(await response.text());
+        location.reload();
+      } catch (error) {
+        output.value = error.message;
+      }
+    });
+
+    addEventListener('hashchange', openFishFromHash);
+    openFishFromHash();
+  </script>
+</body>
+</html>
