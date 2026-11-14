@@ -4,7 +4,7 @@
 
 **Task:** obtain one Administrator desktop flag on LEGACY DC and another on CORE DC, two domain controllers in trusted forests.
 
-**Result:** **both flags solved and accepted** (public flags masked as `PP{...}`).
+**Result:** **both flags recovered**, as documented in the original evidence. The saved platform API snapshot does not list Old Trusty as completed; platform submission of both flags is not independently established (public flags masked as `PP{...}`).
 
 LEGACY path: `jdoe` AS-REP roast → BloodHound ACL chain (`WriteDacl`, `AddMember`, `AddKeyCredentialLink`) → `svc_ops` Shadow Credentials → Server Operators service-control rights → NTDS → Administrator → first flag.
 

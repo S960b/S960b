@@ -112,7 +112,7 @@ With local administrator access to DC01, the team used the directory replication
 secretsdump.py 'legacy.corp/<local-admin>:<password>@<dc01>' -just-dc
 ```
 
-A domain Administrator hash gave access to the `C$` share and `Users\Administrator\Desktop\flag.txt`. The LEGACY flag was accepted (`PP{...}`).
+A domain Administrator hash gave access to the `C$` share and `Users\Administrator\Desktop\flag.txt`. The LEGACY flag was recovered (`PP{...}`), and its contents are preserved in the archived `FLAG1.txt`. The available platform snapshot does not establish that Old Trusty was submitted as a completed challenge.
 
 ## 6. Transition to CORE: the limits of forest trust
 
@@ -222,7 +222,7 @@ use C$
 get Users\Administrator\Desktop\flag.txt
 ```
 
-The CORE flag was accepted (`PP{...}`). The separate `FLAG1.txt` and `FLAG2.txt` in the original archive confirm both outcomes.
+The CORE flag was recovered (`PP{...}`). Separate `FLAG1.txt` and `FLAG2.txt` in the original archive confirm the extraction of both flags. Their appearance in local evidence must not be conflated with both being credited by the platform, since Old Trusty is absent from the preserved `completedChallenges` snapshot.
 
 ## 13. Dead ends worth recording
 

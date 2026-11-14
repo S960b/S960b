@@ -115,7 +115,7 @@ python3 services.py 'legacy/svc_ops@<dc01>' \
 secretsdump.py 'legacy.corp/<local-admin>:<password>@<dc01>' -just-dc
 ```
 
-Затем использовали хэш доменного Administrator для доступа к `C$` и чтения `Users\Administrator\Desktop\flag.txt`. Платформа приняла первый флаг `PP{...}`.
+Затем использовали хэш доменного Administrator для доступа к `C$` и чтения `Users\Administrator\Desktop\flag.txt`. Первый флаг получен и сохранён в архиве как `FLAG1.txt` (`PP{...}`). Сохранившийся снимок API не подтверждает завершение Old Trusty на платформе.
 
 ## 6. CORE: почему права из LEGACY не переносились напрямую
 
@@ -224,7 +224,7 @@ use C$
 get Users\Administrator\Desktop\flag.txt
 ```
 
-**Второй флаг тоже принят платформой.** В исходном архиве он присутствует в `evidence/FLAG2.txt`, здесь маска `PP{...}`.
+**Второй флаг тоже получен.** В исходном архиве он сохранён как `evidence/FLAG2.txt` (в публичной версии `PP{...}`). Однако Old Trusty отсутствует в сохранившемся `completedChallenges` API, поэтому получение двух файлов нельзя выдавать за доказанную сдачу обоих флагов платформе.
 
 ## 12. Что ещё проверяли и почему отбросили
 
