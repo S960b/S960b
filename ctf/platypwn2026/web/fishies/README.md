@@ -4,7 +4,7 @@
 
 - **Category:** web
 - **Difficulty:** 3
-- **Materials:** `server.js`, package files, Handlebars template; saved later successful download evidence and earlier Git-bridge investigations
+- **Materials:** `server.js`, package files, Handlebars template; archived successful-run evidence and technical notes
 - **Flags:** 1 accepted (`PP{...}`)
 
 A fish-sharing application with an administrator Puppeteer bot chained reflected/stored script injection, an unsafe deep merge and inherited browser launch options.

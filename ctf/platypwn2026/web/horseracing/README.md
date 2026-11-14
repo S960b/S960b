@@ -4,7 +4,7 @@
 
 - **Category:** web
 - **Difficulty:** 1
-- **Materials:** Rust/Axum `src/main.rs`, `Cargo.toml`, HTML client; direct Git-bridge run report
+- **Materials:** Rust/Axum `src/main.rs`, `Cargo.toml`, HTML client; archived successful-run report
 - **Flags:** 1 accepted (`PP{...}`)
 
 A horse-racing betting app begins with ten points and awards VIP access at 500. Bets should close when a race starts, but the check runs before the HTTP body is consumed.

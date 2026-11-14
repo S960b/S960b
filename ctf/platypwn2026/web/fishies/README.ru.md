@@ -4,7 +4,7 @@
 
 - **Категория:** web
 - **Сложность:** 3
-- **Материалы:** `server.js`, package files, Handlebars template; saved later successful download evidence and earlier Git-bridge investigations
+- **Материалы:** `server.js`, файлы пакета, шаблон Handlebars, сохранённые результаты успешного запуска и технические заметки
 - **Флаги:** 1 принято (`PP{...}`)
 
 Приложение для обмена рыбками и бот на Puppeteer. Цепочка объединила XSS, небезопасное рекурсивное слияние объектов и наследование настроек запуска браузера.
