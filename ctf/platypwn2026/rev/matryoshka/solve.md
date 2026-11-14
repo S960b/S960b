@@ -4,7 +4,7 @@
 
 ## 0. Plan and what is actually preserved
 
-The supplied challenge file is a stripped 64-bit PIE executable. Its imported functions include `memfd_create` and `fexecve`, consistent with the reported multi-layer execution scheme. The agent's log describes the final calculation, but it does not preserve every command used to unpack the intermediate layers.
+The supplied challenge file is a stripped 64-bit PIE executable. Its imported functions include `memfd_create` and `fexecve`, consistent with the reported multi-layer execution scheme. The preserved work log describes the final calculation, but it does not preserve every command used to unpack the intermediate layers.
 
 The recorded solution is not a password dictionary attack. The final stage imposes four CRC32 conditions on a 16-byte password. Because CRC32 is affine over GF(2), each four-byte condition can be inverted by solving a **32 × 32 system of binary equations**. The recovered 16 bytes then XOR-decode a 36-byte region of the extracted second-stage executable.
 
@@ -18,7 +18,7 @@ The sequence is:
 
 ## 1. Inspecting the artifact
 
-The supplied `rev-matryoshka/files/rev-matryoshka/matryoshka` was checked separately from the agent report:
+The supplied `rev-matryoshka/files/rev-matryoshka/matryoshka` was checked separately from the saved task record:
 
 ```text
 ELF 64-bit LSB pie executable, x86-64, dynamically linked, stripped

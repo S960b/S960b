@@ -48,7 +48,7 @@ let speed = if h == state.favorite { base * 2.0 } else { base };
 state.horses[h] += speed;
 ```
 
-The favorite index itself is not exposed, but `GET /api/state` exposes all 16 running positions. The successful agent required:
+The favorite index itself is not exposed, but `GET /api/state` exposes all 16 running positions. The successful run used:
 
 ```text
 leading position >= 50
@@ -86,7 +86,7 @@ The spaces are valid trailing JSON whitespace. The exact `Content-Length` must m
 
 ## 4. Minimal protocol reconstruction
 
-This code shows the actual TCP timing mechanism, reconstructed from `main.rs` and the agent's live report. The original socket solver was not in the source ZIP.
+This code shows the actual TCP timing mechanism, reconstructed from `main.rs` and the recorded live test. The original socket solver was not in the source ZIP.
 
 ```python
 import socket, json, time, requests

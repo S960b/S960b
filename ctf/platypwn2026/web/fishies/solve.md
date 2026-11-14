@@ -161,7 +161,7 @@ For a remote lab, substitute the reachable address for `LHOST`, or let `exploit.
 
 ## 7. Recorded live result and verification
 
-The agent's preserved run records four successful report requests and these independent checks:
+The preserved live run records four successful report requests and these independent checks:
 
 ```text
 report visit 1 -> 200 "review queued"

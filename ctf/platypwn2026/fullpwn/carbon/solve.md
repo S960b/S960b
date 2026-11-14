@@ -10,7 +10,7 @@ Both flags were recovered in the competition, but the exported CTF archive conta
 
 ## 1. First look: one exposed service
 
-The agent's initial survey reported a single exposed HTTP service, the portal on port 3000. Probes for TCP ports 22, 80, 443, 5432, 6379, 8080 and 9000 did not find accessible services.
+The initial reconnaissance reported a single exposed HTTP service, the portal on port 3000. Probes for TCP ports 22, 80, 443, 5432, 6379, 8080 and 9000 did not find accessible services.
 
 The web application identified itself in the footer as:
 
@@ -76,7 +76,7 @@ The two flag names, `c4rb0n_c4ch3d_s3ss10n_r3pl4y` and `0p3r4t0r_3nv_1s_r00t`, p
 
 ## 4. What was achieved
 
-The agent's final task report lists two flags, the user flag from the operator's home directory and a separate root flag. Both were reported accepted by the user after the competition.
+The final challenge report lists two flags, the user flag from the operator's home directory and a separate root flag. Both were reported accepted by the user after the competition.
 
 The actual sequence of commands between initial foothold and these files is not present in `writeups/fullpwn_carbon`, which contains only a six-line summary in the original archive. No fabricated command log is inserted here.
 
