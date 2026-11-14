@@ -19,13 +19,13 @@ An improvised GCM construction based on 3DES with 64-bit blocks and only a two-b
 
 ## 4. Evidence and result
 
-All algorithmic details, tag truncation and both flag checks are present in the provided source. Previous live-session report records the recovered GHASH subkey and the two accepted flags. The original script has since been recovered under scripts/; the raw live terminal transcript is still not in the supplied ZIP.
+All algorithmic details, tag truncation and both flag checks are present in the provided source. Previous live-session report records the recovered GHASH subkey and the two accepted flags. The original script was recovered from the earlier work and is now published in `scripts/destruction_full_solve.py`; the raw terminal output of the live deployment is not in the transferred ZIP. The procedure in sections 7–8 documents the recovered solver rather than an invented reconstruction.
 
 Result: **2 accepted flag(s)**, masked `PP{...}`.
 
 ## 5. Reproduction limits
 
-The original script now includes the exact algebraic procedure and generates the nonce/AD/tag values. We do not claim that the abbreviated description here is a plug-and-play exploit.
+The original solver in `scripts/destruction_full_solve.py` includes the complete algebraic procedure and generates nonce, AD and tag values dynamically. Run it as documented in section 8. The separate live transcript is missing, but the script itself is published.
 
 ## 6. Fix and lesson
 
