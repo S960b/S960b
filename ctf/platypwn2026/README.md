@@ -6,7 +6,7 @@
 - **Format:** online Jeopardy CTF, organized by Platypwnies
 - **Platform:** https://platypwn.ctf.platypwnies.de/
 - **Event details:** https://platypwnies.de/events/platypwn/
-- **Team:** SOC². The agent's report states 54th place, 3,957 points and 24 solved flags in the November 14 account API snapshot; the earlier 49th-place figure was stale. The 19 completed-challenge count omits partial Flacksafety and does not fully reconcile with the separate accepted Old Trusty evidence.
+- **Team:** SOC². The owner and final team report give **49th place**. A separate November 14 interim API snapshot showed **54th place, 3,957 points and 24 solved flags**; it must not be described as the final rank. Individual challenge status entries and the two Old Trusty flag files do not allow an exact reconciliation of the flag count.
 - **Flag format:** `PP{...}`
 
 This directory contains **18 writeups** of accepted challenges prepared from challenge sources, preserved commands, earlier Git-bridge reports and the final agent task. Additional teammate OSINT solutions and incomplete tasks are not claimed here.
@@ -36,6 +36,6 @@ Structure: `<category>/<challenge>/`: `README.md` and `solve.md` in English, `RE
 
 ## Scope
 
-Only the 18 tasks listed above are documented as our accepted solves. OSINT tasks Signpost, Moving Pictures and Reverse Image Search were handled by a teammate; their methods and flags were not supplied. The platform snapshot lists 19 completed challenges and 24 solved flags, while Flacksafety is a partial solve and the archived Old Trusty files confirm two flags. These records do not yet reconcile exactly by challenge; we do not invent an accounting explanation. Rank 54 and 3,957 points are from the agent's November 14 platform API snapshot.
+Only the 18 tasks listed above are documented as our accepted solves. OSINT tasks Signpost, Moving Pictures and Reverse Image Search were handled by a teammate; their methods and flags were not supplied. The platform snapshot lists 19 completed challenges and 24 solved flags, while Flacksafety is a partial solve and the archived Old Trusty files confirm two flags. These records do not yet reconcile exactly by challenge; we do not invent an accounting explanation. Rank 54, 3,957 points and 24 flags were recorded in a November 14 interim API snapshot, not independently verified final standings; the owner reports a final rank of 49.
 
 Writeups were prepared after the event ended.
