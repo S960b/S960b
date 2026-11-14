@@ -18,7 +18,6 @@ Authorized penetration testing and security assessment case studies.
 Writeups and technical notes from CTF competitions, structured as `ctf/<event>/<type>/<challenge>`.
 
 - [CTF writeups](ctf/) - all competitions and categories: pwnsec, FortiD 2026, Sunshine 2026, pwnsec/web/PHault and more.
-- [Platypwn 2026](ctf/platypwn2026/) - 17 challenge writeups with English and Russian solving notes; evidence gaps documented.
 
 
 ## Projects & infrastructure
