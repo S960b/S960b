@@ -4,7 +4,7 @@
 
 ## 1. Task and source material
 
-Two independent weaknesses in a custom RSA-based login service: a modular password hash and a short-secret identification protocol. Source files: `server.py`, Dockerfile, compose; saved solver invocation (solver file itself absent).
+Two independent weaknesses in a custom RSA-based login service: a modular password hash and a short-secret identification protocol. Source files: `server.py`, Dockerfile, compose; saved invocation in the transferred ZIP; recovered original solver is now available at `scripts/solve_unholytrinity.py`.
 
 ## 2. Analysis
 
@@ -27,7 +27,7 @@ Result: **2 accepted flag(s)**, masked `PP{...}`.
 
 ## 5. Reproduction limits
 
-The particular values of `x`, `r`, and transcript of all rounds were not preserved; the protocol steps here are reconstructed from the source and the agent's result.
+The particular values of `x`, `r`, and transcript of all rounds were not preserved; the original recovered script now fixes the actual response pattern (`r=1`), password generator and 52-round protocol. Live per-round random challenges and terminal transcript are not preserved.
 
 ## 6. Fix and lesson
 
