@@ -27,7 +27,7 @@ if (( i < 1 || i > 3 )); then
   exit 1
 fi
 
-file="\${files[i]}"
+file="${files[i]}"
 cat -- "$file"
 ```
 
