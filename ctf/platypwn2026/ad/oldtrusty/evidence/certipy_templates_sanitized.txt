@@ -1,0 +1,85 @@
+# Certipy CA enumeration excerpt (CORE-CA) - sanitized
+# Full source: evidence/20261114032846_Certipy.txt (internal IPs removed elsewhere)
+
+    CA Name                             : CORE-CA
+    DNS Name                            : DC02.core.corp
+    Certificate Subject                 : CN=CORE-CA, DC=core, DC=corp
+    User Specified SAN                  : Disabled
+        Enroll                          : CORE.CORP\Authenticated Users
+    Enrollment Agent                    : False
+    Enrollee Supplies Subject           : False
+    Enrollment Flag                     : AutoEnrollment
+        Enrollment Rights               : CORE.CORP\Enterprise Read-only Domain Controllers
+    Enrollment Agent                    : False
+    Enrollee Supplies Subject           : False
+    Enrollment Flag                     : AddOcspNocheck
+        Enrollment Rights               : CORE.CORP\Domain Admins
+    Enrollment Agent                    : False
+    Enrollee Supplies Subject           : False
+    Enrollment Flag                     : AutoEnrollment
+        Enrollment Rights               : CORE.CORP\Domain Admins
+    Enrollment Agent                    : False
+    Enrollee Supplies Subject           : False
+    Enrollment Flag                     : AutoEnrollment
+        Enrollment Rights               : CORE.CORP\Domain Admins
+    Enrollment Agent                    : False
+    Enrollee Supplies Subject           : False
+    Enrollment Flag                     : IncludeSymmetricAlgorithms
+        Enrollment Rights               : CORE.CORP\Enterprise Read-only Domain Controllers
+    Enrollment Agent                    : False
+    Enrollee Supplies Subject           : False
+    Enrollment Flag                     : AutoEnrollment
+        Enrollment Rights               : CORE.CORP\Enterprise Read-only Domain Controllers
+    Enrollment Agent                    : False
+    Enrollee Supplies Subject           : False
+    Enrollment Flag                     : IncludeSymmetricAlgorithms
+        Enrollment Rights               : CORE.CORP\Domain Admins
+    Enrollment Agent                    : False
+    Enrollee Supplies Subject           : True
+    Enrollment Flag                     : IncludeSymmetricAlgorithms
+        Enrollment Rights               : CORE.CORP\Domain Admins
+    Enrollment Agent                    : True
+    Enrollee Supplies Subject           : True
+    Enrollment Flag                     : PublishToDs
+
+## Templates (name + EKU)
+    Template Name                       : KerberosAuthentication
+    Extended Key Usage                  : Client Authentication
+    Template Name                       : OCSPResponseSigning
+    Extended Key Usage                  : OCSP Signing
+    Template Name                       : RASAndIASServer
+    Extended Key Usage                  : Client Authentication
+    Template Name                       : Workstation
+    Extended Key Usage                  : Client Authentication
+    Template Name                       : DirectoryEmailReplication
+    Extended Key Usage                  : Directory Service Email Replication
+    Template Name                       : DomainControllerAuthentication
+    Extended Key Usage                  : Client Authentication
+    Template Name                       : KeyRecoveryAgent
+    Extended Key Usage                  : Key Recovery Agent
+    Template Name                       : CAExchange
+    Extended Key Usage                  : Private Key Archival
+    Template Name                       : CrossCA
+    Template Name                       : ExchangeUserSignature
+    Extended Key Usage                  : Secure Email
+    Template Name                       : ExchangeUser
+    Extended Key Usage                  : Secure Email
+    Template Name                       : CEPEncryption
+    Extended Key Usage                  : Certificate Request Agent
+    Template Name                       : OfflineRouter
+    Extended Key Usage                  : Client Authentication
+    Template Name                       : IPSECIntermediateOffline
+    Extended Key Usage                  : IP security IKE intermediate
+    Template Name                       : IPSECIntermediateOnline
+    Extended Key Usage                  : IP security IKE intermediate
+    Template Name                       : SubCA
+    Template Name                       : CA
+    Template Name                       : WebServer
+    Extended Key Usage                  : Server Authentication
+    Template Name                       : DomainController
+    Extended Key Usage                  : Client Authentication
+    Template Name                       : Machine
+    Extended Key Usage                  : Client Authentication
+    Template Name                       : MachineEnrollmentAgent
+    Extended Key Usage                  : Certificate Request Agent
+    Template Name                       : EnrollmentAgentOffline

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LegacyEnrollmentClient>
+  <Domain>CORE</Domain>
+  <Username>svc_enrollment</Username>
+  <Password><PW></Password>
+  <Authority>CORE-CA</Authority>
+  <Template>EnrollmentAgent</Template>
+</LegacyEnrollmentClient>

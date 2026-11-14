@@ -1,0 +1,5 @@
+Legacy reporting maintenance
+
+The Legacy Report Synchronization Agent (service name: ReportSync) runs on
+DC01. Infrastructure Operations may restart it after report-schema changes.
+The service is normally left stopped outside the nightly reporting window.
