@@ -112,7 +112,7 @@ The malicious referral call replaces the implementation pointer, then a delegate
 
 ## 5. Evidence and limitations
 
-The supplied `Proxy.sol`, `Chal.sol` and `Setup.sol` prove every slot assignment and the delegatecall behavior. The agent's list confirms an accepted flag. The actual malicious contract bytecode, calldata and deployment hashes are **not included** in the archive. The Drain example is a reproducible demonstration, not a fabricated original artifact.
+The supplied `Proxy.sol`, `Chal.sol` and `Setup.sol` prove every slot assignment and the delegatecall behavior. The recorded results confirms an accepted flag. The actual malicious contract bytecode, calldata and deployment hashes are **not included** in the archive. The Drain example is a reproducible demonstration, not a fabricated original artifact.
 
 ## 6. Mitigation
 

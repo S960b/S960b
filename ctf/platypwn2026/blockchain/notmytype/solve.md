@@ -120,7 +120,7 @@ withdraw(0.9e18)        from B
 repeat until getBalance() < 80e18
 ```
 
-The original archive has `Chal.sol` and `payment_backend.py` plus a platform flag-submission command. The actual transaction hashes and original exploit file were **not** in that ZIP. The agent confirms the challenge was accepted; the sequence above is verified by source logic, not misrepresented as its verbatim log.
+The original archive has `Chal.sol` and `payment_backend.py` plus a platform flag-submission command. The actual transaction hashes and original exploit file were **not** in that ZIP. The recorded result confirms the challenge was accepted; the sequence above is verified by source logic, not misrepresented as its verbatim log.
 
 ## 5. Dead ends and lessons
 

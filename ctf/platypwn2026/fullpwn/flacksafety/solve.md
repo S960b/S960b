@@ -28,7 +28,7 @@ The observed service topology:
                  GET /main.rs (Rust source)
 ```
 
-Live IP addresses and working credentials are deliberately redacted. The technical path is based on preserved agent transcripts, including corrective experiments after early incorrect assumptions.
+Live IP addresses and working credentials are deliberately redacted. The technical path is based on preserved session transcripts, including corrective experiments after early incorrect assumptions.
 
 ## 1. Employee foothold: the shadow file
 
@@ -158,7 +158,7 @@ The private accounts `workstation` and `workstation-legacy` had separate REST au
 
 ## 7. Investigating the path traversal
 
-The exposed rclone version was `1.74.3`. The agent investigated a traversal issue recorded as `CVE-2026-59733`. Early tests from the wrong host failed because `backups-server` did not resolve outside the challenge workstation's cluster namespace. After moving the probes to the SSH workstation, the proper headers and raw URL preservation were used:
+The exposed rclone version was `1.74.3`. The investigation examined a traversal issue recorded as `CVE-2026-59733`. Early tests from the wrong host failed because `backups-server` did not resolve outside the challenge workstation's cluster namespace. After moving the probes to the SSH workstation, the proper headers and raw URL preservation were used:
 
 ```sh
 curl --path-as-is \

@@ -53,7 +53,7 @@ For a geometric probability `p=0.01`, the expected number of tries per legendary
 
 ## 3. What the malicious receiver must do
 
-The agent's confirmed live implementation was `RerollReceiver`, compiled with Solidity 0.8.26. Its crucial callback behavior was:
+The recorded successful implementation was `RerollReceiver`, compiled with Solidity 0.8.26. Its crucial callback behavior was:
 
 ```solidity
 function onPalReceived(uint256, uint8 rarity) external returns (bytes4) {
@@ -97,11 +97,11 @@ contract RerollReceiver is IPalReceiver {
 
 This contract is a **source-faithful reconstruction**, not claimed to be the verbatim deployed bytecode; the historical report confirms the `require(rarity==3, "reroll")` logic but the final full contract source was not saved in the given ZIP.
 
-## 4. Why the agent bought one box at a time
+## 4. Why we bought one box at a time
 
 The backend processes up to `BATCH_SIZE=16` boxes in one transaction. If several boxes belonged to the receiver and *any* nonlegendary callback reverted, the **entire batch** would revert, including potentially favorable earlier boxes. Buying exactly **one unopened box** makes each trial independent and avoids this batch-side effect.
 
-The agent followed this deliberately:
+The successful run followed this deliberately:
 
 1. Deploy `RerollReceiver` pointed at `Setup.TARGET()`.
 2. Buy one box for 1 ETH, then allow the backend to retry automatically until rarity 3.

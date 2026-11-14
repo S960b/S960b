@@ -6,7 +6,7 @@
 
 The PlatyJack casino begins with 100 ETH and the Setup is solved at a remaining balance **below 10 ETH**. The deployed contract provides blackjack and roulette. Both games are settled by a Python service with a single process-wide `random.Random` generator.
 
-The agent reports that the team obtained and submitted the flag. The provided archive does **not** contain the actual winning solver, the PRNG state recovery trace, or the roulette bet history. This writeup therefore gives a reproducible **source-derived analysis** of the dealer, the exact mathematics of the weak card encoding, the on-chain settlement rules and clear boundaries on what the winning session's details can prove. It does not invent a successful script or unexplained 'MT19937 recovered' claim.
+The saved competition notes report that the team obtained and submitted the flag. The provided archive does **not** contain the actual winning solver, the PRNG state recovery trace, or the roulette bet history. This writeup therefore gives a reproducible **source-derived analysis** of the dealer, the exact mathematics of the weak card encoding, the on-chain settlement rules and clear boundaries on what the winning session's details can prove. It does not invent a successful script or unexplained 'MT19937 recovered' claim.
 
 ## 1. The dealer's actual source code
 
@@ -127,7 +127,7 @@ A faithful local investigation would:
 5. Predict selected results only when the state model is independently validated against later observed hands.
 6. Place bounded roulette bets, allow the backend to settle, then use `cashOut` and check `Setup.isSolved()`.
 
-No standalone step 4–6 log survived in the ZIP. The agent was explicitly asked to recover the missing solver and transaction records.
+No standalone step 4–6 log survived in the ZIP. The missing materials were explicitly requested to recover the missing solver and transaction records.
 
 ## 6. Why the recorded outcome is still credible
 
