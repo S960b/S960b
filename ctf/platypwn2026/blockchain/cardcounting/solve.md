@@ -133,11 +133,35 @@ A faithful local investigation would:
 
 No standalone step 4–6 log survived in the ZIP. The missing materials were explicitly requested to recover the missing solver and transaction records.
 
-## 6. Why the recorded outcome is still credible
+## 6. Independent offline reconstruction of the MT19937 state
+
+The source-derived prediction is now backed by an independently tested reconstruction, not merely a proposal. The additional [`scripts/recover_mt.py`](scripts/recover_mt.py) is **new test code**, not the recovered historical exploit. It uses only the Python standard library and never contacts the competition service.
+
+Python's MT19937 has a 624-word state, and `getrandbits(32)` returns one tempered 32-bit word per blackjack hand. After reversing the base-52 representation for **624 consecutive hands**, the script inverts the four tempering operations:
+
+```text
+y ^= y >> 11
+y ^= (y << 7)  & 0x9d2c5680
+y ^= (y << 15) & 0xefc60000
+y ^= y >> 18
+```
+
+The recovered 624 untempered words populate `random.Random.setstate((3, state_words + (624,), None))`. Subsequent `randrange(37)` calls use `getrandbits(6)` with rejection sampling; simply computing `getrandbits(32) % 37` **would be wrong**. By using Python's real `randrange(37)` on the cloned generator, the demonstrator models those extra consumed words.
+
+```bash
+python3 scripts/recover_mt.py --selftest
+python3 scripts/recover_mt.py --hands hands.json --predict 10
+```
+
+`hands.json` contains at least 624 ordered rows of six card IDs, e.g. `{"hands": [[c0,c1,c2,c3,c4,c5], ...]}` with numeric IDs in actual files. The built-in test discards 137 random words before taking its sample, then predicts **100 out of 100** upcoming roulette values correctly. A second local test used JSON hand data and matched ten additional predictions. These are **synthetic, independently executed tests**, not invented on-chain history.
+
+In the simplest isolated collection, 624 hands require 39 calls to `play(16)` and a gross stake-and-tip outlay of `624 × 0.011 = 6.864 ETH` before blackjack payouts; the availability of that amount depends on the challenge wallet. The 624 samples must be consecutive **in the dealer's shared RNG stream**. Interleaved roulette spins, other players or new hands after the sample can desynchronize the model. A local clone does not establish that the winning historical session actually used this route.
+
+## 7. Why the recorded outcome is still credible
 
 The supplied `Chal.sol` and `dealer.py` expose a clear shared-randomness weakness, the account statement contains the accepted task flag, and the final task report identifies the challenge as solved. The vulnerability analysis and score equations are independently checkable. What remains unverified is the **exact exploit transcript and original algorithm** used to turn the weak dealer into the accepted flag. We separate those two evidence levels.
 
-## 7. Defense
+## 8. Defense
 
 Use a verifiable unbiased randomness source with each paid action cryptographically committed before customers can react, do not expose shared PRNG state through game events, and do not reuse a single general-purpose PRNG for high-value lottery payouts and public diagnostic game outcomes.
 
