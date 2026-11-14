@@ -299,3 +299,7 @@ Precisely what was and was not accomplished:
 - The checker Rust source and server `/entrypoint.sh` were retrieved live and described in preserved agent reports; their full byte-for-byte files were not supplied in the later ZIP.
 - Primary investigation transcript: Git-bridge task `task_fbd5b3d8ae846735b442756bf0789d3e`, especially agent messages 1, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27 and 29. Contradictions in early hypotheses are resolved here using later controlled tests.
 - This is a reconstruction from authenticated challenge logs, not a claim that a new live run was performed.
+
+## Repository evidence
+
+Source code and redacted supporting artifacts: [`evidence/reconstruction.md`](evidence/reconstruction.md).

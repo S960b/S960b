@@ -115,3 +115,7 @@ The script prints the number of collected equations, the recovered H and both fl
 ## 9. Security lesson
 
 A 16-bit tag and a nonstandard 64-bit GHASH created a two-bit authentication oracle when chosen AD was allowed. The failure was not just 'DES is old', but the unreviewed combination of a custom mode, an undersized authenticator and attacker-controlled associated data.
+
+## Repository evidence
+
+Source code and redacted supporting artifacts: [`assets/server.py`](assets/server.py), [`assets/encryption.py`](assets/encryption.py), [`scripts/destruction_full_solve.py`](scripts/destruction_full_solve.py), [`scripts/destruction_solve.py`](scripts/destruction_solve.py).

@@ -115,3 +115,7 @@ python3 scripts/destruction_full_solve.py <host> <port>
 ## 9. Что это говорит о защите
 
 Тег длиной 16 бит и повторное использование информации между связанными сообщениями превратили проверку подлинности в удобный двухбитный оракул. Причина не в том, что DES «старый» вообще, а в самодельной комбинации режима, 64-битного GHASH и критически короткого тега при наличии выбранного AD.
+
+## Материалы в репозитории
+
+Проверяемые исходники и очищенные материалы: [`assets/server.py`](assets/server.py), [`assets/encryption.py`](assets/encryption.py), [`scripts/destruction_full_solve.py`](scripts/destruction_full_solve.py), [`scripts/destruction_solve.py`](scripts/destruction_solve.py).

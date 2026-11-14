@@ -245,3 +245,7 @@ The CORE flag was recovered (`PP{...}`). Separate `FLAG1.txt` and `FLAG2.txt` in
 ## 15. Evidence note
 
 Original supplied source: `writeups/OldTrusty/README.md` plus `scripts/` and `evidence/` in the contest archive, including Certipy output, PKI enrollment XML and both flag confirmations. Public commands are a redacted rendering of the recorded path, not fresh runs against an active domain.
+
+## Repository evidence
+
+Source code and redacted supporting artifacts: [`evidence/original-notes.redacted.md`](evidence/original-notes.redacted.md), [`evidence/certipy_templates_sanitized.txt`](evidence/certipy_templates_sanitized.txt), [`evidence/enrollment-agent.xml`](evidence/enrollment-agent.xml), [`scripts/drsr_t.py`](scripts/drsr_t.py).

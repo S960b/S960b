@@ -206,3 +206,7 @@ The source includes defaults for the static directory and victim fish identifier
 ## 10. Security lessons
 
 Use a tested, context-aware HTML encoder; don't edit and rescan an untrusted HTML string with unsafe index logic. Reject the keys `__proto__`, `constructor` and `prototype` during deep merges, or merge into null-prototype dictionaries. Pin and harden the automation environment, validate browser launch options as own properties, and isolate privileged review bots from process-level secrets and writable application static directories.
+
+## Repository evidence
+
+Source code and redacted supporting artifacts: [`assets/server.js`](assets/server.js), [`assets/index.html`](assets/index.html), [`assets/package.json`](assets/package.json).

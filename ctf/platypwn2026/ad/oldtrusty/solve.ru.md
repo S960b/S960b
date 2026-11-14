@@ -256,3 +256,7 @@ get Users\Administrator\Desktop\flag.txt
 ## 15. Артефакты
 
 В переданном архиве сохранены оригинальные материалы: `OldTrusty/README.md`, `OldTrusty/scripts/`, `OldTrusty/evidence/20261114032846_Certipy.txt`, `enrollment-agent.xml` и оба файла подтверждения флагов. Публичный текст исключает живые пароли и полные хэши; для воспроизведения используются собственные авторизованные доменные стенды.
+
+## Материалы в репозитории
+
+Проверяемые исходники и очищенные материалы: [`evidence/original-notes.redacted.md`](evidence/original-notes.redacted.md), [`evidence/certipy_templates_sanitized.txt`](evidence/certipy_templates_sanitized.txt), [`evidence/enrollment-agent.xml`](evidence/enrollment-agent.xml), [`scripts/drsr_t.py`](scripts/drsr_t.py).
