@@ -8,6 +8,6 @@
 
 **Main investigation:** rclone 1.74.3 `serve restic --private-repos` over an SFTP backend. Path traversal was confirmed for GET/POST/DELETE of known files, including a read of the server entrypoint. Directory listing across the private-account boundary was filtered out because canonical and raw paths differed. The sixth checker test required an **entirely empty directory**; the team lacked the object names and separate legacy account password.
 
-**Evidence:** shipped `shadow.txt` and detailed agent session reports containing controlled HTTP probes, checker source, server configuration and failed hypotheses. Public flags, live IPs and credentials are masked.
+**Evidence:** shipped `shadow.txt` and archived investigation records containing controlled HTTP probes, checker source, server configuration and failed hypotheses. Public flags, live IPs and credentials are masked.
 
 [Read the detailed technical walkthrough](solve.md).

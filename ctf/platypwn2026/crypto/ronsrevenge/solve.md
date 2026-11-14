@@ -1,49 +1,16 @@
-# Ron's Revenge: solving notes
+# Ron's Revenge: chosen-IV recovery of an RC4-2048 secret key
 
 [По-русски](solve.ru.md)
 
-## 1. Task and source material
+## 1. Goal, evidence and reproduction
 
-A chosen-IV stream cipher challenge using an RC4-like key schedule with a state of size 2048. Source files: `server.py` in the challenge archive and recovered original solver `scripts/ronsrevenge_exploit.py` in this repository.
+The service encrypts the same hidden flag under an RC4-like cipher with a **2,048-entry permutation**, using a client-controlled three-word IV followed by an eight-word secret key. This `IV || secret` key-scheduling construction preserves the weak-IV statistical bias even though the state is larger than RC4's usual 256 bytes.
 
-## 2. Analysis
+**Result:** the flag was recovered and accepted. The original recovered FMS solver is [`scripts/ronsrevenge_exploit.py`](scripts/ronsrevenge_exploit.py), with a local `--selftest`, chosen-IV sampling, eight-word key recovery and cross-IV validation. Run `python3 scripts/ronsrevenge_exploit.py --selftest` before connecting to a new challenge instance.
 
-The service seeds an eight-word long-term key from the flag and prefixes every key with a client-supplied three-word IV. The state is a permutation of 0..2047, and each RC4 output is 11 bits; the stream packs those bits into bytes before XORing the flag. Because the flag begins with the known `PP{` format, every encryption request leaks initial keystream bits. The biased KSA statistics survive the expanded state size.
+**Evidence:** the supplied [`server.py`](assets/server.py) and recovered solver. The exact instance key, vote tables and full live transcript were not archived; these are not fabricated below.
 
-## 3. Solving procedure
-
-1. Send a controlled sequence of three 11-bit IV words and record the ciphertext for the same unknown flag.
-2. XOR its known prefix (`PP{`) with each ciphertext prefix to recover corresponding keystream bits.
-3. Apply FMS-style weak-IV reasoning to the first RC4 output; generate votes for successive eight unknown key words, recomputing known-prefix KSA steps for each stage.
-4. Rank candidates by frequency, test the assembled key against additional IV/ciphertext pairs, then regenerate the stream and decrypt the remaining flag bytes.
-
-## 4. Evidence and result
-
-The source shows the 3+8 key layout, arbitrary chosen IVs, `state_size=2048`, and byte packing. The challenge was solved with `ronsrevenge_exploit.py`; the transferred ZIP only showed its process/log check; the original exploit was later recovered from the earlier work and is now included under `scripts/`. The flag was accepted.
-
-Result: **1 accepted flag(s)**, masked `PP{...}`.
-
-## 5. Reproduction limits
-
-The original solver is present and specifies the IV family, voting rule, sample count and cross-IV validation. Exact live key words and full terminal output are not preserved, so those values are not asserted here.
-
-## 6. Fix and lesson
-
-RC4 and RC4-like KSA variants should not be used with attacker-controlled IV prefixes. Use a nonce-based AEAD with established security properties.
-
-
-## Recovered original working solver
-
-Recovered original FMS solver, including RC4-2048 KSA, weak-IV voting, 11-bit keystream extraction from a known two-character prefix, full-key verification and a local --selftest. The self-test's synthetic plaintext was replaced by an obvious non-flag marker for public release.
-
-```bash
-python3 scripts/ronsrevenge_exploit.py <host> <port>
-```
-
-Code: [scripts/ronsrevenge_exploit.py](scripts/ronsrevenge_exploit.py). The file contains the algorithm and checks, not a hardcoded live service address.
-
-
-## 7. The actual recovered solver
+## 2. The actual recovered solver
 
 The supplied `server.py` sets the permutation size to `N=2048=2^11` and constructs the RC4 key as:
 
@@ -81,7 +48,7 @@ Here `z` is the first observed 11-bit PRGA word. Every sample increments a candi
 
 **Cross-IV validation.** The solver saves ciphertexts under eight separate IVs. After recovering the key, it runs its own RC4-2048 KSA/PRGA implementation and the exact 11-bit-to-byte packer to decrypt all eight. A correct key must produce identical plaintext under all eight and match the known prefix. This check guards against selecting an unlucky high-count FMS candidate.
 
-## 8. Running the script
+## 3. Running the script
 
 ```bash
 python3 scripts/ronsrevenge_exploit.py --selftest
@@ -92,6 +59,6 @@ python3 scripts/ronsrevenge_exploit.py <host> <port> --prefix PP --samples 512
 
 The self-test uses a synthetic local plaintext and Python's seeded random generator, then asserts the full recovered key matches the local key. The public synthetic fixture is deliberately not a real flag. This is the exact recovered solver, not an invented substitute for a missing one.
 
-## 9. Why a larger state did not remove the attack
+## 4. Why a larger state did not remove the attack
 
 Expanding RC4 from 256 to 2048 permutation elements changes the output word size but leaves the weak `IV || secret` key-scheduling pattern. Chosen-IV sampling still reveals biased early-state information. A larger state is not a substitute for nonce/key separation or a modern AEAD.

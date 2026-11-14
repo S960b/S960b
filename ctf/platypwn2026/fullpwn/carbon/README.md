@@ -4,7 +4,7 @@
 
 - **Category:** fullpwn
 - **Difficulty:** 1
-- **Materials:** Accepted user/root flags in agent report; no challenge image, exploit or host log included
+- **Materials:** Two recovered flags recorded in the solved-task summary; no static challenge distribution, final exploit or host transcript preserved
 - **Flags:** 2 accepted (`PP{...}`)
 
 A two-flag machine challenge. The accepted outcomes are a user-level flag associated with cached-session replay and a root-level flag associated with the operator's environment.

@@ -1,51 +1,16 @@
-# Unholy Trinity: solving notes
+# Unholy Trinity: modular RSA hash collisions and exact-root authentication
 
 [По-русски](solve.ru.md)
 
-## 1. Task and source material
+## 1. Goal, evidence and reproduction
 
-Two independent weaknesses in a custom RSA-based login service: a modular password hash and a short-secret identification protocol. Source files: `server.py`, Dockerfile, compose; saved invocation in the transferred ZIP; recovered original solver is now available at `scripts/solve_unholytrinity.py`.
+Two independent defects in the supplied RSA authentication service lead to two flags: distinct fixed-length passwords can collide under `h(x)=x^17 mod N`, and the server discloses the RSA commitment for a short 19-byte admin secret. The latter allows exact integer-root recovery because the exponentiation does not wrap modulo N.
 
-## 2. Analysis
+**Result:** both flags obtained and accepted. The original recovered two-part solver is [`scripts/solve_unholytrinity.py`](scripts/solve_unholytrinity.py). Run `python3 scripts/solve_unholytrinity.py HOST PORT`; it reproduces both registrations, extracts the root and completes 52 authentication rounds with `r=1`.
 
-The server sets `e=17`, generates a ~2674-bit RSA modulus `N`, and stores `hash_pw(pw) = int.from_bytes(pw)^17 mod N`. Registration checks for duplicate hash values; therefore distinct valid fixed-length passwords whose integers are congruent modulo N collide. For the admin account the 19-byte secret `m` is far shorter than N: `m^17 < N`. The server prints the admin's committed `pw_hash` before authentication, so its exact integer 17th root reveals `m`, without factoring N.
+**Evidence:** the original [`server.py`](assets/server.py) and solver. Full interactive per-round terminal output is unavailable; the mathematics and exact protocol inputs are visible in source.
 
-## 3. Solving procedure
-
-1. Read the public `N` and `e` from the welcome line.
-2. Construct two distinct `NLEN`-byte passwords represented by integers `x+N` and `x+2N` (or another pair differing by N), taking care that both satisfy the unusual password-policy test on Python's `str(bytes)`.
-3. Register the first user and then the second; the duplicate modular hash path releases the first flag.
-4. Start admin login and read `pw_hash = m^17 mod N`. Because there is no modular wrap, compute the exact integer 17th root to recover the 19-byte admin secret.
-5. Across the authentication rounds, use a random nonzero `r`: send `announcement = r^17 mod N`, read challenge `c`, and send `response = r * m^c mod N`. This satisfies `response^17 = announcement * pw_hash^c mod N`.
-6. Finish all rounds for the second flag.
-
-## 4. Evidence and result
-
-These two mathematical conditions are explicit in the bundled `server.py`. The original solver is now recovered under scripts/; the transferred archive itself contained only the invocation, not the full terminal output. A separate solved-task report confirms both flags.
-
-Result: **2 accepted flag(s)**, masked `PP{...}`.
-
-## 5. Reproduction limits
-
-The particular values of `x`, `r`, and transcript of all rounds were not preserved; the original recovered script now fixes the actual response pattern (`r=1`), password generator and 52-round protocol. Live per-round random challenges and terminal transcript are not preserved.
-
-## 6. Fix and lesson
-
-Hash passwords with a password KDF (Argon2id, scrypt, PBKDF2), not raw RSA exponentiation. Avoid home-grown identification schemes; use a reviewed standard and a challenge proof that does not expose low-exponent short secrets.
-
-
-## Recovered original working solver
-
-Recovered the original two-flag solver. It generates two fixed-length modular-hash-colliding passwords, extracts the exact 17th root of the committed admin hash, and completes the 52 authentication rounds.
-
-```bash
-python3 scripts/solve_unholytrinity.py <host> <port>
-```
-
-Code: [scripts/solve_unholytrinity.py](scripts/solve_unholytrinity.py). The file contains the algorithm and checks, not a hardcoded live service address.
-
-
-## 7. Exact solver mathematics
+## 2. Exact solver mathematics
 
 There are two independent vulnerabilities in the actual `server.py`.
 
@@ -81,7 +46,7 @@ challenge ∈ {0,...,16}
 
 The original successful solver uses `r=1`, sends `announcement=1`, and replies `response=m^challenge mod N`. A general randomized proof could use `r^17` and `r*m^challenge`, but the original code really did use 1. The documented script is therefore faithful to the execution path, not just algebraically plausible.
 
-## 8. Reproduction and sanity checks
+## 3. Reproduction and sanity checks
 
 ```bash
 python3 scripts/solve_unholytrinity.py <host> <port>
@@ -89,7 +54,7 @@ python3 scripts/solve_unholytrinity.py <host> <port>
 
 The script prints the modulus size, both registration outcomes and `FLAG0`; it checks `pow(m,e,N)==admin_hash` before the admin rounds and extracts `FLAG1` only after the final response. A standalone modular-collision test can validate the first flaw without network access.
 
-## 9. Why the design failed
+## 4. Why the design failed
 
 1. `pow(password,17,N)` is not a password hash; it identifies residue classes modulo N.
 2. Fixed-length input does not make the map injective.

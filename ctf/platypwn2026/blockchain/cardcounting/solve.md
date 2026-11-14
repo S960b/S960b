@@ -107,6 +107,10 @@ A chain of several correctly predicted spins can reduce a 100 ETH treasury below
 
 The precise successful algorithm is **not demonstrated by the archived final solve command**, so it is presented as the intended connection suggested by the shared RNG, not claimed as recovered historical MT state reconstruction.
 
+### Important: `cashOut()` caps the payout at the treasury balance
+
+The actual contract uses `amount = min(winnings[msg.sender], address(this).balance)` before transferring. Thus the last winning roulette claim **does not revert merely because the accrued winnings exceed the remaining treasury**: it pays the available balance and can bring the treasury to exactly zero. At a 0.5 ETH wager, five successful spins net `5 × 17.5 = 87.5 ETH` of treasury reduction (apart from paid sampling hands), leaving approximately 12.5 ETH. A sixth correct spin credits 18 ETH, but `cashOut()` then pays at most what remains. This accounting is essential to a reproducible draining strategy; the complete historical sequence and generator-state recovery are not archived.
+
 ## 5. Observability and test plan
 
 The contract exposes:
