@@ -1,35 +1,93 @@
-# Just in Time: solving notes
+# Just in Time: deriving the vault password from the deployment block
 
 [По-русски](solve.ru.md)
 
-## 1. Challenge
+## 0. Plan
 
-A vault claims its password was never written down; it is actually derived entirely from public deployment data.
+The objective is to withdraw the entire 100 ETH balance from `Chal`. The constructor presents its password as secret, but creates it from `block.timestamp`, `block.number` and `msg.sender` only. All inputs are recoverable from the chain.
 
-**Materials:** Solidity `Chal.sol`, `Setup.sol`.
+We identify `TARGET`, locate its creation block, distinguish the constructor sender from the player's EOA, reproduce the packed Keccak encoding, submit the password, and check `Setup.isSolved()`.
 
-## 2. Analysis
+## 1. Source-level weakness
 
-The constructor computes `password = uint256(keccak256(abi.encodePacked(block.timestamp, block.number, msg.sender)))` and stores only `keccak256(abi.encodePacked(password))`. The deployer of `Chal` is the `Setup` contract, hence `msg.sender` in that constructor is the Setup address, not the player's EOA. The timestamp and block number are public in the deployment block. The password is therefore deterministic and not secret.
+```solidity
+constructor() payable {
+    uint256 password = uint256(keccak256(
+        abi.encodePacked(block.timestamp, block.number, msg.sender)
+    ));
+    passwordHash = keccak256(abi.encodePacked(password));
+}
 
-## 3. Solving sequence
+function withdraw(uint256 password) external {
+    require(keccak256(abi.encodePacked(password)) == passwordHash, "Wrong password");
+    payable(msg.sender).transfer(address(this).balance);
+}
+```
 
-1. Query `Setup.TARGET()` and find the transaction and block that created the target `Chal` contract.
-2. Read the block's timestamp and number. Use the Setup contract address for `msg.sender`.
-3. Recreate Solidity packed encoding of two `uint256` values (32 bytes each) and one address (20 bytes); calculate Keccak-256 and interpret the result as uint256.
-4. Call `TARGET.withdraw(password)` from the player account. This transfers the entire challenge balance to the caller.
-5. Verify that `Setup.isSolved()` returns true (`TARGET` balance is zero).
+`Setup` directly creates the instance:
 
-## 4. Recorded result
+```solidity
+constructor() payable {
+    require(msg.value == 100 ether, "Must send 100 ether");
+    TARGET = new Chal{value: 100 ether}();
+}
 
-Both formulas and the zero-balance solve condition are explicit in the attached Solidity source. The final task report records an accepted flag. Transaction hash and exact recovered password were not included.
+function isSolved() public view returns (bool) {
+    return address(TARGET).balance == 0;
+}
+```
 
-1 accepted flag(s); full strings masked `PP{...}`.
+The easily overlooked point is that `msg.sender` **inside the Chal constructor** is the **Setup contract**, not the transaction-signing wallet. Using the EOA would generate a different hash.
 
-## 5. Limits
+## 2. Identifying the three public inputs
 
-The saved materials contain source but no deployed address, block identifier or actual withdraw transaction. The reproduction steps are derived directly from that code.
+Query `Setup.TARGET()` to obtain the Chal address. Find the deployment transaction for Setup and its block. Since `Setup.constructor` calls `new Chal` directly, that creation occurs in the same block. Its timestamp and height are the relevant values.
+
+Reproduce Solidity packed encoding precisely:
+
+| Input | Solidity type | Packed length |
+|---|---|---|
+| `block.timestamp` | `uint256` | 32 bytes, big-endian |
+| `block.number` | `uint256` | 32 bytes, big-endian |
+| `msg.sender` | `address` | 20 bytes |
+| **Total** | | **84 bytes** |
+
+Python's standard `hashlib.sha3_256` is **not** Ethereum Keccak-256. Use `eth_utils.keccak` or the equivalent library implementation.
+
+## 3. Reproduction helper
+
+This small calculation is reconstructed from `Chal.sol`. The original transaction-specific solver was not in the archived bundle.
+
+```python
+from eth_utils import keccak
+
+def calculate_password(timestamp: int, block_number: int, setup_address: str) -> int:
+    addr = bytes.fromhex(setup_address.removeprefix("0x"))
+    assert len(addr) == 20
+    packed = timestamp.to_bytes(32, "big") + block_number.to_bytes(32, "big") + addr
+    assert len(packed) == 84
+    return int.from_bytes(keccak(packed), "big")
+```
+
+Optionally simulate `withdraw(password)` via `eth_call` to check it does not revert before broadcasting a state-changing transaction.
+
+## 4. Complete call chain
+
+```text
+Setup.TARGET()
+      -> find Chal creation block
+      -> (timestamp, block_number, Setup address)
+      -> keccak256(84 packed bytes)
+      -> Chal.withdraw(password)
+      -> Setup.isSolved() == true
+```
+
+`withdraw` transfers the **entire** Chal balance. There is no further hidden condition; `Setup.isSolved` only checks the remaining ETH balance.
+
+## 5. Evidence and limitations
+
+The agent's final task report confirms an accepted flag (`PP{...}`). The ZIP includes the two original Solidity sources but not the specific deployment address, timestamp, password value, transaction hash or stdout. This walkthrough therefore provides a source-derived reproducible calculation, not an invented historical command transcript.
 
 ## 6. Mitigation
 
-Do not use block time, block number or sender address as a secret. Derive secrets off-chain with unpredictable randomness and avoid publishing a checkable secret-dependent predicate on chain.
+Public deployment metadata is not entropy. Hashing a deterministic public tuple may obscure the formula but does not create an unguessable password.

@@ -1,35 +1,99 @@
-# PlatyLocker: solving notes
+# PlatyLocker: an RSA private exponent stored on a public blockchain
 
 [По-русски](solve.ru.md)
 
-## 1. Challenge
+## 0. Objective
 
-A ransomware-themed contract stores an RSA private exponent in a Solidity `private` variable, confusing access control at source level with secrecy on a public chain.
+The operator initializes the contract with RSA and AES material, and `Setup.isSolved()` only checks `TARGET.filesRestored()`. The apparent legitimate path `payRansom` costs **1000 ETH**, above the ordinary challenge budget. The actual requirement is merely to learn the AES key and call `restoreFiles(bytes32)`.
 
-**Materials:** `Chal.sol`, `Setup.sol`, `locker_operator.py`.
+The contract declares:
 
-## 2. Analysis
+```solidity
+bytes public modulus;
+bytes public publicExponent;
+bytes private privateExponent; // private, so only the contract can use it
+bytes public encryptedKey;
+bytes32 public keyHash;
+bool public filesRestored;
+```
 
-`initialize` saves the RSA modulus, public exponent, **private exponent** and ciphertext in contract storage. The Python operator produces a 1024-bit RSA keypair and a 32-byte AES key, encrypts the AES key with `pow(m,e,n)`, and sends the exponent `d` to the chain. Solidity's `private` keyword controls other contracts' direct access, but storage slots can be read by node RPC. Dynamic bytes occupy hashed storage locations when long.
+The word `private` prevents access by name in Solidity source, **not RPC access to the blockchain's persistent storage**.
 
-## 3. Solving sequence
+## 1. Origin of the cryptographic material
 
-1. Query `TARGET` from Setup. Locate the `privateExponent` storage slot by the Solidity layout; this contract has `modulus`, `publicExponent`, `privateExponent`, `encryptedKey` as dynamic bytes.
-2. Use `eth_getStorageAt` to recover the length metadata in the slot and the actual long-byte contents at `keccak256(slot)` and following slots.
-3. Read the publicly accessible modulus and ciphertext (via getters or storage). Calculate `m = pow(c,d,n)` with the recovered private exponent and take the 32-byte AES key.
-4. Call `restoreFiles(bytes32(key))`. The contract checks `keccak256(key) == keyHash` and marks `filesRestored=true`.
-5. `Setup.isSolved()` checks precisely that Boolean.
+The shipped `service/locker_operator.py` generates:
 
-## 4. Recorded result
+```python
+BITS = 1024
+e = 65537
+p, q = getPrime(BITS // 2), getPrime(BITS // 2)
+n = p * q
+d = inverse(e, (p - 1) * (q - 1))
+aes_key = os.urandom(32)
+c = pow(int.from_bytes(aes_key, "big"), e, n)
+```
 
-The operator source shows fresh RSA parameters and AES key generation; the contract exposes the complete private-key material via persistent storage. The accepted result is recorded in the agent report, though no RPC transcript was packaged.
+It invokes `initialize(n,e,d,c,keccak256(aes_key))`. Thus the private exponent `d` is **explicitly included in transaction calldata** and assigned to `privateExponent`. Either the initialization transaction or the contract's storage exposes the secret.
 
-1 accepted flag(s); full strings masked `PP{...}`.
+## 2. Solidity storage layout
 
-## 5. Limits
+The fields occupy these slots:
 
-Exact slot reads, concrete RSA parameters and the successful transaction are not attached. The storage layout is reconstructed from Solidity declarations.
+| slot | Field |
+|---:|---|
+| 0 | dynamic `bytes modulus` |
+| 1 | dynamic `bytes publicExponent` |
+| 2 | dynamic `bytes privateExponent` |
+| 3 | dynamic `bytes encryptedKey` |
+| 4 | `bytes32 keyHash` |
+| 5 | packed `bool filesRestored` |
+
+The `operator` is `immutable` and does not consume a regular storage slot.
+
+Long dynamic `bytes` data is stored starting at the Keccak-256 hash of the 32-byte slot index; the slot itself contains `2*length+1`. The approximately 128-byte RSA exponent is necessarily in long form.
+
+```python
+from eth_utils import keccak
+
+slot = 2
+start = int.from_bytes(keccak(slot.to_bytes(32, "big")), "big")
+# eth_getStorageAt(TARGET, hex(start + i), "latest") for 4 consecutive words
+```
+
+The reads are native Ethereum state inspection, not an application-specific bypass. Parsing the `initialize` transaction parameters is another valid approach.
+
+## 3. Decrypting without paying ransom
+
+Read `n`, `d` and ciphertext `c` as big-endian integers:
+
+```python
+m = pow(int.from_bytes(c, "big"),
+        int.from_bytes(d, "big"),
+        int.from_bytes(n, "big"))
+key = m.to_bytes(32, "big")
+```
+
+The explicit 32-byte conversion is important: `os.urandom(32)` may start with zero bytes, which would be lost by a minimal-length integer encoding.
+
+`restoreFiles` checks the hash and sets the winning Boolean:
+
+```solidity
+function restoreFiles(bytes32 key) external {
+    require(keccak256(abi.encodePacked(key)) == keyHash, "Wrong key");
+    filesRestored = true;
+}
+```
+
+No payment is required for that method, and the `Setup` win condition is just `filesRestored == true`.
+
+## 4. Why this is not RSA cryptanalysis
+
+Nobody needs to factor `n`. The private exponent `d` is supplied directly to the publicly readable chain. Once `d` is known, computing `c^d mod n` is ordinary RSA decryption. The vulnerability is disclosure by storage and calldata, not a mathematical weakness of modular exponentiation.
+
+## 5. Evidence and limits
+
+The ZIP supplies `Chal.sol`, `Setup.sol`, `locker_operator.py`, and a platform submission command for an accepted flag. It does not include the exact live parameters or final transaction hash, so no historical RPC transcript is fabricated here.
 
 ## 6. Mitigation
 
-Do not put private cryptographic material on-chain, including in a Solidity `private` variable. Keep keys off-chain and expose only public verification data.
+Public-chain storage is never secret, regardless of `private` source annotations. Keep RSA private keys and AES keys off-chain; publish only public verification commitments.
