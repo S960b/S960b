@@ -4,7 +4,7 @@
 
 ## 0. What survived and what did not
 
-The recorded result marked FSenc solved and the result was accepted, but the export contains **no original encryptor, no `flag.bin`, no `a.enc`, no recovered password, and no successful decryption output**. It does contain two substantial fragments of the actual terminal work, `evidence/solve_1.txt` and `solve_2.txt`. Those fragments are the basis for this document.
+FSenc was a dynamic-instance task with no static file provided by the competition platform. The saved result records an accepted flag, but the exported working directory contains **no original encryptor, no `flag.bin`, no `a.enc`, no recovered password, and no successful decryption output**. It does contain two substantial fragments of the actual terminal work, `evidence/solve_1.txt` and `solve_2.txt`. Those fragments are the basis for this document.
 
 The recorded work pursued two related hypotheses: the 44 bytes following a 12-byte file prefix were either immediately usable as a 32-byte ChaCha20-Poly1305 key and 12-byte nonce, or they were a password-derived 44-byte value computed with Argon2id. These are **different interpretations** of the header. The source snippets show tests for both; they do not include their outputs, so the successful hypothesis cannot be identified with confidence.
 
