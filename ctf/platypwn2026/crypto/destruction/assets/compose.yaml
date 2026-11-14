@@ -1,0 +1,8 @@
+services:
+  server:
+    build: .
+    ports:
+      - 127.0.0.1:2004:2004
+    environment:
+      FLAG0: PP{FAKEFLAG_0}
+      FLAG1: PP{FAKEFLAG_1}

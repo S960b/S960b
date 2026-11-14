@@ -1,0 +1,17 @@
+[package]
+name = "ctfhorseracing"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+axum = { version = "0.8", default-features = false, features = ["http1", "json", "tokio"] }
+rand = "0.10.3"
+serde = { version = "1", features = ["derive"] }
+tokio = { version = "1", features = ["macros", "rt", "net", "sync", "signal"] }
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

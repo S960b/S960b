@@ -1,0 +1,20 @@
+
+services:
+  bish-bash-bosh:
+    build: .
+    ports:
+      - 9000:9000
+    configs:
+      - source: flag
+        target: /flag/flag.txt
+    # volumes:
+    #   - ./flag.txt:/flag/flag.txt:ro,Z
+
+# NOTE: podman-compose does not implement the `configs` feature.
+# To work around that issue:
+# 1. remove the `configs` related stuff from below and from the service
+# 2. create a file with the fake flag: `echo "flag{fake-flag}" > flag.txt`
+# 3. uncomment the volume mount above
+configs:
+  flag:
+    content: "flag{fake-flag}"
