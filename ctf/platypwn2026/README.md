@@ -2,40 +2,47 @@
 
 [Русская версия](README.ru.md)
 
-- **Dates:** November 13, 17:00 UTC - November 14, 11:00 UTC, 2026
-- **Format:** online Jeopardy CTF, organized by Platypwnies
+- **Dates:** November 13–14, 2026
+- **Format:** online task-based CTF
 - **Platform:** https://platypwn.ctf.platypwnies.de/
-- **Event details:** https://platypwnies.de/events/platypwn/
-- **Team:** SOC². The owner and final team report give **49th place**. A separate November 14 interim API snapshot showed **54th place, 3,957 points and 24 solved flags**; it must not be described as the final rank. Individual challenge status entries and the two Old Trusty flag files do not allow an exact reconciliation of the flag count.
+- **Team:** SOC²
+- **Final rank:** 49th (team's final result). An earlier API snapshot reported rank 54, 3,957 points and 24 flags; it is not the final leaderboard position.
 - **Flag format:** `PP{...}`
 
-This directory contains **18 writeups** of accepted challenges prepared from challenge sources, preserved commands, earlier Git-bridge reports and the final agent task. Additional teammate OSINT solutions and incomplete tasks are not claimed here.
+## Writeups
 
-Structure: `<category>/<challenge>/`: `README.md` and `solve.md` in English, `README.ru.md` and `solve.ru.md` in Russian. Full flags, instance IPs and credentials are masked. When a solver or execution transcript is missing, the gap is explicitly disclosed.
+The directory contains **18 technical reports** written from the original challenge materials, stored evidence, recovered solver scripts and preserved lab notes. In Old Trusty both flags were recovered; the preserved API snapshot does not list the challenge as completed, so no platform-submission claim is made here. Flacksafety was a partial solve: five of six backup tiers destroyed and the governance flag obtained. These statuses are distinguished in their individual writeups.
+
+Each task uses the same structure as the other CTF reports in this portfolio:
+
+- `README.md` and `solve.md`: English overview and step-by-step writeup
+- `README.ru.md` and `solve.ru.md`: Russian counterparts
+- `scripts/`: verified or reconstructed reproductions, labelled accordingly
+- `assets/` and `evidence/`: available source code, challenge materials and redacted logs
+
+Complete flags, passwords, NT hashes and live instance addresses are not published. Missing source files or execution traces are clearly identified. No stage is presented as succeeded unless the available evidence supports it.
 
 ## Challenges
 
-- [Matryoshka](rev/matryoshka/solve.md)
-- [Unholy Trinity](crypto/unholytrinity/solve.md)
-- [Horse Racing](web/horseracing/solve.md)
-- [Just in Time](blockchain/justintime/solve.md)
-- [Ron's Revenge](crypto/ronsrevenge/solve.md)
-- [PlatyLocker](blockchain/platylocker/solve.md)
-- [Not My Type](blockchain/notmytype/solve.md)
-- [Referral](blockchain/referral/solve.md)
-- [Card Counting](blockchain/cardcounting/solve.md)
-- [DEStruction](crypto/destruction/solve.md)
-- [PlatyPals](blockchain/platypals/solve.md)
-- [FSenc](rev/fsenc/solve.md)
-- [Legacy IT](ad/legacyit/solve.md)
-- [Old Trusty (two flags)](ad/oldtrusty/solve.md)
-- [Carbon](fullpwn/carbon/solve.md)
-- [Flacksafety (partial)](fullpwn/flacksafety/solve.md)
-- [Fishies](web/fishies/solve.md)
-- [Bish Bash Bosh](misc/bishbashbosh/solve.md)
+| Category | Challenge | Notes |
+|---|---|---|
+| Reverse | [Matryoshka](rev/matryoshka/solve.md) | CRC32 linear algebra and XOR |
+| Reverse | [FSenc](rev/fsenc/solve.md) | ChaCha20-Poly1305 / Argon2id experiments |
+| Crypto | [Unholy Trinity](crypto/unholytrinity/solve.md) | RSA modular-hash collision and integer root |
+| Crypto | [Ron's Revenge](crypto/ronsrevenge/solve.md) | Chosen-IV RC4-2048 recovery |
+| Crypto | [DEStruction](crypto/destruction/solve.md) | GHASH/short-tag forgery, two flags |
+| Web | [Horse Racing](web/horseracing/solve.md) | Delayed HTTP body / TOCTOU |
+| Web | [Fishies](web/fishies/solve.md) | XSS, prototype pollution, Puppeteer and LD_PRELOAD |
+| Blockchain | [Just in Time](blockchain/justintime/solve.md) | Public deployment entropy |
+| Blockchain | [PlatyLocker](blockchain/platylocker/solve.md) | Public storage of a private RSA exponent |
+| Blockchain | [Not My Type](blockchain/notmytype/solve.md) | Floating-point validation mismatch |
+| Blockchain | [Referral](blockchain/referral/solve.md) | Proxy storage-slot collision |
+| Blockchain | [Card Counting](blockchain/cardcounting/solve.md) | Nonuniform deck / PRNG |
+| Blockchain | [PlatyPals](blockchain/platypals/solve.md) | Callback reverts and rerolls |
+| Active Directory | [Legacy IT](ad/legacyit/solve.md) | Final SMB pass-the-hash read |
+| Active Directory | [Old Trusty](ad/oldtrusty/solve.md) | LEGACY → CORE, two recovered flags |
+| Fullpwn | [Carbon](fullpwn/carbon/solve.md) | Portal investigation; user and root flags |
+| Fullpwn | [Flacksafety](fullpwn/flacksafety/solve.md) | Five of six backup tiers, partial |
+| Misc | [Bish Bash Bosh](misc/bishbashbosh/solve.md) | Bash arithmetic evaluation |
 
-## Scope
-
-Only the 18 tasks listed above are documented as our accepted solves. OSINT tasks Signpost, Moving Pictures and Reverse Image Search were handled by a teammate; their methods and flags were not supplied. The platform snapshot lists 19 completed challenges and 24 solved flags, while Flacksafety is a partial solve and the archived Old Trusty files confirm two flags. These records do not yet reconcile exactly by challenge; we do not invent an accounting explanation. Rank 54, 3,957 points and 24 flags were recorded in a November 14 interim API snapshot, not independently verified final standings; the owner reports a final rank of 49.
-
-Writeups were prepared after the event ended.
+These reports were written after the competition.
