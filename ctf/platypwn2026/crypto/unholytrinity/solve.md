@@ -21,7 +21,7 @@ The server sets `e=17`, generates a ~2674-bit RSA modulus `N`, and stores `hash_
 
 ## 4. Evidence and result
 
-These two mathematical conditions are explicit in the bundled `server.py`. The archive records the invocation of `solve_unholytrinity.py` on the instance, but does not contain its contents or terminal output. A separate solved-task report confirms both flags.
+These two mathematical conditions are explicit in the bundled `server.py`. The original solver is now recovered under scripts/; the transferred archive itself contained only the invocation, not the full terminal output. A separate solved-task report confirms both flags.
 
 Result: **2 accepted flag(s)**, masked `PP{...}`.
 
@@ -32,3 +32,14 @@ The particular values of `x`, `r`, and transcript of all rounds were not preserv
 ## 6. Fix and lesson
 
 Hash passwords with a password KDF (Argon2id, scrypt, PBKDF2), not raw RSA exponentiation. Avoid home-grown identification schemes; use a reviewed standard and a challenge proof that does not expose low-exponent short secrets.
+
+
+## Recovered original working solver
+
+Recovered the original two-flag solver. It generates two fixed-length modular-hash-colliding passwords, extracts the exact 17th root of the committed admin hash, and completes the 52 authentication rounds.
+
+```bash
+python3 scripts/solve_unholytrinity.py <host> <port>
+```
+
+Code: [scripts/solve_unholytrinity.py](scripts/solve_unholytrinity.py). The file contains the algorithm and checks, not a hardcoded live service address.

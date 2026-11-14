@@ -30,3 +30,14 @@ Without the original vote tables or exploit code, exact IV families, sample coun
 ## 6. Fix and lesson
 
 RC4 and RC4-like KSA variants should not be used with attacker-controlled IV prefixes. Use a nonce-based AEAD with established security properties.
+
+
+## Recovered original working solver
+
+Recovered original FMS solver, including RC4-2048 KSA, weak-IV voting, 11-bit keystream extraction from a known two-character prefix, full-key verification and a local --selftest. The self-test's synthetic plaintext was replaced by an obvious non-flag marker for public release.
+
+```bash
+python3 scripts/ronsrevenge_exploit.py <host> <port>
+```
+
+Code: [scripts/ronsrevenge_exploit.py](scripts/ronsrevenge_exploit.py). The file contains the algorithm and checks, not a hardcoded live service address.

@@ -19,14 +19,25 @@ An improvised GCM construction based on 3DES with 64-bit blocks and only a two-b
 
 ## 4. Evidence and result
 
-All algorithmic details, tag truncation and both flag checks are present in the provided source. Previous live-session report records the recovered GHASH subkey and the two accepted flags. The actual forged payloads and solver implementation were not included in this archive.
+All algorithmic details, tag truncation and both flag checks are present in the provided source. Previous live-session report records the recovered GHASH subkey and the two accepted flags. The original script has since been recovered under scripts/; the raw live terminal transcript is still not in the supplied ZIP.
 
 Result: **2 accepted flag(s)**, masked `PP{...}`.
 
 ## 5. Reproduction limits
 
-The exact algebraic search procedure and forged nonce/AD/tag values are missing. We do not claim that the abbreviated description here is a plug-and-play exploit.
+The original script now includes the exact algebraic procedure and generates the nonce/AD/tag values. We do not claim that the abbreviated description here is a plug-and-play exploit.
 
 ## 6. Fix and lesson
 
 Do not build custom GCM variants over 64-bit block ciphers; use a vetted AEAD (AES-GCM, ChaCha20-Poly1305) with correctly sized tags and unique nonces.
+
+
+## Recovered original working solver
+
+Original, live-validated Python solver recovered from the earlier conversation's files. It makes one large-AD encryption request, uses 32 selected GHASH variants to recover the 64-bit GHASH key with GF(2) elimination, and completes both flag conditions. The user confirmed that it worked unchanged on the live service in approximately 80/168 calls.
+
+```bash
+python3 scripts/destruction_full_solve.py <host> <port>
+```
+
+Code: [scripts/destruction_full_solve.py](scripts/destruction_full_solve.py). The file contains the algorithm and checks, not a hardcoded live service address.
