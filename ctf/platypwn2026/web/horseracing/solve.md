@@ -94,11 +94,11 @@ import socket, json, time, requests
 def late_bet(host, port, stake):
     conn = socket.create_connection((host,port),timeout=10)
     conn.sendall((
-        f"POST /api/bet HTTP/1.1\\r\\n"
-        f"Host: {host}\\r\\n"
-        "Content-Type: application/json\\r\\n"
-        "Content-Length: 80\\r\\n"
-        "Connection: close\\r\\n\\r\\n"
+        f"POST /api/bet HTTP/1.1\r\n"
+        f"Host: {host}\r\n"
+        "Content-Type: application/json\r\n"
+        "Content-Length: 80\r\n"
+        "Connection: close\r\n\r\n"
     ).encode())
 
     while True:

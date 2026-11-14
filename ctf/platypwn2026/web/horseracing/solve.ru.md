@@ -112,11 +112,11 @@ def one_race(host, port, stake):
     # Открыть заранее, пока timer < 30.
     sock = socket.create_connection((host,port), timeout=10)
     headers = (
-        f"POST /api/bet HTTP/1.1\\r\\n"
-        f"Host: {host}\\r\\n"
-        "Content-Type: application/json\\r\\n"
-        "Content-Length: 80\\r\\n"
-        "Connection: close\\r\\n\\r\\n"
+        f"POST /api/bet HTTP/1.1\r\n"
+        f"Host: {host}\r\n"
+        "Content-Type: application/json\r\n"
+        "Content-Length: 80\r\n"
+        "Connection: close\r\n\r\n"
     ).encode()
     sock.sendall(headers)
 
