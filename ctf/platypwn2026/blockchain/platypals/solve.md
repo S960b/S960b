@@ -111,7 +111,7 @@ The successful run followed this deliberately:
 
 ## 5. The actual live record
 
-The saved Git-bridge report `task_b67579adc03e4ed9595d66289ae26da5` records:
+The archived successful-run notes record:
 
 - First legendary arrived around block **31** after purchase.
 - The second required about **330 rejected openings** before success.

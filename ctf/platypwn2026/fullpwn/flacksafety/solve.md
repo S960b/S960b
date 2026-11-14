@@ -224,7 +224,7 @@ Unicode fullwidth dots (`U+FF0E U+FF0E`, URL `%EF%BC%8E%EF%BC%8E`) were tested a
 
 ### .rclonelink alias
 
-The agent created a harmless marker with a `.rclonelink` suffix and attempted to browse through the alias. The alias was treated as a normal file: target GET returned 404 and listing returned `[]`. The server was not running with `--links`. Probe files were deleted.
+A harmless marker was created with a `.rclonelink` suffix and attempted to browse through the alias. The alias was treated as a normal file: target GET returned 404 and listing returned `[]`. The server was not running with `--links`. Probe files were deleted.
 
 ### Different methods and directory removal
 
@@ -296,8 +296,8 @@ Precisely what was and was not accomplished:
 ## 13. Sources and reproduction limits
 
 - Shipped archive: `fullpwn.flacksafety.zip` containing only `shadow.txt`.
-- The checker Rust source and server `/entrypoint.sh` were retrieved live and described in preserved agent reports; their full byte-for-byte files were not supplied in the later ZIP.
-- Primary investigation transcript: Git-bridge task `task_fbd5b3d8ae846735b442756bf0789d3e`, especially agent messages 1, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27 and 29. Contradictions in early hypotheses are resolved here using later controlled tests.
+- The checker Rust source and server `/entrypoint.sh` were retrieved live and described in preserved investigation notes; their full byte-for-byte files were not supplied in the later ZIP.
+- Primary evidence: the [sanitized reconstruction](evidence/reconstruction.md) and surviving controlled-test notes. Contradictions in early hypotheses were resolved using later independent probes.
 - This is a reconstruction from authenticated challenge logs, not a claim that a new live run was performed.
 
 ## Repository evidence

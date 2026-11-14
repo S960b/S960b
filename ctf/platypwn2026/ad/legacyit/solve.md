@@ -21,7 +21,7 @@ The preserved command uses `impacket-smbclient` with NT-hash authentication (`-h
 
 ## 4. Evidence and result
 
-The ZIP contains two duplicate `evidence/solve_*.txt` records with the complete Impacket command and file path. Both contain a credential and an internal host address, which are masked here. The final agent report confirms the accepted flag.
+The ZIP contains two duplicate `evidence/solve_*.txt` records with the complete Impacket command and file path. Both contain a credential and an internal host address, which are masked here. The final solved-task summary records an accepted flag.
 
 Result: 1 accepted flag, full string masked (`PP{...}`).
 

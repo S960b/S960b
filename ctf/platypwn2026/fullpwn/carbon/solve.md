@@ -6,7 +6,7 @@
 
 Platypus Freight provided an emissions-report portal. The description said the operations team had cleaned the environment for SOC2 and removed stray passwords. The intended objectives were a user-level file at `/home/operator/user.txt` and a root-level file at `/root/root.txt`.
 
-Both flags were recovered in the competition, but the exported CTF archive contains **no original Carbon image, exploit script, host history or final root-session transcript**. The evidence below is the preserved technical reconnaissance from the initial Git-bridge task, supplemented by the confirmed two-flag result. Where the record stops, the writeup stops rather than inventing a payload or privilege escalation.
+Both flags were recovered in the competition, but the exported CTF archive contains **no original Carbon image, exploit script, host history or final root-session transcript**. The evidence below is the preserved technical reconnaissance from the archived investigation notes, supplemented by the confirmed two-flag result. Where the record stops, the writeup stops rather than inventing a payload or privilege escalation.
 
 ## 1. First look: one exposed service
 
@@ -97,4 +97,4 @@ Without the original RSC payload and post-exploitation transcript, this cannot b
 
 The practical lessons are to patch framework-level deserialization bugs regardless of strict application form validation, protect session caches from replay between security contexts, avoid exposing operator credentials or secrets to untrusted application processes and isolate root-owned resources from the web worker.
 
-**Further evidence needed to close this writeup:** the original multipart request and the successful user-to-root terminal trace, if recoverable from the agent's local session history.
+**Further evidence needed to close this writeup:** the original multipart request and the successful user-to-root terminal trace, if recoverable from the local session archives.

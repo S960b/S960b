@@ -122,7 +122,7 @@ A full driver would need to handle the next race, timeouts, bankroll resets and 
 
 ## 5. Live result
 
-The Git-bridge report `task_017f331919afce30dc698e0cfcd7cebd`, message `mt-20261113-horseracing-report`, records:
+The archived successful-session report records:
 
 1. POST headers passed at `timer<30` while its body was withheld.
 2. A separate connection monitored `/api/state` until the leader was >=50 with a >=10 gap.

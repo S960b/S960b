@@ -55,7 +55,7 @@ The right-hand `-1` in the original expression remains present. The final calcul
 4. Inspect the listener for the bytes of `/flag/flag.txt`.
 5. Submit the recovered flag. The server may still print an arithmetic or range error, which does not invalidate the earlier side effect.
 
-The exact field values in the public payload are masked. The supplied evidence contains the same `/dev/tcp` redirection pattern and local trial commands, and the agent's final task report marks the challenge solved.
+The exact field values in the public payload are masked. The supplied evidence contains the same `/dev/tcp` redirection pattern and local trial commands, and the final solved-task record confirms the accepted flag.
 
 ## 4. Why it works even when the menu rejects the input
 
