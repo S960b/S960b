@@ -4,7 +4,7 @@
 
 ## 1. Task
 
-An Active Directory challenge solved through a legacy authentication path, ending with administrator access to a file on the domain controller.
+An Active Directory dynamic-instance challenge (no static attachment was supplied) solved through a legacy authentication path, ending with administrator access to a file on the domain controller.
 
 Materials: Two saved Impacket SMB commands; no server source or credential-origin transcript.
 
