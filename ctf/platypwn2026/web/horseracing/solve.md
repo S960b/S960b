@@ -133,6 +133,17 @@ The archived successful-session report records:
 
 The ZIP contains the Rust source and flag-submission evidence, but not the original TCP script.
 
+### Source-derived driver and offline test
+
+The additional [`scripts/delayed_bet.py`](scripts/delayed_bet.py) reconstructs the whole *client-side* sequence: wait for a pre-start window, send only the HTTP headers with `Content-Length: 80`, poll `/api/state`, deliver the padded JSON after a leader satisfies the thresholds, check the HTTP response, then wait for the next race. The tool has no external dependencies and uses the original field names `race_number`, `timer`, `horses`, `user_points` and `user_bet`.
+
+```bash
+python3 scripts/delayed_bet.py --selftest
+python3 scripts/delayed_bet.py http://127.0.0.1:8080 --rounds 7
+```
+
+The offline self-test checks leader selection and that serialized bets are **exactly 80 bytes**, including valid trailing JSON spaces. This validates the client implementation's framing, **not** an actual Axum socket interaction; the original HTTP server was not built or tested in this review. The script is a reconstruction rather than the missing historical driver. It places all available points on one horse, so an incorrect prediction can erase the bankroll. Horse position thresholds provide a heuristic, not certainty.
+
 ## 6. Why no lock race or NaN trick was necessary
 
 The task also invited ideas such as lock timing or numeric edge cases. The solution needed neither. It was a **request-body delay** exploiting validation too early in the request pipeline. Fully buffering reverse proxies might change exploitability, but the actual challenge stack admitted the header-only request.
