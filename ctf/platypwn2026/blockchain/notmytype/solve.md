@@ -130,3 +130,7 @@ The original archive has `Chal.sol` and `payment_backend.py` plus a platform fla
 - Fixing the Python validator alone is fragile. The **contract** must reject a settlement when the debit would create an unauthorized negative balance.
 
 The correct architecture uses integer wei or fixed-point decimal values end-to-end and repeats the asset-balance invariant in the on-chain settlement method.
+
+## Original challenge source
+
+The relevant challenge source is now bundled under `assets/`: [`Chal.sol`](assets/Chal.sol), [`Setup.sol`](assets/Setup.sol), [`payment_backend.py`](assets/payment_backend.py). These are the shipped contract/backend files; separately presented example solvers must not be confused with original historical exploit files.

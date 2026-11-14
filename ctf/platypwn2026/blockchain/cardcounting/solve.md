@@ -136,3 +136,7 @@ The supplied `Chal.sol` and `dealer.py` expose a clear shared-randomness weaknes
 ## 7. Defense
 
 Use a verifiable unbiased randomness source with each paid action cryptographically committed before customers can react, do not expose shared PRNG state through game events, and do not reuse a single general-purpose PRNG for high-value lottery payouts and public diagnostic game outcomes.
+
+## Original challenge source
+
+The relevant challenge source is now bundled under `assets/`: [`Chal.sol`](assets/Chal.sol), [`Setup.sol`](assets/Setup.sol), [`dealer.py`](assets/dealer.py). These are the shipped contract/backend files; separately presented example solvers must not be confused with original historical exploit files.

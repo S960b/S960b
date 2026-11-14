@@ -124,3 +124,7 @@ The same report notes that many reverting backend transactions stressed the RPC 
 ## 6. Defense and general lesson
 
 It is not enough to use a secure random generator. The random result must also be **non-retryable at no cost**. Recording the sampled rarity in a prior final transaction (or otherwise committing the sample before the receiver callback), and separating notification from settlement, stops user code from vetoing unwanted draws. External callbacks must not control whether a paid, randomly selected state transition becomes final.
+
+## Original challenge source
+
+The relevant challenge source is now bundled under `assets/`: [`Chal.sol`](assets/Chal.sol), [`Setup.sol`](assets/Setup.sol), [`box_opener.py`](assets/box_opener.py). These are the shipped contract/backend files; separately presented example solvers must not be confused with original historical exploit files.

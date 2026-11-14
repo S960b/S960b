@@ -97,3 +97,7 @@ The ZIP supplies `Chal.sol`, `Setup.sol`, `locker_operator.py`, and a platform s
 ## 6. Mitigation
 
 Public-chain storage is never secret, regardless of `private` source annotations. Keep RSA private keys and AES keys off-chain; publish only public verification commitments.
+
+## Original challenge source
+
+The relevant challenge source is now bundled under `assets/`: [`Chal.sol`](assets/Chal.sol), [`Setup.sol`](assets/Setup.sol), [`locker_operator.py`](assets/locker_operator.py). These are the shipped contract/backend files; separately presented example solvers must not be confused with original historical exploit files.

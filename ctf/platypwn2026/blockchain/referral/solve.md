@@ -117,3 +117,7 @@ The supplied `Proxy.sol`, `Chal.sol` and `Setup.sol` prove every slot assignment
 ## 6. Mitigation
 
 Reserve the proxy implementation slot using EIP-1967/UUPS and verify storage-layout compatibility for upgrades. A proxy should never share slot 0 with an implementation's ordinary business field. Restrict upgrades; avoid trusting unvalidated referral addresses as values that can ever influence code selection.
+
+## Original challenge source
+
+The relevant challenge source is now bundled under `assets/`: [`Proxy.sol`](assets/Proxy.sol), [`Chal.sol`](assets/Chal.sol), [`Setup.sol`](assets/Setup.sol). These are the shipped contract/backend files; separately presented example solvers must not be confused with original historical exploit files.

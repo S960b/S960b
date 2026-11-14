@@ -91,3 +91,7 @@ The final challenge report confirms an accepted flag (`PP{...}`). The ZIP includ
 ## 6. Mitigation
 
 Public deployment metadata is not entropy. Hashing a deterministic public tuple may obscure the formula but does not create an unguessable password.
+
+## Original challenge source
+
+The relevant challenge source is now bundled under `assets/`: [`Chal.sol`](assets/Chal.sol), [`Setup.sol`](assets/Setup.sol). These are the shipped contract/backend files; separately presented example solvers must not be confused with original historical exploit files.
