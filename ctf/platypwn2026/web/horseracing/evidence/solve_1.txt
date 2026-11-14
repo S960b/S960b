@@ -1,0 +1,25 @@
+cd /tmp/gigatool && grep -o 'PP{MASK}]*}' horse.log | tail -1 | tee flag_horse.txt | cat -A | head -2
+
+# ---
+
+cd /tmp/gigatool && python3 - <<'EOF'
+import json,sys
+sys.path.insert(0,'/tmp/gigatool')
+from mt_lib import *
+tok=json.load(open('tokens.json'))["access_token"]; s=sess()
+r=get("/v1/challenges/horseracing/instance?category=web",tok,s)
+print(r.status_code, r.text[:300])
+EOF
+curl -s --noproxy '*' -m 8 http://<CHAL_IP>/api/state | head -c 300
+
+# ---
+
+cd /tmp/gigatool && python3 - <<'EOF'
+import json,sys
+sys.path.insert(0,'/tmp/gigatool')
+from mt_lib import *
+token(); tok=json.load(open('tokens.json'))["access_token"]; s=sess()
+r=s.post(B+"/v1/challenges/horseracing/solve?category=web",headers={"Authorization":"Bearer "+tok},
+  json={"flag":"PP{MASK}"},timeout=30)
+print(r.status_code,r.text[:200])
+EOF

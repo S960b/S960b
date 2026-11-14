@@ -1,0 +1,44 @@
+cd /tmp/gigatool && python3 - <<'EOF'
+import zlib, struct
+def crc(b): return zlib.crc32(b) & 0xffffffff
+targets=[0x6d795f63,0x30306c5f,0x70343473,0x77307264]
+c0=crc(b"\0\0\0\0")
+cols=[]
+for j in range(32):
+    b=bytearray(4); b[j//8]^=1<<(j%8)
+    cols.append(crc(bytes(b))^c0)
+def solve(t):
+    # build 32x33 augmented rows: equation bits
+    rows=[]
+    for eq in range(32):
+        v=t^c0
+        row=[(cols[j]>>eq)&1 for j in range(32)]
+        rows.append(row+[(v>>eq)&1])
+    r=0; piv=[]
+    for c in range(32):
+        p=None
+        for i in range(r,32):
+            if rows[i][c]: p=i;break
+        if p is None: continue
+        rows[r],rows[p]=rows[p],rows[r]
+        for i in range(32):
+            if i!=r and rows[i][c]:
+                rows[i]=[a^b for a,b in zip(rows[i],rows[r])]
+        piv.append(c); r+=1
+    sol=[0]*32
+    for i,c in enumerate(piv):
+        sol[c]=rows[i][32]
+    return sol
+pw=b""
+for t in targets:
+    s=solve(t); w=0
+    for j,v in enumerate(s): w|=v<<j
+    pw+=struct.pack("<I",w)
+print("password hex:", pw.hex())
+print("password raw:", pw)
+d=open('/tmp/gigatool/stage2.bin','rb').read()
+blob=d[0x1b560:0x1b560+36]
+flag=bytes(blob[i]^pw[i%16] for i in range(36))
+print("flag:", flag)
+open('/tmp/gigatool/pw.txt','w').write(pw.hex())
+EOF

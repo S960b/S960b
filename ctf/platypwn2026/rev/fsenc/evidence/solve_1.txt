@@ -1,0 +1,67 @@
+cd /tmp/gigatool/fsenc && pkill -f crack.py; python3 -u - <<'EOF'
+from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
+f=open('flag.bin','rb').read()
+hdr=f[12:56]; body=f[56:]
+key,nonce=hdr[:32],hdr[32:44]
+print("key  ",key.hex())
+print("nonce",nonce.hex())
+try:
+    pt=ChaCha20Poly1305(key).decrypt(nonce,body,None)
+    print("PLAINTEXT:",pt)
+except Exception as e:
+    print("fail:",e)
+EOF
+
+# ---
+
+ls -l /usr/share/wordlists/rockyou.txt* 2>/dev/null; cd /tmp/gigatool/fsenc && cat > crack.py <<'PY'
+import sys, time
+from multiprocessing import Pool
+from argon2.low_level import hash_secret_raw, Type
+magic=bytes.fromhex("4ca36c80fff763eb2be4224f"); SALT=magic+magic[:4]
+TARGET=open('flag.bin','rb').read()[12:56]
+def check(pw):
+    try:
+        if hash_secret_raw(pw, SALT, 2, 19456, 1, 44, Type.ID)==TARGET:
+            return pw
+    except Exception:
+        pass
+    return None
+if __name__=="__main__":
+    path=sys.argv[1]; limit=int(sys.argv[2]) if len(sys.argv)>2 else 10**9
+    words=[]
+    with open(path,'rb') as f:
+        for i,line in enumerate(f):
+            if i>=limit: break
+            w=line.rstrip(b"\r\n")
+            if w: words.append(w)
+    print("loaded",len(words),"words",flush=True)
+    t0=time.time(); found=None
+    with Pool(8) as p:
+        for i,res in enumerate(p.imap_unordered(check, words, chunksize=64)):
+            if res is not None:
+                found=res; p.terminate(); break
+            if i%20000==0 and i: print(i, "%.0fs"%(time.time()-t0), flush=True)
+    print("FOUND:",found)
+PY
+timeout 115 python3 -u crack.py /usr/share/wordlists/rockyou.txt 30000
+
+# ---
+
+cd /tmp/gigatool/fsenc && python3 -u - <<'EOF'
+from argon2.low_level import hash_secret_raw, Type
+from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
+import time
+magic=bytes.fromhex("4ca36c80fff763eb2be4224f"); salt=magic+magic[:4]
+t0=time.time()
+h=hash_secret_raw(b"testpass",salt,2,19456,1,44,Type.ID)
+print("argon2 time %.3fs"%(time.time()-t0))
+key,nonce=h[:32],h[32:]
+d=open('a.enc','rb').read()
+ct=d[56:]
+print("decrypt:",ChaCha20Poly1305(key).decrypt(nonce,ct,None))
+# флаг
+f=open('flag.bin','rb').read()
+hdr=f[12:56]; body=f[56:]
+print("flag hdr",hdr.hex())
+EOF
