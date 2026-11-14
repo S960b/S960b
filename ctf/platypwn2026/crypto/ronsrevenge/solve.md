@@ -4,7 +4,7 @@
 
 ## 1. Task and source material
 
-A chosen-IV stream cipher challenge using an RC4-like key schedule with a state of size 2048. Source files: `server.py`; exploit process check/log path (actual exploit absent).
+A chosen-IV stream cipher challenge using an RC4-like key schedule with a state of size 2048. Source files: `server.py` in the challenge archive and recovered original solver `scripts/ronsrevenge_exploit.py` in this repository.
 
 ## 2. Analysis
 
@@ -19,13 +19,13 @@ The service seeds an eight-word long-term key from the flag and prefixes every k
 
 ## 4. Evidence and result
 
-The source shows the 3+8 key layout, arbitrary chosen IVs, `state_size=2048`, and byte packing. The challenge was solved with `ronsrevenge_exploit.py`; the attached evidence shows its process/log check but not the exploit itself. The flag was accepted.
+The source shows the 3+8 key layout, arbitrary chosen IVs, `state_size=2048`, and byte packing. The challenge was solved with `ronsrevenge_exploit.py`; the transferred ZIP only showed its process/log check; the original exploit was later recovered from the earlier work and is now included under `scripts/`. The flag was accepted.
 
 Result: **1 accepted flag(s)**, masked `PP{...}`.
 
 ## 5. Reproduction limits
 
-Without the original vote tables or exploit code, exact IV families, sample counts and final key words cannot be independently stated. The method is corroborated by the previous solver report, not the command snippet alone.
+The original solver is present and specifies the IV family, voting rule, sample count and cross-IV validation. Exact live key words and full terminal output are not preserved, so those values are not asserted here.
 
 ## 6. Fix and lesson
 
