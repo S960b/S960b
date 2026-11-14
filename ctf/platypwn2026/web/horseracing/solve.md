@@ -140,3 +140,8 @@ The task also invited ideas such as lock timing or numeric edge cases. The solut
 ## 7. Correct fix
 
 Check `timer<30` **inside `bet` after JSON deserialization**, under the same write lock used to debit points and record the bet. Admission and state mutation must be one synchronized operation. Middleware is not a substitute for validation at the point of use.
+
+
+## Rust manifest and local-build boundary
+
+The original [`Cargo.toml`](assets/Cargo.toml) is now archived beside [`main.rs`](assets/main.rs), documenting Axum 0.8, Tokio and Rand dependencies. A full container build also needs the original `Cargo.lock` and binary `static/` resources, which are not included in this text-oriented public archive. Thus these two files are **not** a standalone Docker project, and a local build has not been verified in this audit.

@@ -68,3 +68,8 @@ This is a general lesson about command execution embedded in an expression parse
 The source file shown above is shipped with the challenge, and the exploit's textual form appears in the archived `evidence`. The full interactive transcript from the successful run was not saved in the ZIP, so this writeup cites the mechanism and command without inventing a specific socket log.
 
 Use strict decimal-digit validation on input **before** arithmetic evaluation. For a three-option menu, a plain `case` statement operating on exact strings `0`, `1` and `2` is safer than accepting a user-supplied arithmetic expression.
+
+
+## Local environment
+
+The original [`Dockerfile`](assets/Dockerfile), [`compose.yml`](assets/compose.yml), [`server.sh`](assets/server.sh) and [`entrypoint.sh`](assets/entrypoint.sh) are preserved together. Run `docker compose up --build` from `ctf/platypwn2026/misc/bishbashbosh/assets` to expose port `9000`. The Compose flag is a **dummy** fixture. Its comments note that some podman-compose versions do not support `configs`. The Docker build was not independently executed during this audit.

@@ -86,3 +86,17 @@ A 16-bit tag and a nonstandard 64-bit GHASH created a two-bit authentication ora
 ## Repository evidence
 
 Source code and redacted supporting artifacts: [`assets/server.py`](assets/server.py), [`assets/encryption.py`](assets/encryption.py), [`scripts/destruction_full_solve.py`](scripts/destruction_full_solve.py), [`scripts/destruction_solve.py`](scripts/destruction_solve.py).
+
+
+## Local challenge environment
+
+The original [`Dockerfile`](assets/Dockerfile) and [`compose.yaml`](assets/compose.yaml) now live alongside the service sources in [`assets/`](assets/). Compose defines **dummy flags**, not competition flag values. With Docker Compose installed:
+
+```bash
+cd ctf/platypwn2026/crypto/destruction/assets
+docker compose up --build
+# From another terminal in the same directory:
+python3 ../scripts/destruction_full_solve.py 127.0.0.1 2004
+```
+
+This recreates the protocol with freshly initialized server state. New keys and random values will not match the historical live deployment. Docker build execution was not independently tested during this documentation audit.

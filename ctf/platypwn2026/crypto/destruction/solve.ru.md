@@ -86,3 +86,17 @@ python3 scripts/destruction_full_solve.py <host> <port>
 ## Материалы в репозитории
 
 Проверяемые исходники и очищенные материалы: [`assets/server.py`](assets/server.py), [`assets/encryption.py`](assets/encryption.py), [`scripts/destruction_full_solve.py`](scripts/destruction_full_solve.py), [`scripts/destruction_solve.py`](scripts/destruction_solve.py).
+
+
+## Локальный запуск раздатки
+
+В каталоге [`assets/`](assets/) сохранены оригинальные [`Dockerfile`](assets/Dockerfile) и [`compose.yaml`](assets/compose.yaml) вместе с исходным кодом сервиса. Флаги в конфигурации Compose — **тестовые значения**, не флаги соревнования. Для запуска требуется Docker с Compose:
+
+```bash
+cd ctf/platypwn2026/crypto/destruction/assets
+docker compose up --build
+# в другом терминале, из той же директории:
+python3 ../scripts/destruction_full_solve.py 127.0.0.1 2004
+```
+
+Это воспроизводит протокол на локальном сервисе; новая сборка, новый ключ и новая случайность не обязаны повторять значения исторического инстанса. Непосредственно сборка Docker в рамках этой проверки не выполнялась.

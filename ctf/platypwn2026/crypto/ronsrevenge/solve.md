@@ -62,3 +62,17 @@ The self-test uses a synthetic local plaintext and Python's seeded random genera
 ## 4. Why a larger state did not remove the attack
 
 Expanding RC4 from 256 to 2048 permutation elements changes the output word size but leaves the weak `IV || secret` key-scheduling pattern. Chosen-IV sampling still reveals biased early-state information. A larger state is not a substitute for nonce/key separation or a modern AEAD.
+
+
+## Local challenge environment
+
+The original [`Dockerfile`](assets/Dockerfile) and [`compose.yaml`](assets/compose.yaml) now live alongside the service sources in [`assets/`](assets/). Compose defines **dummy flags**, not competition flag values. With Docker Compose installed:
+
+```bash
+cd ctf/platypwn2026/crypto/ronsrevenge/assets
+docker compose up --build
+# From another terminal in the same directory:
+python3 ../scripts/ronsrevenge_exploit.py 127.0.0.1 1337
+```
+
+This recreates the protocol with freshly initialized server state. New keys and random values will not match the historical live deployment. Docker build execution was not independently tested during this documentation audit.

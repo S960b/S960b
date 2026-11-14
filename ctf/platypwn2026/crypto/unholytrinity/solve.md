@@ -60,3 +60,17 @@ The script prints the modulus size, both registration outcomes and `FLAG0`; it c
 2. Fixed-length input does not make the map injective.
 3. Publishing `pw_hash` of a short secret with a small public exponent reveals the secret by exact root extraction.
 4. More zero-knowledge-style protocol rounds cannot restore secrecy once the witness itself has been exposed.
+
+
+## Local challenge environment
+
+The original [`Dockerfile`](assets/Dockerfile) and [`compose.yaml`](assets/compose.yaml) now live alongside the service sources in [`assets/`](assets/). Compose defines **dummy flags**, not competition flag values. With Docker Compose installed:
+
+```bash
+cd ctf/platypwn2026/crypto/unholytrinity/assets
+docker compose up --build
+# From another terminal in the same directory:
+python3 ../scripts/solve_unholytrinity.py 127.0.0.1 1337
+```
+
+This recreates the protocol with freshly initialized server state. New keys and random values will not match the historical live deployment. Docker build execution was not independently tested during this documentation audit.
