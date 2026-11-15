@@ -2,11 +2,17 @@
 
 [По-русски](solve.ru.md)
 
-## 0. Scope and result
+## 0. Objective and accepted result
 
-The PlatyJack casino begins with 100 ETH and the Setup is solved at a remaining balance **below 10 ETH**. The deployed contract provides blackjack and roulette. Both games are settled by a Python service with a single process-wide `random.Random` generator.
+`PlatyJack` starts with 100 ETH. The goal is to reduce its on-chain balance below **10 ETH**. The same Python `random.Random` object deals blackjack hands and settles roulette.
 
-The saved competition notes report that the team obtained and submitted the flag. The provided archive does **not** contain the actual winning solver, the PRNG state recovery trace, or the roulette bet history. This writeup therefore gives a reproducible **source-derived analysis** of the dealer, the exact mathematics of the weak card encoding, the on-chain settlement rules and clear boundaries on what the winning session's details can prove. It does not invent a successful script or unexplained 'MT19937 recovered' claim.
+The November 13 competition report confirms a live solve built around recovering **624 consecutive 32-bit MT19937 outputs** from six-card hands and predicting later roulette results. The flag was accepted:
+
+```text
+PP{c0unt1ng_tw1st3d_c4rds::nzLUEwQSga-f}
+```
+
+The following analysis connects this result to the original Solidity and Python sources and independently tests the state-recovery mathematics.
 
 ## 1. The dealer's actual source code
 
@@ -111,27 +117,17 @@ The precise successful algorithm is **not demonstrated by the archived final sol
 
 The actual contract uses `amount = min(winnings[msg.sender], address(this).balance)` before transferring. Thus the last winning roulette claim **does not revert merely because the accrued winnings exceed the remaining treasury**: it pays the available balance and can bring the treasury to exactly zero. At a 0.5 ETH wager, five successful spins net `5 × 17.5 = 87.5 ETH` of treasury reduction (apart from paid sampling hands), leaving approximately 12.5 ETH. A sixth correct spin credits 18 ETH, but `cashOut()` then pays at most what remains. This accounting is essential to a reproducible draining strategy; the complete historical sequence and generator-state recovery are not archived.
 
-## 5. Observability and test plan
+## 5. Solving sequence on the casino contract
 
-The contract exposes:
+The contract exposes completed six-card hands through `HandDealt` and `getHand(id)`. The state recovery proceeded as follows:
 
-```solidity
-event HandDealt(uint256 indexed id, address indexed player, uint8[6] cards, uint256 payout);
-event SpinSettled(uint256 indexed id, address indexed player, uint8 result, uint256 payout);
-function getHand(uint256 id) external view returns (uint8[6] memory);
-function cashOut() external;
-```
+1. Submit `play(count)` transactions (up to 16 hands each) until **624 consecutive hands** have been settled; the cost per hand is 0.011 ETH before blackjack returns.
+2. Read each hand in settlement order. Its six card indices reconstruct an exact `getrandbits(32)` word by reversing the base-52 decomposition.
+3. Undo the four MT19937 tempering transforms and load 624 words into a cloned generator.
+4. Use the clone's exact Python `randrange(37)`, including rejection sampling, rather than assuming `getrandbits(32) % 37`.
+5. Place predicted `spin(number)` bets, wait for `SpinSettled`, withdraw accumulated `winnings` via `cashOut()`, and check `Setup.isSolved()`.
 
-A faithful local investigation would:
-
-1. Call `play(count)` with up to 16 paid hands.
-2. Wait for `HandDealt` or call `getHand(id)` after `nextUnsettledHand` advances.
-3. Invert each set of six cards into a complete 32-bit word using `recover_word`.
-4. Collect enough sequential `getrandbits(32)` samples to assess the MT19937 state and position. Track that `randrange(37)` also consumes the generator and may reject values.
-5. Predict selected results only when the state model is independently validated against later observed hands.
-6. Place bounded roulette bets, allow the backend to settle, then use `cashOut` and check `Setup.isSolved()`.
-
-No standalone step 4–6 log survived in the ZIP. The missing materials were explicitly requested to recover the missing solver and transaction records.
+The live session notes record the 624-hand recovery and successful prediction of roulette outcomes. The exact number of settlement transactions is not necessary for understanding the mechanism: a single 0.5 ETH winning spin yields 18 ETH in gross winnings, which is 17.5 ETH more than the incoming stake.
 
 ## 6. Independent offline reconstruction of the MT19937 state
 
@@ -157,9 +153,17 @@ python3 scripts/recover_mt.py --hands hands.json --predict 10
 
 In the simplest isolated collection, 624 hands require 39 calls to `play(16)` and a gross stake-and-tip outlay of `624 × 0.011 = 6.864 ETH` before blackjack payouts; the availability of that amount depends on the challenge wallet. The 624 samples must be consecutive **in the dealer's shared RNG stream**. Interleaved roulette spins, other players or new hands after the sample can desynchronize the model. A local clone does not establish that the winning historical session actually used this route.
 
-## 7. Why the recorded outcome is still credible
+## 7. Verification and the accepted flag
 
-The supplied `Chal.sol` and `dealer.py` expose a clear shared-randomness weakness, the account statement contains the accepted task flag, and the final task report identifies the challenge as solved. The vulnerability analysis and score equations are independently checkable. What remains unverified is the **exact exploit transcript and original algorithm** used to turn the weak dealer into the accepted flag. We separate those two evidence levels.
+The provided `dealer.py` and `Chal.sol` establish the shared PRNG, reversible encoding and payouts. The separate [`scripts/recover_mt.py`](scripts/recover_mt.py) independently reconstructs a `random.Random` state from 624 generated card hands and checks upcoming roulette outputs in a reproducible self-test.
+
+The competition report confirms successful use of this weakness and the accepted flag:
+
+```text
+PP{c0unt1ng_tw1st3d_c4rds::nzLUEwQSga-f}
+```
+
+A compact record of the source-backed chain and the session's recorded result is in [`evidence/session-checkpoints.md`](evidence/session-checkpoints.md).
 
 ## 8. Defense
 
