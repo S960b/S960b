@@ -1,100 +1,85 @@
-# Carbon: the portal, the RSC boundary and two recovered flags
+# Carbon: React Server Components RCE, operator session replay and root
 
 [По-русски](solve.ru.md)
 
-## 0. What the task asked for
+## 1. Objective and reconnaissance
 
-Platypus Freight provided an emissions-report portal. The description said the operations team had cleaned the environment for SOC2 and removed stray passwords. The intended objectives were a user-level file at `/home/operator/user.txt` and a root-level file at `/root/root.txt`.
+The Platypus Freight emissions portal was reachable at `/portal` on port 3000. Its footer identified **Next.js 15.5.6**. The two goals were `/home/operator/user.txt` and `/root/root.txt`.
 
-Both flags were recovered in the competition, but the exported CTF archive contains **no original Carbon image, exploit script, host history or final root-session transcript**. The evidence below is the preserved technical reconnaissance from the archived investigation notes, supplemented by the confirmed two-flag result. Where the record stops, the writeup stops rather than inventing a payload or privilege escalation.
+The visible `queueEmissionsReport` server action accepted an account identifier, quarter and report kind. The application validated those fields strictly. Attempted command injection through the form and guessed `/admin` or `/api` routes were unproductive. The useful boundary was **React Flight / RSC deserialization before the application-specific form handler**.
 
-## 1. First look: one exposed service
+## 2. From RSC to command execution as nextjs
 
-The initial reconnaissance reported a single exposed HTTP service, the portal on port 3000. Probes for TCP ports 22, 80, 443, 5432, 6379, 8080 and 9000 did not find accessible services.
+The working test followed the React2Shell class of deserialization weaknesses (CVE-2025-55182) in the vulnerable Next.js/React combination. An initial proof of concept had failed; the successful request used a multipart body with fields `0` and `1` and an otherwise arbitrary `Next-Action: x` header. The second field contained the React Flight reference `"$@0"`. The first field supplied a crafted model that reached the Flight promise/prototype resolution logic.
 
-The web application identified itself in the footer as:
-
-```text
-Carbon portal 2.4.1 · built with Next.js 15.5.6
-```
-
-The initial user interface at `/portal` exposed one functional action, **Request an emissions report**, implemented as the server action `queueEmissionsReport`. The corresponding serialized action identifier was recorded as a 40-hex-character value; it is intentionally omitted from the public artifact because it is deployment-specific.
-
-The form accepted three fields:
-
-| Field | Recorded server-side validation |
-|---|---|
-| `account` | `^PF-\d{6}$` |
-| `quarter` | `^\d{4}-Q[1-4]$` |
-| `kind` | one of `scope1`, `scope2`, `scope3`, `full` |
-
-The initial note contains one accepted form example:
+The original probe redirected encoded command output through the framework's `NEXT_REDIRECT` mechanism, making the `x-action-redirect` response header a low-noise output channel. The checkpoint was:
 
 ```text
-Report CR-<id> queued for PF-123456 (2026-Q3, full).
-You will get an e-mail once it is ready.
+POST /portal
+Next-Action: x
+Content-Type: multipart/form-data; boundary=...
+
+HTTP/1.1 303 See Other
+x-action-redirect: http://x/<base64-command-output>;push
+
+decoded output:
+uid=1001(nextjs) gid=1001(nextjs) groups=1001(nextjs)
 ```
 
-It also records rejection of obvious shell-style strings in `quarter` and ignored extra form parameters such as `is_admin` and `role`. These tests eliminated the simplest command-injection and mass-assignment hypotheses against the visible fields.
+The verified output matters: a generic 500 digest from an earlier Server Action request was **not** proof of execution. The encoded `id` result was.
 
-## 2. RSC / server-action behavior
+## 3. Local reconnaissance and the operator session
 
-The page's client chunk consisted of a `createServerReference(...)` call and the form, without a visible privileged REST API.
+Execution began as the restricted `nextjs` user; directly reading the operator's file did not succeed. The working follow-up inspected environment and local configuration. The portal's `.env.local` contained an obsolete reporting database URL and pointed to `/opt/carbon/ops-notes.md`.
 
-A direct JSON call to the server action, using `POST /portal`, `Next-Action` and `Content-Type: application/json`, returned an HTTP 500 with a React Server Components error digest:
+The ops notes described the intended privileged login flow:
+
+1. The internal Redis service listens at `127.0.0.1:6379` and has no password on its loopback interface.
+2. The short-lived operator token is stored under `session:operator`; the dashboard refreshes it.
+3. The internal admin service at `127.0.0.1:9000` accepts this token as a Bearer credential at `/admin/operator-credential`, returning the operator's password.
+
+The recorded command was equivalent to:
+
+```bash
+TOKEN=$(redis-cli --raw GET session:operator)
+curl -s -H "Authorization: Bearer $TOKEN" \
+  http://127.0.0.1:9000/admin/operator-credential
+```
+
+The significant mistake was not a broken Redis cipher: the attacker already had a shell-like execution context in the same container/network namespace as an unauthenticated cache holding a reusable authentication token. The admin API treated possession of the cached token as sufficient authority to reveal another account's password.
+
+## 4. Becoming operator and reading the first flag
+
+Using the returned password, the successful run called `su operator` under a pseudo-terminal created with `script -qec`; a small delay ensured that the password reached the interactive prompt. The same session read the user flag and inspected sudo privileges:
 
 ```text
-1:E{"digest":"1786758220"}
+Password:
+PP{c4rb0n_c4ch3d_s3ss10n_r3pl4y::aBfyfXvKt36U}
+
+User operator may run the following commands:
+    (root) NOPASSWD: /usr/bin/env
 ```
 
-Form-data variants were also tested, but gave only digests rather than traces. That meant the action request was being processed, but it did not by itself establish code execution or a useful injection point.
+The first flag came from `/home/operator/user.txt`. It was accepted by the platform.
 
-Response headers provided two more observations:
+## 5. Root via an overly broad sudo rule
+
+The `operator` account was allowed to execute `/usr/bin/env` as root without a password. `env` can launch a program, so this entry is effectively unrestricted command execution under root privileges:
+
+```bash
+sudo /usr/bin/env /bin/cat /root/root.txt
+```
+
+Result:
 
 ```text
-x-nextjs-prerender: 1
-x-nextjs-cache: HIT
-cache-control: s-maxage=31536000
+PP{0p3r4t0r_3nv_1s_r00t::gXG9iPj_dtEE}
 ```
 
-The page was statically prerendered/cached. Other guessed paths, including `/admin`, `/api`, `/healthz` and `/internal`, returned 404. An `x-middleware-subrequest` test did not expose a bypass.
+**Both flags were accepted by the competition platform.** The concrete chain was RSC deserialization → `nextjs` execution → local ops notes → Redis `session:operator` → bearer replay to internal API → `su operator` → NOPASSWD `/usr/bin/env` → root.
 
-The important reasoning step was to stop treating the three form values as the only possible attack surface. They were validated. The framework's handling of serialized React Flight / RSC payloads is a different boundary, upstream of application input validation.
+## 6. Defensive lessons
 
-## 3. Framework hypothesis and its evidence level
+Patch Next.js/React RSC deserialization defects; isolate the app process from the operator's cache and administrative services; do not return reusable OS-account passwords through web APIs; scope tokens to services and identities; and never grant NOPASSWD sudo for general-purpose process launchers such as `env`. Input validation of the report fields cannot protect a deserialization path that runs before those checks.
 
-The installed framework version was Next.js **15.5.6** with React 19. The earlier investigation identified the React Server Components deserialization class generally known as React2Shell (CVE-2025-55182) as the leading foothold hypothesis.
-
-The original task asked for an exact multipart React Flight proof of concept, but that exact request is **not in the exported archive**. The following distinction is essential:
-
-- **Observed:** the framework version, server action, validation rules, cached page, RSC error digest and reachable endpoint.
-- **Recorded in the earlier reasoning:** the unauthenticated RSC deserialization route was selected for further validation.
-- **Confirmed result, but without a surviving request transcript:** the team ultimately obtained both user and root flags.
-- **Not established by the surviving material:** the exact exploit payload, its response, whether the successful foothold was the proposed CVE route, or the full root-escalation chain.
-
-The two flag names, `c4rb0n_c4ch3d_s3ss10n_r3pl4y` and `0p3r4t0r_3nv_1s_r00t`, point toward a cached-session issue and operator-environment exposure. A flag name is a hint, **not** a substitute for an execution trace; it cannot establish exact token origin or privilege-escalation commands.
-
-## 4. What was achieved
-
-The final challenge report lists two flags, the user flag from the operator's home directory and a separate root flag. Both were reported accepted by the user after the competition.
-
-The actual sequence of commands between initial foothold and these files is not present in `writeups/fullpwn_carbon`, which contains only a six-line summary in the original archive. No fabricated command log is inserted here.
-
-## 5. Dead ends that were actually tested
-
-- Direct field injection in `quarter` through semicolons, command substitution, backticks and pipe characters: rejected by strict regex.
-- Invalid `kind`: rejected as unknown report type.
-- Nonstandard extra form fields: ignored.
-- Direct JSON action request: only a server-action digest, not a useful report or execution trace.
-- Guessed admin/API/health routes: 404.
-- `x-middleware-subrequest` header: no observed change.
-
-These tests explain why framework internals became more interesting than the ordinary form fields.
-
-## 6. Reproducibility boundary and mitigation
-
-Without the original RSC payload and post-exploitation transcript, this cannot be described as a complete reproducible exploit. The final two-flag result is independently distinct from proving a particular CVE chain.
-
-The practical lessons are to patch framework-level deserialization bugs regardless of strict application form validation, protect session caches from replay between security contexts, avoid exposing operator credentials or secrets to untrusted application processes and isolate root-owned resources from the web worker.
-
-**Further evidence needed to close this writeup:** the original multipart request and the successful user-to-root terminal trace, if recoverable from the local session archives.
+[Sanitized evidence and timestamps](evidence/session-checkpoints.md)

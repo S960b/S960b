@@ -1,14 +1,12 @@
 # Carbon
 
-[Русская версия](README.ru.md) | [Solving path](solve.md)
+[Русская версия](README.ru.md) | [Detailed solution](solve.md)
 
-- **Category:** fullpwn
-- **Difficulty:** 1
-- **Materials:** Two recovered flags recorded in the solved-task summary; no static challenge distribution, final exploit or host transcript preserved
-- **Flags:** 2 accepted (`PP{...}`)
+**Category:** Fullpwn · **Difficulty:** 1 · **Result:** both flags accepted
 
-A two-flag machine challenge. The accepted outcomes are a user-level flag associated with cached-session replay and a root-level flag associated with the operator's environment.
+The chain started with React Server Components deserialization on Next.js 15.5.6, leading to execution as `nextjs`. Internal ops notes led to a Redis-backed `session:operator` token; replaying it against the admin API revealed the operator password. The operator account then had NOPASSWD sudo rights for `/usr/bin/env`, which gave root.
 
-**Root cause:** The task summary identifies two distinct trust boundaries: an application/user session that could be reused from cache, and privileged operator context whose environment contained a secret. Prior notes also mention investigation of a Next.js/React Flight attack surface. Because no final exploit log or deployed source was attached, the exact order and whether that independent RCE lead was part of the successful route cannot be determined.
+**User:** `PP{c4rb0n_c4ch3d_s3ss10n_r3pl4y::aBfyfXvKt36U}`  
+**Root:** `PP{0p3r4t0r_3nv_1s_r00t::gXG9iPj_dtEE}`
 
-See the [solving path](solve.md).
+[Technical walkthrough](solve.md) · [Execution checkpoints](evidence/session-checkpoints.md)
