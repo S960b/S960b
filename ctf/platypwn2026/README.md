@@ -27,7 +27,7 @@ Complete flag values are published for Old Trusty at the challenge owner's reque
 | Category | Challenge | Notes |
 |---|---|---|
 | Reverse | [Matryoshka](rev/matryoshka/solve.md) | CRC32 linear algebra and XOR |
-| Reverse | [FSenc](rev/fsenc/solve.md) | ChaCha20-Poly1305 / Argon2id experiments |
+| Reverse | [FSenc](rev/fsenc/solve.md) | Successful direct-header ChaCha20-Poly1305 decryption |
 | Crypto | [Unholy Trinity](crypto/unholytrinity/solve.md) | RSA modular-hash collision and integer root |
 | Crypto | [Ron's Revenge](crypto/ronsrevenge/solve.md) | Chosen-IV RC4-2048 recovery |
 | Crypto | [DEStruction](crypto/destruction/solve.md) | GHASH/short-tag forgery, two flags |
@@ -37,11 +37,11 @@ Complete flag values are published for Old Trusty at the challenge owner's reque
 | Blockchain | [PlatyLocker](blockchain/platylocker/solve.md) | Public storage of a private RSA exponent |
 | Blockchain | [Not My Type](blockchain/notmytype/solve.md) | Floating-point validation mismatch |
 | Blockchain | [Referral](blockchain/referral/solve.md) | Proxy storage-slot collision |
-| Blockchain | [Card Counting](blockchain/cardcounting/solve.md) | Nonuniform deck / PRNG |
+| Blockchain | [Card Counting](blockchain/cardcounting/solve.md) | 624 leaked MT19937 words → roulette prediction |
 | Blockchain | [PlatyPals](blockchain/platypals/solve.md) | Callback reverts and rerolls |
-| Active Directory | [Legacy IT](ad/legacyit/solve.md) | Final SMB pass-the-hash read |
+| Active Directory | [Legacy IT](ad/legacyit/solve.md) | Anonymous onboarding share → ACL → DCSync |
 | Active Directory | [Old Trusty](ad/oldtrusty/solve.md) | LEGACY → CORE, two platform-accepted flags |
-| Fullpwn | [Carbon](fullpwn/carbon/solve.md) | Portal investigation; user and root flags |
+| Fullpwn | [Carbon](fullpwn/carbon/solve.md) | RSC RCE → Redis token replay → operator → root |
 | Fullpwn | [Flacksafety](fullpwn/flacksafety/solve.md) | Five of six backup tiers, partial |
 | Misc | [Bish Bash Bosh](misc/bishbashbosh/solve.md) | Bash arithmetic evaluation |
 

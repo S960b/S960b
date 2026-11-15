@@ -27,7 +27,7 @@
 | Категория | Задача | Что исследовали |
 |---|---|---|
 | Reverse | [Matryoshka](rev/matryoshka/solve.ru.md) | CRC32, линейные уравнения, XOR |
-| Reverse | [FSenc](rev/fsenc/solve.ru.md) | ChaCha20-Poly1305 и Argon2id |
+| Reverse | [FSenc](rev/fsenc/solve.ru.md) | Расшифровка ключом и nonce из заголовка файла |
 | Crypto | [Unholy Trinity](crypto/unholytrinity/solve.ru.md) | Коллизия RSA-хэша, целочисленный корень |
 | Crypto | [Ron's Revenge](crypto/ronsrevenge/solve.ru.md) | Chosen-IV RC4-2048 |
 | Crypto | [DEStruction](crypto/destruction/solve.ru.md) | GHASH, короткий тег, два флага |
@@ -37,11 +37,11 @@
 | Blockchain | [PlatyLocker](blockchain/platylocker/solve.ru.md) | Приватный RSA-ключ в storage |
 | Blockchain | [Not My Type](blockchain/notmytype/solve.ru.md) | Несоответствие типов при проверке |
 | Blockchain | [Referral](blockchain/referral/solve.ru.md) | Коллизия слотов прокси |
-| Blockchain | [Card Counting](blockchain/cardcounting/solve.ru.md) | Перекос раздачи и PRNG |
+| Blockchain | [Card Counting](blockchain/cardcounting/solve.ru.md) | 624 выхода MT19937 → прогноз рулетки |
 | Blockchain | [PlatyPals](blockchain/platypals/solve.ru.md) | Откат callback и повторный бросок |
-| Active Directory | [Legacy IT](ad/legacyit/solve.ru.md) | Финальное чтение SMB с NT-хэшем |
+| Active Directory | [Legacy IT](ad/legacyit/solve.ru.md) | Анонимная шара → ACL группы → DCSync |
 | Active Directory | [Old Trusty](ad/oldtrusty/solve.ru.md) | Цепочка LEGACY → CORE, оба флага приняты платформой |
-| Fullpwn | [Carbon](fullpwn/carbon/solve.ru.md) | Портал, user и root |
+| Fullpwn | [Carbon](fullpwn/carbon/solve.ru.md) | RSC RCE → токен Redis → operator → root |
 | Fullpwn | [Flacksafety](fullpwn/flacksafety/solve.ru.md) | Пять из шести уровней, частичное решение |
 | Misc | [Bish Bash Bosh](misc/bishbashbosh/solve.ru.md) | Арифметика Bash и подстановка команд |
 
