@@ -1,81 +1,10 @@
-# PlatyLocker: an RSA private exponent stored on a public blockchain
+# PlatyLocker: the RSA private exponent sits in a public blockchain
 
-[По-русски](solve.ru.md)
+[Русский](solve.ru.md)
 
-## 0. Objective
+## 0. Goal
 
-The operator initializes the contract with RSA and AES material, and `Setup.isSolved()` only checks `TARGET.filesRestored()`. The apparent legitimate path `payRansom` costs **1000 ETH**, above the ordinary challenge budget. The actual requirement is merely to learn the AES key and call `restoreFiles(bytes32)`.
-
-The contract declares:
-
-```solidity
-bytes public modulus;
-bytes public publicExponent;
-bytes private privateExponent; // private, so only the contract can use it
-bytes public encryptedKey;
-bytes32 public keyHash;
-bool public filesRestored;
-```
-
-The word `private` prevents access by name in Solidity source, **not RPC access to the blockchain's persistent storage**.
-
-## 1. Origin of the cryptographic material
-
-The shipped `service/locker_operator.py` generates:
-
-```python
-BITS = 1024
-e = 65537
-p, q = getPrime(BITS // 2), getPrime(BITS // 2)
-n = p * q
-d = inverse(e, (p - 1) * (q - 1))
-aes_key = os.urandom(32)
-c = pow(int.from_bytes(aes_key, "big"), e, n)
-```
-
-It invokes `initialize(n,e,d,c,keccak256(aes_key))`. Thus the private exponent `d` is **explicitly included in transaction calldata** and assigned to `privateExponent`. Either the initialization transaction or the contract's storage exposes the secret.
-
-## 2. Solidity storage layout
-
-The fields occupy these slots:
-
-| slot | Field |
-|---:|---|
-| 0 | dynamic `bytes modulus` |
-| 1 | dynamic `bytes publicExponent` |
-| 2 | dynamic `bytes privateExponent` |
-| 3 | dynamic `bytes encryptedKey` |
-| 4 | `bytes32 keyHash` |
-| 5 | packed `bool filesRestored` |
-
-The `operator` is `immutable` and does not consume a regular storage slot.
-
-Long dynamic `bytes` data is stored starting at the Keccak-256 hash of the 32-byte slot index; the slot itself contains `2*length+1`. The approximately 128-byte RSA exponent is necessarily in long form.
-
-```python
-from eth_utils import keccak
-
-slot = 2
-start = int.from_bytes(keccak(slot.to_bytes(32, "big")), "big")
-# eth_getStorageAt(TARGET, hex(start + i), "latest") for 4 consecutive words
-```
-
-The reads are native Ethereum state inspection, not an application-specific bypass. Parsing the `initialize` transaction parameters is another valid approach.
-
-## 3. Decrypting without paying ransom
-
-Read `n`, `d` and ciphertext `c` as big-endian integers:
-
-```python
-m = pow(int.from_bytes(c, "big"),
-        int.from_bytes(d, "big"),
-        int.from_bytes(n, "big"))
-key = m.to_bytes(32, "big")
-```
-
-The explicit 32-byte conversion is important: `os.urandom(32)` may start with zero bytes, which would be lost by a minimal-length integer encoding.
-
-`restoreFiles` checks the hash and sets the winning Boolean:
+`Setup` deploys `Chal` and checks a single flag, `filesRestored`. Inside `Chal` there is `payRansom()` asking for **1000 ETH**, which nobody can pay, but the flag is not set there:
 
 ```solidity
 function restoreFiles(bytes32 key) external {
@@ -84,20 +13,85 @@ function restoreFiles(bytes32 key) external {
 }
 ```
 
-No payment is required for that method, and the `Setup` win condition is just `filesRestored == true`.
+So we need the 32-byte AES key of the victim. No ransom: the key has to be read, not paid for.
 
-## 4. Why this is not RSA cryptanalysis
+## 1. How the stand creates its secrets (`service/locker_operator.py`)
 
-Nobody needs to factor `n`. The private exponent `d` is supplied directly to the publicly readable chain. Once `d` is known, computing `c^d mod n` is ordinary RSA decryption. The vulnerability is disclosure by storage and calldata, not a mathematical weakness of modular exponentiation.
+```python
+e = 65537
+p, q = getPrime(512), getPrime(512)
+n = p * q
+d = inverse(e, (p - 1) * (q - 1))
+aes_key = os.urandom(32)
+c = pow(int.from_bytes(aes_key, "big"), e, n)
+chal.functions.initialize(to_bytes(n), e.to_bytes(3, "big"), to_bytes(d),
+                          to_bytes(c), Web3.keccak(aes_key))
+```
 
-## 5. Evidence and limits
+`d` is passed as an argument of an external call. Ethereum calldata is public forever, and the contract also stores `d` in its own storage. The secret is exposed twice.
 
-The ZIP supplies `Chal.sol`, `Setup.sol`, `locker_operator.py`, and a platform submission command for an accepted flag. It does not include the exact live parameters or final transaction hash, so no historical RPC transcript is fabricated here.
+## 2. Where it is stored
 
-## 6. Mitigation
+`operator` is `immutable` and `RANSOM` is `constant`: neither takes a storage slot. Layout starts with the `bytes` fields:
 
-Public-chain storage is never secret, regardless of `private` source annotations. Keep RSA private keys and AES keys off-chain; publish only public verification commitments.
+| Slot | Variable | Type |
+|---:|---|---|
+| 0 | `modulus` | `bytes` (128 B) |
+| 1 | `publicExponent` | `bytes` (3 B) |
+| 2 | `privateExponent` | `bytes` (128 B), marked `private` |
+| 3 | `encryptedKey` | `bytes` (128 B) |
+| 4 | `keyHash` | `bytes32` |
+| 5 | `filesRestored` | `bool` |
 
-## Original challenge source
+EVM rules: for `bytes` longer than 31 bytes the slot holds `2*len+1` and the data lives at `keccak256(slot)`; short values (like `publicExponent`) are packed into the slot itself.
 
-The relevant challenge source is now bundled under `assets/`: [`Chal.sol`](assets/Chal.sol), [`Setup.sol`](assets/Setup.sol), [`locker_operator.py`](assets/locker_operator.py). These are the shipped contract/backend files; separately presented example solvers must not be confused with original historical exploit files.
+Two equivalent ways to get the secret:
+
+1. read storage slots with `eth_getStorageAt` (slot 2 and the blocks after `keccak256(2)`);
+2. decode the calldata of the `initialize` transaction (selector plus four `bytes` arguments; `d` is the third one).
+
+## 3. Steps
+
+```python
+setup = w3.eth.contract(address=SETUP, abi=SETUP_ABI)
+target = setup.functions.TARGET().call()
+
+def read_bytes(slot):
+    s = int.from_bytes(w3.eth.get_storage_at(target, slot), "big")
+    if s == 0:
+        return b""
+    if s & 1:
+        return s.to_bytes(32, "big")[:(s - 1) // 2]
+    base = int.from_bytes(Web3.keccak(slot.to_bytes(32, "big")), "big")
+    body = b"".join(w3.eth.get_storage_at(target, base + i) for i in range((s // 2 + 31) // 32))
+    return body[:s // 2]
+
+n, d, c, h = read_bytes(0), read_bytes(2), read_bytes(3), read_bytes(4)
+key = pow(int.from_bytes(c, "big"), int.from_bytes(d, "big"),
+          int.from_bytes(n, "big")).to_bytes(32, "big")
+assert Web3.keccak(key) == h
+```
+
+Then call `restoreFiles(key)` and `isSolved()` returns true.
+
+## 4. Why 32 bytes
+
+`aes_key` is exactly 32 random bytes and `c = aes_key^e mod n`. Raising `c` to `d` modulo `n` returns the same integer, but it must be serialised with a fixed length: leading zero bytes would be lost otherwise, and `keyHash` would not match.
+
+## 5. This is not broken RSA
+
+Nobody factored `n`. `d` is public because it was put into calldata and into the storage of a public chain. Given `d`, `c^d mod n` is ordinary decryption.
+
+## 6. Flag
+
+`PP{pr1v4t3_15_n0t_s…c8Gu}`
+
+## 7. Defence
+
+There is no secret storage on a public chain: `private` limits Solidity access only, it does not hide data from RPC or from calldata. Secret components (RSA `d`, AES keys) must stay off-chain; a contract may store a commitment such as `keccak256(key)`.
+
+## 8. What is preserved
+
+- `assets/`: `Chal.sol`, `Setup.sol`, `locker_operator.py`.
+- `scripts/exploit.py`: reads slots 0-4, derives the key, verifies `keyHash`, calls `restoreFiles`. RPC URL, private key and `Setup` address are placeholders.
+- Not preserved: the concrete `n`, `d`, `c` of the live instance and the transaction hash — the instance is gone, so the script reads everything from the stand instead of replaying numbers.
