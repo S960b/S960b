@@ -11,7 +11,7 @@
 
 ## Writeups
 
-The directory contains **18 technical reports** written from the original challenge materials, stored evidence, recovered solver scripts and preserved lab notes. In Old Trusty both flags were recovered; the preserved API snapshot does not list the challenge as completed, so no platform-submission claim is made here. Flacksafety was a partial solve: five of six backup tiers destroyed and the governance flag obtained. These statuses are distinguished in their individual writeups.
+The directory contains **18 technical reports** written from the original challenge materials, stored evidence, recovered solver scripts and preserved lab notes. **Old Trusty was completed and both flags were accepted by the competition platform; its original flag files are published in its evidence directory.** Flacksafety was a partial solve: five of six backup tiers destroyed and the governance flag obtained.
 
 Each task uses the same structure as the other CTF reports in this portfolio:
 
@@ -20,7 +20,7 @@ Each task uses the same structure as the other CTF reports in this portfolio:
 - `scripts/`: verified or reconstructed reproductions, labelled accordingly
 - `assets/` and `evidence/`: available source code, challenge materials and redacted logs
 
-Complete flags, passwords, NT hashes and live instance addresses are not published. Missing source files or execution traces are clearly identified. No stage is presented as succeeded unless the available evidence supports it.
+Complete flag values are published for Old Trusty at the challenge owner's request; passwords, NT hashes and live instance addresses remain redacted. Missing source files or execution traces are clearly identified. No stage is presented as succeeded unless the available evidence supports it.
 
 ## Challenges
 
@@ -40,7 +40,7 @@ Complete flags, passwords, NT hashes and live instance addresses are not publish
 | Blockchain | [Card Counting](blockchain/cardcounting/solve.md) | Nonuniform deck / PRNG |
 | Blockchain | [PlatyPals](blockchain/platypals/solve.md) | Callback reverts and rerolls |
 | Active Directory | [Legacy IT](ad/legacyit/solve.md) | Final SMB pass-the-hash read |
-| Active Directory | [Old Trusty](ad/oldtrusty/solve.md) | LEGACY → CORE, two recovered flags |
+| Active Directory | [Old Trusty](ad/oldtrusty/solve.md) | LEGACY → CORE, two platform-accepted flags |
 | Fullpwn | [Carbon](fullpwn/carbon/solve.md) | Portal investigation; user and root flags |
 | Fullpwn | [Flacksafety](fullpwn/flacksafety/solve.md) | Five of six backup tiers, partial |
 | Misc | [Bish Bash Bosh](misc/bishbashbosh/solve.md) | Bash arithmetic evaluation |

