@@ -5,7 +5,7 @@
 - **Category:** blockchain
 - **Difficulty:** 1
 - **Materials:** `Chal.sol`, `Setup.sol`, `payment_backend.py`
-- **Flags:** 1 accepted (`PP{...}`)
+- **Flags:** 1 accepted (`PP{n0t_my_typ3_0f_m0n3y::kPrB…SjX}`)
 
 A payment service accepts human-readable ether amounts; the off-chain validation converts them to incompatible numeric types.
 
