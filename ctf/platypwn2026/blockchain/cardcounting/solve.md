@@ -9,7 +9,7 @@
 The November 13 competition report confirms a live solve built around recovering **624 consecutive 32-bit MT19937 outputs** from six-card hands and predicting later roulette results. The flag was accepted:
 
 ```text
-PP{c0unt1ng_tw1st3d_c4rds::nzLUEwQSga-f}
+PP{c0unt1ng_tw1st3d…Sga-f}
 ```
 
 The following analysis connects this result to the original Solidity and Python sources and independently tests the state-recovery mathematics.
@@ -160,7 +160,7 @@ The provided `dealer.py` and `Chal.sol` establish the shared PRNG, reversible en
 The competition report confirms successful use of this weakness and the accepted flag:
 
 ```text
-PP{c0unt1ng_tw1st3d_c4rds::nzLUEwQSga-f}
+PP{c0unt1ng_tw1st3d…Sga-f}
 ```
 
 A compact record of the source-backed chain and the session's recorded result is in [`evidence/session-checkpoints.md`](evidence/session-checkpoints.md).

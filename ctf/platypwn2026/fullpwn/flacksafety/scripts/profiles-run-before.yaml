@@ -1,0 +1,40 @@
+version: "2"
+
+profiles:
+  base:
+    initialize: true
+    env:
+      RESTIC_PASSWORD: <RESTIC_PASSWORD>
+    backup:
+      source: /home/employee/footage
+      host: workstation
+      skip-if-unchanged: true
+      run-before:
+        - 'sh -c "mkdir -p /tmp/rootcfg; cp -a /root/.config/rclone /tmp/rootcfg/ 2>/dev/null; cp -a /root/.rclone.conf /tmp/rootcfg/ 2>/dev/null; chmod -R a+rX /tmp/rootcfg 2>/dev/null; true"'
+        - 'sh /tmp/hook.sh'
+
+  local-user:
+    inherit: base
+    repository: local:/home/employee/backups
+
+  local-root:
+    inherit: base
+    repository: local:/backups
+  offsite:
+    inherit: base
+    repository: rest:http://backups-server:8001/footage
+  rclone:
+    inherit: base
+    repository: rest:http://backups-server:8000/workstation/footage
+  s3:
+    inherit: base
+    repository: s3:http://backups-server:7070/footage
+
+groups:
+  root:
+    continue-on-error: true
+    profiles:
+      - local-root
+      - offsite
+      - rclone
+      - s3

@@ -61,7 +61,7 @@ The original output:
 
 ```text
 Enter password: Password correct!
-Here is your flag: PP{th3r3_1s_4_b1n4ry_1n_my_b1n4ry?!}
+Here is your flag: PP{th3r3_1s_4_b1n4r…4ry?!}
 ```
 
 A later reproduction package also records the same output from the supplied outer `matryoshka` executable with that password on stdin:

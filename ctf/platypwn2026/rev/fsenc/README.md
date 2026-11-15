@@ -6,6 +6,6 @@
 
 The file header disclosed both the **32-byte ChaCha20-Poly1305 key** and **12-byte nonce**. The encrypted body could therefore be authenticated and decrypted directly, without recovering the Argon2id password.
 
-Flag: `PP{f1l3_3ncrypt10n_1s_h4rd::A1bk0dIsUfPL}`.
+Flag: `PP{f1l3_3ncrypt10n_…sUfPL}`.
 
 [Successful decryption](solve.md) · [Execution checkpoint](evidence/decryption-checkpoint.md)

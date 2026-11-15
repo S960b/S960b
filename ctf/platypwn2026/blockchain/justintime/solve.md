@@ -86,7 +86,7 @@ Setup.TARGET()
 
 ## 5. Evidence and limitations
 
-The final challenge report confirms an accepted flag (`PP{...}`). The ZIP includes the two original Solidity sources but not the specific deployment address, timestamp, password value, transaction hash or stdout. This walkthrough therefore provides a source-derived reproducible calculation, not an invented historical command transcript.
+The final challenge report confirms an accepted flag (`PP{t1m3_15_n0t_4_s3…KLiAY}`). The ZIP includes the two original Solidity sources but not the specific deployment address, timestamp, password value, transaction hash or stdout. This walkthrough therefore provides a source-derived reproducible calculation, not an invented historical command transcript.
 
 ## 6. Mitigation
 

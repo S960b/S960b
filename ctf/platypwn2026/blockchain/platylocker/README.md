@@ -5,7 +5,7 @@
 - **Category:** blockchain
 - **Difficulty:** 1
 - **Materials:** `Chal.sol`, `Setup.sol`, `locker_operator.py`
-- **Flags:** 1 accepted (`PP{...}`)
+- **Flags:** 1 accepted (`PP{pr1v4t3_15_n0t_s…NC8Gu}`)
 
 A ransomware-themed contract stores an RSA private exponent in a Solidity `private` variable, confusing access control at source level with secrecy on a public chain.
 

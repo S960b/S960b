@@ -59,7 +59,7 @@ cat Users\Administrator\Desktop\flag.txt
 В ответ получен флаг:
 
 ```text
-PP{l3g4cy-1t-4dm1ns-4k4-w1nd0ws-4dm1ns::FqCiLH_9Sp7u}
+PP{l3g4cy-1t-4dm1ns…9Sp7u}
 ```
 
 **Платформа приняла флаг.** Цепочка: анонимная шара `Public/onboarding.txt` → `trainee` → `FullControl` на `Legacy IT Admins` → добавление себя в группу → DCSync → NT-хэш Administrator → чтение рабочего стола по SMB.
@@ -69,3 +69,5 @@ PP{l3g4cy-1t-4dm1ns-4k4-w1nd0ws-4dm1ns::FqCiLH_9Sp7u}
 Не хранить рабочие пароли на гостевых шарах; проверять `FullControl` на группах, ограничивать права репликации домена и отслеживать одновременно изменение членства и активность DRSUAPI. Устаревшие протоколы здесь не являлись обязательным звеном эксплуатации.
 
 Сводка очищенных фрагментов исходного журнала — [evidence/session-checkpoints.md](evidence/session-checkpoints.md).
+
+Команды: [`scripts/dcsync-and-smb.sh`](scripts/dcsync-and-smb.sh) — DCSync под `trainee` и вход по NT-хэшу в `C$`.

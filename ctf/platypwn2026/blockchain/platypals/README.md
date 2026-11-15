@@ -5,7 +5,7 @@
 - **Category:** blockchain
 - **Difficulty:** 2
 - **Materials:** `Chal.sol`, `Setup.sol`, `box_opener.py`; archived successful-run record
-- **Flags:** 1 accepted (`PP{...}`)
+- **Flags:** 1 accepted (`PP{r3r0ll_unt1l_l3g…2-v11}`)
 
 A mystery-box market seems to award a legendary pal with 1% probability, but a callback lets the buyer reject all non-legendary outcomes.
 

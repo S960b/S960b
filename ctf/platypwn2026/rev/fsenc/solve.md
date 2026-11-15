@@ -46,7 +46,7 @@ Its actual result:
 ```text
 key   aa1ac2b4ea02d933d65a9c20d8a116f00e3d1094d03cd9d19cb75a9da4b399dd
 nonce 8d3b427242a42d5c0df5e60f
-PLAINTEXT: b'PP{f1l3_3ncrypt10n_1s_h4rd::A1bk0dIsUfPL}\n'
+PLAINTEXT: b'PP{f1l3_3ncrypt10n_…sUfPL}\n'
 ```
 
 The flag was **accepted by the platform**. The source-derived reproduction script in the repository provides this operation using:

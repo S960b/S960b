@@ -5,7 +5,7 @@
 - **Category:** blockchain
 - **Difficulty:** 1
 - **Materials:** Solidity `Chal.sol`, `Setup.sol`
-- **Flags:** 1 accepted (`PP{...}`)
+- **Flags:** 1 accepted (`PP{t1m3_15_n0t_4_s3…KLiAY}`)
 
 A vault claims its password was never written down; it is actually derived entirely from public deployment data.
 

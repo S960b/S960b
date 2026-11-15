@@ -115,7 +115,7 @@ secretsdump.py 'legacy.corp/<local-admin>:<password>@<dc01>' -just-dc
 A domain Administrator hash gave access to the `C$` share and `Users\\Administrator\\Desktop\\flag.txt`. The first (LEGACY) flag was extracted and accepted by the platform:
 
 ```text
-PP{d4cl-4cls-sh4d0ws-4nd-s3rv1c3s}
+PP{d4cl-4cls-sh4d0w…v1c3s}
 ```
 
 Original evidence: [`evidence/FLAG1.txt`](evidence/FLAG1.txt).
@@ -231,7 +231,7 @@ get Users\Administrator\Desktop\flag.txt
 The second (CORE) flag was extracted and accepted by the platform:
 
 ```text
-PP{trvst-th3-c3rt1f1c4t3-ch41n}
+PP{trvst-th3-c3rt1f…ch41n}
 ```
 
 Original evidence: [`evidence/FLAG2.txt`](evidence/FLAG2.txt). **Both submissions were accepted, and the Old Trusty challenge was credited as solved.**

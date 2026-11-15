@@ -54,7 +54,7 @@ curl -s -H "Authorization: Bearer $TOKEN" \
 
 ```text
 Password:
-PP{c4rb0n_c4ch3d_s3ss10n_r3pl4y::aBfyfXvKt36U}
+PP{c4rb0n_c4ch3d_s3…Kt36U}
 
 User operator may run the following commands:
     (root) NOPASSWD: /usr/bin/env
@@ -73,7 +73,7 @@ sudo /usr/bin/env /bin/cat /root/root.txt
 Второй флаг:
 
 ```text
-PP{0p3r4t0r_3nv_1s_r00t::gXG9iPj_dtEE}
+PP{0p3r4t0r_3nv_1s_…_dtEE}
 ```
 
 **Оба флага сданы и приняты платформой.** Подтверждённая цепочка: десериализация RSC → RCE как `nextjs` → ops-notes → Redis `session:operator` → Bearer-запрос в admin API → `su operator` → sudo `env` → root.
@@ -83,3 +83,5 @@ PP{0p3r4t0r_3nv_1s_r00t::gXG9iPj_dtEE}
 Нужно обновлять Next.js/React, изолировать процесс веб-приложения от кэша и административных сервисов, не выдавать пароли системных учёток через HTTP API, разделять права токенов и запрещать NOPASSWD для универсальных загрузчиков процессов вроде `env`. Проверка параметров формы не защищает от уязвимости уровня десериализатора.
 
 [Контрольные результаты из логов](evidence/session-checkpoints.md)
+
+Цепочка по шагам: [`scripts/operator-chain.sh`](scripts/operator-chain.sh) — Redis `session:operator` → admin API → `su operator` → sudo.

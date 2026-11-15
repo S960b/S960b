@@ -6,7 +6,7 @@
 - **Category:** crypto
 - **Difficulty:** 2
 - **Materials:** `server.py`, `encryption.py`, Dockerfile, compose; submission command records
-- **Flags:** 2 accepted, exact strings masked (`PP{...}`)
+- **Flags:** 2 accepted, exact strings masked (`PP{D3S_c4nn07_s4v3_…W1Q0k}`)
 
 An improvised GCM construction based on 3DES with 64-bit blocks and only a two-byte authentication tag. The service has separate verification conditions for two flags.
 

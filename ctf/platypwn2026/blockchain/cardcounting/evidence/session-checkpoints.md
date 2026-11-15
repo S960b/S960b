@@ -11,7 +11,7 @@ Evidence cross-checked against the original `assets/dealer.py` and `assets/Chal.
 Accepted competition flag:
 
 ```text
-PP{c0unt1ng_tw1st3d_c4rds::nzLUEwQSga-f}
+PP{c0unt1ng_tw1st3d…Sga-f}
 ```
 
 The independent script is a reconstruction of the algorithm, not a claim to be an exported original transaction driver.

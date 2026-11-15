@@ -16,7 +16,7 @@ legacy.corp -> core.corp.
 
 **Флаг:**
 ```
-PP{<FLAG>}
+PP{d4cl-4cls-sh4d0w…v1c3s}
 ```
 
 ### Разведка
@@ -74,7 +74,7 @@ python3 services.py 'legacy/svc_ops@<dc01>' -hashes :4e631d... -no-pass start -n
 С локальным админом делаю `secretsdump -just-dc` и получаю все доменные хеши, включая
 Administrator и krbtgt. Читаю флаг через админ-шару C$:
 ```
-PP{<FLAG>}
+PP{trvst-th3-c3rt1f…ch41n}
 ```
 
 ---
@@ -83,7 +83,7 @@ PP{<FLAG>}
 
 **Флаг:**
 ```
-PP{<FLAG>}
+PP{d4cl-4cls-sh4d0w…v1c3s}
 ```
 
 ### Идея: доверие + AD CS
@@ -170,7 +170,7 @@ impacket-smbclient.py "core.corp/Administrator@<dc02>" \
 # => use C$; get Users\Administrator\Desktop\flag.txt
 ```
 ```
-PP{<FLAG>}
+PP{trvst-th3-c3rt1f…ch41n}
 ```
 
 ---

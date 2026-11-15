@@ -317,3 +317,5 @@ FLAG_2: not issued
 ## Материалы в репозитории
 
 Проверяемые исходники и очищенные материалы: [`evidence/reconstruction.md`](evidence/reconstruction.md).
+
+Профиль с хуком: [`scripts/profiles-run-before.yaml`](scripts/profiles-run-before.yaml) — `rw-rw-rw-` профиль и `run-before` через supercronic.

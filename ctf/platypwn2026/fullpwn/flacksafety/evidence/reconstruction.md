@@ -80,7 +80,7 @@ REST-пароль пользователя `workstation-legacy` — переме
    `RESTIC_REST_PASSWORD=<PW>`, `RESTIC_PASSWORD=<PW>`.
 3. Удалён `~/footage/security_footage.mp4`, отпрунены репо; в S3 пакетно удалены
    все non-latest версии (`delete-objects` + `--bypass-governance-retention`).
-4. Дашборд: 5/6 destroyed, FLAG_1 = `PP{<FLAG>}` (принят).
+4. Дашборд: 5/6 destroyed, FLAG_1 = `PP{g0v3rn4nc3_41nt_…8NF-T}` (принят).
 
 ## 4. Стадия 6 — разбор (live, HTTPS к rclone v1.74.3)
 - CVE-2026-59733 / GHSA-fqj9-69pf-6pjg подтверждена: `POST/GET/DELETE` файлов по

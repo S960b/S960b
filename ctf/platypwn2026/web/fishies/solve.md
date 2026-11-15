@@ -169,8 +169,8 @@ report visit 2 -> 200 "review queued"
 GET /static/dl/payload.so -> 200 (15,728 bytes)
 report visit 3 -> 200 "review queued"
 report visit 4 -> 200 "review queued"
-listener received POST /flag with PP{MASK}
-GET /static/dl/flag.txt -> 200, PP{MASK}
+listener received POST /flag with PP{h1jack1ng_th3_d3…Dsjqq}
+GET /static/dl/flag.txt -> 200, PP{h1jack1ng_th3_d3…Dsjqq}
 ```
 
 The separately preserved `solve_2.txt` contains the final flag being checked against the static file endpoint. The score platform accepted the flag. The public repository masks the actual string.

@@ -5,7 +5,7 @@
 - **Category:** blockchain
 - **Difficulty:** 2
 - **Materials:** `Chal.sol`, `Setup.sol`, `dealer.py`
-- **Flags:** 1 accepted (`PP{c0unt1ng_tw1st3d_c4rds::nzLUEwQSga-f}`)
+- **Flags:** 1 accepted (`PP{c0unt1ng_tw1st3d…Sga-f}`)
 
 A casino contract uses an off-chain Python backend to deal blackjack hands and settle roulette. The dealer randomness and on-chain settlement were the key surfaces.
 

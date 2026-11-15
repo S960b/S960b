@@ -6,7 +6,7 @@
 - **Category:** crypto
 - **Difficulty:** 2
 - **Materials:** `server.py`, Dockerfile, compose; saved solver invocation (solver file itself absent)
-- **Flags:** 2 accepted, exact strings masked (`PP{...}`)
+- **Flags:** 2 accepted, exact strings masked (`PP{modulo_hashing_i…WMWkN}`)
 
 Two independent weaknesses in a custom RSA-based login service: a modular password hash and a short-secret identification protocol.
 

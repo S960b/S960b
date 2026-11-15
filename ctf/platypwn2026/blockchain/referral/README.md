@@ -5,7 +5,7 @@
 - **Category:** blockchain
 - **Difficulty:** 2
 - **Materials:** `Proxy.sol`, `Chal.sol`, `Setup.sol`
-- **Flags:** 1 accepted (`PP{...}`)
+- **Flags:** 1 accepted (`PP{st0r4g3_c0ll1s10…oRPGV}`)
 
 A custom upgradeable proxy and its logic contract disagree about storage layout. A referral update rewrites the proxy's implementation pointer.
 

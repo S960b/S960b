@@ -57,7 +57,7 @@ cat Users\Administrator\Desktop\flag.txt
 The recorded session returned:
 
 ```text
-PP{l3g4cy-1t-4dm1ns-4k4-w1nd0ws-4dm1ns::FqCiLH_9Sp7u}
+PP{l3g4cy-1t-4dm1ns…9Sp7u}
 ```
 
 **The flag was accepted by the competition platform.** The confirmed attack path is: anonymous `Public/onboarding.txt` → `trainee` → `FullControl` on `Legacy IT Admins` → add self to group → DCSync → Administrator NT hash → SMB desktop flag.

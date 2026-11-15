@@ -8,8 +8,8 @@
 
 **Принятые флаги:**
 
-- **LEGACY / FLAG1:** `PP{d4cl-4cls-sh4d0ws-4nd-s3rv1c3s}` — [оригинал `FLAG1.txt`](evidence/FLAG1.txt)
-- **CORE / FLAG2:** `PP{trvst-th3-c3rt1f1c4t3-ch41n}` — [оригинал `FLAG2.txt`](evidence/FLAG2.txt)
+- **LEGACY / FLAG1:** `PP{d4cl-4cls-sh4d0w…v1c3s}` — [оригинал `FLAG1.txt`](evidence/FLAG1.txt)
+- **CORE / FLAG2:** `PP{trvst-th3-c3rt1f…ch41n}` — [оригинал `FLAG2.txt`](evidence/FLAG2.txt)
 
 Цепочка LEGACY: AS-REP у `jdoe` → BloodHound и ACL (`WriteDacl`, `AddMember`, `AddKeyCredentialLink`) → Shadow Credentials на `svc_ops` → `Server Operators` и управление службой через SCM → NTDS → Administrator → первый флаг.
 

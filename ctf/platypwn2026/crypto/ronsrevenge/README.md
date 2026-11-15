@@ -6,7 +6,7 @@
 - **Category:** crypto
 - **Difficulty:** 2
 - **Materials:** `server.py`; exploit process check/log path (actual exploit absent)
-- **Flags:** 1 accepted, exact strings masked (`PP{...}`)
+- **Flags:** 1 accepted, exact strings masked (`PP{st4t3s1z3_w4s_n0…H9kIR}`)
 
 A chosen-IV stream cipher challenge using an RC4-like key schedule with a state of size 2048.
 

@@ -5,7 +5,7 @@
 - **Category:** misc
 - **Difficulty:** 1
 - **Materials:** `server.sh`, `Dockerfile`, `entrypoint.sh`, compose; exploit command in evidence
-- **Flags:** 1 accepted (`PP{...}`)
+- **Flags:** 1 accepted (`PP{l3t_t00k_my_fl4g…MmeQT}`)
 
 A small Bash menu asks for a number from 0 through 2 and prints one of three messages, but arithmetic expansion is performed on attacker-controlled input.
 

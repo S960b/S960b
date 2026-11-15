@@ -118,7 +118,7 @@ secretsdump.py 'legacy.corp/<local-admin>:<password>@<dc01>' -just-dc
 Затем использовали хэш доменного Administrator для доступа к `C$` и чтения `Users\\Administrator\\Desktop\\flag.txt`. **Первый флаг (LEGACY) получен и принят платформой:**
 
 ```text
-PP{d4cl-4cls-sh4d0ws-4nd-s3rv1c3s}
+PP{d4cl-4cls-sh4d0w…v1c3s}
 ```
 
 Оригинальный файл: [`evidence/FLAG1.txt`](evidence/FLAG1.txt).
@@ -233,7 +233,7 @@ get Users\Administrator\Desktop\flag.txt
 **Второй флаг (CORE) также получен и принят платформой:**
 
 ```text
-PP{trvst-th3-c3rt1f1c4t3-ch41n}
+PP{trvst-th3-c3rt1f…ch41n}
 ```
 
 Оригинальный файл: [`evidence/FLAG2.txt`](evidence/FLAG2.txt). **Оба флага успешно сданы, Old Trusty засчитана как решённая задача.**

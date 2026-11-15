@@ -9,7 +9,7 @@ Chronology from the November 13 competition log, with account password, hash and
 - 23:28 — `impacket-smbclient` after `use C$`: desktop flag printed.
 
 ```text
-PP{l3g4cy-1t-4dm1ns-4k4-w1nd0ws-4dm1ns::FqCiLH_9Sp7u}
+PP{l3g4cy-1t-4dm1ns…9Sp7u}
 ```
 
 The platform accepted the challenge. These are contemporaneous checks, not a hypothetical reconstruction.

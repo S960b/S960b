@@ -168,8 +168,8 @@ report, заход 2 -> 200
 GET /static/dl/payload.so -> 200 (15728 байт)
 report, заход 3 -> 200
 report, заход 4 -> 200
-слушатель: POST /flag, содержимое PP{MASK}
-GET /static/dl/flag.txt -> 200, PP{MASK}
+слушатель: POST /flag, содержимое PP{h1jack1ng_th3_d3…Dsjqq}
+GET /static/dl/flag.txt -> 200, PP{h1jack1ng_th3_d3…Dsjqq}
 ```
 
 В исходных `solve_*.txt` из архива отдельно записано чтение `/static/dl/flag.txt` с настоящего CTF-инстанса и последующая сдача флага. В Git полная строка скрыта.

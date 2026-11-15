@@ -61,7 +61,7 @@ printf 'c667c58c3b02d6c91b8def4fdd1bc5f3\n' | ./stage2.bin
 
 ```text
 Enter password: Password correct!
-Here is your flag: PP{th3r3_1s_4_b1n4ry_1n_my_b1n4ry?!}
+Here is your flag: PP{th3r3_1s_4_b1n4r…4ry?!}
 ```
 
 В дополнительном пакете записан тот же результат при передаче пароля исходному `matryoshka`:
