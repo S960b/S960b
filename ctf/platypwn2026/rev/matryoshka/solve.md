@@ -1,124 +1,93 @@
-# Matryoshka: four CRC equations and an XOR-protected payload
+# Matryoshka: extracting a nested ELF and inverting four CRC32 checks
 
 [По-русски](solve.ru.md)
 
-## 0. Plan and what is actually preserved
+## 1. Finding the next layer
 
-The supplied challenge file is a stripped 64-bit PIE executable. Its imported functions include `memfd_create` and `fexecve`, consistent with the reported multi-layer execution scheme. The preserved work log describes the final calculation, but it does not preserve every command used to unpack the intermediate layers.
+The supplied `matryoshka` is a stripped x86-64 ELF that creates a new anonymous executable file with `memfd_create("stage2", MFD_CLOEXEC)`, writes **154,328 bytes** to it, and runs the nested program. This can be seen with:
 
-The recorded solution is not a password dictionary attack. The final stage imposes four CRC32 conditions on a 16-byte password. Because CRC32 is affine over GF(2), each four-byte condition can be inverted by solving a **32 × 32 system of binary equations**. The recovered 16 bytes then XOR-decode a 36-byte region of the extracted second-stage executable.
-
-The sequence is:
-
-1. Identify the ELF and obtain the next stage (full original extraction transcript unavailable).
-2. Read the four target CRC values from the preserved solver evidence.
-3. Reconstruct the exact password by binary linear algebra, checking all four CRCs.
-4. XOR the data slice from the extracted `stage2.bin`.
-5. Verify the flag. Only the mathematical stage can be fully reproduced with the surviving archive.
-
-## 1. Inspecting the artifact
-
-The stripped ELF was part of the event's original downloadable archive. The public Git repository currently contains the analysis and solver, **not the binary**. To run the static-inspection commands below, first copy the downloaded binary to `assets/matryoshka`. Its file properties were checked directly:
-
-```text
-ELF 64-bit LSB pie executable, x86-64, dynamically linked, stripped
-interpreter /lib64/ld-linux-x86-64.so.2
+```bash
+strace -f -e trace=memfd_create,execve,write -s 60 ./matryoshka
+# memfd_create("stage2", MFD_CLOEXEC) = 10
+# write(10, "\\177ELF...", 154328) = 154328
 ```
 
-Relevant static inspection:
+The nested stage accepts a hexadecimal password and prints `Invalid hex` for a non-hexadecimal test input. The original investigation also recovered the `stage2.bin` ELF bytes from the captured `write` trace and examined its code and `.rodata`.
 
-```sh
-file assets/matryoshka
-readelf -h assets/matryoshka
-readelf -Ws assets/matryoshka | grep -E 'memfd_create|fexecve|write'
-strings assets/matryoshka | grep -E 'memfd_create|fexecve'
-```
+## 2. The four CRC32 constraints
 
-The imported `memfd_create` and `fexecve` make the reported nested process execution plausible: an executable can be written into an anonymous in-memory file and then executed from its descriptor. But imports **do not prove the exact extraction method or the number of layers**. We cannot reconstruct undocumented offsets or assert that a dynamic trace was run when it was not preserved.
-
-## 2. The four CRC targets
-
-The surviving `evidence/solve_1.txt` explicitly contains:
+The password is **16 bytes**; each four-byte word must match a separate CRC32 value:
 
 ```python
-targets = [
-    0x6d795f63,
-    0x30306c5f,
-    0x70343473,
-    0x77307264,
-]
+targets = [0x6d795f63, 0x30306c5f, 0x70343473, 0x77307264]
 ```
 
-Each is a CRC32 of a different four-byte word of the password. Let `C(x)` mean Python's `zlib.crc32` on a four-byte array. CRC32 is affine, not strictly linear because its initialization/finalization includes a constant. To remove that constant, calculate:
+For four input bytes, `zlib.crc32` is **affine over GF(2)**. Subtract the constant output `C(0)` by XOR, then construct a 32×32 binary matrix from the effects of toggling each input bit:
 
 ```text
-C0 = C(00 00 00 00)
-L(x) = C(x) XOR C0
+C0    = CRC32(00 00 00 00)
+L(x)  = CRC32(x) XOR C0
+cols[j] = CRC32(1 << j encoded as 4 little-endian bytes) XOR C0
+XOR_j (bit[j] * cols[j]) = target XOR C0
 ```
 
-Then `L` is linear over GF(2): `L(x XOR y) = L(x) XOR L(y)`.
+Gaussian elimination over GF(2) recovers each four-byte word independently. The script [`scripts/solve_crc.py`](scripts/solve_crc.py) implements this calculation without a dictionary or brute-force search:
 
-For each bit position `j` (0–31), create a four-byte vector with **only bit j set**, and calculate its contribution:
-
-```python
-cols[j] = C(1 << j, encoded as 4 little-endian bytes) ^ C0
-```
-
-For an unknown word with bits `b[0]..b[31]`, the checksum condition becomes:
-
-```text
-XOR( b[j] * cols[j] for j=0..31 ) = target XOR C0
-```
-
-Equate all 32 output bits. This yields 32 equations in 32 Boolean unknowns. XOR is addition modulo 2. No approximate floating-point arithmetic is involved.
-
-## 3. Solving with binary Gaussian elimination
-
-The reproducible implementation is in [scripts/solve_crc.py](scripts/solve_crc.py). It constructs a 32-bit coefficient mask for every equation, appends the target bit as the 33rd bit, and eliminates pivots using integer XOR. The solve is repeated independently for all four targets.
-
-```sh
+```bash
 python3 scripts/solve_crc.py
 ```
 
-Recomputed locally from the archived targets:
+The recovered key is:
 
 ```text
-password (hex): c667c58c3b02d6c91b8def4fdd1bc5f3
+password hex: c667c58c3b02d6c91b8def4fdd1bc5f3
 CRC[0:4]   = 6d795f63
 CRC[4:8]   = 30306c5f
 CRC[8:12]  = 70343473
 CRC[12:16] = 77307264
 ```
 
-These CRC checks were recalculated independently and match **all four** recorded targets. The password is binary data; interpreting it as a printable ASCII phrase would be misleading.
+The 16-byte secret is binary data entered as **32 hexadecimal characters**, not an ASCII phrase. The visible string `my_c00l_p44sw0rd` is associated with the CRC target bytes and should not be submitted as the password.
 
-The exact 16-byte value is the crucial recovered intermediate, not the flag itself.
+## 3. Verifying the password and retrieving the flag
 
-## 4. The second-stage XOR
+The recorded session ran the extracted executable directly:
 
-The archived command contains the following final operation:
+```bash
+printf 'c667c58c3b02d6c91b8def4fdd1bc5f3\n' | ./stage2.bin
+```
+
+The original output:
+
+```text
+Enter password: Password correct!
+Here is your flag: PP{th3r3_1s_4_b1n4ry_1n_my_b1n4ry?!}
+```
+
+A later reproduction package also records the same output from the supplied outer `matryoshka` executable with that password on stdin:
+
+```bash
+printf 'c667c58c3b02d6c91b8def4fdd1bc5f3\n' | ./matryoshka
+```
+
+The competition submission returned **HTTP 200, `{"status":1}`**. The challenge was solved and the full flag is confirmed.
+
+## 4. How the XOR payload fits into the design
+
+Disassembly of the nested stage showed a 36-byte encrypted region at **file offset `0x1b560`**. The recovered 16-byte password repeats as the XOR key:
 
 ```python
-d = open('/tmp/gigatool/stage2.bin', 'rb').read()
-blob = d[0x1b560:0x1b560+36]
-flag = bytes(blob[i] ^ pw[i % 16] for i in range(36))
+data = open("stage2.bin", "rb").read()
+cipher = data[0x1b560:0x1b560 + 36]
+password = bytes.fromhex("c667c58c3b02d6c91b8def4fdd1bc5f3")
+flag = bytes(c ^ password[i % 16] for i, c in enumerate(cipher))
 print(flag)
 ```
 
-This is a repeating-key XOR. The source range is 36 bytes starting at absolute **file offset** `0x1b560` of the extracted `stage2.bin`, and the 16-byte password repeats across the range. The encrypted bytes are not in the original archive: `stage2.bin` was a working intermediate, not a supplied task attachment. Consequently, the password and CRC verification are reproducible, but the final flag decode cannot be independently rerun from the ZIP alone.
+This alternate check printed the **same** flag. Running the program with the correct password already performs the necessary verification and reveals the plaintext, so manual XOR is valuable as a reverse-engineering proof, not an additional requirement for submitting the flag.
 
-With the intermediate stage recovered, the script accepts it directly:
+## 5. Lessons
 
-```sh
-python3 scripts/solve_crc.py --stage2 stage2.bin
-```
+A CRC32 condition on 32 input bits yields 32 reversible affine equations. Four such independent checks do not make the 16-byte secret cryptographically difficult to recover. The nested ELF and repeating XOR add packaging complexity, not strong secrecy.
 
-## 5. What is confirmed, and what is missing
-
-**Confirmed from the preserved evidence:** four target values, full GF(2) solver logic, the XOR file offset, the extracted byte count, and the repetition period. **Recomputed in this review:** the 16-byte password and all four CRC32 checks. **Confirmed by the event report:** accepted flag, shown publicly as `PP{...}`.
-
-**Not preserved:** the dynamic command sequence that extracted every nested ELF, `stage2.bin` itself, and the actual flag-printing stdout. The extraction method has intentionally not been filled with invented commands.
-
-## 6. Lesson
-
-CRC32 is useful for accidental-corruption detection. It provides no protection against a solver who can reconstruct an affine map and invert it. Splitting a secret into four CRC-checked chunks does not add cryptographic secrecy; the chunks remain independently recoverable. A repeating XOR key is equally unsuitable for encrypting an embedded secret.
+[Source-backed session checkpoints](evidence/session-checkpoints.md) · [CRC solver](scripts/solve_crc.py)
