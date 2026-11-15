@@ -2,13 +2,10 @@
 
 [English](README.md) | [Решение](solve.ru.md)
 
-- **Категория:** ad
-- **Сложность:** 1
-- **Материалы:** Two saved Impacket SMB commands; no server source or credential-origin transcript
-- **Флаги:** 1 принято (`PP{...}`)
+**Категория:** Active Directory · **Сложность:** 1 · **Статус:** флаг принят платформой
 
-Задача про Active Directory и старую схему аутентификации. В конце получили доступ Administrator к файлу на контроллере домена.
+Анонимная SMB-шара `Public/onboarding.txt` раскрыла учётные данные `trainee`. Чрезмерные права `FullControl` на группу `Legacy IT Admins` позволили добавить себя, выполнить DCSync и прочитать флаг Administrator через SMB с NT-хэшем.
 
-**Причина:** В сохранённой команде используется `impacket-smbclient` с NT-хэшем (`-hashes :<скрытый NT-хэш>`), домен `easyad.local` и пользователь `Administrator`. Затем открывается административная шара `C$`, просматривается `Users\Administrator\Desktop` и читается `flag.txt`. Это подтверждает последний шаг. Итоговый отчёт называет причиной legacy-аутентификацию и обратную совместимость, но источника NT-хэша или механизма получения учётных данных в архиве нет.
+Флаг: `PP{l3g4cy-1t-4dm1ns-4k4-w1nd0ws-4dm1ns::FqCiLH_9Sp7u}`.
 
-[Подробный разбор](solve.ru.md).
+[Полный разбор](solve.ru.md) · [Доказательства](evidence/session-checkpoints.md)

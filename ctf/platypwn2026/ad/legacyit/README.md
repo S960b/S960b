@@ -1,14 +1,11 @@
 # Legacy IT
 
-[Русская версия](README.ru.md) | [Solving path](solve.md)
+[Русская версия](README.ru.md) | [Detailed walkthrough](solve.md)
 
-- **Category:** ad
-- **Difficulty:** 1
-- **Materials:** Two saved Impacket SMB commands; no server source or credential-origin transcript
-- **Flags:** 1 accepted (`PP{...}`)
+**Category:** Active Directory · **Difficulty:** 1 · **Status:** accepted by the platform
 
-An Active Directory challenge solved through a legacy authentication path, ending with administrator access to a file on the domain controller.
+Anonymous SMB `Public/onboarding.txt` exposed the `trainee` credentials. Excessive `FullControl` on the `Legacy IT Admins` group enabled self-membership, DCSync of the domain Administrator hash and SMB pass-the-hash access to the desktop flag.
 
-**Root cause:** The preserved command uses `impacket-smbclient` with NT-hash authentication (`-hashes :<masked NT hash>`), the domain `easyad.local`, and account `Administrator`. It then selects the administrative `C$` share, lists `Users\Administrator\Desktop`, and reads `flag.txt`. This proves the final access method. The task summary calls the weakness legacy-authentication/backward compatibility, but there is no trace showing where the administrator NT hash came from or which legacy setting exposed it.
+Flag: `PP{l3g4cy-1t-4dm1ns-4k4-w1nd0ws-4dm1ns::FqCiLH_9Sp7u}`.
 
-[Detailed walkthrough](solve.md).
+[Full technical solution](solve.md) · [Evidence checkpoints](evidence/session-checkpoints.md)
