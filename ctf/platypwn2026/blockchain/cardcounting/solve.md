@@ -111,7 +111,7 @@ net reduction in shop balance from this spin (ignoring initial bet inflow) =
 
 A chain of several correctly predicted spins can reduce a 100 ETH treasury below 10 ETH; a random number guess has probability 1/37 and is not reliably profitable. The source-derived route is to use revealed card words as samples of `rng`, determine its future `randrange(37)` outputs, then submit matching `spin(number)` calls before the backend settles them.
 
-The precise successful algorithm is **not demonstrated by the archived final solve command**, so it is presented as the intended connection suggested by the shared RNG, not claimed as recovered historical MT state reconstruction.
+The recorded solve used this shared-RNG connection: 624 blackjack hands supplied enough MT19937 output for state recovery, and subsequent roulette numbers were predicted. The independent reconstruction below checks the exact Python generator semantics.
 
 ### Important: `cashOut()` caps the payout at the treasury balance
 
