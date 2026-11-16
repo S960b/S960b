@@ -49,6 +49,9 @@ TOOL_KNOWN_POSITIVE = "known_positive"
 TOOL_UNKNOWN = "unknown"
 TOOL_EVIDENCE_STATES = (TOOL_KNOWN_ZERO, TOOL_KNOWN_POSITIVE, TOOL_UNKNOWN)
 EVIDENCE_VERSION = "tool-evidence-v1"
+# An in-flight attempt older than this is presumed dead. No model
+# call can legitimately run this long, and the sweep never re-runs it.
+PILOT_ATTEMPT_LEASE_MS = 30 * 60 * 1000
 # Terminal session states that make "the arm finished and nothing else ran"
 # checkable. Anything else is unverified, never assumed.
 TERMINAL_SESSION_STATES = ("idle", "completed", "done", "stopped", "closed")
@@ -79,6 +82,16 @@ CREATE TABLE IF NOT EXISTS pilot_settle_log(
  id INTEGER PRIMARY KEY AUTOINCREMENT, at_ms INTEGER NOT NULL,
  status TEXT NOT NULL, settled INTEGER NOT NULL, pending INTEGER NOT NULL,
  detail TEXT);
+-- D08: the durable attempt ledger. A row is written BEFORE any model call, so
+-- a crash between the two arms leaves evidence instead of silence. `state`
+-- moves prepared -> started -> completed | failed, and an interrupted row can
+-- only become `unknown`; nothing here ever replays a call.
+CREATE TABLE IF NOT EXISTS pilot_attempts(
+ event_id TEXT NOT NULL, attempt_id TEXT NOT NULL, arm TEXT NOT NULL,
+ prompt_sha256 TEXT NOT NULL, state TEXT NOT NULL,
+ prepared_ms INTEGER NOT NULL, started_ms INTEGER, finished_ms INTEGER,
+ session_id TEXT, detail TEXT,
+ PRIMARY KEY(event_id, attempt_id));
 CREATE TABLE IF NOT EXISTS pilot_annotations(
  id INTEGER PRIMARY KEY AUTOINCREMENT, event_id TEXT NOT NULL,
  version TEXT NOT NULL, kind TEXT NOT NULL, at_ms INTEGER NOT NULL,
@@ -218,6 +231,95 @@ def public_quote(after_ms=None):
             "source": "binance_public_ticker"}
 
 
+ATTEMPT_STATES = ("prepared", "started", "completed", "failed", "unknown")
+# Only these may still be in flight. Anything here must never be re-run
+# automatically: a crash and a slow call are indistinguishable from outside.
+LIVE_ATTEMPT_STATES = ("prepared", "started")
+
+
+def reserve_attempts(con, event_id, attempts, prompt_hashes, now_ms):
+    """Idempotent, atomic reservation of both arms before any model call.
+
+    Insert-only: a second prepare for the same event returns
+    `already_reserved` and never touches the existing rows, so a retry cannot
+    overwrite the evidence of the first attempt.
+    """
+    con.execute("BEGIN IMMEDIATE")
+    try:
+        existing = con.execute(
+            "SELECT attempt_id,state FROM pilot_attempts WHERE event_id=?",
+            (event_id,)).fetchall()
+        if existing:
+            con.rollback()
+            return {"status": "already_reserved",
+                    "attempts": [{"attempt_id": a, "state": st}
+                                 for a, st in existing]}
+        for arm, attempt_id in zip(("news", "news_market"), attempts):
+            con.execute(
+                "INSERT INTO pilot_attempts(event_id,attempt_id,arm,"
+                "prompt_sha256,state,prepared_ms) VALUES(?,?,?,?,?,?)",
+                (event_id, attempt_id, arm, prompt_hashes[arm], "prepared",
+                 now_ms))
+        con.commit()
+    except sqlite3.IntegrityError:
+        con.rollback()
+        return {"status": "already_reserved"}
+    return {"status": "reserved", "attempts": [
+        {"attempt_id": a, "arm": arm}
+        for arm, a in zip(("news", "news_market"), attempts)]}
+
+
+def mark_attempt(con, event_id, attempt_id, state, *, now_ms=None,
+                 session_id=None, detail=None):
+    """Move one attempt forward. Terminal states never go back."""
+    if state not in ATTEMPT_STATES:
+        raise ValueError("invalid_attempt_state")
+    now_ms = int(now_ms if now_ms is not None else time.time() * 1000)
+    con.execute("BEGIN IMMEDIATE")
+    try:
+        row = con.execute(
+            "SELECT state FROM pilot_attempts WHERE event_id=? AND attempt_id=?",
+            (event_id, attempt_id)).fetchone()
+        if row is None:
+            con.rollback()
+            return False
+        previous = row[0]
+        if previous in ("completed", "failed", "unknown"):
+            con.rollback()
+            return False                     # terminal is terminal
+        con.execute(
+            "UPDATE pilot_attempts SET state=?, started_ms=COALESCE(started_ms,"
+            "?), finished_ms=?, session_id=COALESCE(?,session_id), "
+            "detail=COALESCE(?,detail) WHERE event_id=? AND attempt_id=?",
+            (state,
+             now_ms if state == "started" else None,
+             now_ms if state in ("completed", "failed", "unknown") else None,
+             session_id, detail, event_id, attempt_id))
+        con.commit()
+    except BaseException:
+        con.rollback()
+        raise
+    return True
+
+
+def sweep_stale_attempts(con, now_ms, max_age_ms=PILOT_ATTEMPT_LEASE_MS):
+    """Mark abandoned in-flight attempts UNKNOWN. Never retries them.
+
+    A `prepared`/`started` row older than the lease cannot be proven alive, so
+    it is recorded as unknown with the reason; the pair is then refused, not
+    repeated. This is a diagnostic sweep, not a recovery path.
+    """
+    stale = con.execute(
+        "SELECT event_id,attempt_id,state FROM pilot_attempts "
+        "WHERE state IN ('prepared','started') AND prepared_ms <= ?",
+        (now_ms - max_age_ms,)).fetchall()
+    for event_id, attempt_id, state in stale:
+        mark_attempt(con, event_id, attempt_id, "unknown", now_ms=now_ms,
+                     detail="abandoned_in_" + state)
+    return [{"event_id": e, "attempt_id": a, "was": st}
+            for e, a, st in stale]
+
+
 def cmd_status(args):
     if not PILOT_DB.is_file():
         return emit({"status": "empty", "pilot_db": False})
@@ -320,6 +422,13 @@ def cmd_prepare(args):
     # two deterministic attempt ids plus the prompts mapping.
     attempts = [hashlib.sha256(f"pilot:{event['event_id']}:{arm}".encode())
                 .hexdigest() for arm in ("news", "news_market")]
+    # D08: the intent is durable BEFORE the caller may invoke a model.
+    reserved = reserve_attempts(pcon, event["event_id"], attempts, hashes,
+                                now_ms)
+    if reserved["status"] != "reserved":
+        return emit({"status": "blocked", "reason": "pilot_already_reserved",
+                     "event_id": event["event_id"],
+                     "attempts": reserved.get("attempts")}, 3)
     return emit({
         "status": "ready", "version": VERSION, "event_id": event["event_id"],
         "attempts": attempts, "prompts_sha256": hashes,
@@ -403,6 +512,14 @@ def cmd_finish(args):
         con.execute("INSERT INTO pilot_outcomes(event_id,horizon_h,due_ms) "
                     "VALUES(?,?,?)", (body["event_id"], 4, due_ms))
         con.commit()
+        # D08: close the durable attempt rows only after the pair is sealed,
+        # so a crash during the write leaves them in flight, not "completed".
+        for attempt, ev in zip(results, evidence):
+            mark_attempt(con, body["event_id"], attempt.get("attempt_id"),
+                         "completed" if ev["pos"] != TOOL_UNKNOWN else "unknown",
+                         now_ms=int(time.time() * 1000),
+                         session_id=attempt.get("session_id"),
+                         detail="tool_evidence:" + ev["pos"])
     except sqlite3.IntegrityError:
         con.rollback()
         con.close()

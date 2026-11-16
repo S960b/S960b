@@ -249,6 +249,21 @@ def attempt_reconciliation(paper, dispatch, usage, refusal_rows):
     return out
 
 
+# Export document version. Bumped to 2 when additive keys were introduced, so
+# a consumer can tell "field absent because the producer is old" from "field
+# absent because the value was null".
+EXPORT_VERSION = 2
+DOCUMENTED_KEYS = ("kind", "version", "taken_ms", "events", "paper",
+                   "dispatch", "gateway_usage", "attempt_reconciliation",
+                   "refusals")
+ADDITIVE_KEYS_SINCE_V2 = ("url_provenance", "origin_url",
+                          "reservation_states", "replay_safe",
+                          "label_effective", "tool_evidence")
+# Old snapshots stay readable: every key added in v2 is optional for a reader,
+# and no existing key changed meaning or type. Version 1 documents remain valid
+# and are never rewritten.
+
+
 def refusals(path):
     if not path.is_file():
         return []
@@ -271,7 +286,7 @@ def main(argv=None):
     ap.add_argument("--out", required=True)
     a = ap.parse_args(argv)
     base = Path(a.data_dir)
-    payload = {"kind": "news_v21_public_export", "version": 1,
+    payload = {"kind": "news_v21_public_export", "version": EXPORT_VERSION,
                "taken_ms": int(time.time() * 1000),
                "timezone": "all timestamps are milliseconds since epoch, UTC"}
 

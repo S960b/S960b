@@ -109,9 +109,70 @@ def open_db(path, *, create=False):
     con.execute("PRAGMA journal_mode=WAL")
     con.execute("PRAGMA synchronous=FULL")
     _migrate(con)
+    migrate_lease(con)
     con.executescript(SCHEMA)
     con.commit()
     return con
+
+
+LEASE_MIGRATED_SQL = ("CREATE TABLE dispatch_lease("
+                       " id INTEGER PRIMARY KEY CHECK(id IN (0, 1)),"
+                       " holder TEXT NOT NULL, acquired_ms INTEGER NOT NULL,"
+                       " expires_ms INTEGER NOT NULL,"
+                       " synthetic INTEGER NOT NULL DEFAULT 0)")
+
+
+def _lease_needs_migration(con):
+    """True when dispatch_lease still carries the singleton CHECK(id = 1)."""
+    row = con.execute("SELECT sql FROM sqlite_master WHERE type='table' "
+                      "AND name='dispatch_lease'").fetchone()
+    if row is None:
+        return False                     # created fresh by SCHEMA
+    sql = " ".join((row[0] or "").split())
+    return "CHECK(id IN (0, 1))" not in sql
+
+
+def migrate_lease(con):
+    """Transactional rebuild of the old singleton lease (D16).
+
+    The old table allowed exactly one row, so a synthetic acquisition had to
+    delete the production one. The new table keys the row by bucket. An
+    existing active lease is preserved verbatim in its own bucket row, never
+    dropped: losing a live lease would let two dispatches run at once.
+    Every step is inside one transaction; any failure rolls the schema back.
+    """
+    if not _lease_needs_migration(con):
+        return {"status": "already_current"}
+    rows = con.execute("SELECT id,holder,acquired_ms,expires_ms,synthetic "
+                       "FROM dispatch_lease").fetchall()
+    if len(rows) > 1:
+        # The CHECK made this impossible; refuse rather than guess which row
+        # is the real lease.
+        raise sqlite3.IntegrityError("lease_rows_ambiguous")
+    keep = None
+    for rid, holder, acq, exp, synth in rows:
+        # Map the legacy single row onto the bucket it belonged to.
+        bucket = 1 if int(synth or 0) else 0
+        keep = (bucket, holder, int(acq), int(exp), int(synth or 0))
+    con.execute("BEGIN IMMEDIATE")
+    try:
+        con.execute("CREATE TABLE dispatch_lease_new(%s)" % LEASE_MIGRATED_SQL
+                    .split("(", 1)[1].rsplit(")", 1)[0])
+        if keep is not None:
+            con.execute("INSERT INTO dispatch_lease_new(id,holder,acquired_ms,"
+                        "expires_ms,synthetic) VALUES(?,?,?,?,?)", keep)
+        con.execute("DROP TABLE dispatch_lease")
+        con.execute("ALTER TABLE dispatch_lease_new RENAME TO dispatch_lease")
+        bad = con.execute("PRAGMA integrity_check").fetchone()[0]
+        if bad != "ok":
+            raise sqlite3.IntegrityError("lease_migration_integrity:" + str(bad))
+        con.commit()
+    except BaseException:
+        con.rollback()
+        raise
+    return {"status": "migrated",
+            "preserved": None if keep is None else keep[1],
+            "bucket": None if keep is None else keep[0]}
 
 
 def _migrate(con):

@@ -54,7 +54,14 @@ try {
       model: body.model,
       tools: rawTools,
       tool_evidence_provenance: 'pilot_probe_channel',
+      // The probe reports completeness explicitly; anything else is UNKNOWN
+      // and the recorder refuses the pair rather than sealing a guess.
       tool_history_complete: body.tool_history_complete === true,
+      history_complete: body.tool_history_complete === true,
+      tool_evidence: body.tool_history_complete === true
+        ? (rawTools === 0 ? 'known_zero'
+          : (Number.isInteger(rawTools) ? 'known_positive' : 'unknown'))
+        : 'unknown',
       session_terminal: body.session_terminal ?? null,
       completed_ms: Date.now(),
       latency_ms: Date.now() - t,

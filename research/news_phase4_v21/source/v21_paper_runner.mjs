@@ -209,11 +209,17 @@ export async function runPaired({ client, directory, arms,
     if (evidence.state === TOOL_POSITIVE) {
       throw Error(`v2.1_tool_used_in_arm_no_seal:${arm.arm}`);
     }
+    // One envelope shared with pilot_run.mjs and the recorder's contract:
+    // arm names, model identity, session, terminal state, completion time and
+    // the tri-state tool evidence. `history_complete` is repeated under both
+    // names because the recorder's validator reads the long one and older
+    // readers of the probe payload use the short one.
     results.push({ arm: arm.arm, attempt_id: arm.attempt_id,
                    session_id: sid, text, model, tools: evidence.count,
                    tool_evidence: evidence.state,
                    tool_evidence_provenance: evidence.provenance,
-                   tool_history_complete: true,
+                   tool_history_complete: evidence.state !== TOOL_UNKNOWN,
+                   history_complete: evidence.state !== TOOL_UNKNOWN,
                    session_terminal: 'completed',
                    completed_ms: Date.now() });
     log(`v21_arm_done arm=${arm.arm}`);

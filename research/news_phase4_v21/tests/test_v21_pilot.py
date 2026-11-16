@@ -55,7 +55,8 @@ class PilotLedgerTests(unittest.TestCase):
             con.close()
         self.assertEqual(tables,
                          {"pilot_pairs", "pilot_arms", "pilot_outcomes",
-                          "pilot_settle_log", "pilot_annotations"})
+                          "pilot_settle_log", "pilot_annotations",
+                          "pilot_attempts"})
         self.assertNotIn("paper_records", tables,
                          "a pilot must never write the production journal")
         self.assertNotIn("paper_outcomes", tables)
