@@ -15,6 +15,12 @@ import v24_sources as S
 
 NOW = 1_800_000_000_000
 SPEC = S.SourceSpec("ofac", "sanctions", "primary", 900)
+SPECS = [
+    S.SourceSpec("ofac", "sanctions", "primary", 900),
+    S.SourceSpec("eia", "energy", "primary", 900),
+    S.SourceSpec("bin", "crypto", "primary", 120),
+]
+REGISTRY = S.SourceRegistry(SPECS)
 
 
 def record(**over):
@@ -66,7 +72,9 @@ class AdapterContractTests(unittest.TestCase):
         self.assertGreater(lag, S.FRESHNESS_BUDGET_S["sanctions"])
         with self.assertRaises(S.AdapterError) as ctx:
             S.validate_record(rec, spec=SPEC, now_ms=NOW)
-        self.assertIn("too_stale", str(ctx.exception))
+        # Transport lag and decision age are now separate checks; this record
+        # violates the transport budget first, and that is the reason reported.
+        self.assertIn("transport_lag_too_large", str(ctx.exception))
 
     def test_sha_mismatch_refused(self):
         bad = self._with(record(), content_sha256="0" * 64)
@@ -98,20 +106,26 @@ class SelectorTests(unittest.TestCase):
         ]
 
     def test_duplicates_collapsed(self):
-        accepted, rejected = S.select(self._recs(), now_ms=NOW)
+        result = S.select(self._recs(), now_ms=NOW, registry=REGISTRY)
+        accepted = result["accepted"]
         keys = [S.dedupe_key(r) for r in accepted]
         self.assertEqual(len(keys), len(set(keys)))
-        self.assertIn("duplicate", [r for _c, r in rejected])
+        self.assertIn("duplicate", [r["reason"] for r in result["rejected"]])
 
     def test_order_is_deterministic(self):
-        first, _ = S.select(self._recs(), now_ms=NOW)
-        second, _ = S.select(list(reversed(self._recs())), now_ms=NOW)
-        self.assertEqual([r.content_sha256 for r in first],
-                         [r.content_sha256 for r in second])
+        first = S.select(self._recs(), now_ms=NOW, registry=REGISTRY)
+        second = S.select(list(reversed(self._recs())), now_ms=NOW,
+                          registry=REGISTRY)
+        self.assertEqual([r.content_sha256 for r in first["accepted"]],
+                         [r.content_sha256 for r in second["accepted"]])
+        # The winner of a duplicate pair must not depend on arrival order.
+        self.assertEqual([r["content_sha256"] for r in first["rejected"]],
+                         [r["content_sha256"] for r in second["rejected"]])
 
     def test_category_cap_applies(self):
-        accepted, rejected = S.select(self._recs(), now_ms=NOW,
-                                      per_category_cap=1)
+        result = S.select(self._recs(), now_ms=NOW, registry=REGISTRY,
+                          per_category_cap=1)
+        accepted, rejected = result["accepted"], result["rejected"]
         per = {}
         for r in accepted:
             per[r.category] = per.get(r.category, 0) + 1
@@ -121,15 +135,16 @@ class SelectorTests(unittest.TestCase):
         old = record(title="Very old sanctions news",
                      published_ms=NOW - 3_600_000,
                      observed_ms=NOW - 3_500_000)
-        accepted, rejected = S.select([old], now_ms=NOW)
-        self.assertEqual(accepted, [])
-        self.assertEqual(rejected[0][1], "stale")
+        result = S.select([old], now_ms=NOW, registry=REGISTRY)
+        self.assertEqual(result["accepted"], [])
+        reasons = [r["reason"] for r in result["invalid"] + result["rejected"]]
+        self.assertTrue(any("stale" in r for r in reasons), reasons)
 
     def test_relevance_is_category_based_not_keyword(self):
         # The whole point of v2.4: an oil story with no BTC keyword is eligible.
         oil = record(category="energy", source_id="eia",
                      title="Crude inventories fall sharply")
-        accepted, _ = S.select([oil], now_ms=NOW)
+        accepted = S.select([oil], now_ms=NOW, registry=REGISTRY)["accepted"]
         self.assertEqual(len(accepted), 1)
         self.assertEqual(accepted[0].category, "energy")
 
@@ -152,3 +167,204 @@ class ImmutabilityTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CanonicalOrderTests(unittest.TestCase):
+    """Stage-6 P0: the winner must not depend on arrival order."""
+
+    def _pool(self):
+        base = [
+            record(title="Treasury sanctions two crypto mixers",
+                   published_ms=NOW - 50_000, observed_ms=NOW - 40_000),
+            record(title="Treasury sanctions two crypto mixers",
+                   published_ms=NOW - 90_000, observed_ms=NOW - 80_000),
+            record(title="Bitcoin breaks新高 level", published_ms=NOW - 10_000,
+                   observed_ms=NOW - 5_000),
+            record(category="energy", source_id="eia",
+                   title="Crude inventories fall sharply",
+                   published_ms=NOW - 20_000, observed_ms=NOW - 15_000),
+        ]
+        return base
+
+    def test_shuffled_input_gives_identical_result(self):
+        import random
+        pool = self._pool()
+        reference = S.select(pool, now_ms=NOW, registry=REGISTRY)
+        for seed in (1, 7, 42):
+            shuffled = list(pool)
+            random.Random(seed).shuffle(shuffled)
+            out = S.select(shuffled, now_ms=NOW, registry=REGISTRY)
+            self.assertEqual([r.content_sha256 for r in out["accepted"]],
+                             [r.content_sha256 for r in reference["accepted"]],
+                             f"seed {seed} changed the accepted set")
+            self.assertEqual([r["content_sha256"] for r in out["rejected"]],
+                             [r["content_sha256"] for r in reference["rejected"]])
+            self.assertEqual(out["category_counts"],
+                             reference["category_counts"])
+
+    def test_tie_break_includes_source_id(self):
+        # Two crypto records, identical publication time: only the source id
+        # can separate them, and it must do so the same way every run.
+        a = record(source_id="bin", title="Same headline here again",
+                   published_ms=NOW - 5_000)
+        b = record(source_id="kx", title="Another crypto headline",
+                   published_ms=NOW - 5_000)
+        order = S.canonical_order([b, a])
+        self.assertEqual([r.source_id for r in order], ["bin", "kx"])
+        # And category ordering dominates source id across categories.
+        c = record(category="energy", source_id="eia",
+                   title="Crude inventories fall")
+        order2 = S.canonical_order([c, a])
+        self.assertEqual([r.source_id for r in order2], ["bin", "eia"])
+
+    def _with_source(self, rec, source_id, category):
+        kw = {k: getattr(rec, k) for k in ("published_ms", "observed_ms",
+                                           "title", "origin_url",
+                                           "content_sha256")}
+        return S.SourceRecord(source_id=source_id, category=category,
+                              provenance="primary", **kw)
+
+
+class BoundaryValidationTests(unittest.TestCase):
+    """Stage-6 P0: select() must validate, never crash and never trust."""
+
+    def test_unknown_category_is_rejected_not_a_crash(self):
+        bad = record(category="bogus")
+        out = S.select([bad], now_ms=NOW, registry=REGISTRY)
+        self.assertEqual(out["accepted"], [])
+        self.assertEqual(out["invalid"][0]["reason"], "unknown_category:bogus")
+
+    def test_unknown_source_is_rejected(self):
+        rec = record(source_id="made-up")
+        out = S.select([rec], now_ms=NOW, registry=REGISTRY)
+        self.assertEqual(out["accepted"], [])
+        self.assertEqual(out["invalid"][0]["reason"], "unknown_source:made-up")
+
+    def test_forged_provenance_is_rejected(self):
+        rec = record(provenance="media_wire")
+        rec = S.SourceRecord(**{**{k: getattr(rec, k) for k in
+                                   ("source_id", "category", "published_ms",
+                                    "observed_ms", "title", "origin_url",
+                                    "content_sha256")},
+                                "provenance": "media_wire"})
+        out = S.select([rec], now_ms=NOW, registry=REGISTRY)
+        self.assertEqual(out["accepted"], [])
+        self.assertIn("provenance_mismatch", out["invalid"][0]["reason"])
+
+    def test_bad_digest_is_rejected(self):
+        good = record()
+        rec = S.SourceRecord(**{**{k: getattr(good, k) for k in
+                                   ("source_id", "category", "provenance",
+                                    "published_ms", "observed_ms", "title",
+                                    "origin_url")},
+                                "content_sha256": "0" * 64})
+        out = S.select([rec], now_ms=NOW, registry=REGISTRY)
+        self.assertEqual(out["accepted"], [])
+        self.assertIn("content_digest_mismatch", out["invalid"][0]["reason"])
+
+    def test_observed_after_decision_is_rejected(self):
+        rec = record(observed_ms=NOW + 5_000)
+        out = S.select([rec], now_ms=NOW, registry=REGISTRY)
+        self.assertEqual(out["accepted"], [])
+        self.assertIn("observed_after_decision", out["invalid"][0]["reason"])
+
+    def test_misdeclared_spec_is_rejected(self):
+        # crypto budget is 120 s; a spec promising 3600 s is mis-declared.
+        broken = S.SourceRegistry([S.SourceSpec("bin", "crypto", "primary", 3600)])
+        rec = record(title="Fast crypto headline", source_id="bin",
+                     category="crypto")
+        out = S.select([rec], now_ms=NOW, registry=broken)
+        self.assertEqual(out["accepted"], [])
+        self.assertIn("misdeclared_spec", out["invalid"][0]["reason"])
+
+    def test_registry_rejects_duplicate_ids_and_bad_specs(self):
+        with self.assertRaises(S.AdapterError):
+            S.SourceRegistry([SPEC, SPEC])
+        with self.assertRaises(S.AdapterError):
+            S.SourceRegistry([S.SourceSpec("x", "nope", "primary", 60)])
+        with self.assertRaises(S.AdapterError):
+            S.SourceRegistry([S.SourceSpec("x", "crypto", "nope", 60)])
+
+
+class CoverageTests(unittest.TestCase):
+    """Stage-6 P0: missing is never zero; uptime uses time buckets."""
+
+    def _reg(self):
+        return S.SourceRegistry([
+            S.SourceSpec("bin", "crypto", "primary", 120),
+            S.SourceSpec("eia", "energy", "primary", 900),
+            S.SourceSpec("ofac", "sanctions", "primary", 900)])
+
+    def test_complete_timeline_covers_all_seven_categories(self):
+        reg = self._reg()
+        S.register_category_sources(reg)
+        recs = [record(published_ms=NOW - 30_000)]
+        timeline = S.coverage_timeline(recs, bucket_ms=3_600_000)
+        self.assertEqual(len(timeline[0]["categories"]), len(S.CATEGORIES))
+        energy = timeline[0]["categories"]["energy"]
+        self.assertEqual(energy["status"], "missing")
+        self.assertEqual(energy["sources"], 0)
+
+    def test_outage_window_shows_degraded(self):
+        reg = S.SourceRegistry([
+            S.SourceSpec("bin", "crypto", "primary", 120),
+            S.SourceSpec("kx", "crypto", "primary", 120)])
+        declared = S.register_category_sources(reg)
+        self.assertEqual(len(declared["crypto"]), 2)
+        recs = [record(source_id="bin", category="crypto",
+                       published_ms=NOW - 30_000)]
+        timeline = S.coverage_timeline(recs, bucket_ms=3_600_000,
+                                       expected=declared)
+        self.assertEqual(timeline[0]["categories"]["crypto"]["status"],
+                         "degraded")
+        self.assertAlmostEqual(
+            timeline[0]["categories"]["crypto"]["uptime"], 0.5)
+
+    def test_double_counting_is_impossible(self):
+        out = S.select(self._recs(), now_ms=NOW, registry=REGISTRY)
+        total = (len(out["accepted"]) + len(out["rejected"])
+                 + len(out["invalid"]))
+        self.assertEqual(total, len(self._recs()))
+
+    @staticmethod
+    def _recs():
+        return [record(title="Treasury sanctions two crypto mixers"),
+                record(title="Treasury sanctions two crypto mixers")]
+
+
+class DryRunHarnessTests(unittest.TestCase):
+    """The harness must be accounting-complete and order-independent."""
+
+    def setUp(self):
+        import v24_dryrun as DR
+        self.DR = DR
+
+    def test_accounting_balances(self):
+        out = self.DR.run()
+        acc = out["accounting"]
+        self.assertTrue(acc["balances"])
+        self.assertEqual(acc["input"], acc["accepted"] + acc["rejected"]
+                         + acc["invalid"])
+
+    def test_all_seven_categories_present_when_healthy(self):
+        out = self.DR.run()
+        self.assertEqual(set(out["category_counts"]), set(S.CATEGORIES))
+
+    def test_faults_are_reported_not_swallowed(self):
+        out = self.DR.run()
+        reasons = [r["reason"] for r in out["rejected"]]
+        self.assertIn("duplicate", reasons)
+        invalid = [r["reason"] for r in out["invalid"]]
+        self.assertTrue(any("transport_lag" in r for r in invalid))
+        self.assertTrue(any("content_digest" in r for r in invalid))
+
+    def test_harness_is_order_independent(self):
+        import random
+        now, records = self.DR.synthetic_day()
+        reg = self.DR.registry()
+        base = S.select(records, now_ms=now, registry=reg)
+        shuffled = list(records)
+        random.Random(11).shuffle(shuffled)
+        out = S.select(shuffled, now_ms=now, registry=reg)
+        self.assertEqual([r.content_sha256 for r in out["accepted"]],
+                         [r.content_sha256 for r in base["accepted"]])
