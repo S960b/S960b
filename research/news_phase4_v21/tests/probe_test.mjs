@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import server from '/home/kali/research/news-phase4-v21/v21_plugin.mjs';
+import server from '../source/v21_plugin.mjs';
 
 test('probe performs exactly one real exchange and writes a result', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'probe-'));

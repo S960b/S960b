@@ -4,7 +4,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
 
-const SRC = readFileSync(new URL('./v21_service.mjs', import.meta.url), 'utf8');
+const SRC = readFileSync(
+  new URL('../source/v21_service.mjs', import.meta.url), 'utf8');
 
 test('supervisor contains no model client and no SDK prompt call', () => {
   assert.equal(/session\.create|session\.prompt/.test(SRC), false,

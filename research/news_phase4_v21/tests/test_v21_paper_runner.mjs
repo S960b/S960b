@@ -1,7 +1,7 @@
 // Offline tests for the v2.1 paper runner. No network, no model, no DB.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildArmPlan, runPaired } from './v21_paper_runner.mjs';
+import { buildArmPlan, runPaired } from '../source/v21_paper_runner.mjs';
 
 const EID = 'a'.repeat(64);
 const A1 = 'b'.repeat(64);

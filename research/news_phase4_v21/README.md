@@ -71,12 +71,30 @@ ChatGPT и оно лежит рядом: [`AUDITOR_PROMPT_RU.md`](AUDITOR_PROMPT
 ## Воспроизведение офлайн
 
 ```bash
-# тесты (без сети и без модельных вызовов)
-# важно: модули лежат в source/, поэтому PYTHONPATH обязателен
+# 1) Python-тесты (без сети, без модельных вызовов)
+#    модули лежат в source/, поэтому PYTHONPATH обязателен
 PYTHONPATH=source python3 -m unittest discover -s tests -p 'test_v21_*.py'
-cd tests && node --test test_v21_paper_runner.mjs test_v21_service.mjs
+#    → Ran 167 tests ... OK
 
-# снапшот и сверка по локальным базам
+# 2) Node-тесты (мок-SDK, временные каталоги, сеть не нужна)
+cd tests
+node --test test_v21_paper_runner.mjs test_v21_service.mjs probe_test.mjs
+#    → # tests 22 / # pass 22 / # fail 0
+
+# 3) целостность пакета
+cd .. && sha256sum -c MANIFEST.sha256        # 60 файлов, 0 ошибок
+
+# 4) пересборка экспорта из копии баз (read-only)
+PYTHONPATH=source python3 scripts/v21_export.py \
+  --data-dir /path/to/copy --out export.json
+
+# 5) снапшот и сверка расходов
 python3 scripts/v21_snapshot.py --out snapshot.json
 python3 scripts/v21_usage.py
 ```
+
+Полный лог прогонов из чистого клона: [`VERIFICATION.md`](VERIFICATION.md).
+
+Один модуль в `source/` стоит объяснить: `v21_service.mjs` — **отключённый
+исторический супервизор**. Он прогоняет цикл без модельного клиента и оставлен
+только ради своих тестов; в продакшене он не работает (`inactive + disabled`).

@@ -65,3 +65,24 @@ Three quantities must never be conflated:
 
 The daily cap (20 calls, 10 pairs) is **our safety throttle**, never a provider
 quota. No provider quota is observable on the host.
+
+## `attempt_reconciliation[]` (added 2026-11-16T13:35Z export)
+
+One row per attempted pair, with the denominator made explicit and with the
+**evidence level** of each refusal, because not all refusals are equally
+documented.
+
+| field | meaning |
+|---|---|
+| `event_id` | the event that was attempted |
+| `attempted_ms` | first reservation for this event |
+| `arm_reservations` | 2 for a complete attempt |
+| `status` | `recorded` or `refused` |
+| `refusal_reason` | from the trace when one exists, else `null` |
+| `evidence_level` | **`trace`** = a row in `finish-refusals.jsonl`; **`reconstructed`** = no trace was written (the tracer did not exist yet), inferred from reservation rows + gateway sessions + absence of a record |
+| `recorded`, `synthetic`, `cohort` | outcome of the attempt |
+
+`reconstructed` is published as such, never presented as a raw log. The one such
+row is `40d21dd674c8`: the pair was refused before refusal tracing existed, so
+its reason is corroborated by two gateway sessions, two reservations and no
+record — not by a trace line.
