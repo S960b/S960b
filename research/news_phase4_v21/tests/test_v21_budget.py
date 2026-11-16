@@ -64,7 +64,13 @@ class CircuitBreakerTests(unittest.TestCase):
     def test_limits_are_sane_numbers(self):
         self.assertLessEqual(C.MAX_COMPLETIONS_PER_PAIR, 16)
         self.assertGreater(C.MAX_COMPLETIONS_PER_PAIR, 2)
-        self.assertGreater(C.MAX_COST_USD_PER_PAIR, 0)
+
+    def test_there_is_no_monetary_stop(self):
+        # D13: the money ceiling was removed by owner decision - inference is
+        # free for this project and a USD gate would silently stop the
+        # experiment. Only the loop guard may remain.
+        self.assertFalse(hasattr(C, "MAX_COST_USD_PER_PAIR"))
+        self.assertFalse(hasattr(C, "MAX_INPUT_TOKENS_PER_PAIR"))
 
 
 class ReconciliationTests(unittest.TestCase):

@@ -1,5 +1,16 @@
 # Verification log — NEWS v2.1 audit bundle
 
+> **STATUS NOTE — 2026-11-16 (dated, non-retroactive).**
+> The "Tested checkout" line below is the state at `9cbface` and is kept as a
+> historical record, not as the current claim. Since then the audit remediation
+> stages 1, 2 and 2B landed on `main`: tool evidence is tri-state (D01–D03),
+> export/cohort/dedupe/probe were fixed (D06 D07 D09 D10), and the writer,
+> candle-evidence, lease and reconciliation paths were hardened (D12 D15 D16
+> D17 D18). Current counts in a fresh clone are **261 Python tests** and
+> **23 + 4 Node tests**. The audit protocol (`docs/NEWS_V21_AUDIT_PROTOCOL.md`)
+> and `AUDITOR_PROMPT_RU.md` are unchanged. Status of each finding, including
+> those still open (D04, D08, D14, D19), is reported in the Git dialogue.
+
 Every command below was run against a **fresh clone of the public repository**,
 not against a personal working directory. No test touches the network, a model,
 or a production service.

@@ -259,9 +259,10 @@ def cmd_prompt(args):
     return emit({"status": "prompt_marked", "attempt_id": args.attempt_id})
 
 
-MAX_COMPLETIONS_PER_PAIR = 8      # a runaway tool loop is not a forecast
-MAX_INPUT_TOKENS_PER_PAIR = 400_000
-MAX_COST_USD_PER_PAIR = 0.20
+# A runaway agentic loop is not a forecast: that is a methodology guard, and it
+# stays. Money is not a constraint for this project, so there is no USD or token
+# ceiling - cost is recorded for the audit trail only.
+MAX_COMPLETIONS_PER_PAIR = 8
 
 
 def _pair_cost(records_db, event_id):
@@ -311,17 +312,14 @@ def cmd_finish(args):
                     "prompts_sha256": body["prompts_sha256"]}
         spend = _pair_cost(paths["records"], body["event_id"])
         usage = spend or {"completions": 0, "input_tokens": 0, "cost_usd": 0.0}
-        if (usage["completions"] > MAX_COMPLETIONS_PER_PAIR
-                or usage["input_tokens"] > MAX_INPUT_TOKENS_PER_PAIR
-                or usage["cost_usd"] > MAX_COST_USD_PER_PAIR):
+        if usage["completions"] > MAX_COMPLETIONS_PER_PAIR:
             # Fail closed: refuse to seal a run whose spend says the model went
             # off exploring, which also means its information set is suspect.
             return emit({"status": "refused",
                          "reason": "budget_circuit_breaker",
                          "usage": usage,
-                         "limits": {"completions": MAX_COMPLETIONS_PER_PAIR,
-                                    "input_tokens": MAX_INPUT_TOKENS_PER_PAIR,
-                                    "cost_usd": MAX_COST_USD_PER_PAIR}})
+                         "limits": {
+                             "completions": MAX_COMPLETIONS_PER_PAIR}})
         out = P.record_pair(rcon, event=event, prepared=prepared,
                             arm_results=results,
                             quote={"price": float(body["price"]),
