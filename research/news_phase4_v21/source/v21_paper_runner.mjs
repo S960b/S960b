@@ -3,7 +3,7 @@
 // Python SQLite remains the authority for quotas and records; this file only
 // drives exactly two sequential model calls and then returns the raw texts.
 import { assistantText, observedModel } from
-  '/home/kali/research/news-phase4-v2/news-p4-v2-helpers.mjs';
+  './news-p4-v2-helpers.mjs';
 
 const ARM_ORDER = ['news', 'news_market'];
 const HEX64 = /^[a-f0-9]{64}$/;

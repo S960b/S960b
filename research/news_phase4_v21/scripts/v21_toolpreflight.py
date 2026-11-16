@@ -49,15 +49,37 @@ def inspect(con, session_id):
 
 
 def verdict(report):
-    ran = [t for t in report["tools"]
-           if t["status"] in ("running", "completed")]
-    if ran:
-        return 3, "tool_executed", ran
-    joined = " ".join(report["texts"])
-    if '"tool_test":"refused"' in joined.replace(" ", ""):
-        return 0, "denial_proven_by_refusal_message", None
-    if report["tools"]:
-        return 0, "denial_proven_by_error_status", None
+    """GO requires positive technical evidence, never good manners.
+
+    Absence of a tool call proves nothing: a cooperative model may simply
+    decline. So does a bare error status - a network failure arrives AFTER the
+    tool was already exposed and possibly executed. Proof requires one of:
+      * a tool part whose error names a permission refusal (the call was
+        blocked by policy), or
+      * absence of the tool from the request the model was given, which this
+        probe cannot observe from the gateway and therefore never claims.
+
+    Anything else is INCONCLUSIVE, which is a fail-closed verdict.
+    """
+    DENIAL = ("permission", "denied", "not allowed", "forbidden",
+              "tool not available", "unknown tool", "not enabled")
+    refused, executed, other_errors = [], [], []
+    for t in report["tools"]:
+        status = str(t.get("status") or "")
+        err = (t.get("error") or "").lower()
+        if status in ("running", "completed"):
+            executed.append(t)
+        elif status == "error" and any(w in err for w in DENIAL):
+            refused.append(t)
+        elif status == "error":
+            other_errors.append(t)
+    if executed:
+        return 3, "tool_executed", executed
+    if refused:
+        return 0, "denial_proven_permission_refused", refused
+    if other_errors:
+        return 4, "inconclusive_tool_error_not_a_permission_refusal", other_errors
+    # No tool part at all: the model may have chosen not to call it. Never a pass.
     return 4, "inconclusive_no_tool_attempt_recorded", None
 
 

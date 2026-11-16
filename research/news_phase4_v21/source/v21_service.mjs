@@ -11,9 +11,11 @@
 // PAPER ONLY. No order, margin or private-key endpoint exists in this file.
 import { existsSync, unlinkSync, appendFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 
-const ROOT = '/home/kali/research/news-phase4-v21';
+const ROOT = process.env.NEWS_V21_ROOT
+  || dirname(fileURLToPath(new URL('.', import.meta.url)));
 const PYTHON = '/usr/bin/python3';
 const SLOT_MS = 900_000;
 const TRIGGER_POLL_MS = 30_000;

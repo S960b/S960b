@@ -4,12 +4,13 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync, unlinkSync,
          writeFileSync } from 'node:fs';
 import { dirname, isAbsolute, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 import { assistantText, observedModel } from
-  '/home/kali/research/news-phase4-v2/news-p4-v2-helpers.mjs';
+  './news-p4-v2-helpers.mjs';
 import { buildArmPlan, runPaired } from './v21_paper_runner.mjs';
 
-const ROOT = '/home/kali/research/news-phase4-v21';
+const ROOT = process.env.NEWS_V21_ROOT || dirname(fileURLToPath(new URL('.', import.meta.url)));
 const SLOT_MS = 900_000;
 
 function runner(python, script) {

@@ -80,3 +80,41 @@ Actions taken:
 
 **Status: tool isolation FAILED / PENDING. No pair may be called audit-grade, and
 H1–H5 remain blocked.**
+
+## 2026-11-16T14:10Z — prompt-path investigation
+
+Checked whether the per-prompt call could carry the isolation the session call
+cannot. The shipped client sends:
+
+```js
+prompt(directory, sessionID, text, hint, model) {
+  const parts = [...hint ? [{type:"text",text:hint,synthetic:true}] : [],
+                 {type:"text", text}];
+  return this.req(`/session/${encodeURIComponent(sessionID)}/prompt_async`, {
+    method: "POST",
+    body: { parts, ...model ? { model } : {} },
+    directory, ...
+  });
+}
+```
+
+So the prompt payload carries exactly `parts` and optionally `model`. There is
+**no `agent` and no `tools` field** in this fork's request shape, and I found no
+server-side handler that would accept them. Passing extra fields would be a
+guess, not a supported mechanism, so I have not shipped it.
+
+`session.permission` exists as a column but nothing in the readable client code
+sets it, and the config schema exposes `steps`/`maxSteps` (agentic iterations),
+not a tool registry filter.
+
+**Consequence: no supported route to a tool-free generation is demonstrated on
+this build.** Per seq99's standard — enforcement at the generation boundary or a
+permission-layer refusal proving the tool did not execute — the honest verdict is
+**NO-GO for tool isolation**, and inference stays paused.
+
+**Also fixed here:** the published `source/v21_paper_runner.mjs`,
+`source/v21_plugin.mjs` and `source/v21_service.mjs` still imported helpers by an
+absolute `/home/kali/...` path (my clean-clone tests only passed because that
+folder exists on this machine). All three now resolve relatively, `ROOT` comes
+from `NEWS_V21_ROOT` or the module directory, and the Node suite runs from a
+sandbox with a throwaway `HOME` and no access to the old directory.
