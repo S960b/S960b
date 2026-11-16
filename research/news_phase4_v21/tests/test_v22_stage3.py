@@ -453,3 +453,131 @@ class MethodologyAuditTests(unittest.TestCase):
             self.assertIn(A.PROTOCOL_VERSION, text)
             self.assertNotIn("prospective-v2.3-arms3", text.replace(
                 "`prospective-v2.3-arms3` in one place", ""))
+
+
+class Stage5AdversarialTests(unittest.TestCase):
+    """Stage-5 review: overlap semantics, Holm inputs, adversarial inputs."""
+
+    def test_greedy_keeps_a_later_non_overlapping_event(self):
+        # 00:00, 03:00, 04:30 with a 4 h horizon: 00:00 and 04:30 must survive.
+        rows = [{"event_id": "a", "entry_ms": 0, "outcome_up": True},
+                {"event_id": "b", "entry_ms": 3 * H, "outcome_up": False},
+                {"event_id": "c", "entry_ms": 4 * H + H // 2, "outcome_up": True}]
+        kept = [r["event_id"] for r in AN.non_overlapping(rows)]
+        self.assertEqual(kept, ["a", "c"],
+                         "the greedy cursor must move only on KEPT events")
+
+    def test_overlap_counts_against_the_maximum_end(self):
+        # a=00:00, b=01:00 (nested inside a), c=04:30 (inside a, outside b).
+        rows = [{"event_id": "a", "entry_ms": 0},
+                {"event_id": "b", "entry_ms": H},
+                {"event_id": "c", "entry_ms": 4 * H + H // 2}]
+        self.assertEqual(AN.overlapping_windows(rows), 2,
+                         "c overlaps a; a per-last-event cursor would miss it")
+
+    def test_non_overlapping_is_deterministic_under_ties(self):
+        rows = [{"event_id": "z", "entry_ms": H},
+                {"event_id": "a", "entry_ms": H},
+                {"event_id": "m", "entry_ms": 10 * H}]
+        first = [r["event_id"] for r in AN.non_overlapping(rows)]
+        second = [r["event_id"] for r in AN.non_overlapping(
+            list(reversed(rows)))]
+        self.assertEqual(first, second)
+        self.assertEqual(first[0], "a", "tie broken by event id, not by luck")
+
+    def test_holm_uses_real_p_values_only(self):
+        # Holm on three declared contrasts; the smallest gets the largest
+        # multiplier and the adjusted p stays monotone.
+        out = AN.holm({"N_minus_M": 0.001, "NM_minus_M": 0.02,
+                       "NM_minus_N": 0.5})
+        self.assertEqual(out["family_size"], 3)
+        self.assertTrue(out["rejected"]["N_minus_M"])
+        self.assertTrue(out["rejected"]["NM_minus_M"])
+        self.assertFalse(out["rejected"]["NM_minus_N"])
+        adj = out["adjusted"]
+        self.assertLessEqual(adj["N_minus_M"], adj["NM_minus_M"])
+
+    def test_holm_ignores_none_and_is_identity_for_one(self):
+        self.assertEqual(AN.holm({"a": None})["adjusted"], {})
+        self.assertEqual(AN.holm({"a": 0.01})["adjusted"]["a"], 0.01)
+
+    def test_sign_flip_p_value_bounds(self):
+        # Identical arms: the paired difference is 0 everywhere, so the observed
+        # mean is 0 and the p-value must be large, never a spurious 0.
+        blocks = {0: [0.0, 0.0, 0.0], 1: [0.0, 0.0]}
+        out = AN.block_bootstrap(blocks)
+        self.assertGreater(out["p_value"], 0.3)
+        self.assertEqual(out["p_value_kind"],
+                         "paired_sign_flip_randomisation")
+
+    def test_no_events_is_not_a_crash(self):
+        self.assertEqual(AN.analyze(L.open_v22(":memory:"))["status"], "no_data")
+
+    def test_market_payload_rejects_nested_and_future_data(self):
+        base = MARKET
+        A.audit_market_payload(base, cutoff_ms=26 * H)
+        for bad, needle in (({**base, "title": "x"}, "forbidden_key"),
+                            ({**base, "n": {"url": "https://x"}}, "url_like_value"),
+                            ({**base, "candle_opens_ms": 27 * H}, "after_cutoff")):
+            with self.assertRaises(P.PrepError) as ctx:
+                A.audit_market_payload(bad, cutoff_ms=26 * H)
+            self.assertIn(needle, str(ctx.exception))
+
+    def test_cutoff_after_decision_refused(self):
+        with self.assertRaises(P.PrepError):
+            A.audit_market_payload(MARKET, cutoff_ms=26 * H, now_ms=25 * H)
+
+    def test_metadata_audit_catches_a_different_model_identity(self):
+        prompts = A.build_prompts_3(event(), MARKET)
+        meta = {arm: A.execution_metadata(arm, event_ms=1) for arm in A.ARM_NAMES}
+        meta["news"]["model_id"] = "another-model"
+        with self.assertRaises(P.PrepError) as ctx:
+            A.audit_market_arm_isolation(prompts, meta, event())
+        self.assertIn("arm_model_identity_differs", str(ctx.exception))
+
+
+class Stage5LabelTests(unittest.TestCase):
+    """D15 evidence applies to v2.2 labels too, not just the pilot lane."""
+
+    def setUp(self):
+        self.con = L.open_v22(":memory:")
+        self.eid = event()["event_id"]
+        self.con.execute(
+            "INSERT INTO v22_triples(event_id,protocol_version,prompt_version,"
+            "prompt_hashes,cohort,source,cutoff_ms,entry_price,"
+            "entry_observed_ms,horizon_h,last_arm_ms,seal_sha256,created_ms) "
+            "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            (self.eid, A.PROTOCOL_VERSION, A.PROMPT_VERSION, "{}",
+             "context_news", "x", 1, 64000.0, 1_000_000, 4, 999_000, "s", 1))
+        self.con.execute("INSERT INTO v22_outcomes(event_id,horizon_h,due_ms) "
+                         "VALUES(?,4,?)", (self.eid, 2_000_000))
+        self.con.commit()
+
+    def tearDown(self):
+        self.con.close()
+
+    def test_partial_candle_is_censored_not_labelled(self):
+        candles = [(1_999_000, 1_999_000, 64000.0)]      # span 0
+        out = L.label_triple(self.con, self.eid, due_ms=2_000_000,
+                             now_ms=2_100_000, candles=candles)
+        self.assertEqual(out["status"], "censored")
+        method = self.con.execute("SELECT method FROM v22_outcomes").fetchone()[0]
+        self.assertTrue(method.startswith("censored:"))
+
+    def test_good_candle_labels_once(self):
+        # A real 1m candle opens on a minute boundary and closes at open+59999.
+        open_ms = 2_040_000                      # 34 minutes exactly
+        due = open_ms + 30_000                   # inside that minute
+        candles = [(open_ms, open_ms + 59_999, 64100.0)]
+        out = L.label_triple(self.con, self.eid, due_ms=due,
+                             now_ms=2_200_000, candles=candles)
+        self.assertEqual(out["status"], "labelled")
+        self.assertEqual(out["drift_ms"], 29_999)
+        again = L.label_triple(self.con, self.eid, due_ms=due,
+                               now_ms=2_300_000, candles=candles)
+        self.assertEqual(again["status"], "already_labelled")
+
+    def test_export_declares_its_limitations(self):
+        doc = L.export_v22(self.con)
+        self.assertIn("limitations", doc)
+        self.assertIn("NOT guaranteed", doc["limitations"]["exactly_once"])

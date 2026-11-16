@@ -13,8 +13,10 @@ Design decisions that matter for validity:
     so the bootstrap resamples events, not arms.
   * The bootstrap is a block bootstrap by UTC day, because two events on the
     same day share a market regime and are not independent draws.
-  * A zero-trade arm is a legitimate baseline, not a bug: it scores by the base
-    rate, and it is the number by which any trading arm must beat.
+  * Prediction and action are kept apart (amendment #2): the forecast
+    reference is walk-forward climatology fitted on PRIOR windows only, while a
+    zero-trade rule is an ACTION policy compared in PnL terms alone. A Brier
+    score is never compared to a FLAT rule - they do not measure the same thing.
 """
 import math
 import random
@@ -64,29 +66,48 @@ def load_rows(con):
 
 
 def overlapping_windows(rows, *, horizon_ms=4 * HOUR_MS):
-    """How many events start inside another event's 4 h window.
+    """How many events start inside the union of all EARLIER windows.
+
+    Stage-5 correction: the previous version compared against the end of the
+    LAST event only. With nested windows that undercounts - 00:00 (ends 04:00),
+    01:00 (ends 05:00), 04:30 starts inside the first window but not inside the
+    second - so the running maximum end is tracked here instead.
 
     Overlap is a real dependence defect: two labels can then share price
-    action. It is reported, never silently corrected, and the primary contrast
-    is also recomputed on the non-overlapping subset as a sensitivity check.
+    action. It is measured and reported, never silently corrected.
     """
     ordered = sorted((r["entry_ms"], r.get("event_id")) for r in rows)
-    overlaps, previous_end = 0, None
+    overlaps, max_end = 0, None
     for entry, _eid in ordered:
-        if previous_end is not None and entry < previous_end:
+        if max_end is not None and entry < max_end:
             overlaps += 1
-        previous_end = entry + horizon_ms
+        end = entry + horizon_ms
+        max_end = end if max_end is None else max(max_end, end)
     return overlaps
 
 
 def non_overlapping(rows, *, horizon_ms=4 * HOUR_MS):
-    """The subset whose windows do not overlap any earlier window."""
-    ordered = sorted(rows, key=lambda r: (r["entry_ms"], r.get("event_id")))
-    kept, previous_end = [], None
+    """Greedy non-overlapping subset: keep an event only if it starts at or
+    after the end of the last KEPT event's window.
+
+    Stage-5 correction: the previous version advanced its cursor on every row,
+    including the rows it rejected, so 00:00 / 03:00 / 04:30 kept only 00:00 -
+    04:30 was dropped for being inside the window of a row that had itself been
+    discarded. The greedy rule is now stated explicitly and is deterministic:
+    order by (entry_ms, event_id), and an accepted event moves the cursor while
+    a rejected one does not.
+
+    Greedy is not the unique maximum independent subset, and it is not claimed
+    to be: it is a fixed, reproducible sensitivity sample. The primary analysis
+    uses ALL events; this subset exists only to check that the direction of the
+    effect survives when shared price action is removed.
+    """
+    ordered = sorted(rows, key=lambda r: (r["entry_ms"], r.get("event_id") or ""))
+    kept, cursor = [], None
     for r in ordered:
-        if previous_end is None or r["entry_ms"] >= previous_end:
+        if cursor is None or r["entry_ms"] >= cursor:
             kept.append(r)
-        previous_end = r["entry_ms"] + horizon_ms
+            cursor = r["entry_ms"] + horizon_ms
     return kept
 
 
@@ -181,12 +202,53 @@ def block_bootstrap(blocks, *, resamples=2000, seed=20261116):
     means.sort()
     lo = means[int(0.025 * len(means))]
     hi = means[int(0.975 * len(means)) - 1]
-    # One-sided p for "arm_a is better" (negative difference): share of
-    # resamples at or above zero is the wrong tail; we report the conservative
-    # two-sided style p so an optimistic reading needs more evidence.
-    p = sum(1 for m in means if m >= 0) / len(means)
+    # Stage-5 correction. A bootstrap percentile interval is NOT a p-value, and
+    # Holm applied to CI endpoints would be arithmetic on the wrong quantity.
+    # The p-value below comes from a pre-specified null: the two arms are
+    # exchangeable, so the paired difference is sign-flipped within each day by
+    # a fair coin. That is the standard paired randomisation test, it uses the
+    # same day blocking as the interval, and its output is a genuine tail
+    # probability. Holm then multiplies THESE p-values.
+    rng_p = random.Random(seed ^ 0x5EED)
+    extreme = 0
+    for _ in range(resamples):
+        flipped = []
+        for d in days:
+            sign = 1.0 if rng_p.random() < 0.5 else -1.0
+            flipped.extend(sign * v for v in blocks[d])
+        if flipped and statistics.fmean(flipped) <= observed:
+            extreme += 1
+    p_signflip = (extreme + 1) / (resamples + 1)
     return {"n_blocks": len(days), "mean": observed, "ci": [lo, hi],
-            "p_one_sided": p}
+            "p_value": p_signflip, "p_value_kind": "paired_sign_flip_randomisation",
+            "ci_kind": "percentile_block_bootstrap"}
+
+
+def holm(p_values, *, alpha=0.05):
+    """Holm-Bonferroni over the PRE-DECLARED contrasts, step-down.
+
+    `p_values` must be the randomisation-test p-values, one per declared
+    contrast, and nothing else: no CI endpoints, no score differences, no
+    post-hoc slicing. Returns the adjusted p and whether each is rejected at
+    family-wise `alpha`.
+    """
+    items = [(k, float(v)) for k, v in p_values.items() if v is not None]
+    if not items:
+        return {"adjusted": {}, "rejected": {}, "alpha": alpha}
+    items.sort(key=lambda kv: kv[1])
+    m = len(items)
+    adjusted, rejected = {}, {}
+    running = 0.0
+    for i, (name, p) in enumerate(items):
+        # Step-down: the multiplier grows as we reject, and the adjusted value
+        # is monotone so a later, smaller raw p can never look worse than an
+        # earlier one.
+        scaled = min(1.0, (m - i) * p)
+        running = max(running, scaled)
+        adjusted[name] = running
+        rejected[name] = running <= alpha
+    return {"adjusted": adjusted, "rejected": rejected, "alpha": alpha,
+            "family_size": m}
 
 
 def minimum_detectable_effect(n, *, sd=0.5, power=0.8, alpha=0.05):
@@ -226,6 +288,15 @@ def analyze(con, rows=None):
                             ("news_market", "market", "NM_minus_M")):
             out["sensitivity_non_overlapping"]["comparisons"][label] = \
                 block_bootstrap(paired_difference(subset, a, b))
+    declared = {label: out["comparisons"][label].get("p_value")
+                for label in ("N_minus_M", "NM_minus_M", "NM_minus_N")}
+    out["holm"] = holm(declared)
+    out["denominators"] = {
+        "events_loaded": len(rows),
+        "events_scored": scores["n"],
+        "censored": out.get("censored", 0),
+        "attrition_rate": (out.get("censored", 0) / len(rows)) if rows else None,
+        "declared_contrasts": 3}
     return out
 
 

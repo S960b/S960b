@@ -350,6 +350,40 @@ def run_offline_triple(path, *, event, market, actions, now_ms=2_000_000,
         con.close()
 
 
+def label_triple(con, event_id, *, due_ms, now_ms, candles):
+    """Label a sealed triple with the SAME candle evidence rules as v2.1 (D15).
+
+    This is not a decorative table: the label goes through
+    `v21_pilot_cycle.pick_exit_candle`, so a partially formed candle, a span
+    that is not one complete minute, a non-finite price or excessive drift are
+    all refused here exactly as they are in the pilot lane. A refused label is
+    recorded as a censored outcome with its reason, never as a number.
+    """
+    row = con.execute("SELECT exit_ms,settled_ms FROM v22_outcomes "
+                      "WHERE event_id=? AND horizon_h=4", (event_id,)).fetchone()
+    if row is None:
+        raise P.PrepError("no_outcome_slot")
+    if row[0] is not None:
+        return {"status": "already_labelled", "event_id": event_id}
+    import v21_pilot_cycle as PC
+    try:
+        picked = PC.pick_exit_candle(candles, int(due_ms), int(now_ms))
+    except Exception as exc:
+        reason = str(exc) or type(exc).__name__
+        con.execute("UPDATE v22_outcomes SET method=?, settled_ms=? "
+                    "WHERE event_id=? AND horizon_h=4 AND exit_ms IS NULL",
+                    ("censored:" + reason, int(now_ms), event_id))
+        con.commit()
+        return {"status": "censored", "reason": reason, "event_id": event_id}
+    con.execute("UPDATE v22_outcomes SET exit_ms=?, price=?, drift_ms=?, "
+                "method=?, settled_ms=? WHERE event_id=? AND horizon_h=4 "
+                "AND exit_ms IS NULL",
+                (picked["exit_ms"], picked["price"], picked["drift_ms"],
+                 picked["method"], int(now_ms), event_id))
+    con.commit()
+    return {"status": "labelled", "event_id": event_id, **picked}
+
+
 def export_v22(con):
     """Append-only export of the three-arm ledger.
 
@@ -369,4 +403,14 @@ def export_v22(con):
         "arms": rows("SELECT * FROM v22_arms ORDER BY event_id,arm"),
         "outcomes": rows("SELECT * FROM v22_outcomes ORDER BY event_id"),
         "attempts": rows("SELECT * FROM v22_attempts ORDER BY event_id,arm"),
+        "limitations": {
+            "labeler": "candle evidence reuses v21_pilot_cycle.pick_exit_candle "
+                       "(D15); a refused label is exported as censored with its "
+                       "reason, never as a price",
+            "exactly_once": "NOT guaranteed end to end. The ledger is atomic per "
+                            "transaction, but a model call is external: an "
+                            "ambiguous result can only be recorded as unknown, "
+                            "never replayed",
+            "export": "read-only and append-only; re-export writes a new file",
+        },
     }

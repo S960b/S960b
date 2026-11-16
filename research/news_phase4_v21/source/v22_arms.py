@@ -164,6 +164,60 @@ def execution_metadata(arm, *, event_ms=None, model_id=None):
     }
 
 
+def audit_market_payload(market, *, cutoff_ms=None, now_ms=None):
+    """Deep audit of the market payload that the M arm receives.
+
+    Three risks the flat check cannot see:
+      * an event-derived or clock-derived key hidden in the vector (for example
+        `observed_ms`, `candle_opens_ms` used as a proxy for the event time);
+      * a value newer than the cutoff - that would be look-ahead, the most
+        damaging possible leak in a paper experiment;
+      * a nested structure that smuggles news strings one level down.
+
+    Walked recursively, so a nested dict or list is inspected, not trusted.
+    """
+    def walk(node, path=""):
+        problems = []
+        if isinstance(node, dict):
+            for key, value in node.items():
+                lowered = str(key).lower()
+                for banned in ("title", "summary", "source", "headline",
+                               "url", "news", "cohort", "origin"):
+                    if banned in lowered:
+                        problems.append("forbidden_key:" + path + str(key))
+                problems.extend(walk(value, path + str(key) + "."))
+        elif isinstance(node, list):
+            for i, value in enumerate(node):
+                problems.extend(walk(value, path + str(i) + "."))
+        elif isinstance(node, str):
+            low = node.lower()
+            if "http://" in low or "https://" in low:
+                problems.append("url_like_value:" + path)
+        elif isinstance(node, bool):
+            # bools are ints in Python; a boolean market feature is a bug.
+            if path and not path.endswith("."):
+                problems.append("bool_value:" + path)
+        return problems
+
+    problems = walk(market)
+    if problems:
+        raise P.PrepError("market_payload_leak:" + ",".join(sorted(set(problems))))
+
+    # Look-ahead check: every timestamp inside the vector must be strictly
+    # before the cutoff, and the cutoff must be before the decision instant.
+    stamps = {k: v for k, v in market.items()
+              if isinstance(v, int) and not isinstance(v, bool)
+              and k.endswith(("_ms", "_open", "_close"))}
+    if cutoff_ms is not None:
+        for key, value in stamps.items():
+            if value >= int(cutoff_ms):
+                raise P.PrepError("market_payload_after_cutoff:" + key)
+    if cutoff_ms is not None and now_ms is not None:
+        if int(cutoff_ms) > int(now_ms):
+            raise P.PrepError("cutoff_after_decision")
+    return True
+
+
 def audit_market_arm_isolation(prompts, metadata, event):
     """Full isolation audit for the M arm: payload, header, metadata, ordering.
 
@@ -173,6 +227,8 @@ def audit_market_arm_isolation(prompts, metadata, event):
     """
     text = prompts[ARM_MARKET]
     verify_market_prompt(text, event)
+    payload = json.loads(text.split("FROZEN_INPUT_JSON:\n", 1)[1])
+    audit_market_payload(payload["pre_cutoff_market"])
 
     header, _, payload = text.partition("FROZEN_INPUT_JSON:")
     news_fields = ("title", "summary", "source", "cohort", "provenance",
