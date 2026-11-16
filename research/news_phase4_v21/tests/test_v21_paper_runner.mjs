@@ -1,7 +1,15 @@
 // Offline tests for the v2.1 paper runner. No network, no model, no DB.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildArmPlan, runPaired } from './v21_paper_runner.mjs';
+import { existsSync } from 'node:fs';
+
+// The same file is run flat next to the modules in the live tree and from
+// tests/ next to source/ in the published tree. Resolve both instead of
+// pinning one layout.
+const _mod = existsSync(new URL('./v21_paper_runner.mjs', import.meta.url))
+  ? './v21_paper_runner.mjs'
+  : '../source/v21_paper_runner.mjs';
+const { buildArmPlan, runPaired } = await import(_mod);
 
 const EID = 'a'.repeat(64);
 const A1 = 'b'.repeat(64);
