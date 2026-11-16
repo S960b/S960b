@@ -223,6 +223,17 @@ export const server = async (input = {}, options = {}) => {
       // Fail closed, but never silently: a disabled context says so on every
       // tick it is asked to work, so a dead lane cannot look like a quiet one.
       log(`v21_idle_not_paper instance=${instanceId}`);
+      // Labels cost no model call and must keep maturing while inference is
+      // paused; otherwise pausing inference silently stops the outcome lane too.
+      if (labelOn && !labelBusy) {
+        labelBusy = true;
+        try {
+          const r = await call('outcomes');
+          log(`v21_outcomes settled=${Number(r?.settled ?? 0)} ` +
+              `overdue=${(r?.overdue || []).length} instance=${instanceId}`);
+        } catch { log(`v21_outcome_error instance=${instanceId}`); }
+        finally { labelBusy = false; }
+      }
       return;
     }
     if (!forced && !existsSync(trigger)) return;

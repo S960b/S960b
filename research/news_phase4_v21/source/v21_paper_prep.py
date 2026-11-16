@@ -307,9 +307,10 @@ def resolve_exit(due_ms, now_ms, opener=None, limit=5):
     """Bounded historical 1m query anchored at the due instant."""
     start = (due_ms // MIN_MS) * MIN_MS
     require(now_ms >= due_ms, "label_not_due")
-    # Five minutes past the due minute is always enough: the drift budget is
-    # sixty seconds, so a later hour boundary must not matter here.
-    require(start + MIN_MS <= now_ms + 1, "label_still_forming")
+    # The covering minute has not finished yet: this is normal for up to 60 s
+    # after due, so it is reported as pending rather than as a failure.
+    if start + MIN_MS > now_ms + 1:
+        raise PrepError("label_pending_candle_open")
     candles = fetch_klines_1m(start, limit=limit, opener=opener)
     return select_exit_candle(candles, due_ms, now_ms)
 

@@ -418,8 +418,12 @@ def cmd_outcomes(args):
             try:
                 exit_row = P.resolve_exit(due, now_ms)
             except P.PrepError as exc:
-                failures.append({"event_id": event_id,
-                                 "reason": str(exc),
+                reason = str(exc)
+                if reason in ("label_pending_candle_open", "label_not_due"):
+                    # Not an alarm: the covering candle simply has not closed.
+                    pending.append(event_id)
+                    continue
+                failures.append({"event_id": event_id, "reason": reason,
                                  "due_ms": due})
                 pending.append(event_id)
                 continue

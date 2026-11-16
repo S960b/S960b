@@ -198,3 +198,36 @@ overwrite, sealed journal untouched.
 gateway records **zero tool parts**, one assistant step.
 That is compliance on one trial. It is **not** proof of technical isolation, and
 it does not unpause anything.
+
+## 2026-11-16T15:20Z — ONE PROMPT_ONLY PILOT PAIR, completed with zero tool calls
+
+Naturally selected event `51e5184a8184` (decrypt, `context_news`), header version
+`prompt-only-pilot-v1`, both arms served by the live plugin through its probe
+channel with `agent: news-restricted`, and sealed into a **separate pilot ledger**
+(`pilot.sqlite`) so the production journal and its pause stay untouched.
+
+```
+label      PROMPT_ONLY_COMPLIANT_ONE_PAIR
+tool calls 0 across both arms (gateway parts record none)
+N   p_up 0.32 / -180 bps  -> SHORT_PAPER
+NM  p_up 0.38 /  -55 bps  -> SHORT_PAPER
+cost      2 completions, $0.018226 actual (0.008915 + 0.009311)
+tokens    19 951 in / 60 out (N), 20 819 in / 79 out (NM)
+quote     sampled after both arms; entry recorded in the pilot ledger
+```
+
+The arms consumed ~20 k input tokens each — the same magnitude as the earlier
+contaminated sessions — which is consistent with the model still having tools
+available and simply not using them. That is precisely why the label says
+COMPLIANT and not ISOLATED.
+
+**Label-lane regression found and fixed.** While waiting for the pilot, the
+production label loop was found dead: with `paper_enabled=false`, `tick()`
+returned before the label branch, so pausing inference silently stopped outcomes
+too. Labels now run regardless of the inference flag, and "the covering minute
+has not closed yet" is reported as pending rather than as a failure, so a normal
+60-second wait no longer raises a false overdue alarm.
+
+**Settled production labels at this checkpoint** (`labels.settled = 3`):
+`e0c7b377a018`, `f89bc542ffdd`, and `df3eb36487c1`. Remaining due times
+15:23Z / 15:38Z / 15:53Z were still future; `overdue_unsettled` empty.
