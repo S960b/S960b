@@ -77,8 +77,10 @@ CREATE TABLE IF NOT EXISTS dispatch_log(
  at_ms INTEGER NOT NULL,
  synthetic INTEGER NOT NULL DEFAULT 0);
 CREATE INDEX IF NOT EXISTS idx_res_day ON dispatch_reservations(reserved_ms);
+-- D16: id is the bucket (0 = production, 1 = synthetic) instead of a global
+-- singleton, so the two lanes cannot overwrite each other's lease.
 CREATE TABLE IF NOT EXISTS dispatch_lease(
- id INTEGER PRIMARY KEY CHECK(id = 1),
+ id INTEGER PRIMARY KEY CHECK(id IN (0, 1)),
  holder TEXT NOT NULL,
  acquired_ms INTEGER NOT NULL,
  expires_ms INTEGER NOT NULL,
@@ -237,16 +239,17 @@ def reserve_pair(con, event_id, *, synthetic=False, now_ms=None):
             return {"status": "skip", "reason": "daily_pair_cap"}
         # One pair at a time: a lease, not a fixed cooldown. It expires by
         # itself, so a crashed dispatch cannot wedge the lane forever.
+        # D16: one row per bucket. The previous single-row lease let a synthetic
+        # run DELETE the production lease (and then be blocked by it), so the two
+        # lanes could silence each other. Now each lane owns its own row and a
+        # foreign bucket is neither read as a blocker nor overwritten.
         lease = con.execute(
-            "SELECT holder,expires_ms,synthetic FROM dispatch_lease WHERE id=1"
-        ).fetchone()
+            "SELECT holder,expires_ms,synthetic FROM dispatch_lease WHERE id=?",
+            (lease_row(bucket),)).fetchone()
         if lease is not None and int(lease[1]) > now_ms:
-            if int(lease[2]) == bucket:
-                con.rollback()
-                return {"status": "skip", "reason": "pair_lease_held",
-                        "lease_until_ms": int(lease[1])}
-            # A synthetic lease must never block production and vice versa.
-            con.execute("DELETE FROM dispatch_lease WHERE id=1")
+            con.rollback()
+            return {"status": "skip", "reason": "pair_lease_held",
+                    "lease_until_ms": int(lease[1])}
         arms = con.execute(
             "SELECT attempt_id,arm FROM dispatch_queue "
             "WHERE event_id=? AND synthetic=? ORDER BY arm",
@@ -262,11 +265,12 @@ def reserve_pair(con, event_id, *, synthetic=False, now_ms=None):
                 (aid, event_id, arm, now_ms, 1 if synthetic else 0))
         con.execute(
             "INSERT INTO dispatch_lease(id,holder,acquired_ms,expires_ms,"
-            "synthetic) VALUES(1,?,?,?,?) "
+            "synthetic) VALUES(?,?,?,?,?) "
             "ON CONFLICT(id) DO UPDATE SET holder=excluded.holder,"
             "acquired_ms=excluded.acquired_ms,expires_ms=excluded.expires_ms,"
             "synthetic=excluded.synthetic",
-            (event_id, now_ms, now_ms + PAIR_LEASE_MS, bucket))
+            (lease_row(bucket), event_id, now_ms, now_ms + PAIR_LEASE_MS,
+             bucket))
         con.commit()
     except BaseException:
         con.rollback()
@@ -306,6 +310,11 @@ def run_dry(con, event, *, synthetic=True, now_ms=None):
         con.rollback()
         raise
     return {"enqueue": q, "reserve": r, "model_calls": results}
+
+
+def lease_row(bucket):
+    """Lease row id for a bucket: 0 production, 1 synthetic (D16)."""
+    return 1 if bucket else 0
 
 
 def status(con, now_ms=None):

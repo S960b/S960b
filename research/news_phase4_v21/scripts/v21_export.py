@@ -165,6 +165,33 @@ def gateway_usage(gw_path):
     return {"status": "ok", "sessions": out, "total": total}
 
 
+# States that mean "this attempt may still be alive". None of them may be
+# replayed or abandoned automatically: a crash and a slow call look identical
+# from outside, so the safe reading is UNKNOWN, not FAILED.
+LIVE_STATES = ("reserved", "running")
+REPORTED_STATES = ("reserved", "running", "unknown", "failed", "completed")
+
+
+def dispatch_status(states):
+    """Collapse reservation states into one explicit reconciliation status.
+
+    Precedence is deliberate: anything still possibly in flight outranks a
+    definite failure, because reporting a live attempt as failed is the error
+    that invites a replay.
+    """
+    seen = {k for k, n in states.items() if n}
+    if seen & {"reserved", "running"}:
+        return "reserved" if "reserved" in seen else "running"
+    if "completed" in seen:
+        return "completed"
+    if seen - set(REPORTED_STATES):
+        # A state this exporter does not know is unknown, never a refusal.
+        return "unknown"
+    if "failed" in seen:
+        return "failed"
+    return "unknown"
+
+
 def attempt_reconciliation(paper, dispatch, usage, refusal_rows):
     """Per-event ledger with an explicit evidence level.
 
@@ -185,9 +212,12 @@ def attempt_reconciliation(paper, dispatch, usage, refusal_rows):
     grouped = {}
     for r in dispatch.get("reservations", []):
         g = grouped.setdefault(r["event_id"], {"arms": 0,
-                                               "first_ms": r["reserved_ms"]})
+                                               "first_ms": r["reserved_ms"],
+                                               "states": {}})
         g["arms"] += 1
         g["first_ms"] = min(g["first_ms"], r["reserved_ms"])
+        state = str(r.get("state") or "unknown")
+        g["states"][state] = g["states"].get(state, 0) + 1
     out = []
     for event_id, g in sorted(grouped.items(), key=lambda kv: kv[1]["first_ms"]):
         rec = records.get(event_id)
@@ -197,11 +227,18 @@ def attempt_reconciliation(paper, dispatch, usage, refusal_rows):
         elif trace:
             status, evidence = "refused", "trace"
         else:
-            status, evidence = "refused", "reconstructed"
+            # D18: reservations that never produced a record are no longer all
+            # collapsed into "refused". A stuck mid-flight attempt looks exactly
+            # like a crash to an auditor, so the states are reported explicitly.
+            status, evidence = dispatch_status(g["states"]), "reconstructed"
         out.append({
             "event_id": event_id,
             "attempted_ms": g["first_ms"],
             "arm_reservations": g["arms"],
+            "reservation_states": dict(sorted(g["states"].items())),
+            # replay_safe = "do not replay this": true for a live or unresolved
+            # attempt, false when it is finished (recorded/failed/refused).
+            "replay_safe": status in ("reserved", "running", "unknown"),
             "status": status,
             "refusal_reason": (trace or {}).get("reason"),
             "evidence_level": evidence,

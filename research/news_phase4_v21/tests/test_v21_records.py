@@ -34,6 +34,13 @@ def event(**kw):
     return e
 
 
+def arm_result(prep, index, arm, session, text, model=MODEL, done=20_000):
+    """One arm as the runner really hands it over (D12 contract)."""
+    return {"arm": arm, "attempt_id": prep["attempts"][index],
+            "session_id": session, "text": text, "model": model,
+            "session_terminal": "completed", "completed_ms": NOW + done}
+
+
 class RecordTests(unittest.TestCase):
     def setUp(self):
         fd, self.dispatch_db = tempfile.mkstemp(suffix=".sqlite")
@@ -62,11 +69,15 @@ class RecordTests(unittest.TestCase):
         ev = event()
         prep = self._prepare(ev)
         self.assertEqual(prep["status"], "ready")
+        # D12: the writer now refuses arms without a terminal state and a
+        # completion time, so the fixture carries what the runner really sends.
         arms = [
             {"arm": "news", "attempt_id": prep["attempts"][0],
-             "session_id": "ses_a", "text": LONG_TEXT, "model": MODEL},
+             "session_id": "ses_a", "text": LONG_TEXT, "model": MODEL,
+             "session_terminal": "completed", "completed_ms": NOW + 20_000},
             {"arm": "news_market", "attempt_id": prep["attempts"][1],
-             "session_id": "ses_b", "text": SHORT_TEXT, "model": MODEL},
+             "session_id": "ses_b", "text": SHORT_TEXT, "model": MODEL,
+             "session_terminal": "completed", "completed_ms": NOW + 21_000},
         ]
         quote = {"price": P.parse_quote({"symbol": "BTCUSDT",
                                          "price": "74000.00"}),
@@ -86,12 +97,12 @@ class RecordTests(unittest.TestCase):
         ev = event()
         prep = self._prepare(ev)
         arms = [
-            {"arm": "news", "attempt_id": prep["attempts"][0],
-             "session_id": "ses_a", "text": LONG_TEXT,
-             "model": {"providerID": "deepseek", "modelID": "deepseek-v4-flash"}},
-            {"arm": "news_market", "attempt_id": prep["attempts"][1],
-             "session_id": "ses_b", "text": SHORT_TEXT,
-             "model": {"providerID": "other", "modelID": "other-model"}},
+            arm_result(prep, 0, "news", "ses_a", LONG_TEXT,
+                       model={"providerID": "deepseek",
+                              "modelID": "deepseek-v4-flash"}),
+            arm_result(prep, 1, "news_market", "ses_b", SHORT_TEXT,
+                       model={"providerID": "other", "modelID": "other-model"},
+                       done=21_000),
         ]
         with self.assertRaises(P.PrepError):
             P.record_pair(self.rcon, event=ev, prepared=prep,
@@ -115,14 +126,12 @@ class RecordTests(unittest.TestCase):
         ev = event()
         prep = self._prepare(ev)
         arms = [
-            {"arm": "news", "attempt_id": prep["attempts"][0],
-             "session_id": "s1", "text": LONG_TEXT, "model": MODEL},
-            {"arm": "news_market", "attempt_id": prep["attempts"][1],
-             "session_id": "s2", "text": SHORT_TEXT, "model": MODEL},
+            arm_result(prep, 0, "news", "s1", LONG_TEXT),
+            arm_result(prep, 1, "news_market", "s2", SHORT_TEXT, done=21_000),
         ]
         P.record_pair(self.rcon, event=ev, prepared=prep, arm_results=arms,
-                      quote={"price": 74000.0, "observed_ms": NOW},
-                      now_ms=NOW, synthetic=True)
+                      quote={"price": 74000.0, "observed_ms": NOW + 22_000},
+                      now_ms=NOW + 22_000, synthetic=True)
         P.record_outcome(self.rcon, ev["event_id"], 4, NOW + 4 * HOUR,
                          74500.0, NOW + 4 * HOUR + 120_000)
         row = self.rcon.execute(
@@ -138,14 +147,12 @@ class RecordTests(unittest.TestCase):
         ev = event()
         prep = self._prepare(ev)
         arms = [
-            {"arm": "news", "attempt_id": prep["attempts"][0],
-             "session_id": "s1", "text": LONG_TEXT, "model": MODEL},
-            {"arm": "news_market", "attempt_id": prep["attempts"][1],
-             "session_id": "s2", "text": SHORT_TEXT, "model": MODEL},
+            arm_result(prep, 0, "news", "s1", LONG_TEXT),
+            arm_result(prep, 1, "news_market", "s2", SHORT_TEXT, done=21_000),
         ]
         P.record_pair(self.rcon, event=ev, prepared=prep, arm_results=arms,
-                      quote={"price": 74000.0, "observed_ms": NOW},
-                      now_ms=NOW, synthetic=True)
+                      quote={"price": 74000.0, "observed_ms": NOW + 22_000},
+                      now_ms=NOW + 22_000, synthetic=True)
         flag = self.rcon.execute(
             "SELECT synthetic FROM paper_records").fetchone()[0]
         self.assertEqual(flag, 1, "fixtures must be marked, never look real")
@@ -158,17 +165,14 @@ if __name__ == "__main__":
 class ImmutabilityTests(RecordTests):
     def _pair(self, ev, prep):
         arms = [
-            {"arm": "news", "attempt_id": prep["attempts"][0],
-             "session_id": "s1", "text": LONG_TEXT, "model": MODEL,
-             "completed_ms": NOW + 20_000},
-            {"arm": "news_market", "attempt_id": prep["attempts"][1],
-             "session_id": "s2", "text": SHORT_TEXT, "model": MODEL,
-             "completed_ms": NOW + 25_000},
+            arm_result(prep, 0, "news", "s1", LONG_TEXT),
+            arm_result(prep, 1, "news_market", "s2", SHORT_TEXT, done=25_000),
         ]
         return P.record_pair(self.rcon, event=ev, prepared=prep,
                              arm_results=arms,
-                             quote={"price": 74000.0, "observed_ms": NOW + 22000},
-                             now_ms=NOW + 26_000, synthetic=True)
+                             quote={"price": 74000.0,
+                                    "observed_ms": NOW + 30_000},
+                             now_ms=NOW + 30_000, synthetic=True)
 
     def test_second_record_is_refused_not_overwritten(self):
         ev = event()

@@ -442,6 +442,42 @@ def _json_candidates(body):
     return list(reversed(out))
 
 
+class _DuplicateKey(ValueError):
+    pass
+
+
+def _no_duplicates(pairs):
+    """object_pairs_hook that refuses a repeated key.
+
+    `json.loads` keeps the LAST value of a duplicated key, so
+    {"p_up":0.2,...,"p_up":0.9} silently became 0.9 - a number the model never
+    committed to. Nothing in this schema legitimately repeats a key.
+    """
+    seen = {}
+    for key, value in pairs:
+        if key in seen:
+            raise _DuplicateKey(key)
+        seen[key] = value
+    return seen
+
+
+def _strict_json(candidate):
+    """Parse, or return None. Refuses duplicate keys and non-standard constants.
+
+    NaN/Infinity are not JSON: Python accepts them by default, which would let a
+    "number" through that no parser downstream can read back.
+    """
+    try:
+        return json.loads(candidate, object_pairs_hook=_no_duplicates,
+                          parse_constant=_reject_constant)
+    except (ValueError, TypeError):
+        return None
+
+
+def _reject_constant(name):
+    raise ValueError("non_standard_json_constant:" + str(name))
+
+
 def parse_arm_response(text):
     """Strict parse of one arm; tolerant only about surrounding prose.
 
@@ -464,11 +500,8 @@ def parse_arm_response(text):
     # and picking the last one would silently trust the wrong payload.
     valid = []
     seen_obj = []
-    for candidate in [body] + _json_candidates(body):
-        try:
-            obj = json.loads(candidate)
-        except ValueError:
-            continue
+    for candidate in attempts:
+        obj = _strict_json(candidate)
         if isinstance(obj, dict) and set(obj) == DECISION_SCHEMA:
             if obj in seen_obj:
                 continue      # same object seen twice: not a second candidate
@@ -476,19 +509,21 @@ def parse_arm_response(text):
             valid.append(obj)
     require(len(valid) <= 1, "ambiguous_response_multiple_objects")
     for candidate in attempts:
-        try:
-            obj = json.loads(candidate)
-        except ValueError:
-            continue
+        obj = _strict_json(candidate)
         if not (isinstance(obj, dict) and set(obj) == DECISION_SCHEMA):
             continue
-        require(isinstance(obj["p_up"], (int, float))
-                and 0 <= obj["p_up"] <= 1, "invalid_p_up")
-        require(isinstance(obj["expected_return_bps"], (int, float))
-                and abs(obj["expected_return_bps"]) <= 2000,
+        # D17: bool is a subclass of int in Python, so `true` used to sail
+        # through as 1.0 and `false` as 0.0 - a validated-looking decision that
+        # the model never expressed as a number.
+        for key in ("p_up", "expected_return_bps", "uncertainty"):
+            require(isinstance(obj[key], (int, float))
+                    and not isinstance(obj[key], bool),
+                    "invalid_" + ("expected_return" if key ==
+                                  "expected_return_bps" else key))
+        require(0 <= obj["p_up"] <= 1, "invalid_p_up")
+        require(abs(obj["expected_return_bps"]) <= 2000,
                 "invalid_expected_return")
-        require(isinstance(obj["uncertainty"], (int, float))
-                and 0 <= obj["uncertainty"] <= 1, "invalid_uncertainty")
+        require(0 <= obj["uncertainty"] <= 1, "invalid_uncertainty")
         require(isinstance(obj["rationale"], str)
                 and len(obj["rationale"]) <= 1024, "invalid_rationale")
         return {"p_up": float(obj["p_up"]),
@@ -612,6 +647,54 @@ def open_records(path):
     return con
 
 
+ARM_NAMES = ("news", "news_market")
+TERMINAL_ARM_STATES = ("completed",)
+
+
+def validate_arm_contract(arm_results, quote):
+    """Hard checks at the writer boundary (D12).
+
+    A pair may only be sealed when it is exactly the two expected arms, each
+    with a non-empty model identity, session id and terminal state, and when the
+    entry quote was taken strictly after the LAST arm finished. Every failure is
+    a named refusal, never a silent acceptance.
+    """
+    require(isinstance(arm_results, list) and len(arm_results) == 2,
+            "incomplete_pair_not_recorded")
+    names = [r.get("arm") for r in arm_results]
+    # Duplicate first: two "news" arms are also "unexpected", but the specific
+    # reason is what tells the operator what actually went wrong.
+    require(len(set(names)) == 2, "duplicate_arm_names")
+    require(sorted(names) == sorted(ARM_NAMES), "unexpected_arm_names")
+    for r in arm_results:
+        arm = r.get("arm")
+        model = r.get("model")
+        require(isinstance(model, dict) and model, f"empty_model_identity:{arm}")
+        require(bool(str(model.get("providerID") or "").strip()),
+                f"empty_provider_id:{arm}")
+        require(bool(str(model.get("modelID") or "").strip()),
+                f"empty_model_id:{arm}")
+        sid = r.get("session_id")
+        require(isinstance(sid, str) and sid.strip(), f"empty_session_id:{arm}")
+        state = r.get("session_terminal", r.get("state", "completed"))
+        require(state in TERMINAL_ARM_STATES, f"arm_not_terminal:{arm}:{state}")
+        require(isinstance(r.get("text"), str) and r["text"].strip(),
+                f"empty_response_text:{arm}")
+        require(isinstance(r.get("completed_ms"), int)
+                and not isinstance(r.get("completed_ms"), bool)
+                and r["completed_ms"] > 0, f"invalid_completed_ms:{arm}")
+    require(quote is not None and isinstance(quote, dict), "quote_missing")
+    require(isinstance(quote.get("observed_ms"), int)
+            and not isinstance(quote.get("observed_ms"), bool),
+            "quote_observed_ms_invalid")
+    require(not isinstance(quote.get("price"), bool)
+            and isinstance(quote.get("price"), float) and quote["price"] > 0,
+            "quote_price_invalid")
+    last_arm = max(r["completed_ms"] for r in arm_results)
+    require(quote["observed_ms"] > last_arm,
+            "entry_not_after_last_arm_completion")
+
+
 def record_pair(con, *, event, prepared, arm_results, quote, now_ms,
                 synthetic):
     """Persist the immutable record for one completed pair.
@@ -621,6 +704,9 @@ def record_pair(con, *, event, prepared, arm_results, quote, now_ms,
     explicitly; the caller reconciles by reading the stored row.
     """
     require(len(arm_results) == 2, "incomplete_pair_not_recorded")
+    # D12: the writer, not the caller, decides whether a pair may be sealed.
+    # Everything below used to be assumed true of whatever the runner handed over.
+    validate_arm_contract(arm_results, quote)
     providers = {tuple(sorted(r["model"].items())) for r in arm_results}
     require(len(providers) == 1, "model_identity_conflict")
     provider = dict(providers.pop())

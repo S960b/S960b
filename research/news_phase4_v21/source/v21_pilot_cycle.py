@@ -15,6 +15,7 @@ Exit codes: 0 ok, 3 refused (budget / contract), 4 nothing eligible.
 """
 import argparse
 import hashlib
+import math
 import json
 import sqlite3
 import sys
@@ -437,20 +438,63 @@ def _pilot_exit(due_ms, now_ms):
     if start + P.MIN_MS > now_ms + 1:
         raise P.PrepError("label_pending_candle_open")
     candles = P.fetch_klines_1m(start, limit=5)
-    for open_ms, close_ms, price in sorted(candles):
+    return pick_exit_candle(candles, due_ms, now_ms)
+
+
+# D15: the evidence that makes a pilot outcome bona fide. Every constant is a
+# property of a real Binance 1m candle, not a tolerance we may widen.
+CANDLE_SPAN_MS = 59_999          # close_ms - open_ms for one complete minute
+PILOT_DRIFT_BOUND_MS = 60_000    # drift must be < this, i.e. [0, 60000)
+EXPECTED_SYMBOL = "BTCUSDT"
+
+
+def validate_candle(open_ms, close_ms, price):
+    """Structural checks; raises a named refusal, never a range clamp."""
+    if type(open_ms) is not int or type(close_ms) is not int:
+        raise P.PrepError("candle_bounds_not_integer")
+    if close_ms - open_ms != CANDLE_SPAN_MS:
+        # A span of 0 is a partially formed candle; a span of 60000 or more is
+        # not a 1m candle at all. Either way the evidence is unusable.
+        raise P.PrepError("candle_not_one_complete_minute")
+    if open_ms % P.MIN_MS != 0:
+        raise P.PrepError("candle_open_not_aligned")
+    if isinstance(price, bool) or not isinstance(price, float):
+        raise P.PrepError("label_price_not_float")
+    if not math.isfinite(price):
+        raise P.PrepError("label_price_not_finite")
+    if price <= 0:
+        raise P.PrepError("label_price_invalid")
+
+
+def pick_exit_candle(candles, due_ms, now_ms):
+    """The first 1m candle that CLOSED at or after due, with proof.
+
+    Proof means: exactly one complete minute (open..open+59999), aligned on the
+    minute boundary, closed before `now`, covering `due`, with drift in
+    [0, 60000) and a finite positive price. A candle that is still forming is
+    reported as pending, never used, and an earlier candle is never substituted.
+    """
+    if not isinstance(candles, list) or not candles:
+        raise P.PrepError("label_candles_missing")
+    for candle in sorted(candles):
+        if not isinstance(candle, tuple) or len(candle) != 3:
+            raise P.PrepError("label_row_invalid")
+        open_ms, close_ms, price = candle
+        validate_candle(open_ms, close_ms, price)
         if close_ms < due_ms:
             continue
         if open_ms > due_ms:
+            # A gap: no candle covers the due instant.
             raise P.PrepError("label_candle_unavailable")
         if close_ms > now_ms:
-            raise P.PrepError("label_candle_unavailable")
+            raise P.PrepError("label_pending_candle_open")
         drift = close_ms - due_ms
-        if drift > MAX_PILOT_DRIFT_MS:
+        if drift < 0 or drift >= PILOT_DRIFT_BOUND_MS:
             raise P.PrepError("label_drift_too_large")
-        if not isinstance(price, float) or price <= 0:
-            raise P.PrepError("label_price_invalid")
         return {"exit_ms": close_ms, "price": price, "drift_ms": drift,
-                "method": "binance_public_1m_close"}
+                "method": "binance_public_1m_close",
+                "symbol": EXPECTED_SYMBOL,
+                "open_ms": open_ms, "span_ms": close_ms - open_ms}
     raise P.PrepError("label_candle_unavailable")
 
 
