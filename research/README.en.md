@@ -19,6 +19,7 @@ This is an archive of research rather than a collection of ready-to-run trading 
 | [NEWS Phase 3](news_phase3/) | 30 sequential BTC paper forecasts | Incomplete at the recorded snapshot (7/30); profitability not established |
 | [NEWS Phase 4 v1](news_phase4_v1/) | News, market and social context | 10/10 neutral decisions; no demonstrated trading signal |
 | [NEWS Phase 4 v2](news_phase4_v2/) | NEWS versus NEWS+MARKET | Too few assessed pairs to establish improvement |
+| [NEWS Phase 4 v2.1](news_phase4_v21/) | NEWS versus NEWS+MARKET on a sealed information set (tools denied) | **Audit package published**; only a handful of prospective events, no statistical evidence of an edge |
 | [TP/SL Lab](tpsl_lab/) | BTC/ETH TP/SL, EMA/Donchian and aggressive trade flow | Archived / no robust net edge in tested configurations |
 | [ETH Grid](eth_grid/) | ETH grid proxy versus ETH HODL and a static 50/50 ETH/USDT portfolio | **Closed / NO-GO, 12 November:** all six settings underperformed 50/50 on the 30-day period and all six on the separate frozen 7-day forward; not independent across settings |
 | [Binance Copy](binance_copy/) | Follower execution and leader-performance replication | Leader returns do not establish follower returns |
