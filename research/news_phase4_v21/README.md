@@ -72,8 +72,9 @@ ChatGPT и оно лежит рядом: [`AUDITOR_PROMPT_RU.md`](AUDITOR_PROMPT
 
 ```bash
 # тесты (без сети и без модельных вызовов)
-cd tests && python3 -m unittest discover -p 'test_v21_*.py'
-node --test test_v21_paper_runner.mjs v21_plugin_test.mjs test_v21_service.mjs
+# важно: модули лежат в source/, поэтому PYTHONPATH обязателен
+PYTHONPATH=source python3 -m unittest discover -s tests -p 'test_v21_*.py'
+cd tests && node --test test_v21_paper_runner.mjs test_v21_service.mjs
 
 # снапшот и сверка по локальным базам
 python3 scripts/v21_snapshot.py --out snapshot.json
