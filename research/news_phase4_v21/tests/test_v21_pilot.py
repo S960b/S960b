@@ -10,6 +10,7 @@ import sqlite3
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -49,12 +50,15 @@ class PilotLedgerTests(unittest.TestCase):
         try:
             tables = {r[0] for r in con.execute(
                 "SELECT name FROM sqlite_master WHERE type='table'")}
+            tables.discard("sqlite_sequence")   # bookkeeping for AUTOINCREMENT
         finally:
             con.close()
         self.assertEqual(tables,
-                         {"pilot_pairs", "pilot_arms", "pilot_outcomes"})
+                         {"pilot_pairs", "pilot_arms", "pilot_outcomes",
+                          "pilot_settle_log"})
         self.assertNotIn("paper_records", tables,
                          "a pilot must never write the production journal")
+        self.assertNotIn("paper_outcomes", tables)
 
     def test_schema_is_idempotent(self):
         for _ in range(3):
@@ -167,3 +171,119 @@ def _fake_urlopen(body):
         def __exit__(self_inner, *a):
             return False
     return lambda *a, **k: _Resp()
+
+
+class SettleTests(unittest.TestCase):
+    """Pilot settlement: own lane, one-time, fail-closed, no zero anchor."""
+
+    def setUp(self):
+        self.dir = tempfile.mkdtemp(prefix="v21settle-")
+        self.db = os.path.join(self.dir, "pilot.sqlite")
+        self._orig = PL.PILOT_DB
+        PL.PILOT_DB = Path(self.db)
+        con = PL.open_pilot()
+        con.execute("INSERT INTO pilot_pairs(event_id,label,prompt_version,"
+                    "prompt_hashes,decision_time_ms,market_cutoff_ms,published_ms,"
+                    "observed_ms,provider_id,model_id,entry_price,entry_ms,"
+                    "tool_calls,completions,cost_usd,created_ms) "
+                    "VALUES('valid','L','v','{}',1,1,1,1,'deepseek','m',64000.0,"
+                    "1000,0,2,0,1)")
+        con.execute("INSERT INTO pilot_pairs(event_id,label,prompt_version,"
+                    "prompt_hashes,decision_time_ms,market_cutoff_ms,published_ms,"
+                    "observed_ms,provider_id,model_id,entry_price,entry_ms,"
+                    "tool_calls,completions,cost_usd,created_ms) "
+                    "VALUES('invalid','L','v','{}',1,1,1,1,'deepseek','m',0.0,"
+                    "0,0,2,0,1)")
+        con.commit()
+        con.close()
+
+    def tearDown(self):
+        PL.PILOT_DB = self._orig
+
+    def _add_outcome(self, event_id, due_ms):
+        con = PL.open_pilot()
+        con.execute("INSERT INTO pilot_outcomes(event_id,horizon_h,due_ms) "
+                    "VALUES(?,4,?)", (event_id, due_ms))
+        con.commit()
+        con.close()
+
+    def _run(self):
+        import io
+        from contextlib import redirect_stdout
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            code = PL.main(["settle"])
+        return code, json.loads(buf.getvalue().strip().splitlines()[-1])
+
+    def test_zero_anchor_is_never_settled(self):
+        self._add_outcome("invalid", 0)
+        code, out = self._run()
+        self.assertEqual(code, 0)
+        self.assertEqual(out["anchor_invalid_skipped"], 1)
+        self.assertEqual(out["settled"], 0)
+        con = sqlite3.connect(self.db)
+        try:
+            exit_ms = con.execute(
+                "SELECT exit_ms FROM pilot_outcomes WHERE event_id='invalid'"
+            ).fetchone()[0]
+        finally:
+            con.close()
+        self.assertIsNone(exit_ms, "an invalid anchor must stay unsettled")
+
+    def test_future_due_stays_pending(self):
+        future = int(time.time() * 1000) + 3_600_000
+        self._add_outcome("valid", future)
+        code, out = self._run()
+        self.assertEqual(code, 0)
+        self.assertEqual(out["pending"], 1)
+        self.assertEqual(out["settled"], 0)
+
+    def test_first_close_after_due_is_used_once(self):
+        due = int(time.time() * 1000) - 600_000
+        self._add_outcome("valid", due)
+        candle_close = ((due // 60_000) + 1) * 60_000 - 1
+        fake = [(candle_close - 59_999, candle_close, 50_000.0)]
+        with mock.patch.object(PL.P, "fetch_klines_1m", return_value=fake):
+            code, out = self._run()
+        self.assertEqual(code, 0)
+        self.assertEqual(out["settled"], 1)
+        con = sqlite3.connect(self.db)
+        try:
+            row = con.execute("SELECT exit_ms,price,drift_ms,method FROM "
+                              "pilot_outcomes WHERE event_id='valid'").fetchone()
+        finally:
+            con.close()
+        self.assertEqual(row[0], candle_close)
+        self.assertGreaterEqual(row[0], due, "exit must not precede due")
+        self.assertLessEqual(row[2], 60_000)
+
+    def test_settlement_is_not_repeated(self):
+        due = int(time.time() * 1000) - 600_000
+        self._add_outcome("valid", due)
+        close = ((due // 60_000) + 1) * 60_000 - 1
+        fake = [(close - 59_999, close, 50_000.0)]
+        with mock.patch.object(PL.P, "fetch_klines_1m", return_value=fake):
+            self._run()
+            code, out = self._run()
+        self.assertEqual(out["settled"], 0, "a settled slot is never rewritten")
+
+    def test_network_failure_is_reported_not_swallowed(self):
+        due = int(time.time() * 1000) - 600_000
+        self._add_outcome("valid", due)
+        with mock.patch.object(PL.P, "fetch_klines_1m",
+                               side_effect=PL.P.PrepError("label_fetch_failed:OSError")):
+            code, out = self._run()
+        self.assertEqual(code, 1)
+        self.assertTrue(out["failures"])
+        self.assertEqual(out["failures"][0]["reason"],
+                         "label_fetch_failed:OSError")
+
+    def test_settle_log_is_written(self):
+        self._add_outcome("invalid", 0)
+        self._run()
+        con = sqlite3.connect(self.db)
+        try:
+            n = con.execute("SELECT COUNT(*) FROM pilot_settle_log").fetchone()[0]
+        finally:
+            con.close()
+        self.assertGreaterEqual(n, 1)

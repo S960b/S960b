@@ -263,3 +263,31 @@ methodology guard remains.
 `context_news`), version `prompt-only-pilot-v1`:
 entry 64 571.46 at `1794843932324`, due `1794858332324` (= entry + 4h, verified),
 0 tool calls, 2 completions, N `p_up` 0.48 → FLAT, NM 0.55 → FLAT.
+
+## 2026-11-16T16:00Z — pilot settlement lane added
+
+The gap was real: the pilot ledger had a `due_ms` slot but no command that could
+ever fill it, because the production labeler only reads `paper.sqlite`.
+
+Added `v21_pilot_cycle.py settle`:
+- settles only rows whose `due_ms > 0`; an `PILOT_ANCHOR_INVALID` slot
+  (`due_ms == 0`) is counted as `anchor_invalid_skipped` and is **permanently
+  ineligible**, never backfilled;
+- takes the first public 1m close at or after due, drift 0..60 000 ms, and
+  refuses when the covering candle has not closed (`label_pending_candle_open`,
+  reported as pending, not as an error);
+- writes once, guarded by `exit_ms IS NULL`, so a settled row is never rewritten;
+- reports every failure with its reason, appends a row to `pilot_settle_log`, and
+  exits non-zero on any failure so an alarm cannot be silent.
+
+The live plugin now ticks this lane next to the production labeler, with its own
+subprocess call, so production and pilot settlement never share a code path.
+
+Six settlement tests: zero anchor never settled, future due stays pending, first
+close after due is used, settlement is not repeated, network failure is reported
+with a non-zero exit, and the log row is written.
+
+Production label status at this checkpoint: **6 records, 6 settled, 0 future,
+0 overdue**. Drift per record: 24 695 / 14 382 / 24 194 / 45 111 / 5 987 / 4 877 ms
+— every one inside the 60 s budget, every exit taken from its own first post-due
+1m close, no row rewritten.

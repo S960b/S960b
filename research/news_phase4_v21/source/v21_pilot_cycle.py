@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS pilot_pairs(
  provider_id TEXT, model_id TEXT,
  entry_price REAL, entry_ms INTEGER,
  tool_calls INTEGER NOT NULL, completions INTEGER NOT NULL,
- cost_usd REAL NOT NULL, created_ms INTEGER NOT NULL);
+ cost_usd REAL, created_ms INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS pilot_arms(
  event_id TEXT NOT NULL, arm TEXT NOT NULL, p_up REAL,
  expected_return_bps REAL, uncertainty REAL, action TEXT,
@@ -57,6 +57,10 @@ CREATE TABLE IF NOT EXISTS pilot_outcomes(
  event_id TEXT NOT NULL, horizon_h INTEGER NOT NULL, due_ms INTEGER NOT NULL,
  exit_ms INTEGER, price REAL, drift_ms INTEGER, method TEXT,
  settled_ms INTEGER, PRIMARY KEY(event_id, horizon_h));
+CREATE TABLE IF NOT EXISTS pilot_settle_log(
+ id INTEGER PRIMARY KEY AUTOINCREMENT, at_ms INTEGER NOT NULL,
+ status TEXT NOT NULL, settled INTEGER NOT NULL, pending INTEGER NOT NULL,
+ detail TEXT);
 """
 
 
@@ -261,14 +265,110 @@ def cmd_finish(args):
                              for p in parsed}})
 
 
+MAX_PILOT_DRIFT_MS = 60_000
+
+
+def _pilot_exit(due_ms, now_ms):
+    """First public 1m close at or after due; raises when not determinable."""
+    if not isinstance(due_ms, int) or due_ms <= 0:
+        raise P.PrepError("pilot_anchor_invalid")
+    start = (due_ms // P.MIN_MS) * P.MIN_MS
+    if start + P.MIN_MS > now_ms + 1:
+        raise P.PrepError("label_pending_candle_open")
+    candles = P.fetch_klines_1m(start, limit=5)
+    for open_ms, close_ms, price in sorted(candles):
+        if close_ms < due_ms:
+            continue
+        if open_ms > due_ms:
+            raise P.PrepError("label_candle_unavailable")
+        if close_ms > now_ms:
+            raise P.PrepError("label_candle_unavailable")
+        drift = close_ms - due_ms
+        if drift > MAX_PILOT_DRIFT_MS:
+            raise P.PrepError("label_drift_too_large")
+        if not isinstance(price, float) or price <= 0:
+            raise P.PrepError("label_price_invalid")
+        return {"exit_ms": close_ms, "price": price, "drift_ms": drift,
+                "method": "binance_public_1m_close"}
+    raise P.PrepError("label_candle_unavailable")
+
+
+def cmd_settle(args):
+    """Settle due pilot slots from their own post-due 1m candle.
+
+    Independent of the production labeler by design: a pilot row must never be
+    settled against production data. Everything is reported, nothing is silent,
+    and an invalid anchor is permanently ineligible.
+    """
+    if not PILOT_DB.is_file():
+        return emit({"status": "no_pilot_db", "settled": 0, "pending": 0}, 3)
+    con = open_pilot()
+    now_ms = int(time.time() * 1000)
+    settled = pending = invalid = 0
+    failures = []
+    try:
+        rows = con.execute(
+            "SELECT event_id, horizon_h, due_ms, exit_ms FROM pilot_outcomes"
+        ).fetchall()
+        for event_id, horizon, due_ms, already in rows:
+            if already is not None:
+                continue                        # one-time settlement
+            if not due_ms:
+                invalid += 1                    # ANCHOR_INVALID stays ineligible
+                continue
+            if now_ms < due_ms:
+                pending += 1
+                continue
+            try:
+                row = _pilot_exit(int(due_ms), now_ms)
+            except P.PrepError as exc:
+                reason = str(exc)
+                if reason in ("label_pending_candle_open", "label_not_due"):
+                    pending += 1
+                    continue
+                failures.append({"event_id": event_id, "reason": reason,
+                                 "due_ms": due_ms})
+                pending += 1
+                continue
+            try:
+                con.execute(
+                    "UPDATE pilot_outcomes SET exit_ms=?, price=?, drift_ms=?, "
+                    "method=?, settled_ms=? WHERE event_id=? AND horizon_h=? "
+                    "AND exit_ms IS NULL",
+                    (row["exit_ms"], row["price"], row["drift_ms"],
+                     row["method"], now_ms, event_id, horizon))
+                con.commit()
+            except sqlite3.Error as exc:
+                failures.append({"event_id": event_id,
+                                 "reason": "pilot_settle_write_failed:" +
+                                           type(exc).__name__})
+                pending += 1
+                continue
+            settled += 1
+        payload = {"status": "settled" if not failures else "settle_incomplete",
+                   "settled": settled, "pending": pending,
+                   "anchor_invalid_skipped": invalid,
+                   "failures": failures, "now_ms": now_ms}
+        con.execute("INSERT INTO pilot_settle_log(at_ms,status,settled,pending,"
+                    "detail) VALUES(?,?,?,?,?)",
+                    (now_ms, payload["status"], settled, pending,
+                     json.dumps(failures)[:2000]))
+        con.commit()
+    finally:
+        con.close()
+    emit(payload)
+    return 0 if not failures else 1
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("command", choices=("status", "prepare", "finish"))
+    ap.add_argument("command",
+                    choices=("status", "prepare", "finish", "settle"))
     ap.add_argument("--acknowledge-pilot", action="store_true")
     ap.add_argument("--acknowledge-cost", action="store_true")
     a = ap.parse_args(argv)
     handler = {"status": cmd_status, "prepare": cmd_prepare,
-               "finish": cmd_finish}[a.command]
+               "finish": cmd_finish, "settle": cmd_settle}[a.command]
     return handler(a)
 
 

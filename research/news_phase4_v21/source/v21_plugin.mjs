@@ -70,6 +70,10 @@ export const server = async (input = {}, options = {}) => {
   const trigger = join(root, '.mt-v21-run-now');
   const client = input?.client;
   const call = runner(python, script);
+  // The pilot ledger is settled by its own command, never by the production
+  // labeler, so a pilot row can never be settled against production data.
+  const pilotScript = join(root, 'v21_pilot_cycle.py');
+  const pilotCall = runner(python, pilotScript);
   // Process-unique identity so two contexts can be told apart in one log, and
   // so a reader never has to infer liveness from a historical load line.
   const instanceId = `${process.pid}-${Date.now().toString(36)}`;
@@ -231,6 +235,9 @@ export const server = async (input = {}, options = {}) => {
           const r = await call('outcomes');
           log(`v21_outcomes settled=${Number(r?.settled ?? 0)} ` +
               `overdue=${(r?.overdue || []).length} instance=${instanceId}`);
+          const pilot = await pilotCall('settle');
+          log(`v21_pilot_settle settled=${Number(pilot?.settled ?? 0)} ` +
+              `pending=${Number(pilot?.pending ?? 0)} instance=${instanceId}`);
         } catch { log(`v21_outcome_error instance=${instanceId}`); }
         finally { labelBusy = false; }
       }
