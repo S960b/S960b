@@ -62,7 +62,10 @@ try {
     published_ms: prep.published_ms,
     observed_ms: prep.observed_ms,
     results,
-    usage: { completions: usageCompletions, cost_usd: 0.01 },
+    // Only what was actually counted here. Cost is NOT measured in this script
+    // and is never asserted; the owner treats inference as free for research.
+    usage: { completions: usageCompletions, cost_usd: null,
+             cost_provenance: "not_measured_by_runner" },
   };
   const out = execFileSync('/usr/bin/python3',
     [`${ROOT}/v21_pilot_cycle.py`, 'finish'],

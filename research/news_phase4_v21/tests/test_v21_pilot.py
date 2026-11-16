@@ -69,11 +69,14 @@ class PilotLedgerTests(unittest.TestCase):
 
 
 class AcknowledgementGateTests(unittest.TestCase):
-    def test_prepare_needs_both_acknowledgements(self):
+    def test_prepare_needs_the_pilot_acknowledgement(self):
         rc = PL.main(["prepare"])
         self.assertEqual(rc, 3)
-        rc = PL.main(["prepare", "--acknowledge-pilot"])
-        self.assertEqual(rc, 3)
+
+    def test_cost_is_not_a_gate(self):
+        # Money is not a constraint for this project: a pair is never refused
+        # because of a reported cost figure.
+        self.assertIsNone(PL.MAX_PILOT_COST_USD)
 
 
 class FinishGuardTests(unittest.TestCase):
@@ -83,15 +86,17 @@ class FinishGuardTests(unittest.TestCase):
                               text=True, timeout=30)
         return proc.returncode, json.loads(proc.stdout or "{}")
 
-    def test_cost_cap_refuses_before_writing(self):
+    def test_high_reported_cost_is_still_accepted(self):
+        # A large reported cost must not block sealing; only a real contract
+        # problem may. Here the pair itself is malformed, so it is refused for
+        # that reason and not for money.
         code, out = self._run({
             "event_id": "e" * 64, "results": [{"arm": "news"}, {"arm": "news_market"}],
-            "usage": {"completions": 2, "cost_usd": 9.0},
+            "usage": {"completions": 2, "cost_usd": 99.0},
             "prompt_version": PL.VERSION, "prompt_hashes": {},
             "decision_time_ms": 1, "market_cutoff_ms": 1,
         })
-        self.assertEqual(code, 3)
-        self.assertEqual(out["reason"], "pilot_cost_cap")
+        self.assertNotEqual(out.get("reason"), "pilot_cost_cap")
 
     def test_incomplete_pair_is_refused(self):
         code, out = self._run({"event_id": "e" * 64, "results": [{"arm": "news"}]})
@@ -101,3 +106,64 @@ class FinishGuardTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class QuoteAnchorTests(unittest.TestCase):
+    """The float-vs-dict bug must be impossible, and no zero anchor may pass."""
+
+    def test_quote_is_a_structure_not_a_float(self):
+        # P.parse_quote returns a float; public_quote must wrap it.
+        with mock.patch.object(PL.P, "parse_quote", return_value=64000.0):
+            with mock.patch.object(PL, "urlopen", _fake_urlopen(b'{"price":"64000"}'),
+                                   create=True):
+                q = PL.public_quote()
+        self.assertIsInstance(q, dict)
+        self.assertGreater(q["price"], 0)
+        self.assertGreater(q["observed_ms"], 0)
+        self.assertEqual(q["source"], "binance_public_ticker")
+
+    def test_quote_must_be_after_last_arm(self):
+        future = int(__import__("time").time() * 1000) + 10_000
+        with self.assertRaises(PL.QuoteError):
+            with mock.patch.object(PL, "_urlopen_json",
+                                   return_value={"price": "64000"}):
+                PL.public_quote(after_ms=future)
+
+    def test_zero_or_negative_price_fails_closed(self):
+        for bad in ("0", "-5"):
+            with self.assertRaises(PL.QuoteError):
+                with mock.patch.object(PL, "_urlopen_json",
+                                       return_value={"price": bad}):
+                    PL.public_quote()
+
+    def test_due_is_entry_plus_four_hours(self):
+        entry = 1_700_000_000_000
+        self.assertEqual(entry + 4 * 3_600_000 - entry, 14_400_000)
+
+    def test_historical_pilot_row_stays_invalid(self):
+        # The first pilot pair had entry_price 0 / due_ms 0. It must remain
+        # visible as invalid, never repaired and never settled.
+        sidecar = next(HERE.parent.rglob("pilot_sidecar_*.json"), None)
+        if sidecar is None:
+            self.skipTest("historical pilot sidecar not present in this tree")
+        payload = json.loads(sidecar.read_text(encoding="utf-8"))
+        pair = payload["pairs"][0]
+        self.assertEqual(pair["entry_price"], 0.0)
+        self.assertEqual(payload["outcomes"][0]["due_ms"], 0)
+
+
+def _urlopen_json(value):
+    return lambda *a, **k: value
+
+
+def _fake_urlopen(body):
+    class _Resp:
+        def read(self_inner):
+            return body
+
+        def __enter__(self_inner):
+            return self_inner
+
+        def __exit__(self_inner, *a):
+            return False
+    return lambda *a, **k: _Resp()

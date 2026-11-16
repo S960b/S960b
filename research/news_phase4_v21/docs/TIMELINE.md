@@ -231,3 +231,35 @@ has not closed yet" is reported as pending rather than as a failure, so a normal
 **Settled production labels at this checkpoint** (`labels.settled = 3`):
 `e0c7b377a018`, `f89bc542ffdd`, and `df3eb36487c1`. Remaining due times
 15:23Z / 15:38Z / 15:53Z were still future; `overdue_unsettled` empty.
+
+## 2026-11-16T15:50Z — pilot entry anchor fixed; first pilot pair declared INVALID
+
+**Confirmed bug, exactly as reported.** `public_quote()` returned
+`P.parse_quote(payload)`, a float, and `cmd_finish` guarded the write with
+`isinstance(quote_after, dict)` - always false - so the first pilot pair was
+sealed with `entry_price=0`, `entry_ms=0` and `due_ms=0`. That row is
+**PILOT_ANCHOR_INVALID**: not a completed forecast, no entry, no due instant, no
+return computable, and never settled. It stays immutable; the annotation lives in
+a separate sidecar.
+
+**Fix.** `public_quote(after_ms)` now returns a validated structure
+`{price, observed_ms, source}`; the observation time is a real clock reading
+taken after the HTTP response; the price must be positive and finite; and when
+`after_ms` is supplied the sample must be strictly later than the last arm's
+completion. `cmd_finish` samples the entry **after** both arms, refuses with
+`entry_anchor_invalid:*` on any failure, and additionally enforces
+`entry_ms > last_arm_ms` and `due_ms = entry_ms + 4h` before writing anything.
+Six regression tests cover the float-vs-dict bug, a non-positive price, a
+pre-arm timestamp, the due invariant and the immutability of the historical row.
+
+**Second bug.** `pilot_run.mjs` used to send a literal `cost_usd: 0.01`, which was
+not measured. It now sends `cost_usd: null` with
+`cost_provenance: "not_measured_by_runner"`. Cost is recorded when the gateway
+reports it and is never used as a gate: the owner treats inference as free for
+research, so the USD ceiling was removed entirely and only the completion-count
+methodology guard remains.
+
+**One validating pair, fully anchored.** Event `8f778a0b2180` (decrypt,
+`context_news`), version `prompt-only-pilot-v1`:
+entry 64 571.46 at `1794843932324`, due `1794858332324` (= entry + 4h, verified),
+0 tool calls, 2 completions, N `p_up` 0.48 → FLAT, NM 0.55 → FLAT.

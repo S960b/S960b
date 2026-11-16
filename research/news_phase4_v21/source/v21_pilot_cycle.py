@@ -34,7 +34,10 @@ PILOT_DB = DATA / "pilot.sqlite"
 PAUSE_FLAG = DATA / "PAUSED_MODEL_INFERENCE"
 
 VERSION = P.PROMPT_ONLY_VERSION
-MAX_PILOT_COST_USD = 0.05
+# Reported cost is recorded for the audit trail only. It is NOT a limit: the
+# owner's access is free to them, and refusing a pair over a billing estimate
+# would silently stop the experiment for no methodological reason.
+MAX_PILOT_COST_USD = None
 PILOT_SCHEMA = """
 CREATE TABLE IF NOT EXISTS pilot_pairs(
  event_id TEXT PRIMARY KEY, label TEXT NOT NULL,
@@ -71,13 +74,41 @@ def open_pilot():
     return con
 
 
-def public_quote():
+class QuoteError(ValueError):
+    pass
+
+
+def _urlopen_json(url, timeout=15):
     import urllib.request
-    with urllib.request.urlopen(
-            "https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT",
-            timeout=15) as resp:
-        payload = json.loads(resp.read())
-    return P.parse_quote(payload)
+    with urllib.request.urlopen(url, timeout=timeout) as resp:
+        return json.loads(resp.read())
+
+
+def public_quote(after_ms=None):
+    """Validated public quote with an explicit observation timestamp.
+
+    Returns {price, observed_ms, source}. `P.parse_quote` returns a bare float,
+    and the old code tested `isinstance(quote, dict)` on that float - always
+    false - so it silently wrote entry_price=0, entry_ms=0 and due_ms=0. A quote
+    is now a structure or an exception; there is no silent zero path.
+    """
+    import math
+    try:
+        payload = _urlopen_json(
+            "https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT")
+        observed_ms = time.time_ns() // 1_000_000   # real clock, post-response
+    except Exception as exc:
+        raise QuoteError("quote_unavailable:" + type(exc).__name__)
+    try:
+        price = float(P.parse_quote(payload))
+    except P.PrepError as exc:
+        raise QuoteError("quote_invalid:" + str(exc))
+    if not math.isfinite(price) or price <= 0:
+        raise QuoteError("quote_not_positive_finite")
+    if after_ms is not None and observed_ms <= int(after_ms):
+        raise QuoteError("quote_not_strictly_after_last_arm")
+    return {"price": price, "observed_ms": observed_ms,
+            "source": "binance_public_ticker"}
 
 
 def cmd_status(args):
@@ -99,7 +130,7 @@ def cmd_prepare(args):
     # The production pause is a safety control, not a switch for this lane.
     # A pilot is allowed only when the operator explicitly acknowledges that it
     # writes to the pilot ledger and spends at most MAX_PILOT_COST_USD.
-    if not args.acknowledge_pilot or not args.acknowledge_cost:
+    if not args.acknowledge_pilot:
         return emit({"status": "refused",
                      "reason": "pilot_acknowledgement_required"}, 3)
     if not EVENTS_DB.is_file():
@@ -144,7 +175,7 @@ def cmd_prepare(args):
         "decision_time_ms": now_ms, "market_cutoff_ms": cutoff,
         "prompt_version": VERSION, "prompt_hashes": hashes,
         "prompts": prompts, "quote_before": quote_before,
-        "max_cost_usd": MAX_PILOT_COST_USD,
+        "max_cost_usd": None,  # informational only
     })
 
 
@@ -161,11 +192,20 @@ def cmd_finish(args):
     else:
         label = "PROMPT_ONLY_COMPLIANT_ONE_PAIR"
     usage = body.get("usage") or {}
-    cost = float(usage.get("cost_usd") or 0.0)
-    if cost > MAX_PILOT_COST_USD:
-        return emit({"status": "refused", "reason": "pilot_cost_cap",
-                     "cost_usd": cost, "cap": MAX_PILOT_COST_USD}, 3)
-    quote_after = public_quote()
+    cost = float(usage.get("cost_usd") or 0.0)   # recorded, never gated
+    last_arm_ms = max(int(r.get("completed_ms") or 0) for r in results)
+    try:
+        # Entry anchor is sampled AFTER both arms answered, never before.
+        quote_after = public_quote(after_ms=last_arm_ms)
+    except QuoteError as exc:
+        return emit({"status": "refused",
+                     "reason": "entry_anchor_invalid:" + str(exc)}, 3)
+    entry_price = quote_after["price"]
+    entry_ms = quote_after["observed_ms"]
+    due_ms = entry_ms + 4 * 3_600_000
+    if not (entry_price > 0 and entry_ms > last_arm_ms and due_ms > entry_ms):
+        return emit({"status": "refused",
+                     "reason": "entry_anchor_invariant_violated"}, 3)
     parsed = []
     for r in results:
         row = P.parse_arm_response(r["text"])
@@ -190,8 +230,7 @@ def cmd_finish(args):
              int(body["decision_time_ms"]), int(body["market_cutoff_ms"]),
              int(body.get("published_ms") or 0), int(body.get("observed_ms") or 0),
              provider.get("providerID"), provider.get("modelID"),
-             float(quote_after["price"]) if isinstance(quote_after, dict) else 0.0,
-             int(quote_after["observed_ms"]) if isinstance(quote_after, dict) else 0,
+             entry_price, entry_ms,
              tools, int(usage.get("completions") or 0), cost,
              int(time.time() * 1000)))
         for arm, row, sha, done, latency, _model in parsed:
@@ -200,10 +239,8 @@ def cmd_finish(args):
                         (body["event_id"], arm, row["p_up"],
                          row["expected_return_bps"], row["uncertainty"],
                          action, sha, done, latency))
-        due = (int(quote_after["observed_ms"])
-               + 4 * 3_600_000) if isinstance(quote_after, dict) else 0
         con.execute("INSERT INTO pilot_outcomes(event_id,horizon_h,due_ms) "
-                    "VALUES(?,?,?)", (body["event_id"], 4, due))
+                    "VALUES(?,?,?)", (body["event_id"], 4, due_ms))
         con.commit()
     except sqlite3.IntegrityError:
         con.rollback()
@@ -216,7 +253,8 @@ def cmd_finish(args):
                      "reason": "pilot_write_failed:" + type(exc).__name__}, 3)
     con.close()
     return emit({"status": "recorded", "label": label, "tool_calls": tools,
-                 "cost_usd": cost, "event_id": body["event_id"],
+                 "entry_price": entry_price, "entry_ms": entry_ms,
+                 "due_ms": due_ms, "event_id": body["event_id"],
                  "arms": {p[0]: p[1]["p_up"] for p in parsed},
                  "actions": {p[0]: P.decision(p[1]["p_up"],
                                               p[1]["expected_return_bps"])
