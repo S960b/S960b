@@ -12,7 +12,10 @@ import unittest
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-ROOT = HERE.parent
+# Two layouts: flat (tests next to the modules) and published (tests/ beside
+# source/). Parent, not parent.parent: the live tree has no nesting at all.
+ROOT = HERE.parent if (HERE.parent / 'source').is_dir() or \
+    (HERE.parent / 'v21_selector.py').is_file() else HERE
 # The selector lives flat in the live tree and in source/ in the published one.
 # Search, do not assume: the first directory that actually holds it wins.
 for _cand in (ROOT, ROOT / 'source', ROOT / 'scripts', HERE):
