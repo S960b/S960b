@@ -38,9 +38,10 @@ Consequences worth naming:
 - Do not retro-apply new categories to old rows.
 - Do not mix cohorts or source regimes in one pooled estimate.
 
-## 4. Proposed v2.3 broadening protocol (design only)
+## 4. Proposed v2.4 broadening protocol (design only)
 
-A separate prospective version, `prospective-v2.4-sources`, with its own counter
+A separate prospective version, `prospective-v2.4-sources` (numbering leaves room
+for the three-arm v2.2 and any v2.3 correction), with its own counter
 and its own rows:
 
 | category | candidate sources (free, machine-readable) | freshness target | provenance class |

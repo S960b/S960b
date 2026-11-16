@@ -14,8 +14,14 @@ import json
 
 import v21_paper_prep as P
 
-PROTOCOL_VERSION = "prospective-v2.3-arms3"
-PROMPT_VERSION = "prospective-v2.3-arms3"
+# Naming contract, so a reader never has to guess:
+#   * module/file names use v22_  (version 2.2)
+#   * the stored protocol string is prospective-v2.2-arms3
+# "arms3" names the design (three arms), "2.2" names the version. Earlier drafts
+# mixed 2.2 and 2.3 in the same document; this constant is now the only source
+# of truth and the docs quote it verbatim.
+PROTOCOL_VERSION = "prospective-v2.2-arms3"
+PROMPT_VERSION = "prospective-v2.2-arms3"
 ARM_NEWS = "news"
 ARM_NEWS_MARKET = "news_market"
 ARM_MARKET = "market"
@@ -81,6 +87,9 @@ def build_prompts_3(event, market, *, prompt_version=PROMPT_VERSION):
                          "pre_cutoff_market": market},
                         sort_keys=True, ensure_ascii=True, separators=(",", ":"))
 
+    # The arm line sits AFTER the shared header and BEFORE the payload, so the
+    # only difference between M and the news arms above the JSON is the word
+    # after "ARM:". It says what inputs exist, never which event this is.
     prompts = {
         ARM_NEWS: PROMPT_SYSTEM_V22 + "\nARM:news_only\nFROZEN_INPUT_JSON:\n" + n_body,
         ARM_NEWS_MARKET: PROMPT_SYSTEM_V22 + "\nARM:news_plus_market\nFROZEN_INPUT_JSON:\n" + nm_body,
@@ -117,6 +126,69 @@ def verify_market_prompt(text, event):
                    str(event.get("source") or "").strip().lower()):
         if len(needle) >= 4 and needle in lowered:
             raise P.PrepError("market_prompt_event_leak")
+    return True
+
+
+ARM_LINE = {ARM_NEWS: "news_only", ARM_NEWS_MARKET: "news_plus_market",
+            ARM_MARKET: "market_only"}
+
+# Metadata that may legitimately differ between arms. Everything else - the
+# model, the temperature, the session directive and the ordering rule - is held
+# identical, because a difference there would make M a different experiment.
+SHARED_EXECUTION_METADATA = {
+    "model_id": "same-model-required",
+    "ordering": "arms executed sequentially in fixed order news, news_market, market",
+    "timing_rule": "each arm sees only the frozen input; no arm may observe a "
+                   "clock, a quote, or another arm's output",
+}
+
+
+def execution_metadata(arm, *, event_ms=None, model_id=None):
+    """Per-arm execution metadata, with an explicit news-leak audit.
+
+    Time is included on purpose: news arms and the market arm are all executed
+    against the SAME frozen snapshot, so no arm's behaviour may depend on when
+    it happens to run. `event_ms` is recorded for provenance but is never given
+    to the model and never varies by arm.
+    """
+    if arm not in ARM_LINE:
+        raise P.PrepError("unknown_arm")
+    return {
+        "arm": arm,
+        "arm_line": ARM_LINE[arm],
+        "sees_news": arm != ARM_MARKET,
+        "model_id": model_id or SHARED_EXECUTION_METADATA["model_id"],
+        "ordering": SHARED_EXECUTION_METADATA["ordering"],
+        "timing_rule": SHARED_EXECUTION_METADATA["timing_rule"],
+        "frozen_at_ms": event_ms,
+    }
+
+
+def audit_market_arm_isolation(prompts, metadata, event):
+    """Full isolation audit for the M arm: payload, header, metadata, ordering.
+
+    The payload check alone is not enough - a leak can hide in the header text,
+    in per-arm metadata, or in an arm-specific execution rule. Each surface is
+    checked separately so a failure names the surface, not just "leak".
+    """
+    text = prompts[ARM_MARKET]
+    verify_market_prompt(text, event)
+
+    header, _, payload = text.partition("FROZEN_INPUT_JSON:")
+    news_fields = ("title", "summary", "source", "cohort", "provenance",
+                   "url", "published")
+    leaked_header = [f for f in news_fields if f in header.lower()]
+    if leaked_header:
+        raise P.PrepError("market_header_leak:" + ",".join(leaked_header))
+
+    meta = metadata[ARM_MARKET]
+    if meta.get("sees_news") is not False:
+        raise P.PrepError("market_metadata_claims_news")
+    for arm in (ARM_NEWS, ARM_NEWS_MARKET):
+        if metadata[arm]["model_id"] != meta["model_id"]:
+            raise P.PrepError("arm_model_identity_differs")
+        if metadata[arm]["ordering"] != meta["ordering"]:
+            raise P.PrepError("arm_ordering_differs")
     return True
 
 

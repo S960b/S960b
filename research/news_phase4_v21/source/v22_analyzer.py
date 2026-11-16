@@ -53,6 +53,7 @@ def load_rows(con):
             continue
         out.append({
             "event_id": event_id,
+            "entry_ms": int(entry_ms),
             "day": entry_ms // (24 * HOUR_MS),
             "entry": float(entry), "exit": float(exit_price),
             "exit_ms": int(exit_ms), "drift_ms": drift,
@@ -62,17 +63,90 @@ def load_rows(con):
     return out
 
 
+def overlapping_windows(rows, *, horizon_ms=4 * HOUR_MS):
+    """How many events start inside another event's 4 h window.
+
+    Overlap is a real dependence defect: two labels can then share price
+    action. It is reported, never silently corrected, and the primary contrast
+    is also recomputed on the non-overlapping subset as a sensitivity check.
+    """
+    ordered = sorted((r["entry_ms"], r.get("event_id")) for r in rows)
+    overlaps, previous_end = 0, None
+    for entry, _eid in ordered:
+        if previous_end is not None and entry < previous_end:
+            overlaps += 1
+        previous_end = entry + horizon_ms
+    return overlaps
+
+
+def non_overlapping(rows, *, horizon_ms=4 * HOUR_MS):
+    """The subset whose windows do not overlap any earlier window."""
+    ordered = sorted(rows, key=lambda r: (r["entry_ms"], r.get("event_id")))
+    kept, previous_end = [], None
+    for r in ordered:
+        if previous_end is None or r["entry_ms"] >= previous_end:
+            kept.append(r)
+        previous_end = r["entry_ms"] + horizon_ms
+    return kept
+
+
+def walk_forward_climatology(rows, *, window=30):
+    """Climatology fitted only on rows BEFORE the scored row.
+
+    Class leakage is a real risk here: if the constant predictor is fitted on
+    the whole sample it contains the outcome it is predicting, and an arm looks
+    worse than it really is. This returns one prior-only base rate per row (or
+    None until enough history exists).
+    """
+    ordered = sorted(rows, key=lambda r: (r["entry_ms"], r["event_id"]))
+    out = []
+    history = []
+    for r in ordered:
+        if len(history) >= 2:
+            rate = sum(history) / len(history)
+        else:
+            rate = None
+        out.append((r, rate))
+        history.append(1 if r["outcome_up"] else 0)
+        if window and len(history) > window:
+            history.pop(0)
+    return out
+
+
+def climatology_score(rows, *, window=30):
+    """Mean Brier of the prior-only climatology, on rows where it exists."""
+    pairs = [(r, rate) for r, rate in walk_forward_climatology(rows,
+                                                               window=window)
+             if rate is not None]
+    if not pairs:
+        return {"n": 0, "brier": None}
+    return {"n": len(pairs),
+            "brier": statistics.fmean(
+                brier(rate, r["outcome_up"]) for r, rate in pairs)}
+
+
 def score_rows(rows):
     """Per-arm Brier/log loss means plus base-rate baseline."""
     if not rows:
         return {"n": 0}
     rates = sum(1 for r in rows if r["outcome_up"]) / len(rows)
-    result = {"n": len(rows), "base_rate_up": rates,
-              "zero_trade_baseline": {
-                  "brier": brier(rates, True) * rates
-                  + brier(rates, False) * (1 - rates),
-                  "log_loss": log_loss(rates, True) * rates
-                  + log_loss(rates, False) * (1 - rates)}}
+    # Stage-4 correction: a Brier score is a PREDICTION metric and a zero-trade
+    # rule is an ACTION policy. Comparing an arm's Brier to "the zero-trade base
+    # rate" mixes the two. The proper prediction reference is the CLIMATOLOGY
+    # probability: a constant forecast equal to the outcome frequency. It is
+    # reported separately and explicitly here, and the FLAT policy is compared
+    # only in PnL terms (pnl_summary), never in Brier terms.
+    #
+    # Train/test split: climatology for a given row must be fitted on PRIOR
+    # windows only. `score_rows` computes a full-sample base rate for reporting
+    # and computes a walk-forward climatology for comparison, so no row is ever
+    # scored against a rate that includes its own outcome.
+    result = {"n": len(rows), "base_rate_up_full_sample": rates,
+              "climatology_baseline": {
+                  "kind": "constant probability fitted on prior windows only",
+                  "full_sample_reference_only": {
+                      "brier": brier(rates, True) * rates
+                      + brier(rates, False) * (1 - rates)}}}
     for arm in ("news", "news_market", "market"):
         b = [brier(r["arms"][arm], r["outcome_up"]) for r in rows]
         l = [log_loss(r["arms"][arm], r["outcome_up"]) for r in rows]
@@ -131,13 +205,27 @@ def analyze(con, rows=None):
     scores = score_rows(rows)
     if not rows:
         return {"n": 0, "status": "no_data"}
+    scores["climatology_prior_only"] = climatology_score(rows)
     out = {"n": scores["n"], "scores": scores,
            "comparisons": {}, "mde": minimum_detectable_effect(scores["n"])}
+    out["overlap"] = {
+        "events": len(rows),
+        "overlapping": overlapping_windows(rows),
+        "rate": overlapping_windows(rows) / len(rows)}
     for a, b, label in (("news", "market", "N_minus_M"),
                         ("news_market", "market", "NM_minus_M"),
                         ("news_market", "news", "NM_minus_N")):
         blocks = paired_difference(rows, a, b)
         out["comparisons"][label] = block_bootstrap(blocks)
+    # Sensitivity: the same contrasts on the non-overlapping subset only. If the
+    # sign flips here, the result is not confirmatory (amendment A2.2).
+    subset = non_overlapping(rows)
+    out["sensitivity_non_overlapping"] = {"n": len(subset), "comparisons": {}}
+    if len(subset) >= 2:
+        for a, b, label in (("news", "market", "N_minus_M"),
+                            ("news_market", "market", "NM_minus_M")):
+            out["sensitivity_non_overlapping"]["comparisons"][label] = \
+                block_bootstrap(paired_difference(subset, a, b))
     return out
 
 

@@ -2,10 +2,17 @@
 
 **Dated amendment:** 2026-11-16 (UTC), written **before** any v2.2 data exists.
 **Status:** protocol proposal. No data has been collected under this version.
+
+**Naming (corrected 2026-11-17, before any data):** the version is **2.2** and
+the stored protocol string is `prospective-v2.2-arms3`. An earlier draft of this
+document wrote `prospective-v2.3-arms3` in one place and `v2.2` elsewhere; that
+was an internal inconsistency, not a second protocol. `v22_arms.PROTOCOL_VERSION`
+is the single source of truth, and a test pins the document to it. The
+source-broadening protocol remains a separate, later **v2.4**.
 **Relation to v2.1:** additive. v2.1 (`prospective-v1`, two arms N/NM) stays
 frozen, its prompts and rows are never edited, and its six existing records keep
 their meaning. Anything below applies only to records stamped
-`prospective-v2.3-arms3`.
+`prospective-v2.2-arms3`.
 
 ## 1. Why a third arm
 

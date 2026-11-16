@@ -109,8 +109,15 @@ class TripleLedgerTests(unittest.TestCase):
 
     def seal(self, results, quote=None):
         prompts = A.build_prompts_3(event(), MARKET)
-        prepared = {"prompts_sha256": A.prompts_sha256(prompts),
-                    "cutoff_ms": 999_999}
+        hashes = A.prompts_sha256(prompts)
+        prepared = {"prompts_sha256": hashes, "cutoff_ms": 999_999}
+        # A real writer only seals after the three durable attempts are
+        # terminal, so the fixture creates them the same way the runner does.
+        L.reserve_triple(self.con, event_id=event()["event_id"],
+                         prompts_sha=hashes, now_ms=1_000_000)
+        for arm in A.ARM_NAMES:
+            L.mark_arm(self.con, event_id=event()["event_id"], arm=arm,
+                       state="completed", now_ms=1_000_100)
         return L.seal_triple(self.con, event=event(), prepared=prepared,
                              arm_results=results,
                              quote=quote or L.mock_quote(), now_ms=2_000_000)
@@ -157,9 +164,15 @@ class TripleLedgerTests(unittest.TestCase):
 
     def test_second_seal_is_idempotent(self):
         first = self.seal(L.mock_arm_results("a" * 64, ACTIONS))
-        second = self.seal(L.mock_arm_results("a" * 64, {
-            "news": (0.9, 100, 0.1), "news_market": (0.9, 100, 0.1),
-            "market": (0.1, -100, 0.1)}))
+        prompts = A.build_prompts_3(event(), MARKET)
+        prepared = {"prompts_sha256": A.prompts_sha256(prompts),
+                    "cutoff_ms": 999_999}
+        second = L.seal_triple(self.con, event=event(), prepared=prepared,
+                               arm_results=L.mock_arm_results("a" * 64, {
+                                   "news": (0.9, 100, 0.1),
+                                   "news_market": (0.9, 100, 0.1),
+                                   "market": (0.1, -100, 0.1)}),
+                               quote=L.mock_quote(), now_ms=2_000_000)
         self.assertEqual(first["status"], "sealed")
         self.assertEqual(second["status"], "already_sealed")
         self.assertEqual(self.con.execute(
@@ -230,3 +243,213 @@ class BackwardCompatibilityTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class DurableTripleAttemptTests(unittest.TestCase):
+    """Stage 4: reservation before invocation, monotone states, no replay."""
+
+    def setUp(self):
+        self.dir = tempfile.mkdtemp(prefix="v22a-")
+        self.path = os.path.join(self.dir, "v22.sqlite")
+        self.con = L.open_v22(self.path)
+        self.hashes = A.prompts_sha256(A.build_prompts_3(event(), MARKET))
+        self.eid = event()["event_id"]
+
+    def tearDown(self):
+        self.con.close()
+        for suf in ("", "-wal", "-shm"):
+            try:
+                os.unlink(self.path + suf)
+            except FileNotFoundError:
+                pass
+
+    def test_reservation_writes_all_three_before_any_call(self):
+        out = L.reserve_triple(self.con, event_id=self.eid,
+                               prompts_sha=self.hashes, now_ms=1_000)
+        self.assertEqual(out["status"], "reserved")
+        states = dict(self.con.execute(
+            "SELECT arm,state FROM v22_attempts WHERE event_id=?",
+            (self.eid,)).fetchall())
+        self.assertEqual(states, {"news": "prepared",
+                                  "news_market": "prepared",
+                                  "market": "prepared"})
+
+    def test_duplicate_event_reservation_is_idempotent(self):
+        L.reserve_triple(self.con, event_id=self.eid, prompts_sha=self.hashes,
+                         now_ms=1_000)
+        again = L.reserve_triple(self.con, event_id=self.eid,
+                                 prompts_sha=self.hashes, now_ms=9_999)
+        self.assertEqual(again["status"], "already_reserved")
+        self.assertEqual(self.con.execute(
+            "SELECT MIN(prepared_ms) FROM v22_attempts").fetchone()[0], 1_000,
+            "a retry must not rewrite the original intent")
+
+    def test_incomplete_prompt_set_is_refused(self):
+        with self.assertRaises(P.PrepError):
+            L.reserve_triple(self.con, event_id=self.eid,
+                             prompts_sha={"news": "x"}, now_ms=1_000)
+
+    def test_state_machine_is_monotone_and_terminal(self):
+        L.reserve_triple(self.con, event_id=self.eid, prompts_sha=self.hashes,
+                         now_ms=1_000)
+        self.assertTrue(L.mark_arm(self.con, event_id=self.eid, arm="news",
+                                   state="started", now_ms=1_100))
+        self.assertTrue(L.mark_arm(self.con, event_id=self.eid, arm="news",
+                                   state="completed", now_ms=1_200))
+        self.assertFalse(L.mark_arm(self.con, event_id=self.eid, arm="news",
+                                    state="failed", now_ms=1_300))
+        state = self.con.execute("SELECT state FROM v22_attempts WHERE event_id=? "
+                                 "AND arm='news'", (self.eid,)).fetchone()[0]
+        self.assertEqual(state, "completed")
+
+    def test_fault_injection_between_each_arm(self):
+        # A crash at any of the three positions must leave no seal behind.
+        for fail_at in ("news", "news_market", "market"):
+            with self.subTest(fail_at=fail_at):
+                path = os.path.join(self.dir, f"fault-{fail_at}.sqlite")
+                out, _ = L.run_offline_triple(path, event=event(),
+                                              market=MARKET, actions=ACTIONS,
+                                              fail_arm=fail_at)
+                self.assertEqual(out["status"], "refused")
+                con = L.open_v22(path)
+                try:
+                    self.assertEqual(con.execute(
+                        "SELECT COUNT(*) FROM v22_triples").fetchone()[0], 0)
+                finally:
+                    con.close()
+                    for suf in ("", "-wal", "-shm"):
+                        try:
+                            os.unlink(path + suf)
+                        except FileNotFoundError:
+                            pass
+
+    def test_crash_between_arms_leaves_no_seal(self):
+        out, _ = L.run_offline_triple(self.path, event=event(), market=MARKET,
+                                      actions=ACTIONS, fail_arm="news_market")
+        self.assertEqual(out["status"], "refused")
+        self.assertEqual(out["reason"], "arm_failed:news_market")
+        self.assertEqual(self.con.execute(
+            "SELECT COUNT(*) FROM v22_triples").fetchone()[0], 0)
+        self.assertEqual(self.con.execute(
+            "SELECT state FROM v22_attempts WHERE arm='news_market'"
+        ).fetchone()[0], "failed")
+
+    def test_resume_after_crash_never_replays(self):
+        L.reserve_triple(self.con, event_id=self.eid, prompts_sha=self.hashes,
+                         now_ms=1_000)
+        L.mark_arm(self.con, event_id=self.eid, arm="news", state="started",
+                   now_ms=1_100)
+        swept = L.sweep_stale(self.con, now_ms=1_000 + L.ATTEMPT_LEASE_MS + 1)
+        # All three arms were prepared at the same instant, so every unfinished
+        # one is stale: the started arm and the two never-started ones. None of
+        # them is replayed; each becomes unknown with its own reason.
+        self.assertEqual(sorted(x["was"] for x in swept),
+                         ["prepared", "prepared", "started"])
+        self.assertTrue(all(x["event_id"] == self.eid for x in swept))
+        state = self.con.execute("SELECT state FROM v22_attempts WHERE event_id=? "
+                                 "AND arm='news'", (self.eid,)).fetchone()[0]
+        self.assertEqual(state, "unknown")
+        # A resume cannot move an unknown arm forward: that would be a replay.
+        self.assertFalse(L.mark_arm(self.con, event_id=self.eid, arm="news",
+                                    state="completed", now_ms=2_000_000))
+
+    def test_live_attempt_is_not_swept_early(self):
+        L.reserve_triple(self.con, event_id=self.eid, prompts_sha=self.hashes,
+                         now_ms=1_000)
+        self.assertEqual(L.sweep_stale(self.con, now_ms=1_500), [])
+
+    def test_seal_refuses_when_attempts_are_not_terminal(self):
+        L.reserve_triple(self.con, event_id=self.eid, prompts_sha=self.hashes,
+                         now_ms=1_000)
+        prepared = {"prompts_sha256": self.hashes, "cutoff_ms": 999_999}
+        with self.assertRaises(P.PrepError) as ctx:
+            L.seal_triple(self.con, event=event(), prepared=prepared,
+                          arm_results=L.mock_arm_results(self.eid, ACTIONS),
+                          quote=L.mock_quote(), now_ms=2_000_000)
+        self.assertIn("attempts_not_terminal", str(ctx.exception))
+
+    def test_seal_refuses_without_any_attempt_rows(self):
+        prepared = {"prompts_sha256": self.hashes, "cutoff_ms": 999_999}
+        with self.assertRaises(P.PrepError) as ctx:
+            L.seal_triple(self.con, event=event(), prepared=prepared,
+                          arm_results=L.mock_arm_results(self.eid, ACTIONS),
+                          quote=L.mock_quote(), now_ms=2_000_000)
+        self.assertIn("attempts_incomplete", str(ctx.exception))
+
+    def test_all_terminal_arms_allow_the_seal(self):
+        L.reserve_triple(self.con, event_id=self.eid, prompts_sha=self.hashes,
+                         now_ms=1_000)
+        for arm in A.ARM_NAMES:
+            L.mark_arm(self.con, event_id=self.eid, arm=arm, state="completed",
+                       now_ms=1_100)
+        prepared = {"prompts_sha256": self.hashes, "cutoff_ms": 999_999}
+        out = L.seal_triple(self.con, event=event(), prepared=prepared,
+                            arm_results=L.mock_arm_results(self.eid, ACTIONS),
+                            quote=L.mock_quote(), now_ms=2_000_000)
+        self.assertEqual(out["status"], "sealed")
+
+
+class MethodologyAuditTests(unittest.TestCase):
+    """Stage-4 corrections, pinned so the conflation cannot come back."""
+
+    def test_prediction_and_action_baselines_are_separate(self):
+        con = L.open_v22(":memory:")
+        try:
+            scores = AN.score_rows([])
+            self.assertEqual(scores, {"n": 0})
+            # The climatology key must exist on a populated score set, and the
+            # old conflated key must be gone.
+            rows = [{"event_id": "e1", "entry_ms": 1, "day": 0, "entry": 100.0,
+                     "exit": 101.0, "exit_ms": 2, "drift_ms": 0,
+                     "outcome_up": True,
+                     "arms": {"news": 0.6, "news_market": 0.55, "market": 0.5}}]
+            out = AN.score_rows(rows)
+            self.assertIn("climatology_baseline", out)
+            self.assertNotIn("zero_trade_baseline", out)
+            self.assertIn("base_rate_up_full_sample", out)
+        finally:
+            con.close()
+
+    def test_climatology_never_uses_the_row_it_predicts(self):
+        rows = [{"event_id": f"e{i}", "entry_ms": i, "outcome_up": i % 2 == 0}
+                for i in range(4)]
+        pairs = AN.walk_forward_climatology(rows)
+        self.assertIsNone(pairs[0][1])
+        self.assertIsNone(pairs[1][1])
+        self.assertIsNotNone(pairs[2][1])
+        # The third row's rate may only contain the first two outcomes.
+        self.assertEqual(pairs[2][1], 0.5)
+
+    def test_overlap_flag_is_computable(self):
+        rows = [{"event_id": "a", "entry_ms": 0, "outcome_up": True},
+                {"event_id": "b", "entry_ms": 3_600_000, "outcome_up": False},
+                {"event_id": "c", "entry_ms": 8 * 3_600_000, "outcome_up": True}]
+        self.assertEqual(AN.overlapping_windows(rows), 1,
+                         "b starts inside a's 4h window; c does not")
+
+    def test_flat_never_enters_a_brier_comparison(self):
+        # FLAT has no probability, so it cannot be scored as a forecast.
+        con = L.open_v22(":memory:")
+        try:
+            scores = AN.score_rows([{"event_id": "e", "entry_ms": 1, "day": 0,
+                                     "entry": 100.0, "exit": 99.0,
+                                     "exit_ms": 2, "drift_ms": 0,
+                                     "outcome_up": False,
+                                     "arms": {"news": 0.4, "news_market": 0.42,
+                                              "market": 0.45}}])
+            for arm in ("news", "news_market", "market"):
+                self.assertIn("brier", scores[arm])
+            self.assertNotIn("FLAT", scores)
+        finally:
+            con.close()
+
+    def test_nomenclature_is_single_sourced(self):
+        self.assertEqual(A.PROTOCOL_VERSION, "prospective-v2.2-arms3")
+        doc = (ROOT / "docs" / "v22" / "NEWS_V22_PREREGISTRATION.md")
+        if not doc.is_file():
+            doc = (HERE / "docs_v22" / "NEWS_V22_PREREGISTRATION.md")
+        if doc.is_file():
+            text = doc.read_text(encoding="utf-8")
+            self.assertIn(A.PROTOCOL_VERSION, text)
+            self.assertNotIn("prospective-v2.3-arms3", text.replace(
+                "`prospective-v2.3-arms3` in one place", ""))

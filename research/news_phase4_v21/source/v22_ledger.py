@@ -70,6 +70,104 @@ def open_v22(path):
     return con
 
 
+ATTEMPT_STATES = ("prepared", "started", "completed", "failed", "unknown")
+TERMINAL_STATES = ("completed", "failed", "unknown")
+ATTEMPT_LEASE_MS = 30 * 60 * 1000
+
+
+def reserve_triple(con, *, event_id, prompts_sha, now_ms):
+    """Write all three attempts as `prepared` BEFORE any invocation.
+
+    Atomic: either all three rows exist or none do. A second reservation for the
+    same event returns `already_reserved` and never rewrites the first intent,
+    so a retry cannot erase the evidence that a call may have happened.
+    """
+    if sorted(prompts_sha) != sorted(ARM_ORDER):
+        raise P.PrepError("incomplete_prompt_set")
+    con.execute("BEGIN IMMEDIATE")
+    try:
+        existing = con.execute(
+            "SELECT arm,attempt_id,state FROM v22_attempts WHERE event_id=?",
+            (event_id,)).fetchall()
+        if existing:
+            con.rollback()
+            return {"status": "already_reserved",
+                    "attempts": [{"arm": a, "attempt_id": i, "state": st}
+                                 for a, i, st in existing]}
+        for arm in ARM_ORDER:
+            attempt_id = hashlib.sha256(
+                f"v22:{event_id}:{arm}".encode()).hexdigest()
+            con.execute(
+                "INSERT INTO v22_attempts(event_id,attempt_id,arm,prompt_sha256,"
+                "state,prepared_ms) VALUES(?,?,?,?,'prepared',?)",
+                (event_id, attempt_id, arm, prompts_sha[arm], int(now_ms)))
+        con.commit()
+    except BaseException:
+        con.rollback()
+        raise
+    return {"status": "reserved",
+            "attempts": [{"arm": arm,
+                          "attempt_id": hashlib.sha256(
+                              f"v22:{event_id}:{arm}".encode()).hexdigest()}
+                         for arm in ARM_ORDER]}
+
+
+def mark_arm(con, *, event_id, arm, state, now_ms=None, session_id=None,
+             detail=None):
+    """Monotone transition. A terminal row never moves again."""
+    if state not in ATTEMPT_STATES:
+        raise ValueError("invalid_attempt_state")
+    now_ms = int(now_ms if now_ms is not None else time.time() * 1000)
+    con.execute("BEGIN IMMEDIATE")
+    try:
+        row = con.execute("SELECT state FROM v22_attempts WHERE event_id=? "
+                          "AND arm=?", (event_id, arm)).fetchone()
+        if row is None:
+            con.rollback()
+            return False
+        if row[0] in TERMINAL_STATES:
+            con.rollback()
+            return False
+        con.execute(
+            "UPDATE v22_attempts SET state=?, started_ms=COALESCE(started_ms,?)"
+            ", finished_ms=?, session_id=COALESCE(?,session_id), "
+            "detail=COALESCE(?,detail) WHERE event_id=? AND arm=?",
+            (state, now_ms if state == "started" else None,
+             now_ms if state in TERMINAL_STATES else None,
+             session_id, detail, event_id, arm))
+        con.commit()
+    except BaseException:
+        con.rollback()
+        raise
+    return True
+
+
+def sweep_stale(con, *, now_ms, lease_ms=ATTEMPT_LEASE_MS):
+    """Abandoned in-flight arms become `unknown`. They are never re-run."""
+    rows = con.execute("SELECT event_id,arm,state FROM v22_attempts "
+                       "WHERE state IN ('prepared','started') AND prepared_ms<=?",
+                       (int(now_ms) - lease_ms,)).fetchall()
+    for event_id, arm, state in rows:
+        mark_arm(con, event_id=event_id, arm=arm, state="unknown",
+                 now_ms=now_ms, detail="abandoned_in_" + state)
+    return [{"event_id": e, "arm": a, "was": st} for e, a, st in rows]
+
+
+def attempts_are_terminal(con, event_id):
+    """True only when all three arms are durably terminal with full evidence."""
+    rows = con.execute("SELECT arm,state FROM v22_attempts WHERE event_id=?",
+                       (event_id,)).fetchall()
+    if len(rows) != 3:
+        return False, "attempts_incomplete"
+    states = dict(rows)
+    if sorted(states) != sorted(ARM_ORDER):
+        return False, "attempt_arms_mismatch"
+    for arm, state in states.items():
+        if state not in TERMINAL_STATES:
+            return False, "arm_not_terminal:" + arm + ":" + state
+    return True, "ok"
+
+
 def seal_triple(con, *, event, prepared, arm_results, quote, now_ms,
                 synthetic=True):
     """Persist one three-arm record. Insert-only, never updated.
@@ -79,6 +177,12 @@ def seal_triple(con, *, event, prepared, arm_results, quote, now_ms,
     a named error. There is no partial triple.
     """
     A.validate_three_arms(arm_results)
+    event_id_check = event["event_id"]
+    terminal, reason = attempts_are_terminal(con, event_id_check)
+    if not terminal:
+        # Evidence first: a triple with a still-live or missing attempt row is
+        # not sealable, even if the caller hands over three plausible answers.
+        raise P.PrepError("attempts_not_terminal:" + reason)
     P.validate_arm_contract([r for r in arm_results
                              if r["arm"] in (A.ARM_NEWS, A.ARM_NEWS_MARKET)],
                             quote)
@@ -192,17 +296,77 @@ def mock_quote(price=64000.0, observed_ms=1_010_000):
 
 
 def run_offline_triple(path, *, event, market, actions, now_ms=2_000_000,
-                       synthetic=True):
-    """prepare -> mock arms -> seal, entirely offline. No model, no network."""
+                       synthetic=True, fail_arm=None, quote_after_last=True,
+                       entry_quote_ms=None):
+    """Full offline pipeline: reserve -> mock arms -> entry quote -> seal.
+
+    Every stage the live runner would go through is exercised, minus the model:
+    the arms are reserved durably first, each transitions prepared -> started ->
+    completed (or fails on demand), the entry quote is sampled only after the
+    last arm, and the seal refuses anything incomplete.
+
+    `fail_arm` simulates a crashed arm: that arm is left `failed` and the seal
+    must refuse the triple rather than record two arms as if they were three.
+    """
     prompts = A.build_prompts_3(event, market)
-    prepared = {"prompts_sha256": A.prompts_sha256(prompts),
-                "cutoff_ms": now_ms - 1}
+    prompts_sha = A.prompts_sha256(prompts)
+    prepared = {"prompts_sha256": prompts_sha, "cutoff_ms": now_ms - 1}
     con = open_v22(path)
     try:
+        reserved = reserve_triple(con, event_id=event["event_id"],
+                                  prompts_sha=prompts_sha, now_ms=now_ms)
+        if reserved["status"] != "reserved":
+            return {"status": "already_reserved",
+                    "attempts": reserved["attempts"]}, prompts
+
         results = mock_arm_results(event["event_id"], actions)
+        for arm in ARM_ORDER:
+            mark_arm(con, event_id=event["event_id"], arm=arm, state="started",
+                     now_ms=now_ms + 100)
+            if arm == fail_arm:
+                mark_arm(con, event_id=event["event_id"], arm=arm,
+                         state="failed", now_ms=now_ms + 200,
+                         detail="mock_arm_crash")
+                continue
+            mark_arm(con, event_id=event["event_id"], arm=arm,
+                     state="completed", now_ms=now_ms + 300,
+                     session_id=f"mock-{arm}")
+
+        if fail_arm is not None:
+            return {"status": "refused",
+                    "reason": "arm_failed:" + str(fail_arm)}, prompts
+
+        last_arm_ms = max(r["completed_ms"] for r in results)
+        if not quote_after_last:
+            observed = entry_quote_ms or last_arm_ms + 1000
+        else:
+            observed = entry_quote_ms or max(last_arm_ms, 1_010_000) + 1000
+        quote = mock_quote(observed_ms=observed)
         out = seal_triple(con, event=event, prepared=prepared,
-                          arm_results=results, quote=mock_quote(),
-                          now_ms=now_ms, synthetic=synthetic)
+                          arm_results=results, quote=quote,
+                          now_ms=now_ms + 5000, synthetic=synthetic)
         return out, prompts
     finally:
         con.close()
+
+
+def export_v22(con):
+    """Append-only export of the three-arm ledger.
+
+    Nothing is rewritten on re-export: the caller writes a new file with a new
+    timestamp, exactly like the v2.1 exporter.
+    """
+    def rows(sql):
+        cur = con.execute(sql)
+        cols = [c[0] for c in cur.description]
+        return [dict(zip(cols, r)) for r in cur.fetchall()]
+
+    return {
+        "kind": "news_v22_three_arm_export",
+        "protocol_version": A.PROTOCOL_VERSION,
+        "prompt_version": A.PROMPT_VERSION,
+        "triples": rows("SELECT * FROM v22_triples ORDER BY created_ms"),
+        "arms": rows("SELECT * FROM v22_arms ORDER BY event_id,arm"),
+        "outcomes": rows("SELECT * FROM v22_outcomes ORDER BY event_id"),
+        "attempts": rows("SELECT * FROM v22_attempts ORDER BY event_id,arm"),
+    }
