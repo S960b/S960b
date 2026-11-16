@@ -3,7 +3,7 @@
 // Python SQLite remains the authority for quotas and records; this file only
 // drives exactly two sequential model calls and then returns the raw texts.
 import { assistantText, observedModel } from
-  './news-p4-v2-helpers.mjs';
+  '/home/kali/research/news-phase4-v2/news-p4-v2-helpers.mjs';
 
 const ARM_ORDER = ['news', 'news_market'];
 const HEX64 = /^[a-f0-9]{64}$/;
@@ -140,8 +140,26 @@ export async function runPaired({ client, directory, arms,
     }
     // Per-arm completion time, measured at the moment this arm's answer was
     // confirmed. Never a single timestamp stamped once for both arms.
+    // Post-hoc audit: a tool call means the sealed information set did not
+    // hold. Detection cannot undo the leak, but it must stop the pair from
+    // being sealed as if it were clean.
+    let toolCalls = 0;
+    if (typeof client.session.messages === 'function') {
+      try {
+        const hist = await client.session.messages({
+          path: { id: sid }, query: { directory },
+        });
+        const list = Array.isArray(hist?.data) ? hist.data
+          : Array.isArray(hist) ? hist : [];
+        toolCalls = list.reduce((n, m) => n + (m?.parts || [])
+          .filter((p) => p?.type === 'tool').length, 0);
+      } catch { toolCalls = -1; }
+    }
+    if (toolCalls !== 0) {
+      throw Error(`v2.1_tool_used_in_arm_no_seal:${arm.arm}`);
+    }
     results.push({ arm: arm.arm, attempt_id: arm.attempt_id,
-                   session_id: sid, text, model,
+                   session_id: sid, text, model, tools: toolCalls,
                    completed_ms: Date.now() });
     log(`v21_arm_done arm=${arm.arm}`);
   }

@@ -202,3 +202,46 @@ test('a custom agent name is honoured, never dropped', async () => {
                     agent: 'news-restricted-v2' });
   assert.deepEqual(seen, ['news-restricted-v2', 'news-restricted-v2']);
 });
+
+// --- post-hoc tool audit ---------------------------------------------------
+
+test('an arm that used a tool is refused, never sealed', async () => {
+  let n = 0;
+  const client = {
+    session: {
+      async create() { n += 1; return { data: { id: `session_${n}` } }; },
+      async prompt() {
+        return { parts: [{ type: 'text',
+          text: '{"p_up":0.5,"expected_return_bps":0,"uncertainty":0.5,"rationale":"x"}' }],
+          info: { role: 'assistant', providerID: 'deepseek', modelID: 'deepseek-v4-flash' } };
+      },
+      async messages(req) {
+        // first arm shows a websearch call, i.e. a leaked information set
+        return req.path.id === 'session_1'
+          ? [{ parts: [{ type: 'tool', tool: 'websearch' }] }]
+          : [{ parts: [{ type: 'text', text: 'ok' }] }];
+      },
+    },
+  };
+  await assert.rejects(
+    runPaired({ client, directory: '/tmp', arms: buildArmPlan(prepared()) }),
+    /tool_used_in_arm_no_seal/);
+});
+
+test('a clean pair records zero tools per arm', async () => {
+  let n = 0;
+  const client = {
+    session: {
+      async create() { n += 1; return { data: { id: `session_${n}` } }; },
+      async prompt() {
+        return { parts: [{ type: 'text',
+          text: '{"p_up":0.5,"expected_return_bps":0,"uncertainty":0.5,"rationale":"x"}' }],
+          info: { role: 'assistant', providerID: 'deepseek', modelID: 'deepseek-v4-flash' } };
+      },
+      async messages() { return [{ parts: [{ type: 'text', text: 'ok' }] }]; },
+    },
+  };
+  const out = await runPaired({ client, directory: '/tmp', arms: buildArmPlan(prepared()) });
+  assert.equal(out.results.length, 2);
+  for (const r of out.results) assert.equal(r.tools, 0);
+});

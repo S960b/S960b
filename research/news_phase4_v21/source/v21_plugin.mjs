@@ -6,12 +6,10 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync, unlinkSync,
 import { dirname, isAbsolute, join } from 'node:path';
 import { spawn } from 'node:child_process';
 import { assistantText, observedModel } from
-  './news-p4-v2-helpers.mjs';
+  '/home/kali/research/news-phase4-v2/news-p4-v2-helpers.mjs';
 import { buildArmPlan, runPaired } from './v21_paper_runner.mjs';
 
-import { fileURLToPath } from 'node:url';
-const ROOT = process.env.NEWS_V21_ROOT
-  || dirname(fileURLToPath(new URL('.', import.meta.url)));
+const ROOT = '/home/kali/research/news-phase4-v21';
 const SLOT_MS = 900_000;
 
 function runner(python, script) {
@@ -170,7 +168,8 @@ export const server = async (input = {}, options = {}) => {
       }
       result.stage = 'session_create';
       const created = await client.session.create({
-        body: { title: 'NEWS v2.1 probe' },
+        body: { title: request?.title || 'NEWS v2.1 probe',
+                agent: request?.agent || 'news-restricted' },
         query: { directory },
       });
       const sid = created?.data?.id ?? created?.id;
@@ -182,7 +181,9 @@ export const server = async (input = {}, options = {}) => {
         path: { id: sid },
         query: { directory },
         body: { parts: [{ type: 'text',
-          text: 'Reply with exactly this JSON and nothing else: '
+          text: typeof request?.text === 'string'
+            ? request.text
+            : 'Reply with exactly this JSON and nothing else: '
               + '{"probe":"ok","project":"news-v21"}' }] },
       });
       result.latency_ms = Date.now() - t1;

@@ -44,6 +44,18 @@ def _events(path):
     return con
 
 
+PAUSE_FLAG = "PAUSED_MODEL_INFERENCE"
+
+
+def inference_paused(paths):
+    """A file next to the records DB stops all model work immediately.
+
+    Config changes need a runtime reload; a file on disk does not. Any cycle
+    that would spend a model call checks this first and refuses.
+    """
+    return (Path(paths["records"]).parent / PAUSE_FLAG).exists()
+
+
 def _paths(args):
     return {"events": Path(args.events_db), "dispatch": Path(args.dispatch_db),
             "records": Path(args.records_db)}
@@ -105,6 +117,9 @@ def _trace(paths, payload):
 
 def cmd_prepare(args):
     paths = _paths(args)
+    if inference_paused(paths):
+        return emit({"status": "blocked", "reason": "model_inference_paused",
+                     "model_called": False})
     # Two clocks: the real instant of the decision (news freshness) and the
     # last closed hour (market features). Never the same value.
     decision_time_ms = args.now_ms or time.time_ns() // 1_000_000

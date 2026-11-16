@@ -14,6 +14,28 @@ Frozen at packaging time; file-level SHA-256 in `MANIFEST.sha256`.
 | data as-of | see `taken_ms` inside `data/export_*.json` |
 | tooling | Python 3.14.8, Node 22.23.1 |
 
+## 🔴 TOOL ISOLATION: FAILED / PENDING (2026-11-16T13:40Z)
+
+The bundle originally claimed the restricted agent established a sealed
+information set. **That claim was wrong and is withdrawn.** Tool invocations,
+including `websearch`, were recorded inside sessions assigned to
+`news-restricted`. Root cause: the desktop client creates sessions with
+`POST /session {body:{title}, directory}` — an `agent` field is not part of that
+payload — so agent selection never reaches enforcement, and the agent's
+`permission` block does not gate the tool registry.
+
+Consequences:
+- **no pair is audit-grade**, including `f89bc542ffdd` (tools=0 was luck, not
+  enforcement);
+- H1–H5 are **blocked**;
+- automatic model inference is **paused** (config + `PAUSED_MODEL_INFERENCE`
+  file flag) and `v21_cycle.py prepare` refuses with `model_inference_paused`;
+- this package is suitable for **failure analysis**, not for validating an edge.
+
+Verification required before any resume: the preflight probe
+(`scripts/v21_toolpreflight.py`) must exit 0 — denial proven by a rejected tool
+call, not by the model abstaining.
+
 ## Audit-grade status per pair
 
 | event | cohort | agent | tools | status |
@@ -21,7 +43,11 @@ Frozen at packaging time; file-level SHA-256 in `MANIFEST.sha256`.
 | `e0c7b377a018` | context_news | null | 1 | **PILOT_DISCOVERY** — tools were available, information set not sealed |
 | `40d21dd674c8` | context_news | null | 3 | refused (pilot, parser strictness) — no record |
 | `d619c25574da` | context_news | null | 1 | refused (pilot, truncated answer) — no record |
-| `f89bc542ffdd` | context_news | `news-restricted` | **0** | **PROSPECTIVE** — first audit-grade pair |
+| `f89bc542ffdd` | context_news | `news-restricted` | 0 | **NOT audit-grade** — agent assignment is not enforcement (see above) |
+| `df3eb36487c1` | context_news | `news-restricted` | 1 | **CONTAMINATED** — websearch executed |
+| `c377be7226e9` | context_news | `news-restricted` | 1 | **CONTAMINATED** — websearch executed |
+| `a60797c69a96` | context_news | `news-restricted` | 1 | contaminated — `memory` tool |
+| `39f9256b7bc1` | context_news | `news-restricted` | 1 | contaminated — `skill` tool |
 
 Only rows marked PROSPECTIVE may enter the evaluation cohort.
 

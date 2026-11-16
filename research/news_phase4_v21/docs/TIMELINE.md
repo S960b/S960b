@@ -35,3 +35,48 @@ All times UTC. Every entry is evidenced by a file in `data/`.
    reserved events.
 5. **Silent refusals** — refusals now leave a trace, which is why pair 1 and
    pair 3 are diagnosable instead of invisible.
+
+## 2026-11-16T13:40Z — tool isolation FAILED; inference paused
+
+An independent check of every tool part in the NEWS sessions showed that the
+`news-restricted` agent does **not** prevent tool use. Live evidence:
+
+```
+websearch  pilot sessions       5
+websearch  restricted sessions  2   (df3eb36487c1, c377be7226e9)
+memory     restricted session   1
+skill      restricted session   1
+```
+
+Root cause found by inspection of the shipped runtime bundle
+(`app.asar` → `out/main/application-*.js`): the desktop client's session-create
+call is `POST /session {method:"POST", body:{title}, directory}`
+(`createSession(directory, title)`), so an `agent` field passed at session
+creation is **not part of the documented payload**. Agent selection therefore
+does not reach the enforcement point, and the permission block in the agent file
+never gates the tool registry. The `permission` map is used by the app for its
+own ask/allow/deny prompts (`STRICT_PERMISSION` / `BALANCED_PERMISSION`), which
+is a different mechanism from disabling a tool for a session.
+
+Actions taken:
+
+1. **Automatic model inference paused.** `paper_enabled=false`,
+   `auto_enabled=false` in the plugin config (labels stay on, they cost no model
+   call) and a hard file flag
+   `~/.local/share/news-phase4-v21/PAUSED_MODEL_INFERENCE`, checked by
+   `v21_cycle.py prepare` before anything else. Verified: `prepare` returns
+   `{"status":"blocked","reason":"model_inference_paused"}`.
+2. **Preflight probe written** (`scripts/v21_toolpreflight.py`): it asks the
+   model to *use* a tool explicitly and then reads the gateway record — a refused
+   call leaves a tool part with `status:"error"`, an executed call leaves
+   `running`/`completed`. Exit 0 = denial proven, 3 = leak, 4 = inconclusive.
+   It could not be run against the live plugin yet: the running instance was
+   started before the probe gained the ability to pass custom text/agent, so it
+   answered with the old canned prompt. Blocked on one reload.
+3. **Post-hoc arm audit** in the runner: after each arm answers, the session's
+   messages are read and any tool part aborts the pair with
+   `v2.1_tool_used_in_arm_no_seal`. Detection cannot undo a leak, but it stops a
+   contaminated pair from being sealed as clean.
+
+**Status: tool isolation FAILED / PENDING. No pair may be called audit-grade, and
+H1–H5 remain blocked.**
