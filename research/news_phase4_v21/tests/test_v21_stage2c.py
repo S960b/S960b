@@ -255,9 +255,12 @@ class SourcePathParityTests(unittest.TestCase):
     }
 
     def test_every_entry_point_exists_at_its_canonical_path(self):
-        for rel, _ in self.CANONICAL.items():
-            self.assertTrue((ROOT / rel).is_file() or (HERE / rel).is_file(),
-                            rel)
+        # Two layouts: modules flat next to the tests (live tree) and under
+        # source/ (published tree). A path is satisfied by either.
+        for rel in self.CANONICAL:
+            candidates = (ROOT / rel, HERE / rel,
+                          ROOT / "source" / rel, HERE / "source" / rel)
+            self.assertTrue(any(c.is_file() for c in candidates), rel)
 
     def test_flat_export_copy_is_flagged_not_silently_used(self):
         flat = ROOT / "v21_export.py"
