@@ -18,7 +18,8 @@ ROOT = HERE.parent if (HERE.parent / 'source').is_dir() or \
     (HERE.parent / 'v21_selector.py').is_file() else HERE
 # The selector lives flat in the live tree and in source/ in the published one.
 # Search, do not assume: the first directory that actually holds it wins.
-for _cand in (ROOT, ROOT / 'source', ROOT / 'scripts', HERE):
+# Import path: the modules live flat in the live tree and in source/ here.
+for _cand in (ROOT / 'source', ROOT, ROOT / 'scripts', HERE):
     if (_cand / 'v21_selector.py').is_file():
         sys.path.insert(0, str(_cand))
         break
