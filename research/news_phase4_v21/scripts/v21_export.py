@@ -23,6 +23,24 @@ def ro(path):
     return con
 
 
+def canonical_url(body):
+    """Pick the canonical URL and say which payload key it came from.
+
+    Archived exports are never rewritten: this only decides what new exports
+    emit. A missing URL stays missing and is labelled, instead of being silently
+    collapsed into the same null as an unreadable one.
+    """
+    if not isinstance(body, dict):
+        return None, "payload_not_an_object"
+    for key in ("origin_url", "url", "link", "canonical_url"):
+        value = body.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip(), key
+        if value is not None:
+            return None, key + "_not_a_string"
+    return None, "absent"
+
+
 def sanitise_title(text):
     if not text:
         return None
@@ -40,6 +58,7 @@ def events(con):
             body = json.loads(payload or "{}")
         except ValueError:
             body = {}
+        canonical, url_provenance = canonical_url(body)
         out.append({
             "event_id": eid,
             "source": source,
@@ -48,7 +67,15 @@ def events(con):
             "source_kind": kind,
             "cohort": cohort,
             "title": sanitise_title(body.get("title")),
-            "url": body.get("url") or body.get("link"),
+            "url": canonical,
+            # D10: the canonical URL used to be read from `url`/`link` only, so
+            # every event whose payload carries `origin_url` exported null and
+            # the auditor could not verify the story existed. The URL is now
+            # resolved across the known keys and the key actually used is
+            # recorded, so a null is never ambiguous.
+            "origin_url": (body.get("origin_url")
+                           if isinstance(body.get("origin_url"), str) else None),
+            "url_provenance": url_provenance,
             "origin_id_present": bool(origin),
         })
     return out

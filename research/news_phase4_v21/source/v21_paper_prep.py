@@ -71,6 +71,27 @@ class PrepError(ValueError):
     pass
 
 
+def cohort_pair(event):
+    """(declared, effective) without inventing a past state.
+
+    `event["cohort"]` is the cohort at decision time; `declared_cohort` is what
+    the collector originally declared. If the selector did not record one, it is
+    None and stays None - we never back-fill it from the effective value.
+    """
+    effective = event.get("cohort")
+    declared = event.get("declared_cohort")
+    return declared, effective
+
+
+def cohort_provenance(event):
+    declared, effective = cohort_pair(event)
+    if declared is None:
+        return "declared_absent"
+    if effective is None:
+        return "effective_absent"
+    return "declared_eq_effective" if declared == effective else "demoted_at_decision"
+
+
 def require(ok, code):
     if not ok:
         raise PrepError(code)
@@ -154,11 +175,18 @@ def build_prompts(event, market, *, prompt_version=PROMPT_SYSTEM_VERSION):
     require(isinstance(market, dict) and market.get("candle_count") == 26,
             "market_features_required")
     src_kind = event.get("source_kind") or "unknown"
+    # D06: both cohorts travel in the prompt/record contract. `effective` is the
+    # verdict at decision time; `declared` is what the collector claimed, and it
+    # stays null when the selector never recorded one - no back-filling.
+    declared_cohort, effective_cohort = cohort_pair(event)
     base = {
         "policy": "news_v21_free_sources_20261115",
         "symbol": "BTCUSDT",
         "event_id": event["event_id"],
         "cohort": event["cohort"],
+        "declared_cohort": declared_cohort,
+        "effective_cohort": effective_cohort,
+        "cohort_provenance": cohort_provenance(event),
         "source_kind": src_kind,
         "provenance": ("secondary_media" if src_kind == "media"
                        else "primary_source"),
@@ -501,6 +529,9 @@ def parse_quote(payload):
 
 
 SCHEMA_RECORDS = """
+-- declared_cohort / effective_cohort were added after the ledger already held
+-- rows; they are nullable on purpose so old rows keep NULL (unknown), and a
+-- reader can always tell "not recorded" from "recorded and equal".
 CREATE TABLE IF NOT EXISTS paper_records(
  event_id TEXT PRIMARY KEY,
  cohort TEXT NOT NULL,
@@ -546,10 +577,14 @@ CREATE TABLE IF NOT EXISTS paper_outcomes(
 
 OUTCOME_COLUMNS = (("due_ms", "INTEGER"), ("drift_ms", "INTEGER"),
                    ("method", "TEXT"))
+# D06: recorded after the ledger already held rows. Nullable on purpose, so an
+# old row keeps NULL (unknown) instead of inheriting a guessed value.
+COHORT_COLUMNS = (("declared_cohort", "TEXT"), ("effective_cohort", "TEXT"),
+                  ("cohort_provenance", "TEXT"))
 
 
 def migrate_records(con):
-    """Add outcome audit columns to a database created before they existed.
+    """Add audit columns to a database created before they existed.
 
     CREATE TABLE IF NOT EXISTS silently leaves an older table alone, so the
     label writer failed at the very first due instant while the tick reported
@@ -560,6 +595,10 @@ def migrate_records(con):
     for name, kind in OUTCOME_COLUMNS:
         if name not in have:
             con.execute(f"ALTER TABLE paper_outcomes ADD COLUMN {name} {kind}")
+    rec_have = {r[1] for r in con.execute("PRAGMA table_info(paper_records)")}
+    for name, kind in COHORT_COLUMNS:
+        if name not in rec_have:
+            con.execute(f"ALTER TABLE paper_records ADD COLUMN {name} {kind}")
     con.commit()
 
 
@@ -615,16 +654,19 @@ def record_pair(con, *, event, prepared, arm_results, quote, now_ms,
         "provider": provider, "synthetic": bool(synthetic)})
     con.execute("BEGIN IMMEDIATE")
     try:
+        declared, effective = cohort_pair(event)
         con.execute(
             "INSERT INTO paper_records(event_id,cohort,source,published_ms,"
             "observed_ms,cutoff_ms,reserved_ms,completed_ms,provider_id,"
-            "model_id,seal_sha256,synthetic,state) "
-            "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
-            (event_id, event["cohort"], event["source"],
+            "model_id,seal_sha256,synthetic,state,"
+            "declared_cohort,effective_cohort,cohort_provenance) "
+            "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            (event_id, effective or declared, event["source"],
              event["published_ms"], event["observed_ms"],
              prepared["cutoff_ms"], prepared["reserved_ms"], now_ms,
              provider.get("providerID"), provider.get("modelID"),
-             seal, 1 if synthetic else 0, "complete"))
+             seal, 1 if synthetic else 0, "complete",
+             declared, effective, cohort_provenance(event)))
         for a in parsed_arms:
             con.execute(
                 "INSERT INTO paper_arms(event_id,arm,attempt_id,session_id,"

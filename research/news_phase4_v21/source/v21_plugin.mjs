@@ -153,6 +153,43 @@ export const server = async (input = {}, options = {}) => {
   // uses, written OUTSIDE every NEWS ledger. Triggered by a request file that
   // contains only the target and a nonce - never a credential. Runs at most
   // once per request file, never retries an ambiguous call.
+  const PROBE_TEXT_MAX = 64 * 1024;
+
+  function boundedText(text, limit) {
+    if (typeof text !== 'string') return { text: null, length: 0, truncated: false };
+    if (text.length <= limit) {
+      return { text, length: text.length, truncated: false };
+    }
+    // Refusing to guess: an oversized answer is reported as absent rather than
+    // handed over in a silently mangled form.
+    return { text: null, length: text.length, truncated: true };
+  }
+
+  async function probeToolEvidence(c, { sid, directory }) {
+    if (typeof c?.session?.messages !== 'function') {
+      return { complete: false, count: null, terminal: null,
+               provenance: 'sdk_session_messages_unavailable' };
+    }
+    let hist;
+    try {
+      hist = await c.session.messages({ path: { id: sid }, query: { directory } });
+    } catch {
+      return { complete: false, count: null, terminal: null,
+               provenance: 'sdk_session_messages_throw' };
+    }
+    const list = Array.isArray(hist?.data) ? hist.data
+      : Array.isArray(hist) ? hist : null;
+    if (list === null || list.length === 0 ||
+        list.some((m) => !m || typeof m !== 'object')) {
+      return { complete: false, count: null, terminal: null,
+               provenance: 'sdk_session_messages_incomplete' };
+    }
+    const count = list.reduce((n, m) => n + (Array.isArray(m.parts)
+      ? m.parts.filter((x) => x && x.type === 'tool').length : 0), 0);
+    return { complete: true, count, terminal: 'completed',
+             provenance: 'sdk_session_messages' };
+  }
+
   const probeRequest = join(root, '.mt-v21-probe-request');
   const probeResult = join(root, '.mt-v21-probe-result.json');
   let probeBusy = false;
@@ -194,9 +231,26 @@ export const server = async (input = {}, options = {}) => {
       result.latency_ms = Date.now() - t1;
       const text = assistantText(response);
       const model = observedModel(response);
-      result.response_text = typeof text === 'string'
-        ? text.slice(0, 300) : null;
+      // D07: the answer used to be cut at 300 characters, which can slice a
+      // JSON envelope mid-token. The full text is returned; the length is
+      // reported separately so a caller can bound it without silently losing
+      // the tail.
+      const envelope = boundedText(text, PROBE_TEXT_MAX);
+      result.response_text = envelope.text;
+      result.response_length = envelope.length;
+      result.response_truncated = envelope.truncated;
       result.model = model;
+
+      // D07/D01: the tool evidence a prompt-only claim depends on. It is read
+      // here, inside the plugin, because only the plugin owns the SDK client.
+      // When the runtime cannot supply it the fields are explicitly false/null
+      // and the reader downstream must treat the arm as UNKNOWN - this probe
+      // never guesses a zero.
+      const evidence = await probeToolEvidence(client, { sid, directory });
+      result.tool_history_complete = evidence.complete;
+      result.tools = evidence.count;
+      result.tool_evidence_provenance = evidence.provenance;
+      result.session_terminal = evidence.terminal;
       const usage = response?.data?.info?.tokens ?? response?.info?.tokens;
       if (usage && typeof usage === 'object') {
         result.usage = {

@@ -131,9 +131,12 @@ def select(con, now_ms=None, limit=1, min_relevance=0.2):
             reasons.append("older_than_2h")
         if ev["relevance"] < min_relevance:
             reasons.append("not_btc_relevant")
+        # D09: duplicates are no longer resolved at this point. Declining here
+        # happened BEFORE ranking, so the first variant seen won and a secondary
+        # mirror could suppress a primary source. The key travels with the
+        # candidate and the choice is made after ranking.
         key = dedupe_key(ev)
-        if key and key in seen:
-            reasons.append("duplicate_of_" + seen[key][:12])
+        ev["dedupe_key"] = key
         if reasons:
             decisions.append({"event_id": ev["event_id"],
                               "source": ev["source"],
@@ -143,24 +146,48 @@ def select(con, now_ms=None, limit=1, min_relevance=0.2):
                               "decision": "declined",
                               "reasons": reasons})
             continue
-        seen.setdefault(key, ev["event_id"])
         rank = (
             0 if ev["cohort"] == "fast_verified" else 1,
             0 if ev["source"] in PRIMARY_SOURCES else 1,
             -ev["relevance"],
             age_ms,
+            # Explicit, deterministic tie breaker: the event id. Two variants
+            # that agree on every ranking component must still order the same
+            # way on every run and on every row source.
+            ev["event_id"],
         )
         ranked.append((rank, ev))
         decisions.append({"event_id": ev["event_id"], "source": ev["source"],
                           "cohort": ev["cohort"], "age_ms": age_ms,
                           "relevance": round(ev["relevance"], 2),
+                          "dedupe_key": (key[:16] if key else None),
                           "decision": "candidate"})
+
     ranked.sort(key=lambda x: x[0])
-    chosen = [ev for _, ev in ranked][:max(0, limit)]
-    for c in chosen:
-        for d in decisions:
-            if d["event_id"] == c["event_id"]:
-                d["decision"] = "selected"
+    # One event, one pair: the highest-ranked variant of each story is the only
+    # one eligible for selection; the rest are recorded as duplicates of it.
+    winners, kept = {}, []
+    for rank, ev in ranked:
+        key = ev.get("dedupe_key")
+        if key:
+            if key in winners:
+                winners[key]["duplicates"].append(ev["event_id"])
+                continue
+            winners[key] = {"event_id": ev["event_id"], "duplicates": []}
+        kept.append(ev)
+
+    chosen = kept[:max(0, limit)]
+    primary_ids = {e["event_id"] for e in kept}
+    for d in decisions:
+        eid = d["event_id"]
+        own = next((ev.get("dedupe_key") for _, ev in ranked
+                    if ev["event_id"] == eid), None)
+        if eid not in primary_ids and own in winners:
+            d["decision"] = "declined"
+            d["reasons"] = ["duplicate_of_" + winners[own]["event_id"][:12]]
+            d["superseded_by"] = winners[own]["event_id"]
+        elif eid in {c["event_id"] for c in chosen}:
+            d["decision"] = "selected"
     return chosen, decisions
 
 
