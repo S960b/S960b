@@ -4,6 +4,7 @@ Simulates one full paired decision without any network call: prepare -> two arm
 texts -> parse -> gate -> quote -> immutable record -> matured label.
 """
 import os
+import sqlite3
 import tempfile
 import unittest
 
@@ -301,3 +302,53 @@ class AmbiguousResponseTests(unittest.TestCase):
             P.parse_arm_response(
                 '{"p_up":1.7,"expected_return_bps":0,"uncertainty":0.6,'
                 '"rationale":"x"}')
+
+
+class OutcomeSchemaMigrationTests(unittest.TestCase):
+    """A pre-existing paper_outcomes table must gain the audit columns.
+
+    The label writer crashed at the first due instant because the table had been
+    created before due_ms/drift_ms/method existed, and CREATE TABLE IF NOT
+    EXISTS leaves an old table untouched. Silence was the real defect.
+    """
+
+    def test_old_table_is_migrated_in_place(self):
+        fd, path = tempfile.mkstemp(suffix=".sqlite")
+        os.close(fd)
+        legacy = sqlite3.connect(path)
+        legacy.executescript("""
+          CREATE TABLE paper_outcomes(
+            event_id TEXT NOT NULL, horizon_h INTEGER NOT NULL,
+            exit_ms INTEGER NOT NULL, price REAL NOT NULL,
+            settled_ms INTEGER NOT NULL, observed_ms INTEGER NOT NULL,
+            PRIMARY KEY(event_id, horizon_h));
+          INSERT INTO paper_outcomes VALUES('legacy', 4, 1, 2.0, 3, 4);
+        """)
+        legacy.commit()
+        legacy.close()
+        con = P.open_records(path)
+        try:
+            cols = {r[1] for r in con.execute("PRAGMA table_info(paper_outcomes)")}
+            for name in ("due_ms", "drift_ms", "method"):
+                self.assertIn(name, cols, f"{name} must be added")
+            kept = con.execute(
+                "SELECT price FROM paper_outcomes WHERE event_id='legacy'"
+            ).fetchone()[0]
+            self.assertEqual(kept, 2.0, "existing rows must be preserved")
+        finally:
+            con.close()
+            os.unlink(path)
+
+    def test_migration_is_idempotent(self):
+        fd, path = tempfile.mkstemp(suffix=".sqlite")
+        os.close(fd)
+        for _ in range(3):
+            con = P.open_records(path)
+            con.close()
+        con = P.open_records(path)
+        try:
+            cols = [r[1] for r in con.execute("PRAGMA table_info(paper_outcomes)")]
+            self.assertEqual(cols.count("due_ms"), 1)
+        finally:
+            con.close()
+            os.unlink(path)

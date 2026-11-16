@@ -8,7 +8,13 @@ import sys
 import unittest
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
+# The same file lives at the bundle root (tests/ next to scripts/) and inside
+# tests/ in the deployed tree. Search both instead of assuming one layout.
+_HERE = Path(__file__).resolve().parent
+for _cand in (_HERE / 'scripts', _HERE.parent / 'scripts'):
+    if (_cand / 'v21_toolpreflight.py').is_file():
+        sys.path.insert(0, str(_cand))
+        break
 
 import v21_toolpreflight as P
 

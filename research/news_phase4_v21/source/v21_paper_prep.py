@@ -516,11 +516,31 @@ CREATE TABLE IF NOT EXISTS paper_outcomes(
 """
 
 
+OUTCOME_COLUMNS = (("due_ms", "INTEGER"), ("drift_ms", "INTEGER"),
+                   ("method", "TEXT"))
+
+
+def migrate_records(con):
+    """Add outcome audit columns to a database created before they existed.
+
+    CREATE TABLE IF NOT EXISTS silently leaves an older table alone, so the
+    label writer failed at the very first due instant while the tick reported
+    nothing. Adding the columns is safe: they are nullable and existing rows
+    keep their values.
+    """
+    have = {r[1] for r in con.execute("PRAGMA table_info(paper_outcomes)")}
+    for name, kind in OUTCOME_COLUMNS:
+        if name not in have:
+            con.execute(f"ALTER TABLE paper_outcomes ADD COLUMN {name} {kind}")
+    con.commit()
+
+
 def open_records(path):
     con = sqlite3.connect(path, timeout=5)
     con.execute("PRAGMA journal_mode=WAL")
     con.execute("PRAGMA synchronous=FULL")
     con.executescript(SCHEMA_RECORDS)
+    migrate_records(con)
     con.commit()
     return con
 

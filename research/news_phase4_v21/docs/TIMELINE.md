@@ -118,3 +118,56 @@ absolute `/home/kali/...` path (my clean-clone tests only passed because that
 folder exists on this machine). All three now resolve relatively, `ROOT` comes
 from `NEWS_V21_ROOT` or the module directory, and the Node suite runs from a
 sandbox with a throwaway `HOME` and no access to the old directory.
+
+## 2026-11-16T14:25Z — first 4h label settled, and a silent schema bug found
+
+`e0c7b377a018` became due at 14:13:35Z and, at the 14:24 tick, `v21_outcomes`
+reported `settled=0` with no error visible in the log. The cause was not the
+anchor: `paper_outcomes` had been created **before** `due_ms`, `drift_ms` and
+`method` existed, and `CREATE TABLE IF NOT EXISTS` leaves an old table alone, so
+the insert failed on a missing column on every tick.
+
+Fixed by `migrate_records()` in `open_records()`: missing columns are added with
+`ALTER TABLE`, existing rows preserved, operation idempotent. Two regression
+tests cover the in-place migration and repeated opening.
+
+The label then settled on its own terms:
+
+```
+event     e0c7b377a018
+due       14:13:35.304Z
+exit      14:13:59.999Z      (first 1m close at or after due)
+drift     24 695 ms  ≤ 60 s
+method    binance_public_1m_close
+entry     64 408.49 → exit 64 239.98 = −26.2 bps
+paper     news FLAT → 0.0 bps net, news_market FLAT → 0.0 bps net
+```
+
+Both arms were FLAT, so the paper net is exactly zero; the realised move is
+recorded for measurement, not as a win. Rows 2–6 remain FUTURE with due times
+between 14:50Z and 15:58Z.
+
+## 2026-11-16T14:15Z — tool-free route search: no supported option
+
+Ranked by feasibility, with what was actually checked:
+
+1. **Native non-agentic completion through the configured gateway — NOT FOUND.**
+   The app bundle contains no `/chat/completions`, `/completions` or equivalent
+   path. The client's only generation entry is `prompt_async` with
+   `body {parts, model?}`, and that body carries no tool filter. The sidecar HTTP
+   server exists on `127.0.0.1:39107` but answers `401 Unauthorized` for every
+   endpoint I tried (`/config`, `/provider`, `/agent`, `/tool`) with the
+   documented `opencode` username.
+2. **Separate isolated process with `tools: []` — NOT AVAILABLE.** Any client
+   needs the sidecar's Basic credentials, which the app generates and holds. Using
+   them would mean reading runtime secrets of the owner's session, which the task
+   forbids.
+3. **Narrow API change — the only real path.** Needs, upstream, either
+   `session.create` accepting `agent`/`tools` or `prompt_async` accepting a tool
+   filter, with a server-side registry exclusion. That is an architecture
+   proposal, not a feature of this build.
+
+**Verdict: BLOCKED.** No tested route yields positive proof of zero available
+tools, so the acceptance test (adversarial websearch attempt denied *before*
+invocation, or a verified empty registry at the generation boundary) cannot be
+satisfied. Inference stays paused.
