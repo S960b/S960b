@@ -38,7 +38,37 @@ def main(argv=None):
         quick = con.execute("PRAGMA quick_check").fetchone()[0]
     finally:
         con.close()
-    payload = {"kind": "news_v21_prompt_only_pilot", "version": 1,
+    # Stored labels are historical facts and stay untouched. What the export
+    # additionally exposes is the classification those rows still support: a
+    # pair with no persisted tool provenance has UNKNOWN evidence and can never
+    # be presented as compliant, whatever its stored label says.
+    states = ("known_zero", "known_positive", "unknown")
+    for arm in arms:
+        if arm.get("tool_evidence") not in states:
+            arm["tool_evidence"] = "unknown"
+            arm.setdefault("tool_evidence_provenance", "absent")
+            arm["tool_evidence_derived"] = True
+        else:
+            arm["tool_evidence_derived"] = False
+    per_pair = {}
+    for arm in arms:
+        per_pair.setdefault(arm["event_id"], []).append(arm)
+    for pair in pairs:
+        evs = per_pair.get(pair["event_id"], [])
+        pos = [e.get("tool_evidence") for e in evs]
+        if not evs or any(s == "unknown" for s in pos):
+            eff = "PILOT_TOOL_EVIDENCE_UNKNOWN"
+        elif any(s == "known_positive" for s in pos):
+            eff = "PILOT_PROMPT_ONLY_TOOL_LEAK"
+        elif not all(x.get("session_verified") == 1 for x in evs):
+            eff = "PILOT_SESSION_UNVERIFIED"
+        else:
+            eff = "PROMPT_ONLY_COMPLIANT_ONE_PAIR"
+        pair["label_stored"] = pair.get("label")
+        pair["label_effective"] = eff
+        pair["evidence_version"] = (evs[0].get("evidence_version") if evs
+                                    else None)
+    payload = {"kind": "news_v21_prompt_only_pilot", "version": 2,
                "quick_check": quick, "pairs": pairs, "arms": arms,
                "outcomes": outcomes,
                "note": ("PILOT ONLY. prompt-only-pilot-v1 header; the tool ban is "

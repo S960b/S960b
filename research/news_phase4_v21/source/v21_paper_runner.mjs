@@ -64,6 +64,57 @@ function requireSession(client) {
  * Run exactly one paired attempt. Never retries: if a call is ambiguous the
  * reservation stays and the caller must reconcile manually.
  */
+export const TOOL_ZERO = 'known_zero';
+export const TOOL_POSITIVE = 'known_positive';
+export const TOOL_UNKNOWN = 'unknown';
+
+/**
+ * Read one arm's tool history and classify it without inventing a zero.
+ *
+ * A session that answered, yet reports an empty history, is a contradiction:
+ * the assistant message itself is missing, so the view was truncated or taken
+ * too early. That is unknown, not clean. Same for a missing API, a transport
+ * error and any non-array payload.
+ */
+async function toolEvidence(client, { sid, directory, arm }) {
+  if (typeof client?.session?.messages !== 'function') {
+    return { state: TOOL_UNKNOWN, count: null, reason: 'no_history_api',
+             provenance: 'sdk_session_messages_unavailable' };
+  }
+  let hist;
+  try {
+    hist = await client.session.messages({
+      path: { id: sid }, query: { directory },
+    });
+  } catch {
+    return { state: TOOL_UNKNOWN, count: null, reason: 'transport_error',
+             provenance: 'sdk_session_messages_throw' };
+  }
+  const list = Array.isArray(hist?.data) ? hist.data
+    : Array.isArray(hist) ? hist : null;
+  if (list === null) {
+    return { state: TOOL_UNKNOWN, count: null, reason: 'history_not_a_list',
+             provenance: 'sdk_session_messages_shape' };
+  }
+  const messages = list.filter((m) => m && typeof m === 'object');
+  if (list.length > 0 && messages.length !== list.length) {
+    // Part of the history is unreadable, so the zero would be a guess.
+    return { state: TOOL_UNKNOWN, count: null, reason: 'history_malformed',
+             provenance: 'sdk_session_messages_malformed' };
+  }
+  if (list.length === 0) {
+    return { state: TOOL_UNKNOWN, count: null, reason: 'empty_snapshot',
+             provenance: 'empty_but_unproven_history' };
+  }
+  const toolParts = messages.reduce((n, m) => n + (Array.isArray(m.parts)
+    ? m.parts.filter((p) => p && p.type === 'tool').length : 0), 0);
+  return toolParts > 0
+    ? { state: TOOL_POSITIVE, count: toolParts, reason: 'tool_part_present',
+        provenance: `sdk_session_messages:${arm}` }
+    : { state: TOOL_ZERO, count: 0, reason: 'no_tool_parts',
+        provenance: `sdk_session_messages:${arm}` };
+}
+
 export async function runPaired({ client, directory, arms,
                                   agent = 'news-restricted',
                                   log = () => {} }) {
@@ -143,23 +194,27 @@ export async function runPaired({ client, directory, arms,
     // Post-hoc audit: a tool call means the sealed information set did not
     // hold. Detection cannot undo the leak, but it must stop the pair from
     // being sealed as if it were clean.
-    let toolCalls = 0;
-    if (typeof client.session.messages === 'function') {
-      try {
-        const hist = await client.session.messages({
-          path: { id: sid }, query: { directory },
-        });
-        const list = Array.isArray(hist?.data) ? hist.data
-          : Array.isArray(hist) ? hist : [];
-        toolCalls = list.reduce((n, m) => n + (m?.parts || [])
-          .filter((p) => p?.type === 'tool').length, 0);
-      } catch { toolCalls = -1; }
+    //
+    // The evidence is typed, not a number with a magic -1. Three outcomes are
+    // possible and only one of them permits a seal:
+    //   verified zero  -> the whole history was read and holds no tool part
+    //   positive usage -> a tool ran, the arm is contaminated
+    //   unknown        -> the history could not be read or proven complete
+    // "Unknown" is refused exactly like "positive": a count that was never
+    // observed must never be written down as zero.
+    const evidence = await toolEvidence(client, { sid, directory, arm: arm.arm });
+    if (evidence.state === TOOL_UNKNOWN) {
+      throw Error(`v2.1_tool_history_unknown:${evidence.reason}:${arm.arm}`);
     }
-    if (toolCalls !== 0) {
+    if (evidence.state === TOOL_POSITIVE) {
       throw Error(`v2.1_tool_used_in_arm_no_seal:${arm.arm}`);
     }
     results.push({ arm: arm.arm, attempt_id: arm.attempt_id,
-                   session_id: sid, text, model, tools: toolCalls,
+                   session_id: sid, text, model, tools: evidence.count,
+                   tool_evidence: evidence.state,
+                   tool_evidence_provenance: evidence.provenance,
+                   tool_history_complete: true,
+                   session_terminal: 'completed',
                    completed_ms: Date.now() });
     log(`v21_arm_done arm=${arm.arm}`);
   }

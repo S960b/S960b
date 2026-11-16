@@ -192,11 +192,19 @@ class GuardTests(PrepTestBase):
                           ("daily_pair_cap", "daily_call_cap"))
 
     def test_synthetic_reservations_do_not_touch_production_bucket(self):
+        # D19: this used to assert calls_today == 0, which only held on a host
+        # that happens to carry the legacy v2 database. Without it the counter
+        # fail-closes to MAX_CALLS_PER_DAY, which is the CORRECT safety
+        # behaviour. The test therefore compares against its own baseline
+        # instead of pinning an environment-dependent absolute number.
+        before = D.status(self.con, NOW)["production"]["calls_today"]
         P.prepare(None, self.con, event(), enabled=True, now_ms=NOW,
                   market=MARKET)
-        st = D.status(self.con, NOW)
-        self.assertEqual(st["production"]["calls_today"], 0)
-        self.assertEqual(st["synthetic"]["calls_today"], 2)
+        after = D.status(self.con, NOW)
+        self.assertEqual(after["production"]["calls_today"], before,
+                         "a synthetic reservation must not move the "
+                         "production bucket")
+        self.assertEqual(after["synthetic"]["calls_today"], 2)
 
 
 class ResponseAndGateTests(unittest.TestCase):

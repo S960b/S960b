@@ -38,6 +38,23 @@ VERSION = P.PROMPT_ONLY_VERSION
 # owner's access is free to them, and refusing a pair over a billing estimate
 # would silently stop the experiment for no methodological reason.
 MAX_PILOT_COST_USD = None
+
+# Tool evidence is tri-state on purpose. "No tool count was reported" is not the
+# same fact as "zero tool calls were observed", and only the second can support
+# a compliance claim. Summing a possibly missing count silently upgraded
+# unverified pairs to clean, so every reader goes through the tri-state below.
+TOOL_KNOWN_ZERO = "known_zero"
+TOOL_KNOWN_POSITIVE = "known_positive"
+TOOL_UNKNOWN = "unknown"
+TOOL_EVIDENCE_STATES = (TOOL_KNOWN_ZERO, TOOL_KNOWN_POSITIVE, TOOL_UNKNOWN)
+EVIDENCE_VERSION = "tool-evidence-v1"
+# Terminal session states that make "the arm finished and nothing else ran"
+# checkable. Anything else is unverified, never assumed.
+TERMINAL_SESSION_STATES = ("idle", "completed", "done", "stopped", "closed")
+LABEL_COMPLIANT = "PROMPT_ONLY_COMPLIANT_ONE_PAIR"
+LABEL_TOOL_LEAK = "PILOT_PROMPT_ONLY_TOOL_LEAK"
+LABEL_EVIDENCE_UNKNOWN = "PILOT_TOOL_EVIDENCE_UNKNOWN"
+LABEL_SESSION_UNVERIFIED = "PILOT_SESSION_UNVERIFIED"
 PILOT_SCHEMA = """
 CREATE TABLE IF NOT EXISTS pilot_pairs(
  event_id TEXT PRIMARY KEY, label TEXT NOT NULL,
@@ -61,7 +78,21 @@ CREATE TABLE IF NOT EXISTS pilot_settle_log(
  id INTEGER PRIMARY KEY AUTOINCREMENT, at_ms INTEGER NOT NULL,
  status TEXT NOT NULL, settled INTEGER NOT NULL, pending INTEGER NOT NULL,
  detail TEXT);
+CREATE TABLE IF NOT EXISTS pilot_annotations(
+ id INTEGER PRIMARY KEY AUTOINCREMENT, event_id TEXT NOT NULL,
+ version TEXT NOT NULL, kind TEXT NOT NULL, at_ms INTEGER NOT NULL,
+ detail TEXT NOT NULL, UNIQUE(event_id, version, kind));
 """
+
+# Columns added after the ledger already held rows. Old rows keep NULL, and
+# NULL reads as UNKNOWN: a missing provenance must never be re-labelled clean.
+ARM_EVIDENCE_COLUMNS = (
+    ("tool_evidence", "TEXT"),
+    ("tool_evidence_provenance", "TEXT"),
+    ("tool_evidence_count", "INTEGER"),
+    ("session_verified", "INTEGER"),
+    ("evidence_version", "TEXT"),
+)
 
 
 def emit(obj, code=0):
@@ -69,13 +100,84 @@ def emit(obj, code=0):
     return code
 
 
-def open_pilot():
+def open_pilot(read_only=False):
+    if read_only:
+        con = sqlite3.connect(f"file:{PILOT_DB}?mode=ro", uri=True, timeout=5)
+        con.execute("PRAGMA query_only=ON")
+        return con
     con = sqlite3.connect(PILOT_DB, timeout=5)
     con.execute("PRAGMA journal_mode=WAL")
     con.execute("PRAGMA synchronous=FULL")
     con.executescript(PILOT_SCHEMA)
+    migrate_pilot(con)
     con.commit()
     return con
+
+
+def migrate_pilot(con):
+    """Additive only: new columns are nullable and old rows are left as-is."""
+    have = {r[1] for r in con.execute("PRAGMA table_info(pilot_arms)")}
+    for name, sqltype in ARM_EVIDENCE_COLUMNS:
+        if name not in have:
+            con.execute(f"ALTER TABLE pilot_arms ADD COLUMN {name} {sqltype}")
+
+
+def _unverified(reason):
+    return {"pos": TOOL_UNKNOWN, "provenance": reason, "count": None,
+            "complete": False, "session_verified": False}
+
+
+def arm_tool_evidence(result):
+    """Classify one arm's tool history. Absence is UNKNOWN, never zero.
+
+    A zero is only accepted when the producer also asserts that the history it
+    read was complete. Without that assertion the count is unfalsifiable: it may
+    be a truncated view, an empty early snapshot, or a field that simply was not
+    sent, so it is recorded as unknown and cannot support compliance.
+    """
+    if not isinstance(result, dict):
+        return _unverified("result_not_a_mapping")
+    provenance = result.get("tool_evidence_provenance")
+    provenance = provenance if isinstance(provenance, str) and provenance \
+        else "unstated"
+    raw = result.get("tools", None)
+    if "tools" not in result or raw is None:
+        return _unverified("missing_tool_history:" + provenance)
+    if isinstance(raw, bool) or not isinstance(raw, int):
+        return _unverified("tool_count_not_integer:" + type(raw).__name__)
+    if raw < 0:
+        return _unverified("collector_error_sentinel:" + provenance)
+    if result.get("tool_history_complete") is not True:
+        # A gateway-reported zero without proof of completeness is unproven.
+        return _unverified("history_not_proven_complete:" + provenance)
+    session_id = result.get("session_id")
+    verified = isinstance(session_id, str) and bool(session_id.strip())
+    terminal = result.get("session_terminal")
+    if not (isinstance(terminal, str) and terminal in TERMINAL_SESSION_STATES):
+        verified = False
+    return {"pos": TOOL_KNOWN_POSITIVE if raw > 0 else TOOL_KNOWN_ZERO,
+            "provenance": provenance, "count": int(raw), "complete": True,
+            "session_verified": bool(verified)}
+
+
+def classify_pair(evidence):
+    """Final classification from per-arm tri-state evidence, fail-closed."""
+    states = [e["pos"] for e in evidence]
+    if TOOL_KNOWN_POSITIVE in states:
+        return LABEL_TOOL_LEAK
+    if TOOL_UNKNOWN in states:
+        return LABEL_EVIDENCE_UNKNOWN
+    if not all(e["session_verified"] for e in evidence):
+        return LABEL_SESSION_UNVERIFIED
+    return LABEL_COMPLIANT
+
+
+def verified_tool_total(evidence):
+    """Sum only counts that are actually known; None when any arm is unknown."""
+    counts = [e["count"] for e in evidence if e["pos"] != TOOL_UNKNOWN]
+    if len(counts) != len(evidence):
+        return None
+    return int(sum(counts))
 
 
 class QuoteError(ValueError):
@@ -118,16 +220,63 @@ def public_quote(after_ms=None):
 def cmd_status(args):
     if not PILOT_DB.is_file():
         return emit({"status": "empty", "pilot_db": False})
-    con = open_pilot()
+    con = open_pilot(read_only=True)
     try:
+        have = {r[1] for r in con.execute("PRAGMA table_info(pilot_arms)")}
+        ev_cols = ",".join(c for c, _t in ARM_EVIDENCE_COLUMNS if c in have)
         rows = con.execute("SELECT event_id,label,tool_calls,completions,"
                            "cost_usd FROM pilot_pairs").fetchall()
-        arms = con.execute("SELECT event_id,arm,action FROM pilot_arms").fetchall()
+        arms = con.execute("SELECT event_id,arm,action" +
+                           (("," + ev_cols) if ev_cols else "") +
+                           " FROM pilot_arms").fetchall()
         outs = con.execute("SELECT event_id,exit_ms FROM pilot_outcomes").fetchall()
     finally:
         con.close()
-    return emit({"status": "ok", "pairs": rows, "arms": arms,
+    # NULL / missing evidence reads as UNKNOWN here as well: reporting it as a
+    # clean zero would undo the tri-state at the last step.
+    names = ["event_id", "arm", "action"] + list(ev_cols.split(",") if ev_cols
+                                                 else [])
+    arm_rows = []
+    for r in arms:
+        d = dict(zip(names, r))
+        if d.get("tool_evidence") not in TOOL_EVIDENCE_STATES:
+            d["tool_evidence"] = TOOL_UNKNOWN
+            d.setdefault("tool_evidence_provenance", "absent")
+        arm_rows.append(d)
+    return emit({"status": "ok", "pairs": rows, "arms": arm_rows,
+                 "evidence_version": EVIDENCE_VERSION,
                  "outcomes": len(outs), "pilot_db": True})
+
+
+def cmd_annotate(args):
+    """Append a versioned correction. Historical rows are never relabelled."""
+    detail = sys.stdin.read() or "{}"
+    try:
+        parsed = json.loads(detail)
+    except json.JSONDecodeError:
+        return emit({"status": "refused", "reason": "annotation_not_json"}, 3)
+    if not isinstance(parsed, dict):
+        return emit({"status": "refused",
+                     "reason": "annotation_not_an_object"}, 3)
+    con = open_pilot()
+    try:
+        con.execute("INSERT INTO pilot_annotations(event_id,version,kind,at_ms,"
+                    "detail) VALUES(?,?,?,?,?)",
+                    (args.event_id, args.version, args.kind,
+                     int(time.time() * 1000), json.dumps(parsed, sort_keys=True)))
+        con.commit()
+    except sqlite3.IntegrityError:
+        con.close()
+        return emit({"status": "already_annotated", "event_id": args.event_id,
+                     "version": args.version, "kind": args.kind})
+    except sqlite3.Error as exc:
+        con.close()
+        return emit({"status": "refused",
+                     "reason": "annotation_write_failed:" +
+                               type(exc).__name__}, 3)
+    con.close()
+    return emit({"status": "annotated", "event_id": args.event_id,
+                 "version": args.version, "kind": args.kind})
 
 
 def cmd_prepare(args):
@@ -188,13 +337,12 @@ def cmd_finish(args):
     results = body.get("results")
     if not isinstance(results, list) or len(results) != 2:
         return emit({"status": "refused", "reason": "incomplete_pair"}, 3)
-    tools = sum(int(r.get("tools", 0)) for r in results)
-    if tools != 0:
-        # A tool call means the prompt-only instruction was not honoured; the
-        # pair is quarantined and never labelled compliant.
-        label = "PILOT_PROMPT_ONLY_TOOL_LEAK"
-    else:
-        label = "PROMPT_ONLY_COMPLIANT_ONE_PAIR"
+    # Evidence first, label second. `sum(int(r.get("tools", 0)))` treated a
+    # missing field as a verified zero and could seal an unverified pair as
+    # compliant, so the count is never invented here.
+    evidence = [arm_tool_evidence(r) for r in results]
+    tools = verified_tool_total(evidence)
+    label = classify_pair(evidence)
     usage = body.get("usage") or {}
     cost = float(usage.get("cost_usd") or 0.0)   # recorded, never gated
     last_arm_ms = max(int(r.get("completed_ms") or 0) for r in results)
@@ -237,12 +385,20 @@ def cmd_finish(args):
              entry_price, entry_ms,
              tools, int(usage.get("completions") or 0), cost,
              int(time.time() * 1000)))
-        for arm, row, sha, done, latency, _model in parsed:
+        for idx, (arm, row, sha, done, latency, _model) in enumerate(parsed):
             action = P.decision(row["p_up"], row["expected_return_bps"])
-            con.execute("INSERT INTO pilot_arms VALUES(?,?,?,?,?,?,?,?,?)",
-                        (body["event_id"], arm, row["p_up"],
-                         row["expected_return_bps"], row["uncertainty"],
-                         action, sha, done, latency))
+            ev = evidence[idx]
+            con.execute(
+                "INSERT INTO pilot_arms(event_id,arm,p_up,expected_return_bps,"
+                "uncertainty,action,response_sha256,completed_ms,latency_ms,"
+                "tool_evidence,tool_evidence_provenance,tool_evidence_count,"
+                "session_verified,evidence_version) "
+                "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (body["event_id"], arm, row["p_up"],
+                 row["expected_return_bps"], row["uncertainty"],
+                 action, sha, done, latency, ev["pos"], ev["provenance"],
+                 ev["count"], 1 if ev["session_verified"] else 0,
+                 EVIDENCE_VERSION))
         con.execute("INSERT INTO pilot_outcomes(event_id,horizon_h,due_ms) "
                     "VALUES(?,?,?)", (body["event_id"], 4, due_ms))
         con.commit()
@@ -256,7 +412,12 @@ def cmd_finish(args):
         return emit({"status": "refused",
                      "reason": "pilot_write_failed:" + type(exc).__name__}, 3)
     con.close()
-    return emit({"status": "recorded", "label": label, "tool_calls": tools,
+    return emit({"status": "recorded", "label": label,
+                 "tool_calls": tools,
+                 "tool_evidence": {p[0]: evidence[i]["pos"]
+                                   for i, p in enumerate(parsed)},
+                 "tool_evidence_provenance": {p[0]: evidence[i]["provenance"]
+                                              for i, p in enumerate(parsed)},
                  "entry_price": entry_price, "entry_ms": entry_ms,
                  "due_ms": due_ms, "event_id": body["event_id"],
                  "arms": {p[0]: p[1]["p_up"] for p in parsed},
@@ -363,14 +524,21 @@ def cmd_settle(args):
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("command",
-                    choices=("status", "prepare", "finish", "settle"))
+                    choices=("status", "prepare", "finish", "settle",
+                             "annotate"))
+    ap.add_argument("--event-id")
+    ap.add_argument("--version", default=EVIDENCE_VERSION)
+    ap.add_argument("--kind", default="tool_evidence_correction")
     ap.add_argument("--acknowledge-pilot", action="store_true")
     ap.add_argument("--acknowledge-cost", action="store_true",
                     help="DEPRECATED and inert: cost is never a gate. Accepted "
                          "only so older invocations do not break.")
     a = ap.parse_args(argv)
+    if a.command == "annotate" and not a.event_id:
+        return emit({"status": "refused", "reason": "event_id_required"}, 3)
     handler = {"status": cmd_status, "prepare": cmd_prepare,
-               "finish": cmd_finish, "settle": cmd_settle}[a.command]
+               "finish": cmd_finish, "settle": cmd_settle,
+               "annotate": cmd_annotate}[a.command]
     return handler(a)
 
 

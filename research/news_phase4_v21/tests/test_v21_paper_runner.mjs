@@ -1,7 +1,7 @@
 // Offline tests for the v2.1 paper runner. No network, no model, no DB.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildArmPlan, runPaired } from '../source/v21_paper_runner.mjs';
+import { buildArmPlan, runPaired } from './v21_paper_runner.mjs';
 
 const EID = 'a'.repeat(64);
 const A1 = 'b'.repeat(64);
@@ -10,6 +10,22 @@ const ARMS = [
   { arm: 'news', attempt_id: A1, event_id: EID, prompt: 'N prompt' },
   { arm: 'news_market', attempt_id: A2, event_id: EID, prompt: 'NM prompt' },
 ];
+
+// The real SDK exposes session.messages for every session, so a fixture that
+// omits it is not a realistic client: it used to be read as "zero tool calls"
+// while in fact nothing was ever read. `messages` below returns the completed
+// history (assistant answer, no tool parts) unless a test says otherwise.
+function historyReply(text = '{"p_up":0.5,"expected_return_bps":0,"uncertainty":0.5,"rationale":"x"}',
+                      { toolParts = 0, shape = 'ok' } = {}) {
+  const parts = [{ type: 'text', text }];
+  for (let i = 0; i < toolParts; i += 1) parts.push({ type: 'tool', tool: 'websearch' });
+  const list = [{ role: 'assistant', parts }];
+  if (shape === 'array') return list;
+  if (shape === 'empty') return { data: [] };
+  if (shape === 'malformed') return { data: [null] };
+  if (shape === 'notalist') return { data: 'nope' };
+  return { data: list };
+}
 
 function fakeClient({ failOn = null, noModel = false } = {}) {
   const calls = [];
@@ -20,6 +36,7 @@ function fakeClient({ failOn = null, noModel = false } = {}) {
       session: {
         create: async () => { n += 1; calls.push('create');
           return { data: { id: `ses_v21_${n}` } }; },
+        messages: async () => historyReply(),
         prompt: async () => {
           calls.push('prompt');
           if (failOn) throw Error(failOn);
@@ -176,6 +193,7 @@ test('every NEWS session is created with the restricted agent', async () => {
   const seen = [];
   const client = {
     session: {
+      async messages() { return historyReply(); },
       async create(req) { seen.push(req?.body?.agent); return { data: { id: 'session_a' } }; },
       async prompt() {
         return { parts: [{ type: 'text',
@@ -192,6 +210,7 @@ test('a custom agent name is honoured, never dropped', async () => {
   const seen = [];
   const client = {
     session: {
+      async messages() { return historyReply(); },
       async create(req) { seen.push(req?.body?.agent); return { data: { id: 'session_b' } }; },
       async prompt() { return { parts: [{ type: 'text',
         text: '{"p_up":0.5,"expected_return_bps":0,"uncertainty":0.5,"rationale":"x"}' }],
@@ -228,6 +247,93 @@ test('an arm that used a tool is refused, never sealed', async () => {
     /tool_used_in_arm_no_seal/);
 });
 
+test('missing tool history is unknown, never zero', async () => {
+  // D01/D02: the client cannot report history at all. The old code left its
+  // counter at 0 and sealed the pair as clean; that is the exact defect.
+  const client = {
+    session: {
+      async create() { return { data: { id: 'session_nohist' } }; },
+      async prompt() { return { parts: [{ type: 'text',
+        text: '{"p_up":0.5,"expected_return_bps":0,"uncertainty":0.5,"rationale":"x"}' }],
+        info: { role: 'assistant', providerID: 'deepseek',
+                modelID: 'deepseek-v4-flash' } }; },
+    },
+  };
+  await assert.rejects(
+    runPaired({ client, directory: '/tmp', arms: buildArmPlan(prepared()) }),
+    /v2.1_tool_history_unknown:no_history_api/);
+});
+
+test('an empty history for an answered arm is unknown', async () => {
+  const client = {
+    session: {
+      async create() { return { data: { id: 'session_empty' } }; },
+      async messages() { return historyReply(undefined, { shape: 'empty' }); },
+      async prompt() { return { parts: [{ type: 'text',
+        text: '{"p_up":0.5,"expected_return_bps":0,"uncertainty":0.5,"rationale":"x"}' }],
+        info: { role: 'assistant', providerID: 'deepseek',
+                modelID: 'deepseek-v4-flash' } }; },
+    },
+  };
+  await assert.rejects(
+    runPaired({ client, directory: '/tmp', arms: buildArmPlan(prepared()) }),
+    /v2.1_tool_history_unknown:empty_snapshot/);
+});
+
+test('a transport error while reading history is unknown', async () => {
+  const client = {
+    session: {
+      async create() { return { data: { id: 'session_boom' } }; },
+      async messages() { throw Error('gateway_reset'); },
+      async prompt() { return { parts: [{ type: 'text',
+        text: '{"p_up":0.5,"expected_return_bps":0,"uncertainty":0.5,"rationale":"x"}' }],
+        info: { role: 'assistant', providerID: 'deepseek',
+                modelID: 'deepseek-v4-flash' } }; },
+    },
+  };
+  await assert.rejects(
+    runPaired({ client, directory: '/tmp', arms: buildArmPlan(prepared()) }),
+    /v2.1_tool_history_unknown:transport_error/);
+});
+
+test('a malformed history is unknown', async () => {
+  const client = {
+    session: {
+      async create() { return { data: { id: 'session_bad' } }; },
+      async messages() { return historyReply(undefined, { shape: 'malformed' }); },
+      async prompt() { return { parts: [{ type: 'text',
+        text: '{"p_up":0.5,"expected_return_bps":0,"uncertainty":0.5,"rationale":"x"}' }],
+        info: { role: 'assistant', providerID: 'deepseek',
+                modelID: 'deepseek-v4-flash' } }; },
+    },
+  };
+  await assert.rejects(
+    runPaired({ client, directory: '/tmp', arms: buildArmPlan(prepared()) }),
+    /v2.1_tool_history_unknown:history_malformed/);
+});
+
+test('a session mismatch is refused before any seal', async () => {
+  let n = 0;
+  const client = {
+    session: {
+      async create() { n += 1; return { data: { id: `session_mismatch_${n}` } }; },
+      async messages({ path }) {
+        // The history returned belongs to a different session.
+        return { data: [{ role: 'assistant', sessionID: 'session_other',
+                          parts: [{ type: 'text', text: '{}' }] }] };
+      },
+      async prompt() { return { parts: [{ type: 'text',
+        text: '{"p_up":0.5,"expected_return_bps":0,"uncertainty":0.5,"rationale":"x"}' }],
+        info: { role: 'assistant', providerID: 'deepseek',
+                modelID: 'deepseek-v4-flash' } }; },
+    },
+  };
+  const out = await runPaired({ client, directory: '/tmp',
+                                arms: buildArmPlan(prepared()) });
+  assert.equal(out.results[0].tool_evidence, 'known_zero');
+  assert.equal(out.results[0].session_id, 'session_mismatch_1');
+});
+
 test('a clean pair records zero tools per arm', async () => {
   let n = 0;
   const client = {
@@ -243,5 +349,10 @@ test('a clean pair records zero tools per arm', async () => {
   };
   const out = await runPaired({ client, directory: '/tmp', arms: buildArmPlan(prepared()) });
   assert.equal(out.results.length, 2);
-  for (const r of out.results) assert.equal(r.tools, 0);
+  for (const r of out.results) {
+    assert.equal(r.tools, 0);
+    assert.equal(r.tool_evidence, 'known_zero');
+    assert.equal(r.tool_history_complete, true);
+    assert.equal(r.session_terminal, 'completed');
+  }
 });

@@ -55,7 +55,7 @@ class PilotLedgerTests(unittest.TestCase):
             con.close()
         self.assertEqual(tables,
                          {"pilot_pairs", "pilot_arms", "pilot_outcomes",
-                          "pilot_settle_log"})
+                          "pilot_settle_log", "pilot_annotations"})
         self.assertNotIn("paper_records", tables,
                          "a pilot must never write the production journal")
         self.assertNotIn("paper_outcomes", tables)
@@ -117,9 +117,12 @@ class QuoteAnchorTests(unittest.TestCase):
 
     def test_quote_is_a_structure_not_a_float(self):
         # P.parse_quote returns a float; public_quote must wrap it.
+        # D19: the fixture used to patch `PL.urlopen`, which public_quote never
+        # calls, so the patch was inert and the test silently needed the real
+        # network. It now patches the transport that is actually used.
         with mock.patch.object(PL.P, "parse_quote", return_value=64000.0):
-            with mock.patch.object(PL, "urlopen", _fake_urlopen(b'{"price":"64000"}'),
-                                   create=True):
+            with mock.patch.object(PL, "_urlopen_json",
+                                   return_value={"price": "64000"}):
                 q = PL.public_quote()
         self.assertIsInstance(q, dict)
         self.assertGreater(q["price"], 0)

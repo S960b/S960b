@@ -40,7 +40,11 @@ try {
   for (const arm of plan) {
     const t = Date.now();
     const body = await ask(arm.prompt, arm.arm);
-    toolCalls += Number(body.tools ?? 0);
+    // Never coerce a missing count to zero: the ledger treats absence as
+    // UNKNOWN, and a coerced 0 here would defeat that at the source.
+    const rawTools = body.tools === undefined || body.tools === null
+      ? null : Number(body.tools);
+    if (Number.isInteger(rawTools)) toolCalls += rawTools;
     usageCompletions += 1;
     results.push({
       arm: arm.arm,
@@ -48,7 +52,10 @@ try {
       session_id: body.session_id,
       text: body.response_text,
       model: body.model,
-      tools: Number(body.tools ?? 0),
+      tools: rawTools,
+      tool_evidence_provenance: 'pilot_probe_channel',
+      tool_history_complete: body.tool_history_complete === true,
+      session_terminal: body.session_terminal ?? null,
       completed_ms: Date.now(),
       latency_ms: Date.now() - t,
     });

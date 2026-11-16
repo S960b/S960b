@@ -33,25 +33,69 @@ class VerdictTests(unittest.TestCase):
         self.assertEqual(code, 4)
         self.assertIn("inconclusive", reason)
 
-    def test_permission_refusal_is_proof(self):
+    def test_text_refusal_is_not_proof(self):
+        # D03: prose that says "permission denied" can just as well come from a
+        # proxy, a WAF or an expired key. It is UNSUPPORTED, never GO.
         code, reason, _ = P.verdict(report(
             {"tool": "websearch", "status": "error",
              "error": "Permission denied: tool not allowed in this session"}))
+        self.assertEqual(code, 4)
+        self.assertIn("unsupported", reason)
+
+    def test_http_403_is_not_proof(self):
+        # The original defect: "forbidden" in the body was treated as a boundary.
+        for body in ("HTTP Error 403: Forbidden", "403 forbidden",
+                     "Forbidden: blocked by proxy"):
+            code, reason, _ = P.verdict(report(
+                {"tool": "websearch", "status": "error", "error": body}))
+            self.assertEqual(code, 4, body)
+            self.assertIn("unsupported", reason)
+
+    def test_structured_denied_status_is_proof(self):
+        code, reason, detail = P.verdict(report(
+            {"tool": "websearch", "status": "denied", "error": ""}))
         self.assertEqual(code, 0)
-        self.assertIn("permission_refused", reason)
+        self.assertIn("structured", reason)
+        self.assertEqual(detail[0]["denial_evidence"], "status:denied")
+
+    def test_structured_error_code_is_proof(self):
+        code, reason, _ = P.verdict(report(
+            {"tool": "websearch", "status": "error",
+             "error": {"type": "permission_denied"}}))
+        self.assertEqual(code, 0)
+        self.assertIn("structured", reason)
+
+    def test_structured_metadata_flag_is_proof(self):
+        code, reason, _ = P.verdict(report(
+            {"tool": "websearch", "status": "error", "error": "x",
+             "metadata": {"permission_denied": True}}))
+        self.assertEqual(code, 0)
+        self.assertIn("structured", reason)
+
+    def test_full_state_shape_is_read_not_just_the_flat_one(self):
+        code, reason, _ = P.verdict(report(
+            {"tool": "websearch",
+             "state": {"status": "error",
+                       "metadata": {"code": "tool_forbidden"}}}))
+        self.assertEqual(code, 0)
+        self.assertIn("structured", reason)
+
+    def test_natural_abstention_is_not_isolation(self):
+        code, reason, _ = P.verdict(report())
+        self.assertEqual(code, 4)
+        self.assertIn("abstention", reason)
 
     def test_network_error_is_not_proof(self):
         code, reason, _ = P.verdict(report(
             {"tool": "websearch", "status": "error",
              "error": "connect ETIMEDOUT"}))
         self.assertEqual(code, 4)
-        self.assertIn("not_a_permission_refusal", reason)
+        self.assertIn("unsupported", reason)
 
     def test_executed_tool_is_a_leak_even_if_also_errors(self):
         code, _, detail = P.verdict(report(
             {"tool": "websearch", "status": "completed", "error": ""},
-            {"tool": "memory", "status": "error",
-             "error": "permission denied"}))
+            {"tool": "memory", "status": "denied", "error": ""}))
         self.assertEqual(code, 3)
         self.assertEqual(detail[0]["tool"], "websearch")
 
