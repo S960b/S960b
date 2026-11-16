@@ -365,7 +365,9 @@ def main(argv=None):
     ap.add_argument("command",
                     choices=("status", "prepare", "finish", "settle"))
     ap.add_argument("--acknowledge-pilot", action="store_true")
-    ap.add_argument("--acknowledge-cost", action="store_true")
+    ap.add_argument("--acknowledge-cost", action="store_true",
+                    help="DEPRECATED and inert: cost is never a gate. Accepted "
+                         "only so older invocations do not break.")
     a = ap.parse_args(argv)
     handler = {"status": cmd_status, "prepare": cmd_prepare,
                "finish": cmd_finish, "settle": cmd_settle}[a.command]

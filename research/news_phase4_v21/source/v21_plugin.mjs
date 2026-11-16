@@ -284,8 +284,11 @@ export const server = async (input = {}, options = {}) => {
       try {
         const r = await call('outcomes');
         log(`v21_outcomes settled=${Number(r?.settled ?? 0)} ` +
-        `instance=${instanceId}`);
-      } catch { log('v21_outcome_error'); }
+            `instance=${instanceId}`);
+        const pilot = await pilotCall('settle');
+        log(`v21_pilot_settle settled=${Number(pilot?.settled ?? 0)} ` +
+            `pending=${Number(pilot?.pending ?? 0)} instance=${instanceId}`);
+      } catch { log(`v21_outcome_error instance=${instanceId}`); }
       finally { labelBusy = false; }
     }, 300_000);
     label.unref?.();

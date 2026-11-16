@@ -164,3 +164,50 @@ The idea is falsified if, at ≥ 200 prospective events with the restricted agen
 NM's Brier score is not better than N with a 95% interval excluding zero, or if
 NM does not beat the market-only baseline. Reporting a null result is a
 successful audit.
+
+---
+
+# STATUS ADDENDUM — 2026-11-16T16:20Z (non-retroactive)
+
+This addendum does **not** rewrite the pre-registration above. Everything in
+§1–§8 stays as frozen on 2026-11-16 and remains the record of what was declared
+before data existed. It only states which rules are **no longer active** and how
+a future protocol would be versioned.
+
+## Rules that are INACTIVE
+
+| frozen rule | status now | why |
+|---|---|---|
+| §2 "sessions created with `agent: news-restricted`, every tool denied" | **INACTIVE** | the runtime drops the `agent` field at session creation and the agent `permission` map does not gate the tool registry; tool calls were observed inside such sessions |
+| §6 "stop if spend per pair > $0.20" | **INACTIVE** | the owner sets model inference cost to zero for this research; cost is not a criterion any more |
+| §7 "circuit breaker at 8 completions / 400 000 input tokens / $0.20" | **partially INACTIVE** — only the completion cap survives | the token and USD ceilings were removed; the completion cap remains purely as a runaway-loop check |
+
+## Rules that REMAIN ACTIVE
+
+Timestamp separation (`decision_time_ms` vs `market_cutoff_ms`), the 1m close at
+or after due with drift ≤ 60 s, immutable insert-only records, deterministic
+gates, one event = at most one pair, no replay of ambiguous calls, the full
+denominator including refusals, and the 200-independent-event floor for any
+directional claim.
+
+## Consequence for the current state
+
+The prospective cohort is **0**. Nothing in this package is a hypothesis test.
+H1–H5 are **BLOCKED**, and the only sealed prompt-only pair exists as
+`PILOT_PROMPT_ONLY` with its own ledger and is never pooled.
+
+## How a new protocol would be versioned
+
+Any future protocol is a **new file with a new version string**
+(`NEWS_V21_AUDIT_PROTOCOL_v2.md`, `protocol_version = "v2"`), carrying a dated
+diff against this one. Data collected under v1 keeps the v1 label forever; rows
+are never re-labelled. If a prompt-only regime is adopted, its cohort labels and
+its denominator must be declared in that new protocol **before** the first pair,
+and the auditor prompt for it should be authored independently.
+
+## Cost assumption
+
+For the economics of this research, model inference is treated as **free**
+(`cost_assumption_usd = 0`). This is an assumption about our analysis. It is not
+a claim about provider billing, and the historical raw usage figures are
+unmodified.
