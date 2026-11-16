@@ -82,6 +82,20 @@ def cmd_status(args):
             ).fetchone()[0]
             out["outcomes"] = con.execute(
                 "SELECT COUNT(*) FROM paper_outcomes").fetchone()[0]
+            now_ms = time.time_ns() // 1_000_000
+            rows = con.execute(
+                "SELECT r.event_id, e.observed_ms FROM paper_records r "
+                "JOIN paper_entries e ON e.event_id=r.event_id").fetchall()
+            settled_ids = {r[0] for r in con.execute(
+                "SELECT DISTINCT event_id FROM paper_outcomes")}
+            out["labels"] = {
+                "due_now": sum(1 for e, ms in rows
+                               if now_ms >= ms + 4 * 3_600_000),
+                "settled": len(settled_ids),
+                "overdue_unsettled": [
+                    e for e, ms in rows
+                    if now_ms >= ms + 4 * 3_600_000 and e not in settled_ids],
+            }
         finally:
             con.close()
     return emit(out)
@@ -363,6 +377,16 @@ def cmd_quote(args):
                  "source": "binance_public_ticker"})
 
 
+def _log_line(paths, kind, payload):
+    """Append one structured line so a refused or failed tick is never silent."""
+    try:
+        target = Path(paths["records"]).parent / f"{kind}-trace.jsonl"
+        with target.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps(payload, ensure_ascii=True) + "\n")
+    except Exception:
+        pass
+
+
 def cmd_outcomes(args):
     """Mature 4h labels on the FIRST 1m close at or after the due instant.
 
@@ -399,13 +423,34 @@ def cmd_outcomes(args):
                                  "due_ms": due})
                 pending.append(event_id)
                 continue
-            P.record_outcome(rcon, event_id, 4, exit_row["exit_ms"],
-                             exit_row["price"], now_ms,
-                             drift_ms=exit_row["drift_ms"],
-                             method=exit_row["method"], due_ms=due)
+            try:
+                P.record_outcome(rcon, event_id, 4, exit_row["exit_ms"],
+                                 exit_row["price"], now_ms,
+                                 drift_ms=exit_row["drift_ms"],
+                                 method=exit_row["method"], due_ms=due)
+            except Exception as exc:
+                # A write failure used to vanish. It is now a first-class
+                # failure with the exception type, and it makes the command
+                # exit non-zero so a scheduler cannot read it as a clean tick.
+                failures.append({"event_id": event_id,
+                                 "reason": "settle_write_failed:" +
+                                           type(exc).__name__,
+                                 "detail": str(exc)[:200],
+                                 "due_ms": due})
+                pending.append(event_id)
+                continue
             settled += 1
-        return emit({"status": "outcomes_done", "settled": settled,
-                     "pending": len(pending), "failures": failures})
+        # Overdue records that are still unsettled are a health signal, not a
+        # detail: they mean the label lane is falling behind.
+        overdue = [{"event_id": f["event_id"], "due_ms": f["due_ms"],
+                    "reason": f["reason"]} for f in failures]
+        payload = {"status": "outcomes_done" if not failures else "outcomes_incomplete",
+                   "settled": settled, "pending": len(pending),
+                   "failures": failures, "overdue": overdue,
+                   "now_ms": now_ms}
+        _log_line(paths, "outcomes", payload)
+        emit(payload)
+        return 0 if not failures else 1
     finally:
         rcon.close()
 
