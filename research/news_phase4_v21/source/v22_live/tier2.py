@@ -440,7 +440,8 @@ def seal_triple(*, con, event, arm_results, quote, attestation_path, now_ms,
     parsed = []
     for a in arm_results:
         try:
-            row = P.parse_arm_response(a["text"])
+            row = P.parse_arm_response(
+                a["text"], max_abs_bps=max(abs(BPS_RANGE[0]), abs(BPS_RANGE[1])))
         except Exception as exc:
             raise Tier2Error("arm_payload_invalid:" + str(a["arm"]) + ":"
                              + str(exc)) from None
