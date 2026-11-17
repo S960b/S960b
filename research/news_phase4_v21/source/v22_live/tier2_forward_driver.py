@@ -51,12 +51,15 @@ def _archive_verified(raw_path, expected_digest):
         raise DriverError("raw_feed_missing_or_symlink")
     if p.stat().st_size > MAX_FEED_BYTES:
         raise DriverError("raw_feed_oversize")
-    if digest(p.read_bytes()) != expected_digest:
+    raw = p.read_bytes()
+    if len(raw) > MAX_FEED_BYTES:
+        raise DriverError("raw_feed_oversize")
+    if digest(raw) != expected_digest:
         raise DriverError("raw_feed_digest_mismatch")
-    return True
+    return raw
 
 
-def _item_witness(*, raw_path, source, cohort, provenance, title,
+def _item_witness(*, raw_body, source, cohort, provenance, title,
                   origin_url, published_ms, observed_ms, event_id):
     """Reparse actual archived bytes and require ONE exact matching RSS item.
 
@@ -72,7 +75,7 @@ def _item_witness(*, raw_path, source, cohort, provenance, title,
     if event_id != COL.occurrence_id(source, title, published_ms):
         return False
     try:
-        records = AD.parse_rss(Path(raw_path).read_bytes(),
+        records = AD.parse_rss(raw_body,
                                source_id=source, category=cohort,
                                provenance=provenance,
                                fetched={"observed_ms": observed_ms})
@@ -141,9 +144,9 @@ def candidate(con, now_ms):
                               published_max_ms=budget * 1000)
         except T2.Tier2Error:
             continue
-        _archive_verified(path, raw_sha)
+        raw_body = _archive_verified(path, raw_sha)
         if not _item_witness(
-                raw_path=path, source=source, cohort=cohort,
+                raw_body=raw_body, source=source, cohort=cohort,
                 provenance=provenance, title=title, origin_url=origin_url,
                 published_ms=pub, observed_ms=obs, event_id=event_id):
             continue
