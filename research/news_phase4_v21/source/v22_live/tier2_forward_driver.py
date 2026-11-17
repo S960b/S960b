@@ -197,51 +197,34 @@ def _label_failure_kind(exc):
     return "error"
 
 
-def label_once(*, db_path=T2.DEFAULT_DB, now_ms=None):
-    """One-shot +4h settlement; no fictitious price on data outage."""
+def label_once(*, db_path=T2.DEFAULT_DB, now_ms=None, settle=False):
+    """Delegate to the canonical watcher. This function MUST NOT re-implement it.
+
+    The previous version called P.resolve_exit itself, built a candle dict of its
+    own (open_ms = exit_ms-59999, closed = exit_ms < now), and only then called
+    TR.label_once. Three consequences, all measured: the candle was a reshaped
+    dict rather than an exchange observation; a failure inside resolve_exit never
+    reached the retry ledger, so no censor was ever possible; and settlement
+    logic existed in two places that could drift apart.
+
+    Settlement now lives in exactly one place, tier2_label_watch.settle(), which
+    reads the candle from the exchange payload and counts failures in one
+    transaction. This wrapper keeps the old call signature for existing callers
+    and defaults to dry, like the watcher.
+    """
+    import tier2_label_watch as LW
+
     now_ms = int(time.time() * 1000) if now_ms is None else int(now_ms)
-    if not Path(db_path).is_file():
-        return {"status": "no_tier2_db"}
-    with closing(sqlite3.connect(str(db_path))) as db:
-        triples = db.execute(
-            "SELECT event_id, entry_observed_ms FROM tier2_triples "
-            "ORDER BY created_ms ASC").fetchall()
-        if not triples:
-            return {"status": "no_triples"}
-        output = []
-        for event_id, entry_ms in triples:
-            due = int(entry_ms) + T2.HORIZON_MS
-            if now_ms < due + 60_000:
-                output.append({"event_id": event_id, "status": "pending"})
-                continue
-            previous = db.execute(
-                "SELECT label_state FROM tier2_outcomes WHERE event_id=?",
-                (event_id,)).fetchone()
-            if previous:
-                output.append({"event_id": event_id,
-                               "status": previous[0]})
-                continue
-            try:
-                exit_data = P.resolve_exit(due, now_ms)
-                close_ms = int(exit_data["exit_ms"])
-                candle = {
-                    "symbol": "BTCUSDT", "open_ms": close_ms - 59_999,
-                    "close_ms": close_ms, "close": float(exit_data["price"]),
-                    "closed": close_ms < now_ms,
-                }
-                result = TR.label_once(
-                    con=db, event_id=event_id, due_ms=due,
-                    candle_fn=lambda due_ms: candle, now_ms=now_ms)
-                output.append({"event_id": event_id,
-                               "status": result["label_state"]})
-            except Exception as exc:
-                # Do not let an unexpected validation/programming failure
-                # masquerade as a temporary exchange outage.
-                status = _label_failure_kind(exc)
-                output.append({"event_id": event_id, "status": status,
-                               "reason": str(exc)[:200]})
-        overall = "error" if any(x["status"] == "error" for x in output) else "checked"
-        return {"status": overall, "outcomes": output}
+    try:
+        return LW.settle(db_path=db_path, now_ms=now_ms, dry=not settle,
+                         candle_fn=lambda *, due_ms: LW.exchange_candle(
+                             due_ms=due_ms, now_ms=now_ms))
+    except LW.LabelWatchError as exc:
+        # Preserve this function's long-standing status vocabulary: callers and
+        # tests already distinguish "the database is not there" from a refusal.
+        if str(exc) == "no_tier2_db":
+            return {"status": "no_tier2_db"}
+        return {"status": "refused", "reason": str(exc)}
 
 
 def main(argv=None):
@@ -256,7 +239,8 @@ def main(argv=None):
     args = ap.parse_args(argv)
     try:
         if args.label_once:
-            result = label_once(db_path=args.tier2_db)
+            result = label_once(db_path=args.tier2_db, now_ms=None,
+                                settle=True)
         else:
             result = execute_once(feed_db=args.feed_db,
                                   dry=not args.execute)
