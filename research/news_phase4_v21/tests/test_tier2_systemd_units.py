@@ -11,13 +11,14 @@ UNITS = ROOT / "deployment" / "systemd-user"
 NAMES = (
     "news-phase4-collector.service", "news-phase4-collector.timer",
     "news-phase4-tier2-label.service", "news-phase4-tier2-label.timer",
+    "news-phase4-tier2-trial.service", "news-phase4-tier2-trial.timer",
 )
 RELEASE = "/home/kali/research/news_phase4_v25_release/research/news_phase4_v21"
 LEGACY = "/home/kali/research/news_phase4_v24_live"
 
 
 def unit(name):
-    config = configparser.ConfigParser(interpolation=None)
+    config = configparser.ConfigParser(interpolation=None, strict=False)
     p = UNITS / name
     with p.open(encoding="utf-8") as inp:
         config.read_file(inp)
@@ -25,7 +26,7 @@ def unit(name):
 
 
 class UnitTests(unittest.TestCase):
-    def test_four_distinct_units_exist(self):
+    def test_six_distinct_units_exist(self):
         self.assertEqual({p.name for p in UNITS.glob("*.*")}, set(NAMES))
 
     def test_collector_runs_archive_only_and_bound(self):
@@ -51,6 +52,28 @@ class UnitTests(unittest.TestCase):
         self.assertNotIn("--execute", command)
         self.assertNotIn(LEGACY, raw)
         self.assertEqual(conf["Service"]["Type"], "oneshot")
+
+    def test_trial_single_poll_and_first_trial_conditions(self):
+        conf, raw = unit('news-phase4-tier2-trial.service')
+        command = conf['Service']['ExecStart']
+        self.assertIn(RELEASE + '/source/v22_live/tier2_bounded_watch.py', command)
+        self.assertIn(' --execute', command)
+        self.assertNotIn(' --watch', command)
+        self.assertEqual(conf['Service']['Type'], 'oneshot')
+        self.assertEqual(conf['Service']['Restart'], 'no')
+        self.assertGreaterEqual(int(conf['Service']['TimeoutStartSec'][:-1]), 360)
+        self.assertIn('ConditionPathExists=/home/kali/.local/share/news-phase4-v25/TIER2_ACTIVE', raw)
+        self.assertIn('ConditionPathExists=/home/kali/.local/share/news-phase4-v25/TRIGGER_ENABLED', raw)
+        self.assertIn('ConditionPathExists=!/home/kali/.local/share/news-phase4-v25/frozen-tier2-paper-20261117-first.json', raw)
+        self.assertIn('ConditionPathExists=!/home/kali/.local/share/news-phase4-v25/tier2.sqlite', raw)
+        self.assertNotIn(LEGACY, raw)
+
+    def test_trial_timer_polls_once_per_minute(self):
+        conf, _ = unit('news-phase4-tier2-trial.timer')
+        self.assertEqual(conf['Timer']['Unit'], 'news-phase4-tier2-trial.service')
+        self.assertEqual(conf['Timer']['OnCalendar'], 'minutely')
+        self.assertEqual(conf['Timer']['Persistent'], 'true')
+        self.assertEqual(conf['Install']['WantedBy'], 'timers.target')
 
     def test_timer_targets_unique_service_and_5m_cadence(self):
         for base in ("news-phase4-collector", "news-phase4-tier2-label"):
