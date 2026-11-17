@@ -17,6 +17,7 @@ for _cand in (HERE, HERE.parent, HERE.parent / "source" / "v22_live",
         break
 
 import v24_adapters as A
+MODULE_DIR = str(Path(A.__file__).resolve().parent)
 
 RSS = b"""<?xml version="1.0"?><rss version="2.0"><channel>
 <item><title>Fed holds rates</title>
@@ -1781,7 +1782,7 @@ class Stage22SubprocessConcurrencyTests(unittest.TestCase):
     def test_only_one_process_reserves_the_trial(self):
         script = f"""
 import sys
-sys.path.insert(0, {str(Path(__file__).resolve().parent)!r})
+sys.path.insert(0, {str(MODULE_DIR)!r})
 import tier2 as T2
 con = T2.open_tier2({str(self.db)!r})
 try:
@@ -1801,7 +1802,7 @@ except T2.Tier2Error as e:
         con.close()
         script = f"""
 import sys
-sys.path.insert(0, {str(Path(__file__).resolve().parent)!r})
+sys.path.insert(0, {str(MODULE_DIR)!r})
 import tier2 as T2
 con = T2.open_tier2({str(self.db)!r})
 try:
