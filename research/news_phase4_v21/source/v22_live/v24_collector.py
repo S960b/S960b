@@ -236,6 +236,23 @@ def tick(*, con, limiter, sources=None, keep_raw=True):
                  int(time.time() * 1000)))
             con.commit()
 
+        # A malformed feed is still an authentic HTTP response and must be
+        # archived, but cannot produce news items. Record the individual source
+        # failure, then continue polling the remaining allowlisted sources.
+        parse_error = got.get("parse_error")
+        if parse_error:
+            con.execute(
+                "INSERT INTO v24_fetch_log(at_ms,source_id,url,http_status,"
+                "content_type,attempts,records_seen,records_new,error) "
+                "VALUES(?,?,?,?,?,?,?,?,?)",
+                (int(time.time() * 1000), sid, AD.SOURCES[sid]["url"],
+                 got["fetched"]["status"], got["fetched"]["content_type"],
+                 got["fetched"]["attempts"], 0, 0, str(parse_error)))
+            con.commit()
+            out[sid] = {"error": str(parse_error), "archived": bool(archived_for_source),
+                        "new": 0}
+            continue
+
         new = duplicated = unparseable = state_recorded = 0
         for rec in got["records"]:
             if rec.get("dated", True) is False:
