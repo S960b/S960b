@@ -53,9 +53,13 @@ def run_trial(*, con, event, prompts, executor, quote_fn, now_ms,
     step("gate", trial_id=trial_id)
 
     # 2. event ------------------------------------------------------------
-    T2.validate_event(event, now_ms, published_max_ms=published_max_ms)
+    # This is the pre-inference decision clock. Model latency must never
+    # redefine eligibility; the post-response clock is for entry/quote only.
+    decision_ms = int(now_ms)
+    T2.validate_event(event, decision_ms, published_max_ms=published_max_ms)
     step("event", event_id=event["event_id"], cohort=event["cohort"],
-         age_s=(int(now_ms) - int(event.get("observed_ms")
+         decision_ms=decision_ms,
+         age_s=(decision_ms - int(event.get("observed_ms")
                                   or event["published_ms"])) // 1000)
 
     # 3. reserve ----------------------------------------------------------
@@ -101,7 +105,8 @@ def run_trial(*, con, event, prompts, executor, quote_fn, now_ms,
                             attestation_path=attestation_path,
                             now_ms=max(int(now_ms), quote["observed_ms"] + 1),
                             prompts_sha256=prompts_sha,
-                            published_max_ms=published_max_ms)
+                            published_max_ms=published_max_ms,
+                            decision_ms=decision_ms)
     step("seal", status=sealed["status"], seal=sealed.get("seal"),
          cohort=sealed.get("cohort"))
 
