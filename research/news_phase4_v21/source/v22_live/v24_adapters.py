@@ -189,8 +189,14 @@ def harvest(source_id, *, limiter, opener=None):
     for rec in records:
         rec["terms_decision"] = spec["terms"]
         rec["dated"] = spec.get("dated", True)
-    return {"source_id": source_id, "fetched": {"status": fetched["status"],
-                                                "content_type": fetched["content_type"],
+    return {"source_id": source_id,
+            # The exact bytes are handed back so the collector can archive them.
+            # A digest alone is not reconstructible.
+            "raw_body": {"body": fetched["body"],
+                         "observed_ms": fetched["observed_ms"],
+                         "status": fetched["status"]},
+            "fetched": {"status": fetched["status"],
+                        "content_type": fetched["content_type"],
                                                 "attempts": fetched["attempts"]},
             "records": records}
 

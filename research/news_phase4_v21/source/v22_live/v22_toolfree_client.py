@@ -115,12 +115,20 @@ def call(*, model, system, user, opener=None):
     if isinstance(body_id, str) and body_id.strip():
         request_id = request_id or body_id.strip()
 
-    if (choices[0] or {}).get("finish_reason") not in ("stop", "length"):
-        raise IsolationError("non_terminal_finish_reason:" +
-                             str((choices[0] or {}).get("finish_reason")))
+    # `length` means the model was cut off mid-answer: the text is a fragment,
+    # not a decision. Treating it as terminal would let a truncated JSON object
+    # be parsed as a forecast, so it fails here.
+    finish = (choices[0] or {}).get("finish_reason")
+    if finish != "stop":
+        raise IsolationError("non_terminal_finish_reason:" + str(finish))
 
     return {
         "status": status,
+        # The actual bytes, not a reconstruction: an attestation hashed from a
+        # rebuilt body would be a claim about what we meant to send.
+        "request_raw": raw,
+        "response_raw": payload.encode(),
+        "request_body": body,
         "model": model_id,
         "provider_request_id": request_id,
         "request_sha256": digest(raw),

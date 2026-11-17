@@ -193,7 +193,8 @@ def verify_chain(log=LOG):
 
 
 def attest(*, chat_body, upstream_body, parsed, latency_ms, model_expected,
-           log=LOG, extra=None):
+           log=LOG, extra=None, raw_ingress=None, raw_response=None,
+           upstream_capture="reconstructed"):
     """Record one call's three surfaces and return the sealed record."""
     ingress_tools = tool_surface(chat_body)
     egress_tools = tool_surface(upstream_body)
@@ -201,12 +202,23 @@ def attest(*, chat_body, upstream_body, parsed, latency_ms, model_expected,
     rec = {
         "at_ms": int(time.time() * 1000),
         "latency_ms": int(latency_ms),
-        "ingress": {"sha256": sha(chat_body), "tool_keys": ingress_tools,
-                    "keys": sorted(chat_body)},
+        "ingress": {"sha256": sha(raw_ingress) if raw_ingress is not None
+                    else sha(chat_body),
+                    "digest_basis": "raw_bytes" if raw_ingress is not None
+                    else "canonical_json_reserialised",
+                    "tool_keys": ingress_tools, "keys": sorted(chat_body)},
         "egress": {"sha256": sha(upstream_body), "tool_keys": egress_tools,
                    "keys": sorted(upstream_body),
-                   "model_expected": model_expected},
-        "response": dict(facts, sha256=sha(parsed) if parsed is not None else None),
+                   "model_expected": model_expected,
+                   # "reconstructed" = computed from our own mapping, NOT
+                   # captured inside the gateway. It can never be called exact.
+                   "capture": upstream_capture},
+        "response": dict(facts,
+                         sha256=(sha(raw_response) if raw_response is not None
+                                 else (sha(parsed) if parsed is not None
+                                       else None)),
+                         digest_basis="raw_bytes" if raw_response is not None
+                         else "canonical_json_reserialised"),
         "verdict": {
             "client": "client_no_tools_advertised" if not ingress_tools
                       and not egress_tools else "client_tools_present",

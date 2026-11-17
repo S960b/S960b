@@ -121,3 +121,23 @@ closed.
 - a candle that was not closed, or drift outside `[0, 60000)`;
 - any edit to a sealed row, or to the chain, however small;
 - any wording that upgrades `observational_tier2` to a stronger claim.
+
+## 8. Amendment 2 — frozen decision thresholds and strict parsing (BEFORE data)
+
+Recorded before any Tier-2 observation exists (still zero). Stage 21 found that
+the draft computed LONG/SHORT from an implicit `p > 0.5 and bps > 0` rule and
+parsed arm output with `json.loads`, which admits `true` as a number, `NaN`,
+`Infinity` and duplicate keys. Both are now fixed and frozen here, in advance:
+
+```
+LONG_PAPER   p_up >= 0.55  AND  expected_return_bps >  35
+SHORT_PAPER  p_up <= 0.45  AND  expected_return_bps < -35
+FLAT         everything else
+range checks p_up and uncertainty in [0, 1]; bps in [-10 000, 10 000]
+parsing      canonical v2.1 strict parser: duplicate keys and non-standard
+             constants refused, bool refused as a number
+```
+
+These numbers are the v2 policy carried over unchanged, so Tier-2 differs from
+v2.2 in attestation strength only, never in the decision rule. Changing them
+after data would be post-hoc tuning.

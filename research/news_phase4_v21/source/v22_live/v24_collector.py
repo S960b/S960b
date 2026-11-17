@@ -6,6 +6,7 @@ calls a model, and refuses to invent a timestamp: an item is stored with the
 `published_ms` parsed from its own feed, and `observed_ms` taken when we fetched.
 Freshness is computed from those two, so an old RSS item cannot look new.
 """
+import hashlib
 import json
 import sqlite3
 import time
@@ -37,6 +38,16 @@ CREATE TABLE IF NOT EXISTS v24_fetch_log(
  records_seen INTEGER, records_new INTEGER, error TEXT);
 -- Undated official state (e.g. exchange system status) is kept apart from news.
 -- It has no event time, so it can never enter an event query by accident.
+-- Every distinct source occurrence, keyed by origin so two outlets publishing
+-- the same headline at the same second do not collapse into one row.
+CREATE TABLE IF NOT EXISTS v24_observations(
+ occurrence_id TEXT PRIMARY KEY,     -- sha256(source_id | title | published)
+ semantic_cluster_id TEXT NOT NULL,  -- sha256(title | published), no source
+ source_id TEXT NOT NULL,
+ title TEXT NOT NULL, origin_url TEXT NOT NULL,
+ published_ms INTEGER NOT NULL, observed_ms INTEGER NOT NULL,
+ raw_sha256 TEXT, raw_path TEXT,
+ first_seen_ms INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS v24_state(
  raw_sha256 TEXT NOT NULL, source_id TEXT NOT NULL, body TEXT NOT NULL,
  observed_ms INTEGER NOT NULL, PRIMARY KEY(raw_sha256, observed_ms));
@@ -59,6 +70,42 @@ def parse_published(text):
         return int(parsedate_to_datetime(text).timestamp() * 1000)
     except (TypeError, ValueError):
         return None
+
+
+def occurrence_id(source_id, title, published_ms):
+    """Per-origin identity: same story from two feeds is two occurrences."""
+    return hashlib.sha256(
+        f"{source_id}|{title}|{published_ms}".encode()).hexdigest()
+
+
+def semantic_cluster_id(title, published_ms):
+    """Cross-source cluster: same text at the same instant, source ignored."""
+    return hashlib.sha256(f"{title}|{published_ms}".encode()).hexdigest()
+
+
+def archive_raw(*, fetched, source_id, raw_dir=RAW_DIR):
+    """Persist the exact response bytes, append-only, under their own digest.
+
+    A digest without the bytes is not reconstructible: a reader could verify that
+    nothing changed but could never re-parse the feed. Never overwrites, never
+    stores headers that could carry credentials.
+    """
+    body = fetched.get("body")
+    if body is None:
+        return None
+    if isinstance(body, str):
+        body = body.encode()
+    digest = hashlib.sha256(body).hexdigest()
+    day = time.strftime("%Y%m%d", time.gmtime(fetched.get("observed_ms", time.time() * 1000) / 1000))
+    out_dir = Path(raw_dir) / day
+    out_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
+    path = out_dir / f"{source_id}-{digest}.bin"
+    if not path.exists():
+        tmp = path.with_suffix(".tmp")
+        tmp.write_bytes(body)
+        tmp.replace(path)
+        path.chmod(0o600)
+    return {"raw_sha256": digest, "raw_path": str(path), "bytes": len(body)}
 
 
 def tick(*, con, limiter, sources=None, keep_raw=True):
@@ -95,8 +142,25 @@ def tick(*, con, limiter, sources=None, keep_raw=True):
                 # would fabricate freshness, so the item is counted and logged.
                 unparseable += 1
                 continue
-            digest = AD.hashlib.sha256(
-                (rec["title"] + "|" + str(published)).encode()).hexdigest()
+            # Two identities, deliberately different:
+            #   occurrence_id  - this source, this item: the row we store
+            #   cluster_id     - same text at the same instant across sources
+            # Keying storage on the cluster suppressed a legitimate independent
+            # publication, so the primary key is per-origin.
+            occ = occurrence_id(rec["source_id"], rec["title"], published)
+            cluster = semantic_cluster_id(rec["title"], published)
+            archived = archive_raw(fetched=got.get("raw_body") or {},
+                                   source_id=rec["source_id"]) if keep_raw else None
+            con.execute(
+                "INSERT OR IGNORE INTO v24_observations(occurrence_id,"
+                "semantic_cluster_id,source_id,title,origin_url,published_ms,"
+                "observed_ms,raw_sha256,raw_path,first_seen_ms) "
+                "VALUES(?,?,?,?,?,?,?,?,?,?)",
+                (occ, cluster, rec["source_id"], rec["title"], rec["origin_url"],
+                 published, rec["observed_ms"],
+                 (archived or {}).get("raw_sha256"),
+                 (archived or {}).get("raw_path"), int(time.time() * 1000)))
+            digest = occ
             try:
                 con.execute(
                     "INSERT INTO v24_events(content_sha256,source_id,category,"

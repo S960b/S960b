@@ -941,6 +941,201 @@ class UndatedSourceTests(unittest.TestCase):
             self.assertIs(AD.SOURCES[sid].get("dated", True), True)
 
 
+class Stage21HardeningTests(unittest.TestCase):
+    """Adversarial fixtures for the P0 findings of stage 21."""
+
+    def setUp(self):
+        import tempfile
+        import tier2 as T2
+        self.T2 = T2
+        self.dir = Path(tempfile.mkdtemp(prefix="s21-"))
+        self.now = 1_800_000_000_000
+
+    # --- A: strict parse ------------------------------------------------
+
+    def test_bool_is_not_a_number(self):
+        with self.assertRaises(self.T2.Tier2Error) as ctx:
+            self.T2.validate_arm_payload({"p_up": True,
+                                          "expected_return_bps": 10,
+                                          "uncertainty": 0.5,
+                                          "rationale": "x"})
+        self.assertIn("not_a_number", str(ctx.exception))
+
+    def test_nan_and_infinity_are_refused(self):
+        for bad in (float("nan"), float("inf"), float("-inf")):
+            with self.assertRaises(self.T2.Tier2Error):
+                self.T2.validate_arm_payload({"p_up": bad,
+                                              "expected_return_bps": 0,
+                                              "uncertainty": 0.5,
+                                              "rationale": "x"})
+
+    def test_bounds_are_enforced(self):
+        for field, val in (("p_up", 1.5), ("p_up", -0.1),
+                           ("uncertainty", 2.0), ("expected_return_bps", 1e9)):
+            row = {"p_up": 0.5, "expected_return_bps": 10,
+                   "uncertainty": 0.5, "rationale": "x"}
+            row[field] = val
+            with self.assertRaises(self.T2.Tier2Error):
+                self.T2.validate_arm_payload(row)
+
+    def test_duplicate_keys_and_nonstandard_constants_are_refused(self):
+        import v21_paper_prep as P
+        for bad in ('{"p_up": 0.5, "p_up": 0.9, "expected_return_bps": 1,'
+                    ' "uncertainty": 0.5, "rationale": "x"}',
+                    '{"p_up": NaN, "expected_return_bps": 1,'
+                    ' "uncertainty": 0.5, "rationale": "x"}'):
+            with self.assertRaises(Exception):
+                P.parse_arm_response(bad)
+
+    def test_frozen_thresholds_not_the_old_half_rule(self):
+        # 0.52 was LONG under the old `p > 0.5` rule; it is FLAT now.
+        self.assertEqual(self.T2.decision_label(
+            {"p_up": 0.52, "expected_return_bps": 40}), "FLAT")
+        self.assertEqual(self.T2.decision_label(
+            {"p_up": 0.56, "expected_return_bps": 40}), "LONG_PAPER")
+        self.assertEqual(self.T2.decision_label(
+            {"p_up": 0.44, "expected_return_bps": -40}), "SHORT_PAPER")
+        self.assertEqual(self.T2.decision_label(
+            {"p_up": 0.55, "expected_return_bps": 35}), "FLAT")
+
+    def test_truncated_response_is_not_terminal(self):
+        import v22_toolfree_client as TF
+        with self.assertRaises(TF.IsolationError) as ctx:
+            TF.call(model="m", system="s", user="u",
+                    opener=_resp({"model": "m", "choices": [
+                        {"message": {"content": '{"p_up":0.5'},
+                         "finish_reason": "length"}]}))
+        self.assertIn("non_terminal_finish_reason", str(ctx.exception))
+
+    # --- D: time discipline ---------------------------------------------
+
+    def test_future_publication_refused(self):
+        with self.assertRaises(self.T2.Tier2Error) as ctx:
+            self.T2.validate_event({"event_id": "a", "cohort": "geopolitics",
+                                    "published_ms": self.now + 60_000}, self.now)
+        self.assertIn("published_in_future", str(ctx.exception))
+
+    def test_observed_before_published_refused(self):
+        with self.assertRaises(self.T2.Tier2Error):
+            self.T2.validate_event({"event_id": "a", "cohort": "geopolitics",
+                                    "published_ms": self.now - 10_000,
+                                    "observed_ms": self.now - 20_000}, self.now)
+
+    def test_bool_timestamp_refused(self):
+        with self.assertRaises(self.T2.Tier2Error) as ctx:
+            self.T2.validate_event({"event_id": "a", "cohort": "geopolitics",
+                                    "published_ms": True}, self.now)
+        self.assertIn("not_integer_millis", str(ctx.exception))
+
+    def test_transport_lag_budget_enforced(self):
+        with self.assertRaises(self.T2.Tier2Error) as ctx:
+            self.T2.validate_event({"event_id": "a", "cohort": "geopolitics",
+                                    "published_ms": self.now - 30_000},
+                                   self.now, published_max_ms=10_000)
+        self.assertIn("transport_lag", str(ctx.exception))
+
+    # --- E: quote and candle --------------------------------------------
+
+    def test_quote_must_be_a_real_price_from_a_known_source(self):
+        base = {"observed_ms": self.now, "price": 64_000.0,
+                "source": "binance_public_ticker"}
+        self.assertTrue(self.T2.validate_quote(dict(base), 1, 1,
+                                               now_ms=self.now))
+        for bad in ({**base, "price": 0}, {**base, "price": -1},
+                    {**base, "price": float("nan")},
+                    {**base, "source": "kraken_status"},
+                    {**base, "symbol": "ETHUSDT"},
+                    {**base, "observed_ms": self.now + 5_000}):
+            with self.assertRaises(self.T2.Tier2Error):
+                self.T2.validate_quote(bad, 1, 1, now_ms=self.now)
+
+    def test_candle_must_be_aligned_closed_and_positive(self):
+        due = 120_050_000
+        good = {"closed": True, "open_ms": 120_000_000,
+                "close_ms": 120_059_999, "close": 64_000.0}
+        self.assertTrue(self.T2.validate_candle(good, due))
+        for bad in ({**good, "closed": False},
+                    {**good, "open_ms": 120_000_500},
+                    {**good, "close_ms": 120_060_000},
+                    {**good, "close": 0},
+                    {**good, "close": float("inf")},
+                    {**good, "symbol": "ETHUSDT"}):
+            with self.assertRaises(self.T2.Tier2Error):
+                self.T2.validate_candle(bad, due)
+
+    # --- B: activation and budget ---------------------------------------
+
+    def test_durable_call_budget_caps_at_three(self):
+        import tempfile
+        d = Path(tempfile.mkdtemp(prefix="s21b-"))
+        con = self.T2.open_tier2(d / "t.sqlite")
+        self.T2.open_attempts(con)
+        self.T2.reserve_attempts(con, trial_id="t", now_ms=1)
+        for arm in ("news", "news_market", "market"):
+            self.T2.record_invocation(con, trial_id="t", arm=arm,
+                                      now_ms=1, session_id="s")
+        with self.assertRaises(self.T2.Tier2Error) as ctx:
+            self.T2.record_invocation(con, trial_id="t", arm="news",
+                                      now_ms=2, session_id="s")
+        self.assertIn("budget_exhausted", str(ctx.exception))
+        con.close()
+
+    def test_terminal_attempt_is_immutable(self):
+        import tempfile
+        d = Path(tempfile.mkdtemp(prefix="s21b-"))
+        con = self.T2.open_tier2(d / "t.sqlite")
+        self.T2.open_attempts(con)
+        self.T2.reserve_attempts(con, trial_id="t", now_ms=1)
+        self.T2.mark_attempt(con, trial_id="t", arm="news", state="started",
+                             now_ms=2)
+        self.T2.mark_attempt(con, trial_id="t", arm="news", state="failed",
+                             now_ms=3)
+        with self.assertRaises(self.T2.Tier2Error) as ctx:
+            self.T2.mark_attempt(con, trial_id="t", arm="news", state="started",
+                                 now_ms=4)
+        self.assertIn("already_terminal", str(ctx.exception))
+        started, completed = con.execute(
+            "SELECT started_ms, completed_ms FROM tier2_attempts "
+            "WHERE trial_id='t' AND arm='news'").fetchone()
+        self.assertEqual((started, completed), (2, 3))
+        con.close()
+
+    # --- F: provenance ---------------------------------------------------
+
+    def test_occurrence_ids_separate_sources(self):
+        import v24_collector as C
+        self.assertNotEqual(C.occurrence_id("fed", "X", 1),
+                            C.occurrence_id("sec", "X", 1))
+        self.assertEqual(C.semantic_cluster_id("X", 1),
+                         C.semantic_cluster_id("X", 1))
+
+    def test_raw_bytes_are_archived_once_and_chmodded(self):
+        import tempfile
+        import v24_collector as C
+        d = Path(tempfile.mkdtemp(prefix="s21f-"))
+        f = {"body": b"<rss>x</rss>", "observed_ms": self.now, "status": 200}
+        first = C.archive_raw(fetched=f, source_id="fed", raw_dir=d / "raw")
+        second = C.archive_raw(fetched=f, source_id="fed", raw_dir=d / "raw")
+        self.assertEqual(first["raw_sha256"], second["raw_sha256"])
+        files = list((d / "raw").rglob("*.bin"))
+        self.assertEqual(len(files), 1)
+        self.assertEqual(files[0].stat().st_mode & 0o777, 0o600)
+        self.assertEqual(files[0].read_bytes(), b"<rss>x</rss>")
+
+
+def _resp(payload):
+    import json as J
+
+    class R:
+        status = 200
+        headers = {}
+
+        def read(self, n=None):
+            return J.dumps(payload).encode()
+
+    return lambda req, timeout=None: R()
+
+
 class Tier2ProtocolTests(unittest.TestCase):
     """Tier-2 must be separate, weaker, and fail closed. Never a promotion."""
 
@@ -1043,7 +1238,7 @@ class Tier2ProtocolTests(unittest.TestCase):
         # seal consumes attestation, it never manufactures it.
         with self.assertRaises(self.T2.Tier2Error) as ctx:
             self.T2.seal_triple(
-                con=self.con, event=self.event, now_ms=self.now,
+                con=self.con, event=self.event,
                 attestation_path=self.att, prompts_sha256="0" * 64,
                 arm_results=[
                     {"arm": a, "text": '{"p_up":0.5,"expected_return_bps":0,'
@@ -1055,7 +1250,10 @@ class Tier2ProtocolTests(unittest.TestCase):
                      "terminal_response": True, "retried_ambiguously": False,
                      "tool_artifacts": []}
                     for a in ("news", "news_market", "market")],
-                quote={"price": 1.0, "observed_ms": self.now + 10_000})
+                quote={"price": 64_000.0, "observed_ms": self.now + 2,
+                       "source": "binance_public_ticker",
+                       "symbol": "BTCUSDT"},
+                now_ms=self.now + 5_000)
         self.assertIn("attestation_chain_empty", str(ctx.exception))
 
     def test_tampered_attestation_record_refuses(self):
@@ -1076,15 +1274,19 @@ class Tier2ProtocolTests(unittest.TestCase):
         self.assertIn("entry_not_after_last_arm", str(ctx.exception))
 
     def test_candle_must_be_closed_and_in_range(self):
-        due = 1_000_000
-        with self.assertRaises(self.T2.Tier2Error):
-            self.T2.validate_candle({"closed": False, "close_ms": due + 1000}, due)
-        with self.assertRaises(self.T2.Tier2Error):
-            self.T2.validate_candle({"closed": True, "close_ms": due - 1}, due)
-        with self.assertRaises(self.T2.Tier2Error):
-            self.T2.validate_candle({"closed": True, "close_ms": due + 60_000}, due)
-        self.assertTrue(self.T2.validate_candle(
-            {"closed": True, "close_ms": due + 30_000}, due))
+        # Stage-21: the validator now demands a real 1-minute candle, so the
+        # fixtures carry an aligned open, a 59 999 ms span and a price.
+        open_ms = 960_000
+        due = 1_010_000
+        good = {"closed": True, "open_ms": open_ms,
+                "close_ms": open_ms + 59_999, "close": 64_000.0}
+        self.assertTrue(self.T2.validate_candle(good, due))
+        for bad in ({"closed": False},
+                    {"close_ms": open_ms + 59_000},      # not aligned
+                    {"close_ms": open_ms + 60_000},      # wrong span
+                    {"close": 0}):
+            with self.assertRaises(self.T2.Tier2Error):
+                self.T2.validate_candle({**good, **bad}, due)
 
     # --- pre-registration -------------------------------------------------
 
@@ -1233,3 +1435,157 @@ class Tier2ActivationTests(unittest.TestCase):
         self.assertIn("2026-11-17T09:22:39Z", text)
         self.assertIn("2026-11-17T09:52:00Z", text)
         self.assertIn("29 min", text)
+
+
+class Tier2OrchestratorTests(unittest.TestCase):
+    """End-to-end offline harness: event -> gate -> reserve -> calls -> quote ->
+    seal -> scheduled label. No network, no model, disposable DB."""
+
+    def setUp(self):
+        import tempfile
+        import tier2_orchestrator as O
+        self.O = O
+        self.T2 = O.T2
+        self.dir = Path(tempfile.mkdtemp(prefix="orch-"))
+        self.con = self.T2.open_tier2(self.dir / "tier2.sqlite")
+        self.T2.open_attempts(self.con)      # tables exist before any assertion
+        self.att = self.dir / "attestation.jsonl"
+        self.now = 1_800_000_000_000
+        self.event = {"event_id": "a" * 64, "cohort": "geopolitics",
+                      "published_ms": self.now - 300_000,
+                      "observed_ms": self.now - 240_000}
+        self.prompts = {"news": "p1", "news_market": "p2", "market": "p3"}
+
+    def tearDown(self):
+        self.con.close()
+
+    def _gate(self, trial_id="trial-orch"):
+        return lambda: {"trial_id": trial_id, "purpose": self.T2.TRIAL_PURPOSE,
+                        "owner_seq": 159, "max_model_invocations": 3,
+                        "max_triples": 1, "started_utc": "2026-11-17T10:30:00Z",
+                        "protocol_sha256": self.T2.protocol_sha(),
+                        "erratum_sha256": "e" * 64}
+
+    def _executor(self, *, fail_on=None, artifact_on=None):
+        def execute(prompts, *, now_ms, con=None, trial_id=None):
+            out = []
+            for i, arm in enumerate(("news", "news_market", "market")):
+                if arm == fail_on:
+                    raise RuntimeError("arm exploded")
+                text = ('{"p_up":0.56,"expected_return_bps":40,'
+                        '"uncertainty":0.4,"rationale":"orchestrator fixture"}')
+                resp_sha = __import__("hashlib").sha256(
+                    (arm + text).encode()).hexdigest()
+                rec = self.T2._write_attestation(
+                    self.att, response_sha=resp_sha, model="m")
+                out.append({
+                    "arm": arm, "text": text,
+                    "completed_ms": now_ms + 100 + i,
+                    "tool_evidence": self.T2.TIER,
+                    "attestation_record_sha256": rec["record_sha256"],
+                    "model_observed": "m", "model_expected": "m",
+                    "response_sha256": resp_sha,
+                    "request_sha256": "r" * 64,
+                    "terminal_response": True, "retried_ambiguously": False,
+                    "tool_artifacts": (["function_call"] if arm == artifact_on
+                                       else []),
+                })
+                self.T2.mark_attempt(con, trial_id=trial_id, arm=arm,
+                                     state="started", now_ms=now_ms + 50)
+                self.T2.mark_attempt(con, trial_id=trial_id, arm=arm,
+                                     state="completed", now_ms=now_ms + 150)
+            return out
+        return execute
+
+    def _quote(self, *, after_ms):
+        return {"price": 64_000.0, "observed_ms": after_ms + 5_000,
+                "source": "binance_public_ticker", "symbol": "BTCUSDT"}
+
+    def _run(self, **over):
+        kw = {"con": self.con, "event": self.event, "prompts": self.prompts,
+              "executor": self._executor(), "quote_fn": self._quote,
+              "now_ms": self.now + 300_000, "trial_id": "trial-orch",
+              "attestation_path": self.att, "gate_check": self._gate()}
+        kw.update(over)
+        return self.O.run_trial(**kw)
+
+    def test_full_path_seals_one_observational_row(self):
+        out = self._run()
+        self.assertEqual(out["status"], "sealed")
+        self.assertEqual([s["step"] for s in out["steps"]],
+                         ["gate", "event", "reserve", "calls", "quote", "seal",
+                          "label"])
+        tier = self.con.execute("SELECT tier FROM tier2_triples").fetchone()[0]
+        self.assertEqual(tier, "observational_tier2")
+        self.assertEqual(self.T2.counters(self.con)["triples"], 1)
+        self.assertTrue(out["cohort"].endswith("|tier2"))
+
+    def test_gate_mismatch_stops_before_any_reservation(self):
+        with self.assertRaises(self.O.OrchestratorError):
+            self._run(gate_check=self._gate(trial_id="other"))
+        self.assertEqual(self.con.execute(
+            "SELECT COUNT(*) FROM tier2_attempts").fetchone()[0], 0)
+
+    def test_stale_event_stops_before_reservation(self):
+        stale = dict(self.event, published_ms=self.now - 3_600_000,
+                     observed_ms=self.now - 3_500_000)
+        with self.assertRaises(self.T2.Tier2Error) as ctx:
+            self._run(event=stale)
+        self.assertIn("event_too_old", str(ctx.exception))
+        self.assertEqual(self.con.execute(
+            "SELECT COUNT(*) FROM tier2_attempts").fetchone()[0], 0)
+
+    def test_arm_failure_leaves_tombstones_and_no_triple(self):
+        with self.assertRaises(RuntimeError):
+            self._run(executor=self._executor(fail_on="news_market"))
+        states = dict(self.con.execute(
+            "SELECT arm, state FROM tier2_attempts").fetchall())
+        # news completed before the failure; the rest were never started and are
+        # closed as failed tombstones by the orchestrator.
+        self.assertEqual(states["news"], "completed")
+        for arm in ("news_market", "market"):
+            self.assertIn(states[arm], ("prepared", "failed"))
+        self.assertEqual(self.T2.counters(self.con)["triples"], 0)
+
+    def test_tool_artifact_blocks_the_seal(self):
+        with self.assertRaises(self.T2.Tier2Error) as ctx:
+            self._run(executor=self._executor(artifact_on="market"))
+        self.assertIn("tool", str(ctx.exception).lower())
+        self.assertEqual(self.T2.counters(self.con)["triples"], 0)
+
+    def test_second_run_for_same_trial_is_refused(self):
+        self._run()
+        with self.assertRaises(self.T2.Tier2Error) as ctx:
+            self._run()
+        self.assertIn("already_reserved", str(ctx.exception))
+        self.assertEqual(self.T2.counters(self.con)["triples"], 1)
+
+    def test_label_is_written_from_a_closed_candle(self):
+        out = self._run()
+        due = out["due_ms"]
+        # D15: the exit is the first CLOSED 1m candle at/after due, so its open
+        # is the minute boundary containing (or following) the due moment - not
+        # the next one, which would drift past the 60 s allowance.
+        open_ms = (due // 60_000) * 60_000
+        if open_ms < due:
+            open_ms += 60_000
+        # The candle must still close within 60 s of due.
+        while open_ms + 59_999 - due >= 60_000:
+            open_ms -= 60_000
+        candle = {"symbol": "BTCUSDT", "closed": True, "open_ms": open_ms,
+                  "close_ms": open_ms + 59_999, "close": 64_123.0}
+        res = self.O.write_label(con=self.con, event_id="a" * 64, due_ms=due,
+                                 candle=candle, now_ms=due + 120_000)
+        self.assertEqual(res["label_state"], "labelled")
+        self.assertGreaterEqual(res["drift_ms"], 0)
+        self.assertLess(res["drift_ms"], 60_000)
+
+    def test_label_refuses_an_unclosed_candle(self):
+        out = self._run()
+        candle = {"symbol": "BTCUSDT", "closed": False,
+                  "open_ms": 1_800_000_000_000, "close_ms": 1_800_000_059_999,
+                  "close": 64_000.0}
+        with self.assertRaises(self.T2.Tier2Error):
+            self.O.write_label(con=self.con, event_id="a" * 64,
+                               due_ms=out["due_ms"], candle=candle,
+                               now_ms=out["due_ms"] + 60_000)
