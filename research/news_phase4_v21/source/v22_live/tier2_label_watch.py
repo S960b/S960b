@@ -219,6 +219,16 @@ def settle_one(con, row, *, now_ms, candle_fn, dry, max_failures=MAX_FAILURES,
         return {"event_id": event_id, "status": "pending",
                 "reason": "not_due_yet", "due_ms": due}
 
+    # F06: the target Binance candle cannot be closed until the end of the
+    # minute containing due_ms. Polling sooner is NOT an exchange failure and
+    # must not consume the bounded three-failure budget. Binance kline close
+    # timestamps are minute_open + 59_999 milliseconds.
+    first_close_ms = (int(due) // 60_000) * 60_000 + 59_999
+    if int(now_ms) <= first_close_ms:
+        return {"event_id": event_id, "status": "pending",
+                "reason": "await_first_closed_candle",
+                "due_ms": due, "first_close_ms": first_close_ms}
+
     if dry:
         # Dry decides what it WOULD do. No writes, no schema creation.
         try:
@@ -234,6 +244,16 @@ def settle_one(con, row, *, now_ms, candle_fn, dry, max_failures=MAX_FAILURES,
         candle = candle_fn(due_ms=due)
         T2.validate_candle(candle, due, symbol=TR.LABEL_SYMBOL)
     except Exception as exc:
+        # F06: a correctly timed request can still find that the exchange
+        # has not published the first closed candle. Waiting for publication
+        # does not spend failure attempts. After the hard max-wait deadline,
+        # retain the existing censoring rule instead of waiting forever.
+        if ("label_pending_candle_open" in str(exc)
+                or "candle_not_closed" in str(exc)):
+            if int(now_ms) - int(due) <= max_wait_ms:
+                return {"event_id": event_id, "status": "pending",
+                        "reason": "await_exchange_candle_close",
+                        "due_ms": due}
         if classify(exc) != "transient":
             # A bug is not an outage. Surface it and leave the row untouched.
             return {"event_id": event_id, "status": "error",
