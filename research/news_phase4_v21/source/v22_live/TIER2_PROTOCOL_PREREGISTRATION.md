@@ -2,7 +2,13 @@
 
 ```
 protocol_id      prospective-v2.5-tier2
-registered_utc   2026-11-17T09:52:00Z
+registered_utc   2026-11-17T09:22:39Z   (SUPERSEDED — see TIER2_ERRATUM_1.md)
+corrected_note   The value originally written here, 2026-11-17T09:52:00Z, was a
+                 hand-typed error and is LATER than commit 5b26ce3 that contains
+                 this file (12:22:39+03:00 = 09:22:39Z). The authoritative
+                 registration time is the git commit timestamp above. The erratum
+                 records the discrepancy in full; nothing else in this protocol
+                 changes. Zero Tier-2 observations existed at either moment.
 registered_by    MT, on instruction of ChatGPT seq 155
 status           DRAFTED AND OFFLINE-TESTED ONLY — NOT ACTIVE
 data_at_registration   ZERO Tier-2 rows exist. Not one.
