@@ -939,3 +939,189 @@ class UndatedSourceTests(unittest.TestCase):
         self.assertIs(AD.SOURCES["kraken_status"]["dated"], False)
         for sid in ("fed_press_monetary", "sec_press", "whitehouse_actions"):
             self.assertIs(AD.SOURCES[sid].get("dated", True), True)
+
+
+class Tier2ProtocolTests(unittest.TestCase):
+    """Tier-2 must be separate, weaker, and fail closed. Never a promotion."""
+
+    def setUp(self):
+        import tempfile
+        import tier2 as T2
+        self.T2 = T2
+        self.dir = Path(tempfile.mkdtemp(prefix="t2-"))
+        self.con = T2.open_tier2(self.dir / "tier2.sqlite")
+        self.att = self.dir / "attestation.jsonl"
+        self.now = 1_800_000_000_000
+        self.event = {"event_id": "e" * 64, "cohort": "geopolitics",
+                      "published_ms": self.now - 120_000}
+
+    def tearDown(self):
+        self.con.close()
+
+    def _seal(self, **over):
+        kw = {"con": self.con, "event": self.event, "now_ms": self.now,
+              "attestation_path": self.att}
+        kw.update(over)
+        return self.T2.mock_triple(**kw)
+
+    # --- separation from the strict cohort -------------------------------
+
+    def test_tier2_label_is_observational_only(self):
+        self.assertEqual(self.T2.TIER, "observational_tier2")
+        self.assertNotIn("known_zero", self.T2.TIER)
+        self.assertNotEqual(self.T2.PROTOCOL_ID, "prospective-v2.2-arms3")
+
+    def test_tier2_never_writes_known_zero(self):
+        out = self._seal()
+        self.assertEqual(out["status"], "sealed")
+        rows = self.con.execute("SELECT tool_evidence FROM tier2_arms").fetchall()
+        self.assertTrue(rows)
+        for (evidence,) in rows:
+            self.assertEqual(evidence, "observational_tier2")
+            self.assertNotEqual(evidence, "known_zero")
+
+    def test_cohort_is_suffixed_and_cannot_be_confused(self):
+        self._seal()
+        cohort = self.con.execute("SELECT cohort FROM tier2_triples").fetchone()[0]
+        self.assertTrue(cohort.endswith("|tier2"))
+
+    def test_schema_pins_the_tier(self):
+        with self.assertRaises(Exception):
+            self.con.execute(
+                "INSERT INTO tier2_triples VALUES(" + ",".join("?" * 20) + ")",
+                ("x", "p", "known_zero", "v", "s", "pf", "a", 1, "m", "r", "r",
+                 "c", 1, 1, 1.0, 1, 1, 1, "seal", 1))
+            self.con.commit()
+
+    def test_counters_are_their_own_namespace(self):
+        self._seal()
+        c = self.T2.counters(self.con)
+        self.assertEqual(c["triples"], 1)
+        self.assertIn("never merge", c["note"])
+
+    # --- fail-closed cases -----------------------------------------------
+
+    def test_gate_is_closed_so_no_model_can_be_called(self):
+        with self.assertRaises(self.T2.Tier2Error) as ctx:
+            self.T2.require_gate(self.dir / "TIER2_ACTIVE")
+        self.assertIn("tier2_not_activated", str(ctx.exception))
+
+    def test_tool_artifact_in_response_refuses(self):
+        with self.assertRaises(self.T2.Tier2Error) as ctx:
+            self._seal(tool_artifact=True)
+        self.assertIn("tool_artifact", str(ctx.exception))
+
+    def test_missing_terminal_response_refuses(self):
+        with self.assertRaises(self.T2.Tier2Error) as ctx:
+            self._seal(terminal=False)
+        self.assertIn("terminal_response_missing", str(ctx.exception))
+
+    def test_ambiguous_retry_refuses(self):
+        with self.assertRaises(self.T2.Tier2Error) as ctx:
+            self._seal(retried=True)
+        self.assertIn("ambiguous_retry", str(ctx.exception))
+
+    def test_wrong_model_refuses(self):
+        with self.assertRaises(self.T2.Tier2Error) as ctx:
+            self._seal(wrong_model_arm="news")
+        self.assertIn("model_identity_mismatch", str(ctx.exception))
+
+    def test_stale_event_refuses(self):
+        old = dict(self.event, published_ms=self.now - 3_600_000)
+        with self.assertRaises(self.T2.Tier2Error) as ctx:
+            self._seal(event=old)
+        self.assertIn("event_too_old", str(ctx.exception))
+
+    def test_synthesized_event_refuses(self):
+        bad = dict(self.event, synthesized=True)
+        with self.assertRaises(self.T2.Tier2Error) as ctx:
+            self._seal(event=bad)
+        self.assertIn("synthesized_or_backdated", str(ctx.exception))
+
+    def test_seal_refuses_when_the_chain_is_empty(self):
+        # Deleting the evidence must not be recoverable by sealing again: the
+        # seal consumes attestation, it never manufactures it.
+        with self.assertRaises(self.T2.Tier2Error) as ctx:
+            self.T2.seal_triple(
+                con=self.con, event=self.event, now_ms=self.now,
+                attestation_path=self.att, prompts_sha256="0" * 64,
+                arm_results=[
+                    {"arm": a, "text": '{"p_up":0.5,"expected_return_bps":0,'
+                                       '"uncertainty":0.5}',
+                     "completed_ms": self.now + 1,
+                     "tool_evidence": self.T2.TIER,
+                     "attestation_record_sha256": "a" * 64,
+                     "model_observed": "m", "model_expected": "m",
+                     "terminal_response": True, "retried_ambiguously": False,
+                     "tool_artifacts": []}
+                    for a in ("news", "news_market", "market")],
+                quote={"price": 1.0, "observed_ms": self.now + 10_000})
+        self.assertIn("attestation_chain_empty", str(ctx.exception))
+
+    def test_tampered_attestation_record_refuses(self):
+        self._seal()
+        lines = self.att.read_text().splitlines()
+        rec = json.loads(lines[0])
+        rec["response"]["sha256"] = "9" * 64
+        lines[0] = json.dumps(rec, sort_keys=True)
+        self.att.write_text("\n".join(lines) + "\n")
+        with self.assertRaises(self.T2.Tier2Error):
+            self.T2.load_chain(self.att)
+
+    def test_quote_timing_is_enforced(self):
+        out = self._seal()
+        self.assertEqual(out["status"], "sealed")
+        with self.assertRaises(self.T2.Tier2Error) as ctx:
+            self.T2.validate_quote({"price": 1.0, "observed_ms": 1}, 1_000_000)
+        self.assertIn("entry_not_after_last_arm", str(ctx.exception))
+
+    def test_candle_must_be_closed_and_in_range(self):
+        due = 1_000_000
+        with self.assertRaises(self.T2.Tier2Error):
+            self.T2.validate_candle({"closed": False, "close_ms": due + 1000}, due)
+        with self.assertRaises(self.T2.Tier2Error):
+            self.T2.validate_candle({"closed": True, "close_ms": due - 1}, due)
+        with self.assertRaises(self.T2.Tier2Error):
+            self.T2.validate_candle({"closed": True, "close_ms": due + 60_000}, due)
+        self.assertTrue(self.T2.validate_candle(
+            {"closed": True, "close_ms": due + 30_000}, due))
+
+    # --- pre-registration -------------------------------------------------
+
+    def test_preregistration_exists_and_predates_data(self):
+        path = self.T2.PROTOCOL_FILE
+        self.assertTrue(path.is_file(), "protocol file missing")
+        text = path.read_text(encoding="utf-8")
+        self.assertIn("prospective-v2.5-tier2", text)
+        self.assertIn("registered_utc", text)
+        self.assertIn("ZERO Tier-2 rows exist", text)
+        # The strict requirement must still be stated as unmet, not relaxed.
+        self.assertIn("known_zero", text)
+        self.assertIn("upstream", text.lower())
+
+    def test_protocol_hash_is_recorded_in_every_row(self):
+        self._seal()
+        stored, expected = self.con.execute(
+            "SELECT protocol_file_sha256 FROM tier2_triples").fetchone()[0], \
+            self.T2.protocol_sha()
+        self.assertEqual(stored, expected)
+
+    def test_preregistration_forbids_upgrade_language(self):
+        text = self.T2.PROTOCOL_FILE.read_text(encoding="utf-8")
+        banned = ["fully isolated", "provider proof", "certified"]
+        # They may appear ONLY inside the forbidden-usage sentence.
+        used = text.lower().count("fully isolated")
+        self.assertLessEqual(used, 1)
+
+    # --- non-mixing -------------------------------------------------------
+
+    def test_tier2_db_is_a_different_file_from_strict(self):
+        strict = Path.home() / ".local/share/news-phase4-v24/v22.sqlite"
+        self.assertNotEqual(Path(self.T2.DEFAULT_DB), strict)
+        self.assertIn("phase4-v25", str(self.T2.DEFAULT_DB))
+
+    def test_tier2_schema_has_no_prospectustrict_table(self):
+        names = {r[0] for r in self.con.execute(
+            "SELECT name FROM sqlite_master WHERE type='table'")}
+        self.assertEqual(names, {"tier2_triples", "tier2_arms",
+                                 "tier2_outcomes"})
