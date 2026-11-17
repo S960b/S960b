@@ -141,3 +141,32 @@ parsing      canonical v2.1 strict parser: duplicate keys and non-standard
 These numbers are the v2 policy carried over unchanged, so Tier-2 differs from
 v2.2 in attestation strength only, never in the decision rule. Changing them
 after data would be post-hoc tuning.
+
+## Amendment 3 — prompt-only no-web policy and operational staging (before first data)
+
+Recorded **before any real Tier-2 model invocation or prospective triple**.
+The owner chose the explicitly weaker **prompt-only** policy after prior
+investigation of the MT/gateway tool surface: for the first PAPER trial we will
+ask the model not to browse or use external tools, but **will not claim** that
+prompting proves provider-side isolation or prevents all outside information.
+No strict-v2.2 result is created or upgraded by this decision.
+
+- Active prompt version for NEW observations:
+  `v2.5-tier2-arms3-prompt-no-web-v1`. The earlier version string in the
+  registration header is superseded for observations after this amendment.
+- Each call uses `tier2.ARM_SYSTEM_T2`, explicitly requiring only the frozen
+  supplied input; no browsing, search, external tools, file reading or network
+  retrieval. Request bodies also omit tool definitions; response and request
+  bytes are recorded as available. Provider-side history remains **unknown**.
+- The exact effective system prompt and its SHA-256 are stored in the immutable
+  pre-call `frozen-<trial_id>.json` evidence file. The request/response attestation
+  preserves the actual network-level client bytes separately.
+- Activation is staged separately: `TIER2_ACTIVATION.json` can be created and
+  the `TIER2_ACTIVE` flag enabled while `TRIGGER_ENABLED` remains **absent**.
+  Neither step calls a model. The first real 3-arm trial is a separate later
+  operation and must not be invoked until the owner-approved controlled test.
+- The single-trial limit (at most **three** model calls, **one** sealed triple)
+  and 14-day trial window are unchanged. No automatic continuation is approved.
+- The objective remains comparing news+market against market-only with the
+  entry quote strictly after the model replies; inference cost is treated as
+  zero, trading commissions and slippage are not.
