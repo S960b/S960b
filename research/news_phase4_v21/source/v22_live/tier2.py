@@ -599,9 +599,14 @@ def mock_triple(*, con, event, now_ms, attestation_path, quote_price=64_000.0,
     now_ms = max(int(now_ms), quote["observed_ms"] + 1_000)
     prompts_sha = hashlib.sha256(
         ("|".join(a["text"] for a in arms)).encode()).hexdigest()
-    return seal_triple(con=con, event=event, arm_results=arms, quote=quote,
+    out = seal_triple(con=con, event=event, arm_results=arms, quote=quote,
                       attestation_path=attestation_path, now_ms=now_ms,
                       prompts_sha256=prompts_sha)
+    # The due moment is part of the observation, not something a caller should
+    # recompute: the label worker needs exactly the entry+4h that was sealed.
+    out["due_ms"] = int(quote["observed_ms"]) + HORIZON_MS
+    out["entry_observed_ms"] = int(quote["observed_ms"])
+    return out
 
 
 # ------------------------------------------------------- live executor (1 trial)

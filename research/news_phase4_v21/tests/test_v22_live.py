@@ -1813,3 +1813,126 @@ except T2.Tier2Error as e:
 """
         outs = [self._run_many(script % str(i), 1)[0] for i in range(4)]
         self.assertEqual(len([o for o in outs if o.startswith("CALL")]), 3, outs)
+
+
+class Tier2TriggerTests(unittest.TestCase):
+    """The trigger is inert unless switched on, claims before working, and
+    labels exactly once without inventing prices."""
+
+    def setUp(self):
+        import tempfile
+        import tier2_trigger as TR
+        self.TR = TR
+        self.T2 = TR.T2
+        self.dir = Path(tempfile.mkdtemp(prefix="trig-"))
+        self.flag = self.dir / "TRIGGER_ENABLED"
+        self.gate = self.dir / "TIER2_ACTIVE"
+        self.con = self.T2.open_tier2(self.dir / "tier2.sqlite")
+        self.T2.open_attempts(self.con)
+        self.now = 1_800_000_000_000
+
+    def tearDown(self):
+        self.con.close()
+
+    # --- disabled by default -------------------------------------------
+
+    def test_trigger_is_disabled_when_flags_absent(self):
+        self.assertFalse(self.TR.enabled(self.flag, self.gate))
+        with self.assertRaises(self.TR.NotEnabled) as ctx:
+            self.TR.require_enabled(self.flag)
+        self.assertIn("tier2_trigger_disabled", str(ctx.exception))
+
+    def test_only_the_gate_is_not_enough(self):
+        self.gate.write_text("")
+        self.assertFalse(self.TR.enabled(self.flag, self.gate))
+
+    def test_only_the_trigger_flag_is_not_enough(self):
+        self.flag.write_text("")
+        self.assertFalse(self.TR.enabled(self.flag, self.gate))
+
+    # --- claim before work ---------------------------------------------
+
+    def test_claim_is_single_and_atomic(self):
+        first = self.TR.claim_trial(self.con, trial_id="t1", event_id="e1",
+                                    now_ms=self.now)
+        self.assertEqual(first["state"], "claimed")
+        with self.assertRaises(self.T2.Tier2Error) as ctx:
+            self.TR.claim_trial(self.con, trial_id="t2", event_id="e2",
+                                now_ms=self.now)
+        self.assertIn("already_claimed", str(ctx.exception))
+
+    def test_claim_is_closed_one_way(self):
+        self.TR.claim_trial(self.con, trial_id="t1", event_id="e1", now_ms=self.now)
+        self.TR.close_claim(self.con, state="aborted", now_ms=self.now)
+        with self.assertRaises(self.T2.Tier2Error) as ctx:
+            self.TR.close_claim(self.con, state="done", now_ms=self.now)
+        self.assertIn("already_terminal", str(ctx.exception))
+
+    def test_bad_claim_state_is_refused(self):
+        self.TR.claim_trial(self.con, trial_id="t1", event_id="e1", now_ms=self.now)
+        with self.assertRaises(self.T2.Tier2Error):
+            self.TR.close_claim(self.con, state="reopened", now_ms=self.now)
+
+    # --- label worker ---------------------------------------------------
+
+    def _seal(self):
+        import tier2 as T2
+        ev = {"event_id": "a" * 64, "cohort": "geopolitics",
+              "published_ms": self.now - 120_000,
+              "observed_ms": self.now - 60_000}
+        self.T2._write_attestation  # exists on tier2
+        out = self.T2.mock_triple(con=self.con, event=ev, now_ms=self.now,
+                                  attestation_path=self.dir / "att.jsonl")
+        return ev, out["due_ms"]
+
+    def _candle(self, due_ms):
+        open_ms = (due_ms // 60_000) * 60_000
+        if open_ms < due_ms:
+            open_ms += 60_000
+        while open_ms + 59_999 - due_ms >= 60_000:
+            open_ms -= 60_000
+        return {"symbol": "BTCUSDT", "closed": True, "open_ms": open_ms,
+                "close_ms": open_ms + 59_999, "close": 64_000.0}
+
+    def test_label_is_written_once_and_is_retry_safe(self):
+        ev, due = self._seal()
+        first = self.TR.label_once(con=self.con, event_id=ev["event_id"],
+                                   due_ms=due, candle_fn=self._candle,
+                                   now_ms=due + 120_000)
+        self.assertEqual(first["label_state"], "labelled")
+        second = self.TR.label_once(con=self.con, event_id=ev["event_id"],
+                                    due_ms=due, candle_fn=self._candle,
+                                    now_ms=due + 300_000)
+        self.assertTrue(second.get("already_labelled"))
+        self.assertEqual(self.con.execute(
+            "SELECT COUNT(*) FROM tier2_outcomes").fetchone()[0], 1)
+
+    def test_label_refuses_an_unknown_triple(self):
+        with self.assertRaises(self.T2.Tier2Error) as ctx:
+            self.TR.label_once(con=self.con, event_id="z" * 64, due_ms=self.now,
+                               candle_fn=self._candle, now_ms=self.now)
+        self.assertIn("label_unknown_triple", str(ctx.exception))
+
+    def test_label_waits_when_not_due(self):
+        ev, due = self._seal()
+        out = self.TR.label_once(con=self.con, event_id=ev["event_id"],
+                                 due_ms=due, candle_fn=self._candle,
+                                 now_ms=due - 60_000)
+        self.assertEqual(out["label_state"], "pending")
+        self.assertEqual(self.con.execute(
+            "SELECT COUNT(*) FROM tier2_outcomes").fetchone()[0], 0)
+
+    def test_market_outage_censors_instead_of_fabricating(self):
+        ev, due = self._seal()
+
+        def outage(*, due_ms):
+            raise ConnectionError("binance down")
+
+        out = self.TR.label_once(con=self.con, event_id=ev["event_id"],
+                                 due_ms=due, candle_fn=outage,
+                                 now_ms=due + 120_000)
+        self.assertEqual(out["label_state"], "censored")
+        price = self.con.execute(
+            "SELECT price FROM tier2_outcomes WHERE event_id=?",
+            (ev["event_id"],)).fetchone()[0]
+        self.assertEqual(price, 0.0, "a censored row must not carry a fake price")
