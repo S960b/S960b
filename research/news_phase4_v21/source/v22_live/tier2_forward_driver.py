@@ -122,10 +122,19 @@ def _quote_after(*, after_ms):
     return quote
 
 
+def _wall_ms():
+    return time.time_ns() // 1_000_000
+
+
 def execute_once(*, feed_db=FEED_DB, now_ms=None, dry=True):
-    """One invocation max. No model call before explicit activation AND
-    successful raw, time, input, and market-snapshot checks."""
-    now_ms = int(time.time() * 1000) if now_ms is None else int(now_ms)
+    """One invocation max. Revalidate freshness AFTER market data retrieval.
+
+    Explicit now_ms supports deterministic offline fixtures. Production callers
+    must omit it, so the decision timestamp is sampled from a fresh wall clock
+    immediately before the frozen-input write and the first model invocation.
+    """
+    fixture_clock = now_ms is not None
+    now_ms = int(now_ms) if fixture_clock else _wall_ms()
     if dry:
         with closing(sqlite3.connect(f"file:{Path(feed_db).resolve()}?mode=ro",
                                      uri=True)) as feed:
@@ -147,10 +156,16 @@ def execute_once(*, feed_db=FEED_DB, now_ms=None, dry=True):
                                       model_id="deepseek-v4-flash")
             for arm in A.ARM_NAMES}
     A.audit_market_arm_isolation(prompts, meta, event)
+    # A feed can be fresh before a slow market-data fetch and stale after it.
+    # Never spend any model call on that stale input. The frozen decision clock
+    # is distinct from the later post-response entry/quote clock.
+    decision_ms = now_ms if fixture_clock else _wall_ms()
+    T2.validate_event(event, decision_ms,
+                      published_max_ms=T2.FRESHNESS_BUDGET_S[event["cohort"]] * 1000)
     # This full exact input is frozen BEFORE any model call; hash alone is
     # insufficient for reproducing the original inference.
     frozen = {"trial_id": act["trial_id"], "event": event,
-              "decision_ms": now_ms, "cutoff_ms": cutoff,
+              "decision_ms": decision_ms, "cutoff_ms": cutoff,
               "market": market, "prompts": prompts,
               "system_prompt": T2.ARM_SYSTEM_T2,
               "system_prompt_sha256": digest(T2.ARM_SYSTEM_T2.encode("utf-8")),
@@ -175,7 +190,7 @@ def execute_once(*, feed_db=FEED_DB, now_ms=None, dry=True):
             executor=T2.live_executor(
                 model="deepseek-v4-flash",
                 attestation_path=T2.DEFAULT_ATTESTATION),
-            quote_fn=_quote_after, now_ms=now_ms,
+            quote_fn=_quote_after, now_ms=decision_ms,
             trial_id=act["trial_id"],
             attestation_path=T2.DEFAULT_ATTESTATION,
             published_max_ms=T2.FRESHNESS_BUDGET_S[event["cohort"]] * 1000)
