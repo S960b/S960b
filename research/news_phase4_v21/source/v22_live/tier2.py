@@ -256,16 +256,18 @@ def validate_event(event, now_ms, *, published_max_ms=None):
             raise Tier2Error("event_transport_lag_exceeded:"
                              + str(lag_ms // 1000) + "s")
 
-    observed = event.get("observed_ms")
-    if observed is not None:
-        observed = _epoch_ms(observed, name="observed")
-        if observed < published:
-            raise Tier2Error("event_observed_before_published")
-        if observed > now:
-            raise Tier2Error("event_observed_in_future")
+    # A real event MUST carry an observation time. Without it the age could be
+    # measured from a publication clock we never independently saw, and the
+    # transport lag would be unverifiable.
+    if event.get("observed_ms") is None:
+        raise Tier2Error("event_observed_ms_required")
+    observed = _epoch_ms(event["observed_ms"], name="observed")
+    if observed < published:
+        raise Tier2Error("event_observed_before_published")
+    if observed > now:
+        raise Tier2Error("event_observed_in_future")
 
-    reference = observed if observed is not None else published
-    age_s = (now - reference) // 1000
+    age_s = (now - observed) // 1000
     if age_s > budget:
         raise Tier2Error("event_too_old:" + str(age_s) + "s")
     return True

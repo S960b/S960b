@@ -48,6 +48,12 @@ CREATE TABLE IF NOT EXISTS v24_observations(
  published_ms INTEGER NOT NULL, observed_ms INTEGER NOT NULL,
  raw_sha256 TEXT, raw_path TEXT,
  first_seen_ms INTEGER NOT NULL);
+-- One row per archived response, so a stored event can point at the exact
+-- bytes it came from. No headers, no credentials, no token values.
+CREATE TABLE IF NOT EXISTS v24_raw_manifest(
+ raw_sha256 TEXT PRIMARY KEY, source_id TEXT NOT NULL, url TEXT NOT NULL,
+ http_status INTEGER, observed_ms INTEGER, bytes INTEGER,
+ path TEXT NOT NULL, verified_ms INTEGER);
 CREATE TABLE IF NOT EXISTS v24_state(
  raw_sha256 TEXT NOT NULL, source_id TEXT NOT NULL, body TEXT NOT NULL,
  observed_ms INTEGER NOT NULL, PRIMARY KEY(raw_sha256, observed_ms));
@@ -60,6 +66,7 @@ def open_db(path=DB):
     con = sqlite3.connect(str(path), timeout=5)
     con.execute("PRAGMA journal_mode=WAL")
     con.executescript(SCHEMA)
+    con.executescript(MIGRATION_SCHEMA)   # alias/meta exist before any tick
     con.commit()
     return con
 
@@ -108,6 +115,92 @@ def archive_raw(*, fetched, source_id, raw_dir=RAW_DIR):
     return {"raw_sha256": digest, "raw_path": str(path), "bytes": len(body)}
 
 
+MIGRATION_SCHEMA = """
+-- Cross-version identity. Historical rows were keyed sha(title|published) with
+-- no source; the canonical identity is sha(source|title|published). An alias
+-- keyed on the ORIGINAL key lets the store recognise a pre-migration row when
+-- the new feed presents the same item under a new id, so a tick cannot
+-- re-insert 70 historical events as 70 new ones.
+CREATE TABLE IF NOT EXISTS v24_identity_alias(
+ legacy_key TEXT PRIMARY KEY,        -- sha(title|published), the old key
+ canonical_id TEXT NOT NULL,         -- sha(source|title|published)
+ source_id TEXT, published_ms INTEGER, title TEXT,
+ created_ms INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS v24_meta(
+ key TEXT PRIMARY KEY, value TEXT NOT NULL, at_ms INTEGER NOT NULL);
+"""
+
+LEGACY_CLASS = "legacy_no_raw"
+
+
+def ensure_migration_schema(con):
+    con.executescript(MIGRATION_SCHEMA)
+    con.commit()
+
+
+def migration_state(con):
+    row = con.execute("SELECT value FROM v24_meta WHERE key='identity_migration'"
+                      ).fetchone()
+    return row[0] if row else "none"
+
+
+def migrate_identity(con=None, *, path=None, dry_run=False):
+    """Freeze canonical identity for historical rows WITHOUT rewriting them.
+
+    The original `content_sha256` values stay exactly as written; a stable alias
+    row is added so the live path can match a legacy row to a canonical id. Safe
+    to run repeatedly: the alias table is the state.
+    """
+    if con is None:
+        con = sqlite3.connect(str(path))
+    ensure_migration_schema(con)
+    rows = con.execute(
+        "SELECT content_sha256, source_id, title, published_ms FROM v24_events"
+    ).fetchall()
+    added = 0
+    now = int(time.time() * 1000)
+    for old_id, src, title, pub in rows:
+        legacy_key = semantic_cluster_id(title, pub)
+        canonical = occurrence_id(src, title, pub)
+        cur = con.execute(
+            "INSERT OR IGNORE INTO v24_identity_alias(legacy_key, canonical_id,"
+            " source_id, published_ms, title, created_ms) VALUES(?,?,?,?,?,?)",
+            (legacy_key, canonical, src, pub, title, now))
+        added += cur.rowcount
+    if not dry_run:
+        con.execute("INSERT OR REPLACE INTO v24_meta(key,value,at_ms) "
+                    "VALUES('identity_migration',?,?)",
+                    ("done:" + str(len(rows)), now))
+        con.commit()
+    return {"rows": len(rows), "aliases_added": added,
+            "state": migration_state(con)}
+
+
+def resolve_identity(con, *, source_id, title, published_ms):
+    """Canonical id for an incoming item, honouring the legacy alias.
+
+    Returns (id, is_legacy). A pre-migration row is matched through its alias and
+    keeps its ORIGINAL stored key, so the tick is a no-op rather than a duplicate.
+    """
+    canonical = occurrence_id(source_id, title, published_ms)
+    hit = con.execute("SELECT legacy_key, canonical_id FROM v24_identity_alias "
+                      "WHERE canonical_id=? OR legacy_key=?",
+                      (canonical, semantic_cluster_id(title, published_ms))
+                      ).fetchone()
+    if hit:
+        existing = con.execute("SELECT content_sha256 FROM v24_events WHERE "
+                               "content_sha256=?", (hit[1],)).fetchone()
+        if existing:
+            return hit[1], True
+        legacy = con.execute("SELECT content_sha256 FROM v24_events WHERE "
+                             "content_sha256=?",
+                             (hit[0],)).fetchone()
+        if legacy:
+            return legacy[0], True
+        return canonical, False
+    return canonical, False
+
+
 def tick(*, con, limiter, sources=None, keep_raw=True):
     """One bounded collection pass. Returns per-source counts."""
     out = {}
@@ -122,6 +215,25 @@ def tick(*, con, limiter, sources=None, keep_raw=True):
             con.commit()
             out[sid] = {"error": str(exc)}
             continue
+
+        # One archive entry per successful HTTP response, even when the parsed
+        # feed yields no dated items: the bytes are the provenance, the items are
+        # a derivation. A zero-item poll with no archived body is unverifiable.
+        archived_for_source = (archive_raw(fetched=got.get("raw_body") or {},
+                                          source_id=sid)
+                              if keep_raw else None)
+        if archived_for_source:
+            con.execute(
+                "INSERT OR IGNORE INTO v24_raw_manifest(raw_sha256, source_id,"
+                " url, http_status, observed_ms, bytes, path, verified_ms) "
+                "VALUES(?,?,?,?,?,?,?,?)",
+                (archived_for_source["raw_sha256"], sid,
+                 AD.SOURCES[sid]["url"], got["fetched"]["status"],
+                 (got.get("raw_body") or {}).get("observed_ms"),
+                 archived_for_source["bytes"],
+                 archived_for_source["raw_path"],
+                 int(time.time() * 1000)))
+            con.commit()
 
         new = duplicated = unparseable = state_recorded = 0
         for rec in got["records"]:
@@ -147,10 +259,14 @@ def tick(*, con, limiter, sources=None, keep_raw=True):
             #   cluster_id     - same text at the same instant across sources
             # Keying storage on the cluster suppressed a legitimate independent
             # publication, so the primary key is per-origin.
-            occ = occurrence_id(rec["source_id"], rec["title"], published)
+            #
+            # The alias table bridges the pre-migration key, so a historical row
+            # is recognised instead of being re-inserted as a new event.
+            occ, is_legacy = resolve_identity(con, source_id=rec["source_id"],
+                                              title=rec["title"],
+                                              published_ms=published)
             cluster = semantic_cluster_id(rec["title"], published)
-            archived = archive_raw(fetched=got.get("raw_body") or {},
-                                   source_id=rec["source_id"]) if keep_raw else None
+            archived = archived_for_source
             con.execute(
                 "INSERT OR IGNORE INTO v24_observations(occurrence_id,"
                 "semantic_cluster_id,source_id,title,origin_url,published_ms,"

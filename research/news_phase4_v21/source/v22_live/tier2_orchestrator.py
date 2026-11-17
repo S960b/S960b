@@ -35,7 +35,7 @@ class OrchestratorError(RuntimeError):
 
 def run_trial(*, con, event, prompts, executor, quote_fn, now_ms,
               trial_id, attestation_path, gate_check=None, candle_fn=None,
-              published_max_ms=None):
+              published_max_ms=None, clock=None):
     """Execute one Tier-2 trial end to end. Returns a step-by-step record.
 
     `executor`, `quote_fn` and `candle_fn` are injected so the harness can run
@@ -84,10 +84,14 @@ def run_trial(*, con, event, prompts, executor, quote_fn, now_ms,
     # The quote is taken AFTER the arms by construction, so the decision clock
     # used for the "not in the future" check has to be taken after the quote,
     # not before it. Using the pre-call clock would reject every valid quote.
-    decision_ms = max(int(now_ms), int(quote.get("observed_ms") or 0) + 1)
-    T2.validate_quote(quote, last_arm_ms, event["published_ms"],
-                      now_ms=decision_ms)
-    now_ms = decision_ms
+    # The clock used to reject a "future" quote must be the REAL wall clock, not
+    # a value derived from the quote itself - otherwise any future timestamp
+    # validates against itself. In the offline harness the clock is injected.
+    wall_ms = int(clock() if clock is not None else time.time() * 1000)
+    if wall_ms < int(now_ms):
+        raise OrchestratorError("clock_went_backwards")
+    T2.validate_quote(quote, last_arm_ms, event["published_ms"], now_ms=wall_ms)
+    now_ms = max(int(now_ms), wall_ms)
     step("quote", price=quote["price"], observed_ms=quote["observed_ms"],
          source=quote["source"])
 

@@ -17,6 +17,7 @@ for _cand in (HERE, HERE.parent, HERE.parent / "source" / "v22_live",
         break
 
 import v24_adapters as A
+MODULE_DIR = str(Path(A.__file__).resolve().parent)
 
 RSS = b"""<?xml version="1.0"?><rss version="2.0"><channel>
 <item><title>Fed holds rates</title>
@@ -1148,7 +1149,8 @@ class Tier2ProtocolTests(unittest.TestCase):
         self.att = self.dir / "attestation.jsonl"
         self.now = 1_800_000_000_000
         self.event = {"event_id": "e" * 64, "cohort": "geopolitics",
-                      "published_ms": self.now - 120_000}
+                      "published_ms": self.now - 120_000,
+                      "observed_ms": self.now - 60_000}
 
     def tearDown(self):
         self.con.close()
@@ -1222,7 +1224,8 @@ class Tier2ProtocolTests(unittest.TestCase):
         self.assertIn("model_identity_mismatch", str(ctx.exception))
 
     def test_stale_event_refuses(self):
-        old = dict(self.event, published_ms=self.now - 3_600_000)
+        old = dict(self.event, published_ms=self.now - 3_600_000,
+                   observed_ms=self.now - 3_500_000)
         with self.assertRaises(self.T2.Tier2Error) as ctx:
             self._seal(event=old)
         self.assertIn("event_too_old", str(ctx.exception))
@@ -1452,8 +1455,8 @@ class Tier2OrchestratorTests(unittest.TestCase):
         self.att = self.dir / "attestation.jsonl"
         self.now = 1_800_000_000_000
         self.event = {"event_id": "a" * 64, "cohort": "geopolitics",
-                      "published_ms": self.now - 300_000,
-                      "observed_ms": self.now - 240_000}
+                      "published_ms": self.now - 120_000,
+                      "observed_ms": self.now - 60_000}
         self.prompts = {"news": "p1", "news_market": "p2", "market": "p3"}
 
     def tearDown(self):
@@ -1505,7 +1508,8 @@ class Tier2OrchestratorTests(unittest.TestCase):
         kw = {"con": self.con, "event": self.event, "prompts": self.prompts,
               "executor": self._executor(), "quote_fn": self._quote,
               "now_ms": self.now + 300_000, "trial_id": "trial-orch",
-              "attestation_path": self.att, "gate_check": self._gate()}
+              "attestation_path": self.att, "gate_check": self._gate(),
+              "clock": lambda: self.now + 400_000}
         kw.update(over)
         return self.O.run_trial(**kw)
 
@@ -1589,3 +1593,224 @@ class Tier2OrchestratorTests(unittest.TestCase):
             self.O.write_label(con=self.con, event_id="a" * 64,
                                due_ms=out["due_ms"], candle=candle,
                                now_ms=out["due_ms"] + 60_000)
+
+
+class Stage22MigrationTests(unittest.TestCase):
+    """A migrated database must be idempotent: 70 rows stay 70, not 140."""
+
+    def setUp(self):
+        import tempfile
+        import sqlite3 as S
+        import v24_collector as C
+        self.C, self.S = C, S
+        self.dir = Path(tempfile.mkdtemp(prefix="mig-"))
+        self.db = self.dir / "v24.sqlite"
+        self.con = S.connect(str(self.db))
+        self.con.executescript(C.SCHEMA)
+        # Three legacy rows, keyed the OLD way: sha(title|published), no source.
+        for i, (src, title, pub) in enumerate([
+                ("fed_press_monetary", "Fed holds rates", 1_700_000_000_000),
+                ("sec_press", "SEC proposes rule", 1_700_000_001_000),
+                ("whitehouse_actions", "Nominations sent", 1_700_000_002_000)]):
+            legacy = __import__("hashlib").sha256(
+                f"{title}|{pub}".encode()).hexdigest()
+            self.con.execute(
+                "INSERT INTO v24_events VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+                (legacy, src, "geopolitics", "primary", title, "u" + str(i),
+                 pub, pub + 5, "r" * 64, "terms", pub))
+        self.con.commit()
+        self.legacy_ids = [r[0] for r in self.con.execute(
+            "SELECT content_sha256 FROM v24_events")]
+
+    def tearDown(self):
+        self.con.close()
+
+    def test_migration_is_idempotent_and_preserves_original_ids(self):
+        first = self.C.migrate_identity(self.con)
+        second = self.C.migrate_identity(self.con)
+        self.assertEqual(first["rows"], 3)
+        self.assertEqual(second["aliases_added"], 0)
+        ids = [r[0] for r in self.con.execute(
+            "SELECT content_sha256 FROM v24_events")]
+        self.assertEqual(ids, self.legacy_ids, "historical ids were rewritten")
+
+    def test_reinsert_after_migration_creates_no_duplicates(self):
+        self.C.migrate_identity(self.con)
+        rows = self.con.execute(
+            "SELECT source_id, title, published_ms FROM v24_events").fetchall()
+        for src, title, pub in rows:
+            occ, legacy = self.C.resolve_identity(
+                self.con, source_id=src, title=title, published_ms=pub)
+            self.assertTrue(legacy)
+            try:
+                self.con.execute(
+                    "INSERT INTO v24_events VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+                    (occ, src, "c", "p", title, "u", pub, pub, "r", "t", pub))
+            except self.S.IntegrityError:
+                pass
+        self.con.commit()
+        self.assertEqual(self.con.execute(
+            "SELECT COUNT(*) FROM v24_events").fetchone()[0], 3)
+
+    def test_without_migration_the_same_reinsert_duplicates(self):
+        # The failing-before case, kept as a regression guard on the reason.
+        rows = self.con.execute(
+            "SELECT source_id, title, published_ms FROM v24_events").fetchall()
+        added = 0
+        for src, title, pub in rows:
+            occ = self.C.occurrence_id(src, title, pub)
+            try:
+                self.con.execute(
+                    "INSERT INTO v24_events VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+                    (occ, src, "c", "p", title, "u", pub, pub, "r", "t", pub))
+                added += 1
+            except self.S.IntegrityError:
+                pass
+        self.con.commit()
+        self.assertEqual(added, 3, "the duplicate hazard must remain visible")
+        self.assertEqual(self.con.execute(
+            "SELECT COUNT(*) FROM v24_events").fetchone()[0], 6)
+
+    def test_alias_links_both_identities(self):
+        self.C.migrate_identity(self.con)
+        legacy, canonical = self.con.execute(
+            "SELECT legacy_key, canonical_id FROM v24_identity_alias "
+            "LIMIT 1").fetchone()
+        self.assertNotEqual(legacy, canonical)
+        hit = self.con.execute(
+            "SELECT canonical_id FROM v24_identity_alias WHERE legacy_key=?",
+            (legacy,)).fetchone()
+        self.assertEqual(hit[0], canonical)
+
+
+class Stage22RawEvidenceTests(unittest.TestCase):
+    """Raw bytes must be archived for every successful response and be readable."""
+
+    def setUp(self):
+        import tempfile
+        import v24_collector as C
+        self.C = C
+        self.dir = Path(tempfile.mkdtemp(prefix="raw-"))
+        self.con = C.open_db(self.dir / "v24.sqlite")
+
+    def tearDown(self):
+        self.con.close()
+
+    def _body(self, payload=b"<rss><channel></channel></rss>"):
+        return {"body": payload, "observed_ms": 1_700_000_000_000,
+                "status": 200}
+
+    def test_archive_is_readable_back_and_matches_its_digest(self):
+        got = self.C.archive_raw(fetched=self._body(), source_id="fed",
+                                 raw_dir=self.dir / "raw")
+        path = Path(got["raw_path"])
+        self.assertTrue(path.is_file())
+        data = path.read_bytes()
+        self.assertEqual(__import__("hashlib").sha256(data).hexdigest(),
+                         got["raw_sha256"])
+        self.assertEqual(path.stat().st_mode & 0o777, 0o600)
+
+    def test_zero_item_poll_still_archives_the_response(self):
+        import v24_adapters as AD
+        saved = AD.harvest
+        AD.harvest = lambda sid, *, limiter, opener=None: {
+            "source_id": sid, "raw_body": self._body(b"<rss/>"),
+            "fetched": {"status": 200, "content_type": "text/xml",
+                        "attempts": 1}, "records": []}
+        try:
+            self.C.tick(con=self.con, limiter=None, sources=["fed_press_monetary"])
+        finally:
+            AD.harvest = saved
+        rows = self.con.execute("SELECT raw_sha256, bytes FROM v24_raw_manifest"
+                                ).fetchall()
+        self.assertEqual(len(rows), 1, "an empty poll must still be provable")
+        self.assertEqual(rows[0][1], len(b"<rss/>"))
+
+    def test_manifest_row_points_at_existing_bytes(self):
+        import v24_adapters as AD
+        saved = AD.harvest
+        AD.harvest = lambda sid, *, limiter, opener=None: {
+            "source_id": sid, "raw_body": self._body(b"<rss>a</rss>"),
+            "fetched": {"status": 200, "content_type": "text/xml",
+                        "attempts": 1}, "records": []}
+        try:
+            self.C.tick(con=self.con, limiter=None, sources=["sec_press"])
+        finally:
+            AD.harvest = saved
+        path, digest = self.con.execute(
+            "SELECT path, raw_sha256 FROM v24_raw_manifest").fetchone()
+        self.assertTrue(Path(path).is_file())
+        self.assertEqual(
+            __import__("hashlib").sha256(Path(path).read_bytes()).hexdigest(),
+            digest)
+
+    def test_manifest_holds_no_headers_or_credentials(self):
+        cols = [r[1] for r in self.con.execute(
+            "PRAGMA table_info(v24_raw_manifest)").fetchall()]
+        for banned in ("headers", "authorization", "cookie", "token"):
+            self.assertNotIn(banned, cols)
+
+
+class Stage22SubprocessConcurrencyTests(unittest.TestCase):
+    """Two real OS processes racing. No barrier file: a missing barrier hangs the
+    suite, which it did once - every wait is bounded instead."""
+
+    def setUp(self):
+        import tempfile
+        self.dir = Path(tempfile.mkdtemp(prefix="conc-"))
+        self.db = self.dir / "tier2.sqlite"
+        import tier2 as T2
+        con = T2.open_tier2(self.db)
+        T2.open_attempts(con)
+        con.close()
+
+    def _run_many(self, script, n):
+        import subprocess
+        procs = [subprocess.Popen(["/usr/bin/python3", "-c", script],
+                                  stdout=subprocess.PIPE,
+                                  stderr=subprocess.PIPE, text=True)
+                 for _ in range(n)]
+        outs = []
+        for p in procs:
+            try:
+                out, err = p.communicate(timeout=20)
+                outs.append(out.strip() or ("ERR:" + err.strip()[-120:]))
+            except subprocess.TimeoutExpired:
+                p.kill()
+                outs.append("TIMEOUT")
+        return outs
+
+    def test_only_one_process_reserves_the_trial(self):
+        script = f"""
+import sys
+sys.path.insert(0, {str(MODULE_DIR)!r})
+import tier2 as T2
+con = T2.open_tier2({str(self.db)!r})
+try:
+    T2.reserve_attempts(con, trial_id="race", now_ms=1)
+    print("RESERVED")
+except T2.Tier2Error as e:
+    print("REFUSED", e)
+"""
+        outs = self._run_many(script, 4)
+        self.assertEqual(len([o for o in outs if o.startswith("RESERVED")]), 1,
+                         outs)
+
+    def test_call_budget_holds_across_processes(self):
+        import tier2 as T2
+        con = T2.open_tier2(self.db)
+        T2.reserve_attempts(con, trial_id="budget", now_ms=1)
+        con.close()
+        script = f"""
+import sys
+sys.path.insert(0, {str(MODULE_DIR)!r})
+import tier2 as T2
+con = T2.open_tier2({str(self.db)!r})
+try:
+    print("CALL", T2.record_invocation(con, trial_id="budget",
+                                       arm="arm_%s", now_ms=1, session_id="s"))
+except T2.Tier2Error as e:
+    print("REFUSED", e)
+"""
+        outs = [self._run_many(script % str(i), 1)[0] for i in range(4)]
+        self.assertEqual(len([o for o in outs if o.startswith("CALL")]), 3, outs)
