@@ -387,6 +387,101 @@ class IsolationProofTests(unittest.TestCase):
                           "temperature"])
 
 
+class AttestationTests(unittest.TestCase):
+    """The witness must state three surfaces separately and never claim upstream."""
+
+    def setUp(self):
+        import tempfile
+        import v22_attestation as AT
+        self.AT = AT
+        self.dir = Path(tempfile.mkdtemp(prefix="v22at-"))
+        self.log = self.dir / "attestation.jsonl"
+
+    def _call(self, **over):
+        base = {"chat_body": {"model": "m", "messages": [{"role": "user",
+                                                         "content": "x"}]},
+                "upstream_body": {"model": "m", "max_output_tokens": 32000,
+                                  "input": [{"role": "user", "content": "x"}]},
+                "parsed": {"id": "resp_1", "model": "m", "status": "completed",
+                           "output": [{"type": "message"}]},
+                "latency_ms": 120, "model_expected": "m",
+                "log": self.log}
+        base.update(over)
+        return self.AT.attest(**base)
+
+    def test_tool_free_call_records_three_surfaces(self):
+        rec = self._call()
+        v = rec["verdict"]
+        self.assertEqual(v["client"], "client_no_tools_advertised")
+        self.assertEqual(v["gateway"], "gateway_response_no_tool_calls")
+        self.assertEqual(v["upstream"], "upstream_unverified")
+
+    def test_nested_tool_key_is_caught(self):
+        body = {"model": "m", "input": [{"role": "user", "content": "x"}],
+                "tools": [{"type": "function"}]}
+        self.assertIn("tools", self.AT.tool_surface(body))
+        deep = {"a": {"b": [{"function_call": {}}]}}
+        self.assertTrue(any("function_call" in h
+                            for h in self.AT.tool_surface(deep)))
+
+    def test_response_with_tool_item_is_recorded_not_hidden(self):
+        rec = self._call(parsed={"id": "r", "model": "m",
+                                 "output": [{"type": "function_call"}]})
+        self.assertEqual(rec["verdict"]["gateway"],
+                         "gateway_response_has_tool_calls")
+        self.assertEqual(rec["response"]["tool_items"], ["function_call"])
+
+    def test_attestation_can_never_write_known_zero(self):
+        rec = self._call()
+        blob = json.dumps(rec)
+        self.assertNotIn("known_zero", blob)
+        self.assertIn("upstream_unverified", blob)
+
+    def test_chain_detects_an_edited_line(self):
+        self._call()
+        self._call()
+        ok, n, bad = self.AT.verify_chain(self.log)
+        self.assertTrue(ok)
+        self.assertEqual(n, 2)
+        lines = self.log.read_text().splitlines()
+        rec = json.loads(lines[0])
+        rec["latency_ms"] = 999
+        lines[0] = json.dumps(rec, sort_keys=True)
+        self.log.write_text("\n".join(lines) + "\n")
+        ok, n, bad = self.AT.verify_chain(self.log)
+        self.assertFalse(ok)
+        self.assertEqual(bad, 1)
+
+    def test_chain_detects_a_deleted_line(self):
+        for _ in range(3):
+            self._call()
+        lines = self.log.read_text().splitlines()
+        self.log.write_text("\n".join([lines[0], lines[2]]) + "\n")
+        ok, _, _ = self.AT.verify_chain(self.log)
+        self.assertFalse(ok)
+
+    def test_egress_digest_changes_when_a_tool_is_forwarded(self):
+        a = self._call()["egress"]["sha256"]
+        b = self._call(upstream_body={"model": "m", "max_output_tokens": 32000,
+                                      "input": [], "tools": [{"type": "function"}]}
+                       )["egress"]["sha256"]
+        self.assertNotEqual(a, b)
+
+    def test_forwarded_body_mapper_matches_bridge_contract(self):
+        # The bridge maps messages -> input and always sends max_output_tokens.
+        chat = {"model": "m", "messages": [{"role": "user", "content": "x"}],
+                "max_output_tokens": 32000, "temperature": 0.0}
+        body = self.AT.forwarded_body(chat)
+        self.assertEqual(sorted(body),
+                         ["input", "max_output_tokens", "model", "temperature"])
+        self.assertNotIn("tools", body)
+
+    def test_forwarded_body_copies_tools_only_when_present(self):
+        chat = {"model": "m", "messages": [], "max_output_tokens": 1,
+                "tools": [{"type": "function"}]}
+        self.assertIn("tools", self.AT.forwarded_body(chat))
+
+
 class CollectorOnlyTests(unittest.TestCase):
     """The unattended loop: singleton, kill switch, crash recovery, ordering."""
 
