@@ -310,5 +310,67 @@ class CollectorTests(unittest.TestCase):
         self.assertEqual(rep[0]["newest_age_s"], 60)
 
 
-class ToolFreeClientTests2(unittest.TestCase):
-    pass
+class UndatedSourceTests(unittest.TestCase):
+    """A status endpoint must never be stored as a dated news event."""
+
+    def setUp(self):
+        import tempfile
+        self.dir = tempfile.mkdtemp(prefix="v24s-")
+        import v24_collector as COL
+        self.COL = COL
+        self.con = COL.open_db(Path(self.dir) / "v24.sqlite")
+
+    def tearDown(self):
+        self.con.close()
+
+    def _tick_with(self, records):
+        import v24_adapters as AD
+        original = AD.harvest
+
+        def fake(sid, *, limiter, opener=None):
+            return {"source_id": sid,
+                    "fetched": {"status": 200, "content_type": "text/plain",
+                                "attempts": 1},
+                    "records": records}
+
+        AD.harvest = fake
+        try:
+            return self.COL.tick(con=self.con, limiter=None, sources=["kraken_status"])
+        finally:
+            AD.harvest = original
+
+    def _record(self, **over):
+        rec = {"source_id": "kraken_status", "category": "crypto",
+               "provenance": "official_secondary", "title": "s",
+               "origin_url": "https://x", "published_raw": None,
+               "observed_ms": 1_800_000_000_000, "raw_sha256": "b" * 64,
+               "terms_decision": "terms", "dated": False}
+        rec.update(over)
+        return rec
+
+    def test_undated_record_goes_to_state_not_events(self):
+        out = self._tick_with([self._record()])
+        self.assertEqual(out["kraken_status"]["state"], 1)
+        self.assertEqual(out["kraken_status"]["new"], 0)
+        self.assertEqual(self.con.execute(
+            "SELECT COUNT(*) FROM v24_events").fetchone()[0], 0)
+        self.assertEqual(self.con.execute(
+            "SELECT COUNT(*) FROM v24_state").fetchone()[0], 1)
+
+    def test_state_table_has_no_event_time_column(self):
+        cols = [r[1] for r in self.con.execute(
+            "PRAGMA table_info(v24_state)").fetchall()]
+        self.assertNotIn("published_ms", cols)
+
+    def test_dated_record_still_lands_in_events(self):
+        rec = self._record(dated=True,
+                           published_raw="Thu, 12 Nov 2026 17:45:00 GMT")
+        out = self._tick_with([rec])
+        self.assertEqual(out["kraken_status"]["new"], 1)
+        self.assertEqual(out["kraken_status"]["state"], 0)
+
+    def test_adapters_mark_kraken_undated(self):
+        import v24_adapters as AD
+        self.assertIs(AD.SOURCES["kraken_status"]["dated"], False)
+        for sid in ("fed_press_monetary", "sec_press", "whitehouse_actions"):
+            self.assertIs(AD.SOURCES[sid].get("dated", True), True)

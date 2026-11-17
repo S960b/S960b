@@ -35,6 +35,11 @@ CREATE TABLE IF NOT EXISTS v24_fetch_log(
  at_ms INTEGER NOT NULL, source_id TEXT NOT NULL, url TEXT NOT NULL,
  http_status INTEGER, content_type TEXT, attempts INTEGER,
  records_seen INTEGER, records_new INTEGER, error TEXT);
+-- Undated official state (e.g. exchange system status) is kept apart from news.
+-- It has no event time, so it can never enter an event query by accident.
+CREATE TABLE IF NOT EXISTS v24_state(
+ raw_sha256 TEXT NOT NULL, source_id TEXT NOT NULL, body TEXT NOT NULL,
+ observed_ms INTEGER NOT NULL, PRIMARY KEY(raw_sha256, observed_ms));
 """
 
 
@@ -71,13 +76,23 @@ def tick(*, con, limiter, sources=None, keep_raw=True):
             out[sid] = {"error": str(exc)}
             continue
 
-        new = duplicated = unparseable = 0
+        new = duplicated = unparseable = state_recorded = 0
         for rec in got["records"]:
+            if rec.get("dated", True) is False:
+                # A status endpoint is state, not an event. It is stored in its
+                # own table with observed_ms and no published_ms, so it can
+                # never be mistaken for a dated news item.
+                con.execute("INSERT OR IGNORE INTO v24_state"
+                            "(raw_sha256,source_id,body,observed_ms) "
+                            "VALUES(?,?,?,?)",
+                            (rec["raw_sha256"], rec["source_id"],
+                             rec["title"], rec["observed_ms"]))
+                state_recorded += 1
+                continue
             published = parse_published(rec.get("published_raw"))
             if published is None:
-                # A status endpoint has no publication date. Treating the fetch
-                # time as the event time would fabricate freshness, so the item
-                # is counted as unparseable and logged, never stored as news.
+                # No usable publication date: using fetch time as event time
+                # would fabricate freshness, so the item is counted and logged.
                 unparseable += 1
                 continue
             digest = AD.hashlib.sha256(
@@ -105,7 +120,8 @@ def tick(*, con, limiter, sources=None, keep_raw=True):
              got["fetched"]["attempts"], len(got["records"]), new))
         con.commit()
         out[sid] = {"seen": len(got["records"]), "new": new,
-                    "duplicate": duplicated, "unparseable": unparseable}
+                    "duplicate": duplicated, "unparseable": unparseable,
+                    "state": state_recorded}
     return out
 
 

@@ -153,6 +153,10 @@ SOURCES = {
         "url": "https://api.kraken.com/0/public/SystemStatus",
         "category": "crypto", "provenance": "official_secondary",
         "format": "json",
+        # A status endpoint returns state, not an event: it carries no
+        # publication date at all. Marking it dated=False keeps the collector
+        # from promoting fetch time into event time.
+        "dated": False,
         "terms": "public status endpoint, no key required",
     },
 }
@@ -179,11 +183,12 @@ def harvest(source_id, *, limiter, opener=None):
                     "provenance": spec["provenance"],
                     "title": "kraken status " + json.dumps(payload.get("result", {}))[:120],
                     "origin_url": spec["url"],
-                    "published_raw": str(fetched["observed_ms"]),
+                    "published_raw": None,
                     "observed_ms": fetched["observed_ms"],
                     "raw_sha256": hashlib.sha256(fetched["body"]).hexdigest()}]
     for rec in records:
         rec["terms_decision"] = spec["terms"]
+        rec["dated"] = spec.get("dated", True)
     return {"source_id": source_id, "fetched": {"status": fetched["status"],
                                                 "content_type": fetched["content_type"],
                                                 "attempts": fetched["attempts"]},
