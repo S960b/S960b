@@ -24,8 +24,9 @@ import tier2_integrity as INTEG
 import v24_collector as COL
 
 ARMS = ("news", "news_market", "market")
-FEE_BPS = 20.0
-SLIPPAGE_BPS = 5.0
+FEE_BPS_PER_SIDE = 2.0
+SLIPPAGE_BPS_PER_SIDE = 1.0
+ROUNDTRIP_COST_BPS = 2 * (FEE_BPS_PER_SIDE + SLIPPAGE_BPS_PER_SIDE)
 MAX_ROWS = 100_000
 
 
@@ -102,9 +103,9 @@ def _arm_value(arm, exit_label):
     action = arm["action"]
     spot_bps = exit_label["spot_return_bps"]
     if action == "LONG_PAPER":
-        net = spot_bps - FEE_BPS - SLIPPAGE_BPS
+        net = spot_bps - ROUNDTRIP_COST_BPS
     elif action == "SHORT_PAPER":
-        net = -spot_bps - FEE_BPS - SLIPPAGE_BPS
+        net = -spot_bps - ROUNDTRIP_COST_BPS
     elif action == "FLAT":
         net = 0.0
     else:
@@ -163,6 +164,7 @@ def analyze(*, db_path, feed_db=None, now_ms=None,
     report = {
         "version": "v25-tier2-readonly-r5",
         "mode": "read_only_no_model_no_trade",
+        "roundtrip_cost_bps": ROUNDTRIP_COST_BPS,
         "db": str(Path(db_path)),
         "status": "ok",
         "counts": {
