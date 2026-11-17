@@ -139,6 +139,7 @@ def ensure_migration_schema(con):
 
 
 def migration_state(con):
+    ensure_migration_schema(con)      # a fresh DB has no meta table yet
     row = con.execute("SELECT value FROM v24_meta WHERE key='identity_migration'"
                       ).fetchone()
     return row[0] if row else "none"
