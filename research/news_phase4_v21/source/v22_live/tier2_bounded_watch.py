@@ -63,8 +63,13 @@ def watch(*, feed_db=D.FEED_DB, execute=False, duration_s=3600,
             TR.require_enabled()  # second check before each polling cycle
         now_ms = time.time_ns() // 1_000_000
         try:
-            out = D.execute_once(feed_db=feed_db, now_ms=now_ms,
-                                 dry=not execute)
+            # Production decisions must sample their own real wall clock
+            # AFTER fetching market data. Injected now_ms is for dry/offline
+            # fixtures only and must not freeze live freshness too early.
+            if execute:
+                out = D.execute_once(feed_db=feed_db, dry=False)
+            else:
+                out = D.execute_once(feed_db=feed_db, now_ms=now_ms, dry=True)
         except Exception as exc:
             emit({"tick": ticks + 1, "status": "refused",
                   "error": type(exc).__name__, "detail": str(exc)[:200],
