@@ -192,13 +192,17 @@ def harvest(source_id, *, limiter, opener=None):
             records = []
             parse_error = "json_malformed_payload"
         else:
-            records = [{"source_id": source_id, "category": spec["category"],
-                        "provenance": spec["provenance"],
-                        "title": "kraken status " + json.dumps(payload.get("result", {}))[:120],
-                        "origin_url": spec["url"],
-                        "published_raw": None,
-                        "observed_ms": fetched["observed_ms"],
-                        "raw_sha256": hashlib.sha256(fetched["body"]).hexdigest()}]
+            if not isinstance(payload, dict):
+                records = []
+                parse_error = "json_wrong_root"
+            else:
+                records = [{"source_id": source_id, "category": spec["category"],
+                            "provenance": spec["provenance"],
+                            "title": "kraken status " + json.dumps(payload.get("result", {}))[:120],
+                            "origin_url": spec["url"],
+                            "published_raw": None,
+                            "observed_ms": fetched["observed_ms"],
+                            "raw_sha256": hashlib.sha256(fetched["body"]).hexdigest()}]
     for rec in records:
         rec["terms_decision"] = spec["terms"]
         rec["dated"] = spec.get("dated", True)
