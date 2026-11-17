@@ -30,6 +30,8 @@ import v21_pilot_cycle as PC
 import v22_arms as A
 import tier2 as T2
 import tier2_trigger as TR
+import v24_adapters as AD
+import v24_collector as COL
 
 FEED_DB = Path.home() / ".local/share/news-phase4-v24/v24.sqlite"
 MAX_FEED_BYTES = 2 * 1024 * 1024
@@ -54,14 +56,54 @@ def _archive_verified(raw_path, expected_digest):
     return True
 
 
+def _item_witness(*, raw_path, source, cohort, provenance, title,
+                  origin_url, published_ms, observed_ms, event_id):
+    """Reparse actual archived bytes and require ONE exact matching RSS item.
+
+    A valid archive SHA alone proves only that SOME bytes were archived; it
+    does not prove that the title, URL or publication time in SQLite originated
+    in those bytes. No substring matching and no reconstructed "witness".
+    """
+    spec = AD.SOURCES.get(source)
+    if (spec is None or spec.get("format") != "rss"
+            or spec["category"] != cohort
+            or spec["provenance"] != provenance):
+        return False
+    if event_id != COL.occurrence_id(source, title, published_ms):
+        return False
+    try:
+        records = AD.parse_rss(Path(raw_path).read_bytes(),
+                               source_id=source, category=cohort,
+                               provenance=provenance,
+                               fetched={"observed_ms": observed_ms})
+    except Exception as exc:
+        # Only malformed archives are expected parse failures. A programming
+        # bug is not a positive witness and must not be silently accepted.
+        import xml.etree.ElementTree as ET
+        if isinstance(exc, ET.ParseError):
+            return False
+        raise
+    return any(rec["source_id"] == source
+               and rec["title"] == title
+               and rec["origin_url"] == origin_url
+               and COL.parse_published(rec["published_raw"]) == published_ms
+               and rec["observed_ms"] == observed_ms
+               for rec in records)
+
+
 def candidate(con, now_ms):
-    """Read only an occurrence with verified source bytes; never use old
-    legacy_no_raw records, undated status data, or a future timestamp."""
+    """Admit only an EXACT item from an authenticated archived RSS response.
+
+    SHA + matching timestamps alone are not enough: the headline/link/date
+    are independently reconstructed by reparsing the byte-for-byte archive.
+    Historical records lacking a contemporary raw archive stay ineligible.
+    """
     query = """
     SELECT e.content_sha256, e.source_id, e.category, e.provenance,
            e.title, e.origin_url, e.published_ms, e.observed_ms,
            e.raw_sha256, o.raw_path, m.path, m.http_status,
-           o.raw_sha256, o.observed_ms, m.source_id, m.observed_ms
+           o.raw_sha256, o.observed_ms, m.source_id, m.observed_ms,
+           o.title, o.origin_url, o.published_ms, o.source_id, m.url
     FROM v24_events e
     JOIN v24_observations o ON o.occurrence_id=e.content_sha256
     JOIN v24_raw_manifest m ON m.raw_sha256=e.raw_sha256
@@ -72,12 +114,17 @@ def candidate(con, now_ms):
     for row in rows:
         (event_id, source, cohort, provenance, title, origin_url, pub, obs,
          raw_sha, path, manifest_path, status,
-         obs_raw_sha, obs_recorded_ms, manifest_source, manifest_ms) = row
+         obs_raw_sha, obs_recorded_ms, manifest_source, manifest_ms,
+         obs_title, obs_url, obs_published, obs_source, manifest_url) = row
         # Historical records may acquire a later RSS archive when their feed is
         # re-fetched. That is NOT evidence of the bytes observed originally.
-        if (not path or path != manifest_path or status != 200
+        spec = AD.SOURCES.get(source)
+        if (not spec or not path or path != manifest_path or status != 200
                 or manifest_source != source or obs_raw_sha != raw_sha
-                or obs_recorded_ms != obs or manifest_ms != obs):
+                or obs_recorded_ms != obs or manifest_ms != obs
+                or manifest_url != spec["url"] or obs_source != source
+                or obs_title != title or obs_url != origin_url
+                or obs_published != pub):
             continue
         event = {
             "event_id": event_id, "source": source, "cohort": cohort,
@@ -95,6 +142,11 @@ def candidate(con, now_ms):
         except T2.Tier2Error:
             continue
         _archive_verified(path, raw_sha)
+        if not _item_witness(
+                raw_path=path, source=source, cohort=cohort,
+                provenance=provenance, title=title, origin_url=origin_url,
+                published_ms=pub, observed_ms=obs, event_id=event_id):
+            continue
         return event
     return None
 
