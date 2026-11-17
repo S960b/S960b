@@ -124,6 +124,28 @@ class CandidateTest(unittest.TestCase):
         self.assertEqual(result["freeze_sha256"], hashlib.sha256(
             path.read_bytes()).hexdigest())
 
+    def test_F01_stale_after_slow_market_fetch_calls_no_model(self):
+        # The first wall clock admits the news, but the decision clock after
+        # market data retrieval is beyond its 600-second freshness budget.
+        prompts = {"news": "N", "news_market": "NM", "market": "M"}
+        with patch.object(D, "_wall_ms", side_effect=[self.now,
+                                                      self.now + 610_000]), \
+             patch.object(D.TR, "require_enabled",
+                          return_value={"trial_id": "trial-f01"}), \
+             patch.object(D.T2, "DATA", self.root), \
+             patch.object(D.P, "fetch_market", return_value={"candle_count": 26}), \
+             patch.object(D.A, "audit_market_payload"), \
+             patch.object(D.A, "build_prompts_3", return_value=prompts), \
+             patch.object(D.A, "execution_metadata", return_value={}), \
+             patch.object(D.A, "audit_market_arm_isolation"), \
+             patch.object(D.T2, "open_tier2",
+                          side_effect=AssertionError("no_trial_db")), \
+             patch.object(D.T2, "live_executor",
+                          side_effect=AssertionError("no_model")):
+            with self.assertRaisesRegex(D.T2.Tier2Error, "event_too_old"):
+                D.execute_once(feed_db=self.db, dry=False)
+        self.assertEqual(list(self.root.glob("frozen-*.json")), [])
+
     def test_preflight_never_calls_a_model_or_writes_tier2(self):
         out = D.execute_once(feed_db=self.db, now_ms=self.now, dry=True)
         self.assertEqual(out["status"], "eligible_observed")
