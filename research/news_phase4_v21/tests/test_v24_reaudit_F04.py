@@ -85,6 +85,17 @@ class MalformedSourceTests(unittest.TestCase):
         self.assertEqual(got["raw_body"]["body"], self.invalid)
         self.assertEqual(got["fetched"]["status"], 200)
 
+    def test_F04_well_formed_json_array_is_source_error(self):
+        def array_fetch(url, *, limiter, opener=None, accept=None):
+            return {"body": b"[]", "url": url, "observed_ms": self.now,
+                    "status": 200, "content_type": "application/json",
+                    "attempts": 1}
+        with patch.object(AD, "fetch", side_effect=array_fetch):
+            got = AD.harvest("kraken_status", limiter=None)
+        self.assertEqual(got["parse_error"], "json_wrong_root")
+        self.assertEqual(got["records"], [])
+        self.assertEqual(got["raw_body"]["body"], b"[]")
+
     def test_F04_no_silent_success_on_corrupt_payload(self):
         first = self.run_tick(["fed_press_monetary"])
         self.assertIn("error", first["fed_press_monetary"])
