@@ -83,8 +83,10 @@ every row, and that is the honest state of this experiment.
 
 | question | answer |
 |---|---|
-| Is the **code** auditable? | **Yes** — 400+ offline tests, deterministic fixtures |
-| Is the **methodology** auditable? | **Yes** — pre-registered, amendments dated pre-data |
+| Is the **code** auditable? | **Yes, scoped to the offline fixture contract** — 434 deterministic tests; nothing is claimed about forecasting validity |
+| Is the **methodology** auditable? | **Yes, scoped** — pre-registered, amendments committed before any data (commit timestamps prove freshness, not priority) |
+| Is source **authenticity** proven? | **No** — checksums are not signatures |
+| Is source **licensing** settled? | **No** — no licence review exists |
 | Is anything **running**? | **Yes** — the legacy v2.1 and v2 collectors and their label lanes; see the table above |
 | Is any **fix loaded**? | **No** — the running process predates every one of them |
 | Is there any **evidence of profit**? | **No** — and none is claimed |

@@ -8,15 +8,25 @@ generated over **tracked files only** (bytecode excluded) so that
 ## 1. Reproduce everything, offline
 
 ```bash
+# Step 1 needs Git network (clone). Everything after it is fully offline.
 git clone git@github.com:S960b/S960b.git && cd S960b/research/news_phase4_v21
+
+# Step 2 onwards: no network at all.
 sha256sum -c MANIFEST.sha256            # verifies source, fixtures, docs
 PYTHONPATH=source python3 -m unittest discover -s tests -p 'test_*.py'
 node --test tests/test_v21_paper_runner.mjs tests/test_v21_service.mjs
 python3 source/v24_acceptance.py        # offline acceptance report (JSON)
 ```
 
-No network, no model call, no database outside a temporary file. If a test
-needs anything else, that is a bug, not a prerequisite.
+**Be precise about "offline":** the clone is a network operation; test
+execution is not. No test opens a socket, calls a model, or touches a database
+outside a temporary file. If a test needs anything else, that is a bug, not a
+prerequisite.
+
+**Use `/usr/bin/python3`, not `python3` from `PATH`, on this host.** The desktop
+AppImage can shadow `python3` and then a test run silently does nothing while
+still exiting 0 — observed during this audit, and the reason the mutation check
+below had to be repeated.
 
 ## 2. What is fixed, tested and loaded
 
@@ -69,11 +79,17 @@ given. This list exists so an operator can see the blast radius before asking.
 4. Restart the GUI so the loaded plugin matches the source.
 5. Verify `v21_pilot_settle` appears in the plugin log within one tick.
 
-**Rollback (not authorized)**
-1. Stop the GUI.
-2. Restore `dispatch.sqlite` from the backup made in step 2 above.
+**Rollback (not authorized) — and NOT lossless**
+1. Stop the GUI **and every writer** first. Restoring over a database that is
+   still open discards any write made after the backup.
+2. Restore `dispatch.sqlite` from the backup taken in rollout step 2.
 3. `git -C <deploy> checkout <previous commit>` and restart.
 4. Confirm `v21_pilot_settle` count returns to 0 and the label lane still writes.
+
+Rollback restores the schema, **not the data written since the backup**: rows
+created after that instant are lost and the operator must decide, in advance,
+whether that loss is acceptable. There is no lossless rollback of a live ledger
+without a continuous WAL archive, which does not exist here.
 
 **Also not authorized, separately:** settling pilot `8f778a0b2180` (overdue
 since 2026-11-16T19:45:32Z), removing the flat `v21_export.py`, and any network
@@ -83,8 +99,10 @@ adapter or live data collection.
 
 | question | verdict |
 |---|---|
-| Code audit-ready? | **GO** — offline, deterministic, 425+ tests |
-| Methodology audit-ready? | **GO** — pre-registered, amendments dated pre-data |
+| Code audit-ready? | **GO, SCOPED** — offline fixture contract only: deterministic, 434 tests. Not a statement about forecasting validity |
+| Methodology audit-ready? | **GO, SCOPED** — pre-registered and amended before data; the amendments were committed the same night they are dated, so commit timestamps prove freshness, not priority |
+| Source authenticity | **NOT PROVEN** — checksums, not signatures |
+| Source licensing | **NOT PROVEN** — no licence review exists |
 | Live collection? | **NO-GO** — no licensed sources, no probe, no authenticity |
 | Inference? | **NO-GO** — `PAUSED_MODEL_INFERENCE` stands; prospective = 0 |
 | Profitability? | **Unknown and unclaimed** — mock arms are plumbing, not evidence |
