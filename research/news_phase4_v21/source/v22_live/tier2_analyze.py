@@ -219,11 +219,19 @@ def analyze(*, db_path, feed_db=None, now_ms=None,
                 # never added to the live observational sample.
                 if mode == "offline_fixture" and not include_offline_fixtures:
                     continue
-                target = by_arm_live if mode == "live_raw" else by_arm_offline
+                # Validate all three arms first, then add them together.
+                # If the third arm is corrupt, the first two must NOT leak
+                # into aggregate metrics from an invalid triple.
+                values = []
                 for arm in bundle["arms"]:
                     if arm["arm"] not in ARMS:
                         raise AnalysisError("invalid_arm_name")
-                    target[arm["arm"]].append(_arm_value(arm, result))
+                    values.append((arm["arm"], _arm_value(arm, result)))
+                if sorted(a for a, _ in values) != sorted(ARMS):
+                    raise AnalysisError("incomplete_or_duplicate_arms")
+                target = by_arm_live if mode == "live_raw" else by_arm_offline
+                for name, value in values:
+                    target[name].append(value)
             except (INTEG.IntegrityError, T2.Tier2Error, AnalysisError,
                     FileNotFoundError, ValueError, KeyError) as exc:
                 report["counts"]["invalid"] += 1
