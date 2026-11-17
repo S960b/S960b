@@ -290,16 +290,22 @@ class CoverageTests(unittest.TestCase):
     """Stage-6 P0: missing is never zero; uptime uses time buckets."""
 
     def _reg(self):
-        return S.SourceRegistry([
-            S.SourceSpec("bin", "crypto", "primary", 120),
-            S.SourceSpec("eia", "energy", "primary", 900),
-            S.SourceSpec("ofac", "sanctions", "primary", 900)])
+        # A coverage grid needs a declared source for EVERY category, otherwise
+        # the timeline cannot distinguish "no news" from "not measured".
+        spec = [S.SourceSpec("bin", "crypto", "primary", 120),
+                S.SourceSpec("eia", "energy", "primary", 900),
+                S.SourceSpec("ofac", "sanctions", "primary", 900)]
+        spec += [S.SourceSpec(f"{c}-one", c, "primary", 900)
+                 for c in S.CATEGORIES
+                 if c not in ("crypto", "energy", "sanctions")]
+        return S.SourceRegistry(spec)
 
     def test_complete_timeline_covers_all_seven_categories(self):
         reg = self._reg()
-        S.register_category_sources(reg)
         recs = [record(published_ms=NOW - 30_000)]
-        timeline = S.coverage_timeline(recs, bucket_ms=3_600_000)
+        timeline = S.coverage_timeline(recs, start_ms=NOW - 3_600_000,
+                                       end_ms=NOW + 1, bucket_ms=3_600_000,
+                                       registry=self._reg(), heartbeat_s=60)
         self.assertEqual(len(timeline[0]["categories"]), len(S.CATEGORIES))
         energy = timeline[0]["categories"]["energy"]
         self.assertEqual(energy["status"], "missing")
@@ -308,13 +314,16 @@ class CoverageTests(unittest.TestCase):
     def test_outage_window_shows_degraded(self):
         reg = S.SourceRegistry([
             S.SourceSpec("bin", "crypto", "primary", 120),
-            S.SourceSpec("kx", "crypto", "primary", 120)])
-        declared = S.register_category_sources(reg)
+            S.SourceSpec("kx", "crypto", "primary", 120)]
+            + [S.SourceSpec(f"{c}-one", c, "primary", 900)
+               for c in S.CATEGORIES if c != "crypto"])
+        declared = reg.category_sources()
         self.assertEqual(len(declared["crypto"]), 2)
         recs = [record(source_id="bin", category="crypto",
                        published_ms=NOW - 30_000)]
-        timeline = S.coverage_timeline(recs, bucket_ms=3_600_000,
-                                       expected=declared)
+        timeline = S.coverage_timeline(recs, start_ms=NOW - 3_600_000,
+                                       end_ms=NOW + 1, bucket_ms=3_600_000,
+                                       registry=reg, heartbeat_s=60)
         self.assertEqual(timeline[0]["categories"]["crypto"]["status"],
                          "degraded")
         self.assertAlmostEqual(
@@ -368,3 +377,136 @@ class DryRunHarnessTests(unittest.TestCase):
         out = S.select(shuffled, now_ms=now, registry=reg)
         self.assertEqual([r.content_sha256 for r in out["accepted"]],
                          [r.content_sha256 for r in base["accepted"]])
+
+
+class CoverageGridTests(unittest.TestCase):
+    """Stage-7 P0-A: a full outage must still produce buckets marked missing."""
+
+    def _reg(self):
+        spec = [S.SourceSpec(f"{c}-one", c, "primary", 900)
+                for c in S.CATEGORIES]
+        return S.SourceRegistry(spec)
+
+    def test_total_outage_still_yields_buckets(self):
+        reg = self._reg()
+        timeline = S.coverage_timeline([], start_ms=NOW, end_ms=NOW + 3 * 3_600_000,
+                                       bucket_ms=3_600_000, registry=reg,
+                                       heartbeat_s=60)
+        self.assertEqual(len(timeline), 3, "every expected bucket must exist")
+        for row in timeline:
+            for category in S.CATEGORIES:
+                self.assertEqual(row["categories"][category]["status"], "missing")
+
+    def test_no_heartbeat_means_unknown_not_ok(self):
+        reg = self._reg()
+        rec = record(source_id="crypto-one", category="crypto")
+        timeline = S.coverage_timeline([rec], start_ms=NOW - 3_600_000,
+                                       end_ms=NOW + 1, bucket_ms=3_600_000,
+                                       registry=reg)
+        self.assertEqual(timeline[0]["categories"]["crypto"]["status"], "unknown",
+                         "one story is not proof a source is alive")
+
+    def test_healthy_window_is_ok(self):
+        reg = self._reg()
+        rec = record(source_id="crypto-one", category="crypto")
+        timeline = S.coverage_timeline([rec], start_ms=NOW - 3_600_000,
+                                       end_ms=NOW + 1, bucket_ms=3_600_000,
+                                       registry=reg, heartbeat_s=60)
+        self.assertEqual(timeline[0]["categories"]["crypto"]["status"], "ok")
+
+    def test_unmeasured_category_fails_closed(self):
+        reg = S.SourceRegistry([S.SourceSpec("bin", "crypto", "primary", 120)])
+        with self.assertRaises(S.AdapterError) as ctx:
+            S.coverage_timeline([], start_ms=NOW, end_ms=NOW + 1,
+                                bucket_ms=3_600_000, registry=reg)
+        self.assertIn("category_without_declared_sources", str(ctx.exception))
+
+    def test_bad_grid_arguments_refused(self):
+        reg = self._reg()
+        for kwargs in ({"start_ms": NOW, "end_ms": NOW},
+                       {"start_ms": NOW, "end_ms": NOW - 1},
+                       {"start_ms": True, "end_ms": NOW + 1},
+                       {"start_ms": NOW, "end_ms": NOW + 1, "bucket_ms": 0}):
+            with self.assertRaises(S.AdapterError):
+                S.coverage_timeline([], registry=reg, heartbeat_s=60, **kwargs)
+
+    def test_registry_has_no_shared_global_state(self):
+        a = S.SourceRegistry([S.SourceSpec("bin", "crypto", "primary", 120)])
+        b = S.SourceRegistry([S.SourceSpec("kx", "crypto", "primary", 120)])
+        self.assertEqual(a.category_sources()["crypto"], ("bin",))
+        self.assertEqual(b.category_sources()["crypto"], ("kx",))
+
+
+class FreshnessBoundaryTests(unittest.TestCase):
+    """Stage-7 P0-C: the source's own promise tightens the category budget."""
+
+    def test_spec_promise_is_enforced(self):
+        spec = S.SourceSpec("ofac", "sanctions", "primary", 30)
+        rec = record(published_ms=NOW - 300_000, observed_ms=NOW - 200_000)
+        with self.assertRaises(S.AdapterError) as ctx:
+            S.validate_record(rec, spec=spec, now_ms=NOW)
+        self.assertIn("transport_lag_too_large", str(ctx.exception))
+
+    def test_inside_the_tighter_promise_passes(self):
+        spec = S.SourceSpec("ofac", "sanctions", "primary", 30)
+        rec = record(published_ms=NOW - 20_000, observed_ms=NOW - 10_000)
+        self.assertTrue(S.validate_record(rec, spec=spec, now_ms=NOW))
+
+    def test_now_must_be_strict_int(self):
+        for bad in (True, "1800000000000", 1.5):
+            with self.assertRaises(S.AdapterError):
+                S.validate_record(record(), spec=SPEC, now_ms=bad)
+
+    def test_decision_before_publication_refused(self):
+        # A decision instant earlier than the record's publication cannot be a
+        # valid decision. The observation check fires first here, which is the
+        # same refusal class; a future-observed record is refused separately.
+        with self.assertRaises(S.AdapterError):
+            S.validate_record(record(), spec=SPEC, now_ms=NOW - 1_000_000)
+        with self.assertRaises(S.AdapterError) as ctx:
+            S.validate_record(record(observed_ms=NOW + 5_000), spec=SPEC,
+                              now_ms=NOW)
+        self.assertIn("observed_after_decision", str(ctx.exception))
+
+
+class UrlSafetyTests(unittest.TestCase):
+    def test_credentials_refused(self):
+        with self.assertRaises(S.AdapterError):
+            S.canonical_url("https://user:pass@example.com/x")
+
+    def test_whitespace_refused(self):
+        with self.assertRaises(S.AdapterError):
+            S.canonical_url("https://example.com/x y")
+
+    def test_bad_scheme_refused(self):
+        for bad in ("ftp://example.com/x", "javascript:alert(1)",
+                    "data:text/html,x", "example.com/x"):
+            with self.assertRaises(S.AdapterError):
+                S.canonical_url(bad)
+
+    def test_null_byte_refused(self):
+        with self.assertRaises(S.AdapterError):
+            S.canonical_url("https://example.com/x%00y")
+
+
+class DedupeLimitationTests(unittest.TestCase):
+    """P1: the title key is crude, and that is measured, not denied."""
+
+    def test_identical_title_different_source_is_reported_as_merge_risk(self):
+        a = record(title="Bitcoin ETF inflows record", source_id="bin",
+                   published_ms=NOW - 10_000, observed_ms=NOW - 5_000)
+        b = record(title="Bitcoin ETF inflows record", source_id="ofac",
+                   category="sanctions", published_ms=NOW - 9_000,
+                   observed_ms=NOW - 4_000)
+        labels = {a.content_sha256: "story-A", b.content_sha256: "story-B"}
+        metrics = S.dedupe_metrics([a, b], by_expected=labels)
+        self.assertEqual(metrics["false_merges"], 1,
+                         "two distinct stories collapsed into one key")
+        self.assertIn("non-semantic", metrics["note"])
+
+    def test_unicode_normalisation_collisions_are_visible(self):
+        a = record(title="Bitcoin ETF  inflows", published_ms=NOW - 10_000,
+                   observed_ms=NOW - 5_000)
+        b = record(title="Bitcoin ETF inflows", published_ms=NOW - 10_000,
+                   observed_ms=NOW - 5_000)
+        self.assertEqual(S.dedupe_key(a), S.dedupe_key(b))

@@ -1,0 +1,9 @@
+{
+ "category": "regulatory",
+ "observed_ms": 1800000640000,
+ "origin_url": "https://www.example-sec.gov/rule/7",
+ "provenance": "primary",
+ "published_ms": 1800000600000,
+ "source_id": "sec",
+ "title": "SEC proposes custody rule change"
+}

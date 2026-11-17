@@ -1,0 +1,9 @@
+{
+ "category": "monetary_policy",
+ "observed_ms": 1800000220000,
+ "origin_url": "https://www.example-cb.org/press/3",
+ "provenance": "primary",
+ "published_ms": 1800000200000,
+ "source_id": "fed",
+ "title": "FOMC holds rates steady"
+}

@@ -1,0 +1,9 @@
+{
+ "category": "sanctions",
+ "observed_ms": 1800000450000,
+ "origin_url": "https://www.example-treasury.gov/press/5",
+ "provenance": "primary",
+ "published_ms": 1800000400000,
+ "source_id": "ofac",
+ "title": "Treasury sanctions two crypto mixers"
+}

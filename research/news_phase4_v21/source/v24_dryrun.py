@@ -75,10 +75,10 @@ def registry():
 def run():
     now, records = synthetic_day()
     reg = registry()
-    expected = S.register_category_sources(reg)
     result = S.select(records, now_ms=now, registry=reg)
-    timeline = S.coverage_timeline(records, bucket_ms=BUCKET_MS,
-                                   expected=expected)
+    timeline = S.coverage_timeline(records, start_ms=now - BUCKET_MS,
+                                   end_ms=now + 1, bucket_ms=BUCKET_MS,
+                                   registry=reg, heartbeat_s=900)
     return {
         "kind": "news_v24_dryrun",
         "protocol_version": S.PROTOCOL_VERSION,
