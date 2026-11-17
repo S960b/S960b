@@ -778,6 +778,7 @@ def live_executor(*, model="deepseek-v4-flash", attestation_path,
     """
     import v22_attestation as AT
     import v22_toolfree_client as TF
+    import tier2_raw_store as RAW
 
     def execute(prompts, *, now_ms, con=None, trial_id=None):
         # The gate is re-checked before EVERY invocation, not once per executor.
@@ -798,8 +799,16 @@ def live_executor(*, model="deepseek-v4-flash", attestation_path,
             # must cost a slot, otherwise restarting could exceed three calls.
             record_invocation(con, trial_id=trial_id, arm=arm, now_ms=started,
                               session_id="pending", limit=act["max_model_invocations"])
+            # Write exact request bytes BEFORE network; fsync the response
+            # BEFORE parsing it, even when the response is invalid JSON/HTTP.
+            # Incomplete artifacts stay as evidence; no automatic retry.
+            capture = RAW.raw_capture(attestation_path=attestation_path,
+                                      trial_id=trial_id, arm=arm)
             res = TF.call(model=model, system=ARM_SYSTEM_T2,
-                          user=prompts[arm], opener=opener)
+                          user=prompts[arm], opener=opener, raw_capture=capture)
+            RAW.verify_wire(attestation_path=attestation_path, trial_id=trial_id,
+                            arm=arm, request_sha256=res["request_sha256"],
+                            response_sha256=res["response_sha256"])
             # Digests come from the ACTUAL bytes: what the client sent, and what
             # the gateway returned. Nothing is rebuilt into the record.
             #
