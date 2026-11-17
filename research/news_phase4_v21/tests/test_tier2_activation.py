@@ -2,6 +2,7 @@
 
 No test writes to the user's real HOME or makes model calls.
 """
+import json
 import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
@@ -103,6 +104,38 @@ class Tier2ActivationTests(unittest.TestCase):
     def test_invalid_owner_reference_refused(self):
         with self.assertRaisesRegex(ACT.ActivationError, "owner_approval_reference"):
             ACT.stage(root=self.data, owner_seq=999)
+
+    def test_real_gate_enforces_14_day_expiration(self):
+        ACT.stage(root=self.data)
+        ACT.enable_gate(root=self.data)
+        p = ACT.paths(self.data)
+        rec = json.loads(p["activation"].read_text())
+        rec["started_utc"] = (datetime.now(timezone.utc)
+                              - timedelta(days=15)).isoformat()
+        p["activation"].write_text(json.dumps(rec))
+        with self.assertRaisesRegex(T2.Tier2Error, "activation_expired_or_future"):
+            T2.require_gate(gate=p["gate"], activation=p["activation"])
+
+    def test_real_gate_enforces_no_web_prompt_version(self):
+        ACT.stage(root=self.data)
+        ACT.enable_gate(root=self.data)
+        p = ACT.paths(self.data)
+        rec = json.loads(p["activation"].read_text())
+        rec["prompts_version"] = "v2.5-tier2-arms3"
+        p["activation"].write_text(json.dumps(rec))
+        with self.assertRaisesRegex(T2.Tier2Error, "activation_prompt_version_mismatch"):
+            T2.require_gate(gate=p["gate"], activation=p["activation"])
+
+    def test_real_gate_rejects_future_activation(self):
+        ACT.stage(root=self.data)
+        ACT.enable_gate(root=self.data)
+        p = ACT.paths(self.data)
+        rec = json.loads(p["activation"].read_text())
+        rec["started_utc"] = (datetime.now(timezone.utc)
+                              + timedelta(days=1)).isoformat()
+        p["activation"].write_text(json.dumps(rec))
+        with self.assertRaisesRegex(T2.Tier2Error, "activation_expired_or_future"):
+            T2.require_gate(gate=p["gate"], activation=p["activation"])
 
     def test_prompt_is_explicitly_weaker_than_provider_proof(self):
         system = T2.ARM_SYSTEM_T2.lower()
