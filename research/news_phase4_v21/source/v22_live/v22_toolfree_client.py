@@ -83,12 +83,16 @@ def call(*, model, system, user, opener=None, raw_capture=None):
         request_id = (headers.get("x-request-id")
                       or headers.get("x-gw-request-id"))
     except urllib.error.HTTPError as exc:
-        # Preserve an HTTP failure body if it exists. No retries.
-        response_bytes = exc.read()
-        if raw_capture is not None and response_bytes:
-            raw_capture("response", response_bytes, {
-                "status": exc.code, "provider_request_id": None,
-                "transport_error": True})
+        # Preserve an HTTP failure body if it exists. No retries. Close the
+        # response even when the capture fails; otherwise tests -W error warn.
+        try:
+            response_bytes = exc.read()
+            if raw_capture is not None and response_bytes:
+                raw_capture("response", response_bytes, {
+                    "status": exc.code, "provider_request_id": None,
+                    "transport_error": True})
+        finally:
+            exc.close()
         raise IsolationError("http_" + str(exc.code)) from None
     except urllib.error.URLError as exc:
         # Only the request exists; absence of response is an explicit failure.
