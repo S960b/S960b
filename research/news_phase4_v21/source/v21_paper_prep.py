@@ -478,7 +478,7 @@ def _reject_constant(name):
     raise ValueError("non_standard_json_constant:" + str(name))
 
 
-def parse_arm_response(text):
+def parse_arm_response(text, *, max_abs_bps=2000.0):
     """Strict parse of one arm; tolerant only about surrounding prose.
 
     Measured on real DeepSeek output: the model sometimes answers with a short
@@ -487,6 +487,13 @@ def parse_arm_response(text):
     object is located and then validated with exactly the same rules, so
     tolerance never weakens the schema.
     """
+    # Strict-v2.2 and historical callers keep the original 2000-bps
+    # default. Only Tier-2 explicitly supplies its separately preregistered
+    # 10000-bps bound; changing v2.2 retrospectively would contaminate tiers.
+    require(isinstance(max_abs_bps, (int, float))
+            and not isinstance(max_abs_bps, bool)
+            and 0 < float(max_abs_bps) <= 10_000,
+            "invalid_expected_return_bound")
     require(isinstance(text, str) and 0 < len(text.encode()) <= 8192,
             "invalid_response_size")
     body = text.strip()
@@ -521,7 +528,7 @@ def parse_arm_response(text):
                     "invalid_" + ("expected_return" if key ==
                                   "expected_return_bps" else key))
         require(0 <= obj["p_up"] <= 1, "invalid_p_up")
-        require(abs(obj["expected_return_bps"]) <= 2000,
+        require(abs(obj["expected_return_bps"]) <= max_abs_bps,
                 "invalid_expected_return")
         require(0 <= obj["uncertainty"] <= 1, "invalid_uncertainty")
         require(isinstance(obj["rationale"], str)
