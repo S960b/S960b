@@ -33,8 +33,10 @@ TIER = "observational_tier2"
 DATA = Path.home() / ".local/share/news-phase4-v25"
 DEFAULT_DB = DATA / "tier2.sqlite"
 DEFAULT_ATTESTATION = DATA / "attestation.jsonl"
-GATE_FILE = DATA / "TIER2_ACTIVE"          # deliberately absent
+GATE_FILE = DATA / "TIER2_ACTIVE"          # created only by the owner-approved record
 PROTOCOL_FILE = Path(__file__).resolve().parent / "TIER2_PROTOCOL_PREREGISTRATION.md"
+ERRATUM_FILE = Path(__file__).resolve().parent / "TIER2_ERRATUM_1.md"
+ACTIVATION_FILE = DATA / "TIER2_ACTIVATION.json"
 
 HORIZON_MS = 4 * 3_600_000
 MAX_DRIFT_MS = 60_000
@@ -99,12 +101,44 @@ def open_tier2(path=DEFAULT_DB):
     return con
 
 
-def require_gate(gate=GATE_FILE):
-    """Tier-2 model calls stay disabled. There is no activation file, and this
-    function has no way to create one - activation is an owner act."""
+ACTIVATION_REQUIRED = ("trial_id", "purpose", "owner_seq", "owner_task_id",
+                       "started_utc", "protocol_sha256", "erratum_sha256",
+                       "max_model_invocations", "max_triples")
+TRIAL_PURPOSE = "one_tier2_forward_paper_trial"
+
+
+def read_activation(path=ACTIVATION_FILE):
+    """Parse the owner-approved activation record, or explain precisely why not."""
+    path = Path(path)
+    if not path.exists():
+        raise Tier2Error("tier2_not_activated")
+    try:
+        rec = json.loads(path.read_text(encoding="utf-8"))
+    except ValueError:
+        raise Tier2Error("activation_record_corrupt") from None
+    missing = [k for k in ACTIVATION_REQUIRED if not rec.get(k)]
+    if missing:
+        raise Tier2Error("activation_incomplete:" + ",".join(missing))
+    if rec["purpose"] != TRIAL_PURPOSE:
+        raise Tier2Error("activation_purpose_not_trial:" + str(rec["purpose"]))
+    if int(rec["max_triples"]) != 1:
+        raise Tier2Error("activation_must_be_single_triple")
+    if int(rec["max_model_invocations"]) != 3:
+        raise Tier2Error("activation_must_be_three_invocations")
+    # The activation must point at the exact protocol and erratum bytes in use.
+    if rec["protocol_sha256"] != protocol_sha():
+        raise Tier2Error("activation_protocol_sha_mismatch")
+    if rec["erratum_sha256"] != hashlib.sha256(
+            Path(ERRATUM_FILE).read_bytes()).hexdigest():
+        raise Tier2Error("activation_erratum_sha_mismatch")
+    return rec
+
+
+def require_gate(gate=GATE_FILE, activation=ACTIVATION_FILE):
+    """Tier-2 model calls need ONE owner-approved trial record. No bypass."""
     if not Path(gate).exists():
         raise Tier2Error("tier2_not_activated")
-    return True
+    return read_activation(activation)
 
 
 # ---------------------------------------------------------------- attestation
@@ -396,3 +430,123 @@ def mock_triple(*, con, event, now_ms, attestation_path, quote_price=64_000.0,
     return seal_triple(con=con, event=event, arm_results=arms, quote=quote,
                       attestation_path=attestation_path, now_ms=now_ms,
                       prompts_sha256=prompts_sha)
+
+
+# ------------------------------------------------------- live executor (1 trial)
+
+ATTEMPT_SCHEMA = """
+CREATE TABLE IF NOT EXISTS tier2_attempts(
+ trial_id TEXT NOT NULL, arm TEXT NOT NULL, state TEXT NOT NULL,
+ reserved_ms INTEGER NOT NULL, started_ms INTEGER, completed_ms INTEGER,
+ session_id TEXT, detail TEXT,
+ PRIMARY KEY(trial_id, arm));
+"""
+
+
+def open_attempts(con):
+    con.executescript(ATTEMPT_SCHEMA)
+    con.commit()
+    return con
+
+
+def reserve_attempts(con, *, trial_id, now_ms, arms=None):
+    """Reserve every arm BEFORE any call. A second reservation is a replay and
+    is refused - this table is the no-replay guard."""
+    arms = arms or A.ARM_NAMES
+    done = con.execute("SELECT COUNT(*) FROM tier2_attempts WHERE trial_id=?",
+                       (trial_id,)).fetchone()[0]
+    if done:
+        raise Tier2Error("trial_already_reserved")
+    for arm in arms:
+        con.execute("INSERT INTO tier2_attempts(trial_id,arm,state,reserved_ms) "
+                    "VALUES(?,?,'prepared',?)", (trial_id, arm, int(now_ms)))
+    con.commit()
+    return {"reserved": len(arms), "trial_id": trial_id}
+
+
+def mark_attempt(con, *, trial_id, arm, state, now_ms, session_id=None,
+                 detail=None):
+    allowed = ("started", "completed", "failed", "unknown")
+    if state not in allowed:
+        raise Tier2Error("bad_attempt_state")
+    con.execute("UPDATE tier2_attempts SET state=?, completed_ms=?, "
+                "session_id=COALESCE(?,session_id), detail=COALESCE(?,detail) "
+                "WHERE trial_id=? AND arm=?",
+                (state, int(now_ms), session_id, detail, trial_id, arm))
+    con.commit()
+
+
+def live_executor(*, model="deepseek-v4-flash", attestation_path,
+                  activation=None, opener=None):
+    """Exactly three calls, each with a REAL attestation record.
+
+    The gate is consulted before the FIRST request and the reservation is written
+    before the first request, so a crash leaves evidence rather than a gap.
+    `tool_evidence` is always `observational_tier2`: this function has no way to
+    write `known_zero`.
+    """
+    import v22_attestation as AT
+    import v22_toolfree_client as TF
+
+    def execute(prompts, *, now_ms, con=None, trial_id=None):
+        act = activation or read_activation()
+        tf = TF.call  # resolved lazily so tests can inject
+        out = []
+        for arm in A.ARM_NAMES:
+            if con is not None:
+                mark_attempt(con, trial_id=trial_id, arm=arm, state="started",
+                             now_ms=int(time.time() * 1000))
+            started = int(time.time() * 1000)
+            res = TF.call(model=model, system=ARM_SYSTEM_T2,
+                          user=prompts[arm], opener=opener)
+            # Rebuild the body the gateway would forward, from what we sent.
+            fwd = AT.forwarded_body({"model": model,
+                                     "messages": [
+                                         {"role": "system",
+                                          "content": ARM_SYSTEM_T2},
+                                         {"role": "user", "content": prompts[arm]}],
+                                     "max_output_tokens": 32000,
+                                     "temperature": 0.0,
+                                     "max_tokens": None})
+            fwd = {k: v for k, v in fwd.items() if v is not None}
+            gateway_resp = {"id": res.get("provider_request_id"),
+                            "model": res.get("model"),
+                            "status": "completed",
+                            "output": [{"type": "message",
+                                        "content": [{"type": "output_text",
+                                                     "text": res.get("content", "")}]}]}
+            rec = AT.attest(chat_body={"model": model,
+                                       "messages": [{"role": "user",
+                                                     "content": prompts[arm]}],
+                                       "temperature": 0.0, "max_tokens": 400,
+                                       "stream": False},
+                            upstream_body=fwd, parsed=gateway_resp,
+                            latency_ms=int(time.time() * 1000) - started,
+                            model_expected=model, log=attestation_path,
+                            extra={"trial_id": act["trial_id"], "arm": arm})
+            out.append({
+                "arm": arm,
+                "text": res["content"],
+                "completed_ms": int(time.time() * 1000),
+                "tool_evidence": TIER,
+                "attestation_record_sha256": rec["record_sha256"],
+                "model_observed": res.get("model"),
+                "model_expected": model,
+                "response_sha256": rec["response"]["sha256"],
+                "request_sha256": rec["request_sha256"],
+                "terminal_response": res.get("finish_reason") in ("stop", "length"),
+                "retried_ambiguously": False,
+                "tool_artifacts": rec["response"].get("tool_items") or [],
+            })
+            if out[-1]["tool_artifacts"]:
+                raise Tier2Error("tool_artifact_in_response:" + arm)
+            if con is not None:
+                mark_attempt(con, trial_id=trial_id, arm=arm, state="completed",
+                             now_ms=out[-1]["completed_ms"],
+                             session_id=res.get("provider_request_id"))
+        return out
+    return execute
+
+
+ARM_SYSTEM_T2 = ("You are a forecasting component in a paper-only experiment. "
+                 "Answer with ONE JSON object and nothing else.")

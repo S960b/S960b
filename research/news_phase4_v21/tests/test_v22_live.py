@@ -1125,3 +1125,111 @@ class Tier2ProtocolTests(unittest.TestCase):
             "SELECT name FROM sqlite_master WHERE type='table'")}
         self.assertEqual(names, {"tier2_triples", "tier2_arms",
                                  "tier2_outcomes"})
+
+
+class Tier2ActivationTests(unittest.TestCase):
+    """The trial gate must be an owner-approved record, not a bare flag file."""
+
+    def setUp(self):
+        import tempfile
+        import tier2 as T2
+        self.T2 = T2
+        self.dir = Path(tempfile.mkdtemp(prefix="t2act-"))
+        self.gate = self.dir / "TIER2_ACTIVE"
+        self.act = self.dir / "TIER2_ACTIVATION.json"
+
+    def _record(self, **over):
+        rec = {"trial_id": "trial-1",
+               "purpose": self.T2.TRIAL_PURPOSE,
+               "owner_seq": 157,
+               "owner_task_id": "task_760cfd0ff32f51a5c99ad18ef08613a5",
+               "started_utc": "2026-11-17T10:05:00Z",
+               "protocol_sha256": self.T2.protocol_sha(),
+               "erratum_sha256": __import__("hashlib").sha256(
+                   Path(self.T2.ERRATUM_FILE).read_bytes()).hexdigest(),
+               "max_model_invocations": 3, "max_triples": 1}
+        rec.update(over)
+        return rec
+
+    def _write(self, rec):
+        self.act.write_text(json.dumps(rec), encoding="utf-8")
+
+    def test_flag_without_activation_record_refuses(self):
+        self.gate.write_text("")
+        with self.assertRaises(self.T2.Tier2Error) as ctx:
+            self.T2.require_gate(self.gate, self.act)
+        self.assertIn("tier2_not_activated", str(ctx.exception))
+
+    def test_activation_without_flag_refuses(self):
+        self._write(self._record())
+        with self.assertRaises(self.T2.Tier2Error):
+            self.T2.require_gate(self.gate, self.act)
+
+    def test_wrong_purpose_refuses(self):
+        self.gate.write_text("")
+        self._write(self._record(purpose="broad_research"))
+        with self.assertRaises(self.T2.Tier2Error) as ctx:
+            self.T2.require_gate(self.gate, self.act)
+        self.assertIn("purpose_not_trial", str(ctx.exception))
+
+    def test_more_than_one_triple_refuses(self):
+        self.gate.write_text("")
+        self._write(self._record(max_triples=5))
+        with self.assertRaises(self.T2.Tier2Error):
+            self.T2.require_gate(self.gate, self.act)
+
+    def test_more_than_three_invocations_refuses(self):
+        self.gate.write_text("")
+        self._write(self._record(max_model_invocations=30))
+        with self.assertRaises(self.T2.Tier2Error):
+            self.T2.require_gate(self.gate, self.act)
+
+    def test_protocol_sha_must_match_bytes_in_use(self):
+        self.gate.write_text("")
+        self._write(self._record(protocol_sha256="0" * 64))
+        with self.assertRaises(self.T2.Tier2Error) as ctx:
+            self.T2.require_gate(self.gate, self.act)
+        self.assertIn("protocol_sha_mismatch", str(ctx.exception))
+
+    def test_erratum_sha_must_match(self):
+        self.gate.write_text("")
+        self._write(self._record(erratum_sha256="0" * 64))
+        with self.assertRaises(self.T2.Tier2Error) as ctx:
+            self.T2.require_gate(self.gate, self.act)
+        self.assertIn("erratum_sha_mismatch", str(ctx.exception))
+
+    def test_complete_valid_activation_is_accepted(self):
+        self.gate.write_text("")
+        self._write(self._record())
+        rec = self.T2.require_gate(self.gate, self.act)
+        self.assertEqual(rec["trial_id"], "trial-1")
+        self.assertEqual(rec["owner_seq"], 157)
+
+    def test_attempts_cannot_be_reserved_twice(self):
+        import tempfile
+        d = Path(tempfile.mkdtemp(prefix="t2att-"))
+        con = self.T2.open_tier2(d / "t.sqlite")
+        self.T2.open_attempts(con)
+        self.T2.reserve_attempts(con, trial_id="trial-1", now_ms=1)
+        with self.assertRaises(self.T2.Tier2Error) as ctx:
+            self.T2.reserve_attempts(con, trial_id="trial-1", now_ms=2)
+        self.assertIn("trial_already_reserved", str(ctx.exception))
+        con.close()
+
+    def test_reservation_writes_all_three_arms_before_any_call(self):
+        import tempfile
+        d = Path(tempfile.mkdtemp(prefix="t2att-"))
+        con = self.T2.open_tier2(d / "t.sqlite")
+        self.T2.open_attempts(con)
+        self.T2.reserve_attempts(con, trial_id="trial-2", now_ms=1)
+        rows = con.execute("SELECT arm,state FROM tier2_attempts "
+                           "WHERE trial_id='trial-2' ORDER BY arm").fetchall()
+        self.assertEqual([r[0] for r in rows], sorted(self.T2.A.ARM_NAMES))
+        self.assertTrue(all(r[1] == "prepared" for r in rows))
+        con.close()
+
+    def test_erratum_records_the_real_commit_time(self):
+        text = Path(self.T2.ERRATUM_FILE).read_text(encoding="utf-8")
+        self.assertIn("2026-11-17T09:22:39Z", text)
+        self.assertIn("2026-11-17T09:52:00Z", text)
+        self.assertIn("29 min", text)
