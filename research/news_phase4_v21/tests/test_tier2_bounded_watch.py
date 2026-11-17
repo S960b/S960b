@@ -31,6 +31,17 @@ class WatchTests(unittest.TestCase):
             with self.assertRaises(W.TR.NotEnabled):
                 W.watch(execute=True, single=True, emit=lambda _: None)
 
+    def test_F01_live_poller_does_not_inject_stale_decision_clock(self):
+        calls = []
+        with patch.object(W.TR, "require_enabled", return_value={
+                "trial_id": "trial1", "max_triples": 1, "max_model_invocations": 3}), \
+             patch.object(W.D, "execute_once", side_effect=lambda **kw:
+                          calls.append(kw) or {"status": "no_eligible", "model_calls": 0}):
+            W.watch(execute=True, single=True, emit=lambda _: None)
+        self.assertEqual(len(calls), 1)
+        self.assertFalse(calls[0]["dry"])
+        self.assertNotIn("now_ms", calls[0])
+
     def test_live_stops_after_exactly_one_seal(self):
         outcomes = iter(({"status": "no_eligible"}, {"status": "sealed", "due_ms": 123}))
         calls = []
