@@ -382,9 +382,16 @@ def validate_candle(candle, due_ms, *, symbol=QUOTE_SYMBOL):
 # --------------------------------------------------------------------- seal
 
 def seal_triple(*, con, event, arm_results, quote, attestation_path, now_ms,
-                prompts_sha256, cohort_extra="|tier2", published_max_ms=None):
-    """Seal one Tier-2 triple. Refuses rather than repairs."""
-    validate_event(event, now_ms, published_max_ms=published_max_ms)
+                prompts_sha256, cohort_extra="|tier2", published_max_ms=None,
+                decision_ms=None):
+    """Seal one Tier-2 triple; freshness is evaluated at decision, not seal.
+
+    Successful model answers cannot age a previously admissible observation
+    into a refusal. The caller must pass the immutable pre-inference decision
+    timestamp. Older offline fixtures retain their original now_ms behaviour.
+    """
+    validate_event(event, now_ms if decision_ms is None else decision_ms,
+                   published_max_ms=published_max_ms)
     validate_arm_set(arm_results)
     last_arm_ms = max(int(a["completed_ms"]) for a in arm_results)
     validate_quote(quote, last_arm_ms, event["published_ms"], now_ms=now_ms)
