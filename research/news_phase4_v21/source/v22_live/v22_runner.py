@@ -31,7 +31,9 @@ import time
 from pathlib import Path
 
 import v22_arms as A
+import v22_gate as G
 import v22_ledger as L
+import v22_toolfree_client as TF
 import v21_paper_prep as P
 import v21_pilot_cycle as PC
 
@@ -62,8 +64,51 @@ def mock_executor(prompts, *, now_ms):
     return out
 
 
+DEFAULT_MODEL = "deepseek-v4-flash"
+ARM_SYSTEM = ("You are a forecasting component in a paper experiment. "
+              "Answer with ONE JSON object and nothing else.")
+
+
+def live_executor(*, model=DEFAULT_MODEL, opener=None):
+    """Executor backed by the tool-free client. Gate is checked per arm.
+
+    The gate is consulted HERE, immediately before the request is built, so a
+    missing flag cannot be bypassed by calling the runner from somewhere else.
+    Every arm records `tool_evidence=known_zero` with the provenance that
+    actually justifies it: the client builds a body with no tools key at all.
+    """
+    def execute(prompts, *, now_ms):
+        G.authorise("paper_arms")
+        out = []
+        for arm in A.ARM_NAMES:
+            started = int(time.time() * 1000)
+            res = TF.call(model=model, system=ARM_SYSTEM,
+                          user=prompts[arm], opener=opener)
+            out.append({
+                "arm": arm,
+                "attempt_id": res["request_sha256"],
+                "session_id": res.get("provider_request_id") or "",
+                "text": res["content"],
+                "model": {"providerID": "toolfree_gateway",
+                          "modelID": res["model"]},
+                "session_terminal": "completed",
+                "completed_ms": int(time.time() * 1000),
+                "tool_evidence": "known_zero",
+                "tool_evidence_provenance":
+                    "toolfree_client:no_tools_key_in_request"
+                    ";tools_advertised=false"
+                    ";request_keys=" + ",".join(res["request_keys"]),
+                "tools": 0,
+                "started_ms": started,
+                "request_sha256": res["request_sha256"],
+                "response_sha256": res["response_sha256"],
+            })
+        return out
+    return execute
+
+
 def run_triple(*, db_path, event, candles, cutoff_ms, executor,
-               now_ms=None, quote_fn=None):
+               now_ms=None, quote_fn=None, synthetic=True):
     """One full triple: reserve -> arms -> quote -> seal. Returns a status dict."""
     now_ms = int(now_ms if now_ms is not None else time.time() * 1000)
     market = frozen_market(candles, cutoff_ms)
@@ -99,9 +144,13 @@ def run_triple(*, db_path, event, candles, cutoff_ms, executor,
         last_arm_ms = max(r["completed_ms"] for r in results)
         quote = (quote_fn or _default_quote)(after_ms=last_arm_ms)
         prepared = {"prompts_sha256": hashes, "cutoff_ms": int(cutoff_ms)}
+        # `synthetic` must describe the ARMS, not the code path: a triple whose
+        # answers came from a mock executor is synthetic even when it travelled
+        # through the live pipeline, and a real model triple is not synthetic
+        # merely because the dry runner shares the same code.
         out = L.seal_triple(con, event=event, prepared=prepared,
                             arm_results=results, quote=quote,
-                            now_ms=now_ms + 5_000)
+                            now_ms=now_ms + 5_000, synthetic=synthetic)
         return out
     finally:
         con.close()
@@ -126,11 +175,20 @@ def main(argv=None):
     ap.add_argument("--db", default=str(DEFAULT_DB))
     ap.add_argument("--dry", action="store_true",
                     help="mock executor, disposable DB, no network for arms")
+    ap.add_argument("--live", action="store_true",
+                    help="real arms through the tool-free client (needs v2.2 gate)")
+    ap.add_argument("--event-json", default=None,
+                    help="event record for --live (event_id, title, published_ms)")
+    ap.add_argument("--model", default=DEFAULT_MODEL)
     ap.add_argument("--now-ms", type=int, default=None)
     a = ap.parse_args(argv)
-    if not a.dry:
-        return ("live arm execution requires an approved executor; "
+    if not a.dry and not a.live:
+        return ("live arm execution requires --live and the v2.2 gate; "
                 "run --dry to exercise the wiring")
+    if a.live:
+        if not a.event_json:
+            return "live run requires --event-json"
+        return _live(a)
     now = a.now_ms or int(time.time() * 1000)
     cutoff = now // 3_600_000 * 3_600_000
     candles = [(cutoff - i * 3_600_000, cutoff - i * 3_600_000 + 3_599_999,
@@ -143,6 +201,29 @@ def main(argv=None):
                      quote_fn=lambda after_ms: {"price": 60_000.0,
                                                 "observed_ms": after_ms + 1_000,
                                                 "source": "dry_run"})
+    print(json.dumps(out, indent=1, sort_keys=True, default=str))
+    return 0
+
+
+def _live(a):
+    """One real triple. Market candles and the entry quote come from the same
+    public source used by the v2.1 pilot cycle; nothing private is read."""
+    event = json.loads(Path(a.event_json).read_text(encoding="utf-8"))
+    for key in ("event_id", "title", "published_ms"):
+        if key not in event:
+            return "event_json_missing:" + key
+    now = a.now_ms or int(time.time() * 1000)
+    # The frozen snapshot is taken at the DECISION moment (the last fully closed
+    # hour before now), not at the story's publication. Anchoring the cutoff to
+    # the story would let a stale item pick an old market state that was not
+    # visible to a decision taken now - and with a 10-hour-old item it also
+    # leaves no closed candles at all.
+    cutoff = P.decision_cutoff(now)
+    candles = P.fetch_klines("live")[-30:]
+    out = run_triple(db_path=a.db, event=event, candles=candles,
+                     cutoff_ms=cutoff, executor=live_executor(
+                         model=a.model, opener=None),
+                     now_ms=now, synthetic=False)
     print(json.dumps(out, indent=1, sort_keys=True, default=str))
     return 0
 

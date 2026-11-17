@@ -72,6 +72,9 @@ def call(*, model, system, user, opener=None):
         resp = (opener or urllib.request.urlopen)(req, timeout=TIMEOUT_S)
         status = getattr(resp, "status", 200)
         payload = resp.read().decode("utf-8", "replace")
+        # The gateway reports its identity in the body (`id`), and only falls
+        # back to headers on other deployments. Either is fine; absence is not,
+        # because the seal requires a non-empty session identity.
         request_id = (resp.headers.get("x-request-id")
                       or resp.headers.get("x-gw-request-id"))
     except urllib.error.HTTPError as exc:
@@ -105,6 +108,12 @@ def call(*, model, system, user, opener=None):
     model_id = data.get("model") or ""
     if not isinstance(model_id, str) or not model_id.strip():
         raise IsolationError("model_identity_missing")
+
+    # Record the provider's own response identity when the gateway exposes one
+    # in the body. It is evidence of THIS call, not an invented token.
+    body_id = data.get("id")
+    if isinstance(body_id, str) and body_id.strip():
+        request_id = request_id or body_id.strip()
 
     if (choices[0] or {}).get("finish_reason") not in ("stop", "length"):
         raise IsolationError("non_terminal_finish_reason:" +

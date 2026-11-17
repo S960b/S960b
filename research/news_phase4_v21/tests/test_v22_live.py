@@ -310,6 +310,129 @@ class CollectorTests(unittest.TestCase):
         self.assertEqual(rep[0]["newest_age_s"], 60)
 
 
+class GateTests(unittest.TestCase):
+    """The v2.2 gate must fail closed and must never lift the legacy pause."""
+
+    def setUp(self):
+        import tempfile
+        self.dir = Path(tempfile.mkdtemp(prefix="v22g-"))
+        self.flag = self.dir / "flag"
+        self.legacy = self.dir / "PAUSED_MODEL_INFERENCE"
+        self.legacy.write_text("PAUSED")
+        import v22_gate as G
+        self.G = G
+
+    def _authorise(self, purpose="paper_arms"):
+        return self.G.authorise(purpose, flag_path=self.flag,
+                                legacy_pause_path=self.legacy)
+
+    def test_missing_flag_refuses(self):
+        with self.assertRaises(self.G.GateClosed) as ctx:
+            self._authorise()
+        self.assertIn("no_v22_flag", str(ctx.exception))
+
+    def test_incomplete_flag_refuses(self):
+        self.flag.write_text("V22_MODEL_CALLS: AUTHORISED\nowner: kali\n")
+        with self.assertRaises(self.G.GateClosed) as ctx:
+            self._authorise()
+        self.assertIn("flag_incomplete", str(ctx.exception))
+
+    def test_wrong_verb_refuses(self):
+        self.G.write_flag(owner="k", purposes=["paper_arms"],
+                          authorised_at_utc="t", path=self.flag)
+        self.flag.write_text(self.flag.read_text().replace(
+            "V22_MODEL_CALLS: AUTHORISED", "V22_MODEL_CALLS: MAYBE"))
+        with self.assertRaises(self.G.GateClosed) as ctx:
+            self._authorise()
+        self.assertIn("flag_not_authorised", str(ctx.exception))
+
+    def test_unlisted_purpose_refuses(self):
+        self.G.write_flag(owner="k", purposes=["paper_arms"],
+                          authorised_at_utc="t", path=self.flag)
+        with self.assertRaises(self.G.GateClosed) as ctx:
+            self._authorise("legacy_cycle")
+        self.assertIn("purpose_not_authorised", str(ctx.exception))
+
+    def test_removed_legacy_pause_refuses(self):
+        self.G.write_flag(owner="k", purposes=["paper_arms"],
+                          authorised_at_utc="t", path=self.flag)
+        self.legacy.unlink()
+        with self.assertRaises(self.G.GateClosed) as ctx:
+            self._authorise()
+        self.assertIn("legacy_pause_missing", str(ctx.exception))
+
+    def test_valid_flag_authorises_only_named_purpose(self):
+        self.G.write_flag(owner="kali", purposes=["paper_arms"],
+                          authorised_at_utc="2026-11-17T07:40:00Z",
+                          path=self.flag)
+        got = self._authorise()
+        self.assertEqual(got["owner"], "kali")
+        self.assertEqual(oct(self.flag.stat().st_mode & 0o777), "0o600")
+
+    def test_gate_never_deletes_the_legacy_pause(self):
+        self.G.write_flag(owner="k", purposes=["paper_arms"],
+                          authorised_at_utc="t", path=self.flag)
+        self._authorise()
+        self.assertTrue(self.legacy.exists())
+
+
+class LiveExecutorGateTests(unittest.TestCase):
+    """The runner's live executor must consult the gate before any request."""
+
+    def setUp(self):
+        import tempfile
+        import v22_runner as R
+        import v22_gate as G
+        self.dir = Path(tempfile.mkdtemp(prefix="v22x-"))
+        self.R, self.G = R, G
+        self.saved = (G.FLAG, G.LEGACY_PAUSE)
+
+    def tearDown(self):
+        self.G.FLAG, self.G.LEGACY_PAUSE = self.saved
+
+    def test_executor_refuses_without_flag_and_calls_nothing(self):
+        self.G.FLAG = self.dir / "absent"
+        self.G.LEGACY_PAUSE = self.dir / "PAUSED_MODEL_INFERENCE"
+        self.G.LEGACY_PAUSE.write_text("PAUSED")
+        called = []
+
+        def opener(req, timeout=None):
+            called.append(req)
+            raise AssertionError("network must not be touched")
+
+        ex = self.R.live_executor(opener=opener)
+        with self.assertRaises(self.G.GateClosed):
+            ex({"news": "p", "news_market": "p", "market": "p"}, now_ms=1)
+        self.assertEqual(called, [])
+
+    def test_arm_metadata_records_structural_provenance(self):
+        import json as J
+
+        class Resp:
+            status = 200
+            headers = {}
+
+            def read(self, n=None):
+                return J.dumps({"model": "m", "choices": [{
+                    "message": {"content": '{"p_up":0.5}'},
+                    "finish_reason": "stop"}]}).encode()
+
+        self.G.FLAG = self.dir / "flag"
+        self.G.LEGACY_PAUSE = self.dir / "pause"
+        self.G.LEGACY_PAUSE.write_text("PAUSED")
+        self.G.write_flag(owner="k", purposes=["paper_arms"],
+                          authorised_at_utc="t", path=self.G.FLAG)
+        out = self.R.live_executor(opener=lambda req, timeout=None: Resp())(
+            {"news": "p1", "news_market": "p2", "market": "p3"},
+            now_ms=1)
+        self.assertEqual(len(out), 3)
+        for row in out:
+            self.assertEqual(row["tool_evidence"], "known_zero")
+            self.assertIn("no_tools_key_in_request",
+                          row["tool_evidence_provenance"])
+            self.assertEqual(row["tools"], 0)
+
+
 class UndatedSourceTests(unittest.TestCase):
     """A status endpoint must never be stored as a dated news event."""
 
