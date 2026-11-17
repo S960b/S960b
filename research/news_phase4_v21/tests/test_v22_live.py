@@ -1344,15 +1344,19 @@ class Tier2ActivationTests(unittest.TestCase):
         self.act = self.dir / "TIER2_ACTIVATION.json"
 
     def _record(self, **over):
+        from datetime import datetime, timezone
         rec = {"trial_id": "trial-1",
                "purpose": self.T2.TRIAL_PURPOSE,
                "owner_seq": 157,
                "owner_task_id": "task_760cfd0ff32f51a5c99ad18ef08613a5",
-               "started_utc": "2026-11-17T10:05:00Z",
+               "started_utc": datetime.now(timezone.utc).isoformat(),
                "protocol_sha256": self.T2.protocol_sha(),
                "erratum_sha256": __import__("hashlib").sha256(
                    Path(self.T2.ERRATUM_FILE).read_bytes()).hexdigest(),
-               "max_model_invocations": 3, "max_triples": 1}
+               "max_model_invocations": 3, "max_triples": 1,
+               "prompt_only_no_web": True,
+               "prompts_version": self.T2.PROMPTS_VERSION,
+               "upstream_tool_isolation": "unverified"}
         rec.update(over)
         return rec
 
