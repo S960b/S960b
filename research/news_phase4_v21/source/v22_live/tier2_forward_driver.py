@@ -193,7 +193,8 @@ def execute_once(*, feed_db=FEED_DB, now_ms=None, dry=True):
             quote_fn=_quote_after, now_ms=decision_ms,
             trial_id=act["trial_id"],
             attestation_path=T2.DEFAULT_ATTESTATION,
-            published_max_ms=T2.FRESHNESS_BUDGET_S[event["cohort"]] * 1000)
+            published_max_ms=T2.FRESHNESS_BUDGET_S[event["cohort"]] * 1000,
+            frozen_sha256=freeze_sha)
     return {"status": result["status"], "event_id": event["event_id"],
             "trial_id": act["trial_id"], "freeze_sha256": freeze_sha,
             "due_ms": result.get("due_ms")}
