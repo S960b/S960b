@@ -22,7 +22,8 @@ def candle_for(due_ms, price=64_000.0):
     while open_ms + 59_999 - due_ms >= 60_000:
         open_ms -= 60_000
     return {"symbol": "BTCUSDT", "closed": True, "open_ms": open_ms,
-            "close_ms": open_ms + 59_999, "close": price}
+            "close_ms": open_ms + 59_999, "close": price,
+            "source": "binance_public_1m_kline"}
 
 
 class LabelWatchTests(unittest.TestCase):
@@ -73,7 +74,7 @@ class LabelWatchTests(unittest.TestCase):
         self.assertEqual(out["outcomes"][0]["status"], "labelled")
         rows = self.con.execute(
             "SELECT label_state, price, source FROM tier2_outcomes").fetchall()
-        self.assertEqual(rows, [("labelled", 64_000.0, "binance_public_1m_close")])
+        self.assertEqual(rows, [("labelled", 64_000.0, "binance_public_1m_kline")])
 
     def test_second_pass_is_idempotent(self):
         due = self._seal()
@@ -209,7 +210,8 @@ def candle(*, due_ms):
     if o < due_ms: o += 60000
     while o + 59999 - due_ms >= 60000: o -= 60000
     return {{"symbol": "BTCUSDT", "closed": True, "open_ms": o,
-             "close_ms": o + 59999, "close": 64000.0}}
+             "close_ms": o + 59999, "close": 64000.0,
+             "source": "binance_public_1m_kline"}}
 out = LW.settle(db_path={str(self.db)!r}, now_ms=due + 120000,
                 candle_fn=candle, dry=False)
 print(out["outcomes"][0]["status"])
@@ -226,6 +228,186 @@ print(out["outcomes"][0]["status"])
             "SELECT COUNT(*) FROM tier2_outcomes").fetchone()[0]
         self.assertEqual(count, 1, outs)
 
+
+class Stage29Tests(unittest.TestCase):
+    """The four defects stage 29 named: synthesized candle, racy attempts,
+    bugs classified as outages, censored leaking into metrics."""
+
+    def setUp(self):
+        self.dir = Path(tempfile.mkdtemp(prefix="s29-"))
+        self.db = self.dir / "tier2.sqlite"
+        self.con = T2.open_tier2(self.db)
+        T2.open_attempts(self.con)
+
+    def tearDown(self):
+        try:
+            self.con.close()
+        except Exception:
+            pass
+
+    def _seal(self):
+        ev = {"event_id": "b" * 64, "cohort": "geopolitics",
+              "published_ms": NOW - 120_000, "observed_ms": NOW - 60_000}
+        return T2.mock_triple(con=self.con, event=ev, now_ms=NOW,
+                              attestation_path=self.dir / "att.jsonl")["due_ms"]
+
+    # --- 1. no invented candle fields ----------------------------------
+
+    def test_exchange_candle_uses_payload_timestamps(self):
+        due = 1_800_000_000_000
+        rows = [(1_799_999_940_000, 1_799_999_999_999, 64_000.0),
+                (1_800_000_000_000, 1_800_000_059_999, 64_100.0)]
+        import v21_paper_prep as P
+        saved = P.fetch_klines_1m
+        P.fetch_klines_1m = lambda *a, **k: rows
+        try:
+            c = LW.exchange_candle(due_ms=due, now_ms=due + 120_000)
+        finally:
+            P.fetch_klines_1m = saved
+        self.assertEqual(c["open_ms"], 1_800_000_000_000)
+        self.assertEqual(c["close_ms"], 1_800_000_059_999)
+        self.assertTrue(c["closed"])
+        self.assertEqual(c["source"], "binance_public_1m_kline")
+
+    def test_exchange_candle_refuses_when_minute_is_still_open(self):
+        due = 1_800_000_000_000
+        rows = [(1_800_000_000_000, 1_800_000_059_999, 64_000.0)]
+        import v21_paper_prep as P
+        saved = P.fetch_klines_1m
+        P.fetch_klines_1m = lambda *a, **k: rows
+        try:
+            c = LW.exchange_candle(due_ms=due, now_ms=due + 10_000)
+        finally:
+            P.fetch_klines_1m = saved
+        self.assertFalse(c["closed"], "closure comes from the payload, not a guess")
+
+    # --- 3. a bug must not censor --------------------------------------
+
+    def test_classify_separates_bug_from_outage(self):
+        self.assertEqual(LW.classify(ConnectionError("down")), "transient")
+        self.assertEqual(LW.classify(RuntimeError("label_fetch_failed:x")),
+                         "transient")
+        self.assertEqual(LW.classify(TypeError("bad")), "bug")
+        self.assertEqual(LW.classify(KeyError("close")), "bug")
+
+    def test_programming_error_does_not_write_censored(self):
+        due = self._seal()
+
+        def buggy(*, due_ms):
+            raise TypeError("cannot unpack non-sequence")
+
+        out = LW.settle(db_path=self.db, now_ms=due + 120_000,
+                        candle_fn=buggy, dry=False)
+        self.assertEqual(out["outcomes"][0]["status"], "error")
+        self.assertEqual(self.con.execute(
+            "SELECT COUNT(*) FROM tier2_outcomes").fetchone()[0], 0)
+        self.assertEqual(LW._attempts_of(self.con, "b" * 64)[0], 0)
+
+    # --- 2. atomic attempts --------------------------------------------
+
+    def test_failure_after_success_is_not_counted(self):
+        due = self._seal()
+        LW.settle(db_path=self.db, now_ms=due + 120_000,
+                  candle_fn=lambda *, due_ms: candle_for(due_ms), dry=False)
+
+        def outage(*, due_ms):
+            raise ConnectionError("too late")
+
+        out = LW.settle(db_path=self.db, now_ms=due + 180_000,
+                        candle_fn=outage, dry=False)
+        self.assertEqual(out["outcomes"][0]["status"], "labelled")
+        self.assertTrue(out["outcomes"][0].get("already"))
+        self.assertEqual(LW._attempts_of(self.con, "b" * 64)[0], 0)
+
+    def test_censor_cannot_overwrite_a_label(self):
+        due = self._seal()
+        LW.settle(db_path=self.db, now_ms=due + 120_000,
+                  candle_fn=lambda *, due_ms: candle_for(due_ms), dry=False)
+
+        def outage(*, due_ms):
+            raise ConnectionError("down")
+
+        for _ in range(LW.MAX_FAILURES + 2):
+            LW.settle(db_path=self.db, now_ms=due + 900_000,
+                      candle_fn=outage, dry=False)
+        state = self.con.execute(
+            "SELECT label_state FROM tier2_outcomes").fetchone()[0]
+        self.assertEqual(state, "labelled")
+
+    def test_dry_does_not_create_the_attempts_table(self):
+        db = self.dir / "fresh.sqlite"
+        con = T2.open_tier2(db)
+        T2.open_attempts(con)
+        ev = {"event_id": "c" * 64, "cohort": "geopolitics",
+              "published_ms": NOW - 120_000, "observed_ms": NOW - 60_000}
+        due = T2.mock_triple(con=con, event=ev, now_ms=NOW,
+                             attestation_path=self.dir / "a2.jsonl")["due_ms"]
+        con.execute("DROP TABLE IF EXISTS tier2_label_attempts")
+        con.commit()
+        con.close()
+
+        def outage(*, due_ms):
+            raise ConnectionError("down")
+
+        LW.settle(db_path=db, now_ms=due + 120_000, candle_fn=outage, dry=True)
+        con = sqlite3.connect(str(db))
+        tables = {r[0] for r in con.execute(
+            "SELECT name FROM sqlite_master WHERE type='table'")}
+        con.close()
+        self.assertNotIn("tier2_label_attempts", tables)
+
+    def test_four_processes_mixing_success_and_failure(self):
+        import subprocess
+        due = self._seal()
+        ok_script = f"""
+import sys
+sys.path.insert(0, {str(Path(__file__).resolve().parent)!r})
+import tier2_label_watch as LW
+due = {due}
+def candle(*, due_ms):
+    o = (due_ms // 60000) * 60000
+    if o < due_ms: o += 60000
+    while o + 59999 - due_ms >= 60000: o -= 60000
+    return {{"symbol": "BTCUSDT", "closed": True, "open_ms": o,
+             "close_ms": o + 59999, "close": 64000.0,
+             "source": "binance_public_1m_kline"}}
+print(LW.settle(db_path={str(self.db)!r}, now_ms=due + 120000,
+                candle_fn=candle, dry=False)["outcomes"][0]["status"])
+"""
+        fail_script = ok_script.replace(
+            "def candle(*, due_ms):",
+            "def candle(*, due_ms):\n    raise ConnectionError('down')\ndef _x(*, due_ms):")
+        procs = []
+        for i in range(4):
+            script = ok_script if i % 2 == 0 else fail_script
+            procs.append(subprocess.Popen(["/usr/bin/python3", "-c", script],
+                                          stdout=subprocess.PIPE,
+                                          stderr=subprocess.PIPE, text=True))
+        outs = []
+        for p in procs:
+            o, e = p.communicate(timeout=25)
+            outs.append(o.strip() or ("ERR:" + e.strip()[-120:]))
+        rows = self.con.execute(
+            "SELECT COUNT(*) FROM tier2_outcomes").fetchone()[0]
+        self.assertEqual(rows, 1, outs)
+
+
+class CensoredMetricTests(unittest.TestCase):
+    """A censored row must never be read as a zero return."""
+
+    def test_censored_is_excluded_from_labelled_queries(self):
+        con = T2.open_tier2(Path(tempfile.mkdtemp()) / "m.sqlite")
+        con.execute("INSERT INTO tier2_outcomes VALUES('e1',1,0.0,1,'unavailable',-1,'censored')")
+        con.execute("INSERT INTO tier2_outcomes VALUES('e2',1,64000.0,1,'binance_public_1m_close',500,'labelled')")
+        con.commit()
+        labelled = [r[0] for r in con.execute(
+            "SELECT event_id FROM tier2_outcomes WHERE label_state='labelled'")]
+        self.assertEqual(labelled, ["e2"])
+        self.assertNotIn("e1", labelled)
+        self.assertEqual(con.execute(
+            "SELECT COUNT(*) FROM tier2_outcomes WHERE label_state='labelled' "
+            "AND price <= 0").fetchone()[0], 0)
+        con.close()
 
 if __name__ == "__main__":
     unittest.main()
