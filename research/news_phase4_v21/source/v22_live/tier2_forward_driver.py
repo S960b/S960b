@@ -17,6 +17,8 @@ import os
 import sqlite3
 import sys
 import time
+import re
+from contextlib import closing
 from pathlib import Path
 
 SOURCE = Path(__file__).resolve().parents[1]
@@ -58,17 +60,24 @@ def candidate(con, now_ms):
     query = """
     SELECT e.content_sha256, e.source_id, e.category, e.provenance,
            e.title, e.origin_url, e.published_ms, e.observed_ms,
-           e.raw_sha256, o.raw_path, m.path, m.http_status
+           e.raw_sha256, o.raw_path, m.path, m.http_status,
+           o.raw_sha256, o.observed_ms, m.source_id, m.observed_ms
     FROM v24_events e
     JOIN v24_observations o ON o.occurrence_id=e.content_sha256
     JOIN v24_raw_manifest m ON m.raw_sha256=e.raw_sha256
+                           AND m.source_id=e.source_id
     ORDER BY e.published_ms DESC, e.content_sha256 ASC
     """
     rows = con.execute(query).fetchall()
     for row in rows:
         (event_id, source, cohort, provenance, title, origin_url, pub, obs,
-         raw_sha, path, manifest_path, status) = row
-        if not path or path != manifest_path or status != 200:
+         raw_sha, path, manifest_path, status,
+         obs_raw_sha, obs_recorded_ms, manifest_source, manifest_ms) = row
+        # Historical records may acquire a later RSS archive when their feed is
+        # re-fetched. That is NOT evidence of the bytes observed originally.
+        if (not path or path != manifest_path or status != 200
+                or manifest_source != source or obs_raw_sha != raw_sha
+                or obs_recorded_ms != obs or manifest_ms != obs):
             continue
         event = {
             "event_id": event_id, "source": source, "cohort": cohort,
@@ -118,15 +127,15 @@ def execute_once(*, feed_db=FEED_DB, now_ms=None, dry=True):
     successful raw, time, input, and market-snapshot checks."""
     now_ms = int(time.time() * 1000) if now_ms is None else int(now_ms)
     if dry:
-        with sqlite3.connect(f"file:{Path(feed_db).resolve()}?mode=ro",
-                             uri=True) as feed:
+        with closing(sqlite3.connect(f"file:{Path(feed_db).resolve()}?mode=ro",
+                                     uri=True)) as feed:
             found = candidate(feed, now_ms)
         return {"status": "eligible_observed" if found else "no_eligible",
                 "event_id": found["event_id"] if found else None,
                 "model_calls": 0}
     act = TR.require_enabled()
-    with sqlite3.connect(f"file:{Path(feed_db).resolve()}?mode=ro",
-                         uri=True) as feed:
+    with closing(sqlite3.connect(f"file:{Path(feed_db).resolve()}?mode=ro",
+                                 uri=True)) as feed:
         event = candidate(feed, now_ms)
     if event is None:
         return {"status": "no_eligible", "model_calls": 0}
@@ -145,9 +154,20 @@ def execute_once(*, feed_db=FEED_DB, now_ms=None, dry=True):
               "market": market, "prompts": prompts,
               "prompt_version": T2.PROMPTS_VERSION,
               "protocol_sha256": T2.protocol_sha()}
-    evidence = T2.DATA / ("frozen-" + act["trial_id"] + ".json")
-    freeze_sha = _write_new_json(evidence, frozen)
-    with T2.open_tier2(T2.DEFAULT_DB) as db:
+    trial_id = act["trial_id"]
+    if not isinstance(trial_id, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,128}", trial_id):
+        raise DriverError("invalid_trial_id")
+    evidence = T2.DATA / ("frozen-" + trial_id + ".json")
+    try:
+        freeze_sha = _write_new_json(evidence, frozen)
+    except FileExistsError:
+        if not evidence.is_file() or evidence.is_symlink():
+            raise DriverError("freeze_collision_not_regular_file") from None
+        # An earlier attempt may have started calls. Report the immutable
+        # evidence and do not retry or claim zero cumulative invocations.
+        return {"status": "freeze_already_exists", "trial_id": trial_id,
+                "freeze_sha256": digest(evidence.read_bytes())}
+    with closing(T2.open_tier2(T2.DEFAULT_DB)) as db:
         result = TR.on_new_event(
             con=db, event=event, prompts=prompts,
             executor=T2.live_executor(
@@ -162,12 +182,27 @@ def execute_once(*, feed_db=FEED_DB, now_ms=None, dry=True):
             "due_ms": result.get("due_ms")}
 
 
+def _label_failure_kind(exc):
+    """Only known unavailable/unfinished Binance candles are retryable.
+
+    A malformed candle, schema bug or programming exception must be reported
+    as an error, not hidden forever behind a generic pending_retry status.
+    """
+    if isinstance(exc, P.PrepError):
+        message = str(exc)
+        if message in ("label_pending_candle_open", "label_candle_unavailable"):
+            return "pending_retry"
+        if message.startswith("label_fetch_failed:"):
+            return "pending_retry"
+    return "error"
+
+
 def label_once(*, db_path=T2.DEFAULT_DB, now_ms=None):
-    """Retry-safe: on a data outage leave the label PENDING, not zero-priced."""
+    """One-shot +4h settlement; no fictitious price on data outage."""
     now_ms = int(time.time() * 1000) if now_ms is None else int(now_ms)
     if not Path(db_path).is_file():
         return {"status": "no_tier2_db"}
-    with sqlite3.connect(str(db_path)) as db:
+    with closing(sqlite3.connect(str(db_path))) as db:
         triples = db.execute(
             "SELECT event_id, entry_observed_ms FROM tier2_triples "
             "ORDER BY created_ms ASC").fetchall()
@@ -200,12 +235,13 @@ def label_once(*, db_path=T2.DEFAULT_DB, now_ms=None):
                 output.append({"event_id": event_id,
                                "status": result["label_state"]})
             except Exception as exc:
-                # A transient network problem must never become a final
-                # outcome, and the original exit candle must not be replaced.
-                output.append({"event_id": event_id,
-                               "status": "pending_retry",
-                               "reason": type(exc).__name__})
-        return {"status": "checked", "outcomes": output}
+                # Do not let an unexpected validation/programming failure
+                # masquerade as a temporary exchange outage.
+                status = _label_failure_kind(exc)
+                output.append({"event_id": event_id, "status": status,
+                               "reason": str(exc)[:200]})
+        overall = "error" if any(x["status"] == "error" for x in output) else "checked"
+        return {"status": overall, "outcomes": output}
 
 
 def main(argv=None):
@@ -230,7 +266,7 @@ def main(argv=None):
         print(json.dumps(result, sort_keys=True))
         return 1
     print(json.dumps(result, sort_keys=True))
-    return 0
+    return 1 if result.get("status") in ("error", "freeze_already_exists") else 0
 
 
 if __name__ == "__main__":
