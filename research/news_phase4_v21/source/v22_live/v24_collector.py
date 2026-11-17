@@ -202,8 +202,12 @@ def resolve_identity(con, *, source_id, title, published_ms):
     return canonical, False
 
 
-def tick(*, con, limiter, sources=None, keep_raw=True):
-    """One bounded collection pass. Returns per-source counts."""
+def tick(*, con, limiter, sources=None, keep_raw=True, raw_dir=None):
+    """One bounded collection pass. Explicit raw_dir isolates offline tests.
+
+    Production defaults to the existing archive namespace; test callers pass
+    a disposable path. This avoids reliance on patching an import-time default.
+    """
     out = {}
     for sid in (sources or list(AD.SOURCES)):
         try:
@@ -220,9 +224,10 @@ def tick(*, con, limiter, sources=None, keep_raw=True):
         # One archive entry per successful HTTP response, even when the parsed
         # feed yields no dated items: the bytes are the provenance, the items are
         # a derivation. A zero-item poll with no archived body is unverifiable.
-        archived_for_source = (archive_raw(fetched=got.get("raw_body") or {},
-                                          source_id=sid)
-                              if keep_raw else None)
+        archived_for_source = (
+            archive_raw(fetched=got.get("raw_body") or {}, source_id=sid,
+                        raw_dir=RAW_DIR if raw_dir is None else raw_dir)
+            if keep_raw else None)
         if archived_for_source:
             con.execute(
                 "INSERT OR IGNORE INTO v24_raw_manifest(raw_sha256, source_id,"
