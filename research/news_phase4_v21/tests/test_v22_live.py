@@ -1816,8 +1816,7 @@ except T2.Tier2Error as e:
 
 
 class Tier2TriggerTests(unittest.TestCase):
-    """The trigger is inert unless switched on, claims before working, and
-    labels exactly once without inventing prices."""
+    """Trigger inert by default; label bound to the sealed row; bounded retries."""
 
     def setUp(self):
         import tempfile
@@ -1850,12 +1849,10 @@ class Tier2TriggerTests(unittest.TestCase):
         self.flag.write_text("")
         self.assertFalse(self.TR.enabled(self.flag, self.gate))
 
-    # --- claim before work ---------------------------------------------
+    # --- claim ----------------------------------------------------------
 
     def test_claim_is_single_and_atomic(self):
-        first = self.TR.claim_trial(self.con, trial_id="t1", event_id="e1",
-                                    now_ms=self.now)
-        self.assertEqual(first["state"], "claimed")
+        self.TR.claim_trial(self.con, trial_id="t1", event_id="e1", now_ms=self.now)
         with self.assertRaises(self.T2.Tier2Error) as ctx:
             self.TR.claim_trial(self.con, trial_id="t2", event_id="e2",
                                 now_ms=self.now)
@@ -1873,14 +1870,12 @@ class Tier2TriggerTests(unittest.TestCase):
         with self.assertRaises(self.T2.Tier2Error):
             self.TR.close_claim(self.con, state="reopened", now_ms=self.now)
 
-    # --- label worker ---------------------------------------------------
+    # --- label bound to the sealed row ---------------------------------
 
     def _seal(self):
-        import tier2 as T2
         ev = {"event_id": "a" * 64, "cohort": "geopolitics",
               "published_ms": self.now - 120_000,
               "observed_ms": self.now - 60_000}
-        self.T2._write_attestation  # exists on tier2
         out = self.T2.mock_triple(con=self.con, event=ev, now_ms=self.now,
                                   attestation_path=self.dir / "att.jsonl")
         return ev, out["due_ms"]
@@ -1893,6 +1888,24 @@ class Tier2TriggerTests(unittest.TestCase):
             open_ms -= 60_000
         return {"symbol": "BTCUSDT", "closed": True, "open_ms": open_ms,
                 "close_ms": open_ms + 59_999, "close": 64_000.0}
+
+    def test_due_must_match_the_sealed_row(self):
+        ev, due = self._seal()
+        with self.assertRaises(self.T2.Tier2Error) as ctx:
+            self.TR.label_once(con=self.con, event_id=ev["event_id"],
+                               due_ms=due - 3_600_000, candle_fn=self._candle,
+                               now_ms=due + 120_000)
+        self.assertIn("label_due_mismatch", str(ctx.exception))
+        self.assertEqual(self.con.execute(
+            "SELECT COUNT(*) FROM tier2_outcomes").fetchone()[0], 0)
+
+    def test_symbol_must_match(self):
+        ev, due = self._seal()
+        with self.assertRaises(self.T2.Tier2Error) as ctx:
+            self.TR.label_once(con=self.con, event_id=ev["event_id"],
+                               due_ms=due, candle_fn=self._candle,
+                               now_ms=due + 120_000, symbol="ETHUSDT")
+        self.assertIn("label_symbol_mismatch", str(ctx.exception))
 
     def test_label_is_written_once_and_is_retry_safe(self):
         ev, due = self._seal()
@@ -1922,17 +1935,134 @@ class Tier2TriggerTests(unittest.TestCase):
         self.assertEqual(self.con.execute(
             "SELECT COUNT(*) FROM tier2_outcomes").fetchone()[0], 0)
 
-    def test_market_outage_censors_instead_of_fabricating(self):
+    # --- transient failures stay recoverable ---------------------------
+
+    def test_transient_outage_stays_pending_then_recovers(self):
+        ev, due = self._seal()
+        calls = {"n": 0}
+
+        def flaky(*, due_ms):
+            calls["n"] += 1
+            if calls["n"] < 3:
+                raise ConnectionError("binance down")
+            return self._candle(due_ms)
+
+        for attempt in range(2):
+            out = self.TR.label_once(con=self.con, event_id=ev["event_id"],
+                                     due_ms=due, candle_fn=flaky,
+                                     now_ms=due + 120_000)
+            self.assertEqual(out["label_state"], "pending", out)
+            self.assertEqual(out["attempts"], attempt + 1)
+        # Third attempt succeeds: a transient outage must not censor the row.
+        out = self.TR.label_once(con=self.con, event_id=ev["event_id"],
+                                 due_ms=due, candle_fn=flaky,
+                                 now_ms=due + 180_000)
+        self.assertEqual(out["label_state"], "labelled")
+
+    def test_censored_only_after_the_documented_deadline(self):
         ev, due = self._seal()
 
         def outage(*, due_ms):
             raise ConnectionError("binance down")
 
+        for _ in range(self.TR.LABEL_MAX_TRANSIENT_FAILURES - 1):
+            out = self.TR.label_once(con=self.con, event_id=ev["event_id"],
+                                     due_ms=due, candle_fn=outage,
+                                     now_ms=due + 60_000)
+            self.assertEqual(out["label_state"], "pending")
         out = self.TR.label_once(con=self.con, event_id=ev["event_id"],
                                  due_ms=due, candle_fn=outage,
-                                 now_ms=due + 120_000)
+                                 now_ms=due + 60_000)
         self.assertEqual(out["label_state"], "censored")
         price = self.con.execute(
             "SELECT price FROM tier2_outcomes WHERE event_id=?",
             (ev["event_id"],)).fetchone()[0]
         self.assertEqual(price, 0.0, "a censored row must not carry a fake price")
+
+    def test_invalid_candle_leaves_no_outcome_row(self):
+        ev, due = self._seal()
+        bad = lambda *, due_ms: {"symbol": "BTCUSDT", "closed": False,
+                                 "open_ms": due, "close_ms": due + 59_999,
+                                 "close": 1.0}
+        out = self.TR.label_once(con=self.con, event_id=ev["event_id"],
+                                 due_ms=due, candle_fn=bad,
+                                 now_ms=due + 60_000)
+        self.assertEqual(out["label_state"], "pending")
+        self.assertEqual(self.con.execute(
+            "SELECT COUNT(*) FROM tier2_outcomes").fetchone()[0], 0,
+            "validation must run before any write")
+
+    def test_censored_row_is_terminal(self):
+        ev, due = self._seal()
+
+        def outage(*, due_ms):
+            raise ConnectionError("down")
+
+        for _ in range(self.TR.LABEL_MAX_TRANSIENT_FAILURES):
+            self.TR.label_once(con=self.con, event_id=ev["event_id"],
+                               due_ms=due, candle_fn=outage,
+                               now_ms=due + 60_000)
+        again = self.TR.label_once(con=self.con, event_id=ev["event_id"],
+                                   due_ms=due, candle_fn=self._candle,
+                                   now_ms=due + 600_000)
+        self.assertEqual(again["label_state"], "censored")
+
+
+class Stage23LabelConcurrencyTests(unittest.TestCase):
+    """Concurrent label_once must be transactionally idempotent - real processes."""
+
+    def setUp(self):
+        import tempfile
+        import tier2_trigger as TR
+        self.TR = TR
+        self.T2 = TR.T2
+        self.dir = Path(tempfile.mkdtemp(prefix="lbl-"))
+        self.db = self.dir / "tier2.sqlite"
+        self.con = self.T2.open_tier2(self.db)
+        self.T2.open_attempts(self.con)
+        self.now = 1_800_000_000_000
+        ev = {"event_id": "b" * 64, "cohort": "geopolitics",
+              "published_ms": self.now - 120_000,
+              "observed_ms": self.now - 60_000}
+        out = self.T2.mock_triple(con=self.con, event=self.now and ev,
+                                  now_ms=self.now,
+                                  attestation_path=self.dir / "att.jsonl")
+        self.due = out["due_ms"]
+        self.con.close()
+
+    def test_five_processes_write_exactly_one_outcome(self):
+        import subprocess
+        script = f"""
+import sys
+sys.path.insert(0, {str(MODULE_DIR)!r})
+import tier2 as T2, tier2_trigger as TR
+con = T2.open_tier2({str(self.db)!r})
+due = {self.due}
+open_ms = (due // 60_000) * 60_000
+if open_ms < due:
+    open_ms += 60_000
+while open_ms + 59_999 - due >= 60_000:
+    open_ms -= 60_000
+candle = lambda *, due_ms: {{"symbol": "BTCUSDT", "closed": True,
+                             "open_ms": open_ms,
+                             "close_ms": open_ms + 59_999, "close": 64000.0}}
+try:
+    out = TR.label_once(con=con, event_id="b" * 64, due_ms=due,
+                        candle_fn=candle, now_ms=due + 120_000)
+    print("RESULT", out["label_state"])
+except Exception as e:
+    print("REFUSED", type(e).__name__, e)
+"""
+        procs = [subprocess.Popen(["/usr/bin/python3", "-c", script],
+                                  stdout=subprocess.PIPE,
+                                  stderr=subprocess.PIPE, text=True)
+                 for _ in range(5)]
+        outs = []
+        for p in procs:
+            out, err = p.communicate(timeout=25)
+            outs.append(out.strip() or ("ERR:" + err.strip()[-120:]))
+
+        con = self.T2.open_tier2(self.db)
+        rows = con.execute("SELECT COUNT(*) FROM tier2_outcomes").fetchone()[0]
+        con.close()
+        self.assertEqual(rows, 1, outs)
