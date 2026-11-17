@@ -516,13 +516,16 @@ def heartbeat_state(probes, *, spec, bucket_start, bucket_end, grace_ms):
         return UNKNOWN if not inside else HEALTHY
     if not inside:
         return MISSING
+    # Stage-10 correction: an instant counts as ANSWERED only when a probe at
+    # that instant SUCCEEDED. Counting a failed probe as "answered" let one
+    # failure in thirty pass as a healthy feed, and a failure at the final
+    # instant pass as healthy too.
+    ok_probes = [p for p in inside if p.ok]
     answered = 0
     for instant in expected:
-        if any(abs(p.observed_ms - instant) <= grace_ms for p in inside):
+        if any(abs(p.observed_ms - instant) <= grace_ms for p in ok_probes):
             answered += 1
     if answered == 0:
-        return FAILED
-    if not any(p.ok for p in inside):
         return FAILED
     # Order matters: a feed whose last expected probe is unanswered may have
     # died silently, so `stale` outranks a partial answer set. A feed that
@@ -530,7 +533,11 @@ def heartbeat_state(probes, *, spec, bucket_start, bucket_end, grace_ms):
     # intermittent means it missed instances in the MIDDLE while still being
     # alive at the end.
     last = expected[-1]
-    last_answered = any(abs(p.observed_ms - last) <= grace_ms for p in inside)
+    # Stage-10 second half: the final instant must be answered by a SUCCESSFUL
+    # probe. Using any probe here let a failure at the last instant read as a
+    # mid-bucket blip.
+    last_answered = any(abs(p.observed_ms - last) <= grace_ms
+                        for p in ok_probes)
     if not last_answered:
         return STALE
     return HEALTHY if answered == len(expected) else INTERMITTENT

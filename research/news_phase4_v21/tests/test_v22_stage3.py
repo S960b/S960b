@@ -581,3 +581,53 @@ class Stage5LabelTests(unittest.TestCase):
         doc = L.export_v22(self.con)
         self.assertIn("limitations", doc)
         self.assertIn("NOT guaranteed", doc["limitations"]["exactly_once"])
+
+
+class MatchedCompletenessTests(unittest.TestCase):
+    """Stage 10: the paired analysis must use only COMPLETE matched events.
+
+    A triple without an outcome, or with one arm missing, cannot contribute a
+    paired difference and must never be silently completed by imputation.
+    """
+
+    def setUp(self):
+        self.con = L.open_v22(":memory:")
+        self.con.execute(
+            "INSERT INTO v22_triples(event_id,protocol_version,prompt_version,"
+            "prompt_hashes,cohort,source,cutoff_ms,entry_price,"
+            "entry_observed_ms,horizon_h,last_arm_ms,seal_sha256,created_ms) "
+            "VALUES('e1','p','p','{}','c','s',1,64000.0,1000,4,900,'x',1)")
+
+    def tearDown(self):
+        self.con.close()
+
+    def _arms(self, names=("news", "news_market", "market")):
+        for arm in names:
+            self.con.execute(
+                "INSERT INTO v22_arms VALUES('e1',?,'a','s','p','r',0.6,10,0.5,"
+                "'FLAT','known_zero','t',1)", (arm,))
+
+    def test_unlabelled_event_is_excluded(self):
+        self._arms()
+        self.con.execute("INSERT INTO v22_outcomes(event_id,horizon_h,due_ms)"
+                         " VALUES('e1',4,2000)")
+        self.con.commit()
+        self.assertEqual(AN.load_rows(self.con), [])
+
+    def test_incomplete_triple_is_excluded(self):
+        self._arms(names=("news", "news_market"))
+        self.con.execute("INSERT INTO v22_outcomes(event_id,horizon_h,due_ms,"
+                         "exit_ms,price) VALUES('e1',4,2000,2100,65000.0)")
+        self.con.commit()
+        self.assertEqual(AN.load_rows(self.con), [],
+                         "a two-arm record is not a three-arm comparison")
+
+    def test_complete_event_is_included_once(self):
+        self._arms()
+        self.con.execute("INSERT INTO v22_outcomes(event_id,horizon_h,due_ms,"
+                         "exit_ms,price) VALUES('e1',4,2000,2100,65000.0)")
+        self.con.commit()
+        rows = AN.load_rows(self.con)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(sorted(rows[0]["arms"]), ["market", "news",
+                                                   "news_market"])

@@ -4,8 +4,25 @@
 
 - **fixed** — the defect is corrected in the public source.
 - **tested** — a regression test fails without the fix and passes with it.
-- **loaded** — the running GUI executes this code. Answer: **nothing is loaded**;
-  the GUI process predates every stage.
+- **loaded** — whether the RUNNING process executes this code. **No stage is
+  loaded**: the GUI process started before the first fix.
+
+**"Not loaded" is not "not running".** The distinction this matrix previously
+collapsed:
+
+| what | state | evidence |
+|---|---|---|
+| legacy v2.1 collector / label lane | **RUNNING** | `news-v21-plugin.log` written every 30–60 s, last line `T03:15:59Z`; 6 production records, 6/6 labelled |
+| legacy Phase-4 v2 collector | **RUNNING** | `news-p4-v2-plugin.log` last written `T06:14:56Z` (local) |
+| old GUI host process | **RUNNING** | pid 3391340, started 2026-11-16 17:04 |
+| every fix from stages 1–2C and v2.2/v2.4 | **NOT LOADED** | loaded build predates them |
+| pilot settle hook | **NOT LOADED** | `v21_pilot_settle` = 0 lines in the log |
+| model inference | **PAUSED** | `PAUSED_MODEL_INFERENCE` flag present, 225 bytes, 2026-11-16 16:43 |
+| prospective v2.2 / v2.4 | **ZERO** | no data, no counter |
+
+So: the legacy experiment is alive and producing labels, the new code is not
+executing anywhere, and inference is paused. Saying "nothing is running" would
+be wrong.
 - **status** — what an auditor may conclude today.
 
 Nobody should read "fixed + tested" as "in production". Column 3 is empty for
@@ -68,7 +85,8 @@ every row, and that is the honest state of this experiment.
 |---|---|
 | Is the **code** auditable? | **Yes** — 400+ offline tests, deterministic fixtures |
 | Is the **methodology** auditable? | **Yes** — pre-registered, amendments dated pre-data |
-| Is anything **running**? | **No** — loaded build predates every fix |
+| Is anything **running**? | **Yes** — the legacy v2.1 and v2 collectors and their label lanes; see the table above |
+| Is any **fix loaded**? | **No** — the running process predates every one of them |
 | Is there any **evidence of profit**? | **No** — and none is claimed |
 | Is the prospective cohort live? | **No** — PROSPECTIVE = 0 |
 

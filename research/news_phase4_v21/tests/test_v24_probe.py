@@ -217,5 +217,115 @@ class ProducerContractTests(unittest.TestCase):
             self.assertNotIn(banned, text)
 
 
+class AdversarialBoundaryTests(unittest.TestCase):
+    """Stage 10: boundary review fixtures written BEFORE the fix.
+
+    A probe that FAILED still satisfies the schedule under the stage-9 rule,
+    because "answered" was computed without checking `ok`. These tests pin the
+    behaviour that is actually wanted: an instant is answered only by a
+    SUCCESSFUL probe.
+    """
+
+    def _beats(self, ok_flags):
+        return [S.Heartbeat("crypto-one", START + i * 120_000, ok)
+                for i, ok in enumerate(ok_flags)]
+
+    def test_one_failed_probe_in_thirty_is_not_healthy(self):
+        flags = [True] * 30
+        flags[5] = False
+        state = self._state(self._beats(flags))
+        self.assertEqual(state, S.INTERMITTENT,
+                         "a failed probe is not an answered one")
+
+    def test_failed_probe_at_the_last_instant_is_stale(self):
+        # The final expected instant produced no SUCCESSFUL probe, so the feed
+        # may have died inside grace: that is `stale`, and it must outrank
+        # `intermittent` even though the other 29 instants answered.
+        flags = [True] * 29 + [False]
+        self.assertEqual(self._state(self._beats(flags)), S.STALE,
+                         "a failure at the last instant means silence at the "
+                         "end, not a blip in the middle")
+
+    def _state(self, beats):
+        return S.heartbeat_state(beats, spec=spec("crypto-one", "crypto"),
+                                 bucket_start=START, bucket_end=START + BUCKET,
+                                 grace_ms=90_000)
+
+    def test_replayed_attempt_ids_cannot_inflate_health(self):
+        store = PR.AttemptStore()
+        first = store.record(source_id="bin", started_ms=1, finished_ms=2,
+                             outcome="ok")
+        second = store.record(source_id="bin", started_ms=1, finished_ms=2,
+                              outcome="ok")
+        self.assertNotEqual(first.attempt_id, second.attempt_id,
+                            "the same instant must not reuse an id")
+
+    def test_forged_future_timestamp_is_quarantined_at_coverage(self):
+        reg = registry_for()
+        out = S.coverage_timeline([], start_ms=START, end_ms=NOW + 1,
+                                  bucket_ms=BUCKET, registry=reg,
+                                  heartbeats=[S.Heartbeat("crypto-one",
+                                                          NOW + 1, True)],
+                                  cutoff_ms=NOW)
+        self.assertEqual(out["quarantined_heartbeats"][0]["reason"],
+                         "heartbeat_after_cutoff")
+
+    def test_probe_before_schedule_start_is_not_credit(self):
+        beats = [S.Heartbeat("crypto-one", START - 600_000, True)]
+        self.assertEqual(self._state(beats), S.MISSING)
+
+    def test_bucket_shorter_than_cadence_is_reported_honestly(self):
+        # No probe is owed inside a 30 s window when the cadence is 120 s; the
+        # honest answer is that nothing can be asserted, not "missing".
+        state = S.heartbeat_state([], spec=spec("crypto-one", "crypto"),
+                                  bucket_start=START, bucket_end=START + 30_000,
+                                  grace_ms=0)
+        self.assertIn(state, (S.MISSING, S.UNKNOWN))
+
+
 if __name__ == "__main__":
     unittest.main()
+
+
+class BucketEdgeTests(unittest.TestCase):
+    """Stage 10: bucket edges, grace interaction and correction immutability."""
+
+    def test_probe_in_next_bucket_does_not_answer_this_one(self):
+        # The probe lands after the bucket end and outside grace, so the final
+        # expected instant stays unanswered.
+        beats = [S.Heartbeat("crypto-one", START + i * 120_000, True)
+                 for i in range(29)]
+        beats.append(S.Heartbeat("crypto-one", START + BUCKET + 30_000, True))
+        self.assertEqual(
+            S.heartbeat_state(beats, spec=spec("crypto-one", "crypto"),
+                              bucket_start=START, bucket_end=START + BUCKET,
+                              grace_ms=90_000), S.STALE)
+
+    def test_grace_does_not_cross_into_the_next_expected_instant(self):
+        # With a tiny grace, a probe 60 s late answers nothing at all.
+        beats = [S.Heartbeat("crypto-one", START + i * 120_000 + 60_000, True)
+                 for i in range(30)]
+        self.assertEqual(
+            S.heartbeat_state(beats, spec=spec("crypto-one", "crypto"),
+                              bucket_start=START, bucket_end=START + BUCKET,
+                              grace_ms=1_000), S.FAILED)
+
+    def test_zero_denominator_never_reports_full_uptime(self):
+        reg = registry_for()
+        out = S.coverage_timeline([], start_ms=START, end_ms=NOW + 1,
+                                  bucket_ms=BUCKET, registry=reg)
+        for category in S.CATEGORIES:
+            cell = out["timeline"][0]["categories"][category]
+            self.assertLessEqual(cell["availability"]["uptime"], 1.0)
+            self.assertEqual(cell["availability"]["status"], S.MISSING)
+
+    def test_correction_leaves_the_frozen_row_untouched(self):
+        row = {"categories": {"crypto-one": {
+            "availability": {"status": S.MISSING, "uptime": 0.0}}}}
+        snapshot = repr(row)
+        corrected = S.apply_correction(
+            row, source_id="crypto-one",
+            late_probe=S.Heartbeat("crypto-one", NOW - 60_000, True),
+            reason="probe_log_recovered")
+        self.assertEqual(repr(row), snapshot, "the frozen row must not change")
+        self.assertEqual(corrected["version"], 2)
