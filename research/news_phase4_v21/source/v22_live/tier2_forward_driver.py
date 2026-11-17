@@ -152,6 +152,8 @@ def execute_once(*, feed_db=FEED_DB, now_ms=None, dry=True):
     frozen = {"trial_id": act["trial_id"], "event": event,
               "decision_ms": now_ms, "cutoff_ms": cutoff,
               "market": market, "prompts": prompts,
+              "system_prompt": T2.ARM_SYSTEM_T2,
+              "system_prompt_sha256": digest(T2.ARM_SYSTEM_T2.encode("utf-8")),
               "prompt_version": T2.PROMPTS_VERSION,
               "protocol_sha256": T2.protocol_sha()}
     trial_id = act["trial_id"]
