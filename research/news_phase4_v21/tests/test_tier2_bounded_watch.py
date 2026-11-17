@@ -50,6 +50,36 @@ class WatchTests(unittest.TestCase):
         self.assertEqual(len(calls), 2)
         self.assertTrue(all(c["dry"] is False for c in calls))
 
+    def test_immediate_seal_stops_without_second_poll(self):
+        # Models the actual driver return {status: sealed} after on_new_event.
+        calls = []
+        with patch.object(W.TR, "require_enabled", return_value={
+                "trial_id": "trial1", "max_triples": 1, "max_model_invocations": 3}), \
+             patch.object(W.D, "execute_once", side_effect=lambda **kw:
+                          calls.append(kw) or {"status": "sealed",
+                                               "event_id": "evt1",
+                                               "due_ms": 1800000}):
+            res = W.watch(execute=True, duration_s=120, interval_s=20,
+                          emit=lambda _: None)
+        self.assertEqual(res["status"], "sealed")
+        self.assertEqual(res["ticks"], 1)
+        self.assertEqual(len(calls), 1)
+        self.assertFalse(calls[0]["dry"])
+
+    def test_live_eligible_status_never_triggers_second_poll(self):
+        # Defensive guard for any future driver returning this status in live mode.
+        calls = []
+        with patch.object(W.TR, "require_enabled", return_value={
+                "trial_id": "trial1", "max_triples": 1, "max_model_invocations": 3}), \
+             patch.object(W.D, "execute_once", side_effect=lambda **kw:
+                          calls.append(kw) or {"status": "eligible_observed",
+                                               "event_id": "evt1"}):
+            res = W.watch(execute=True, duration_s=120, interval_s=20,
+                          emit=lambda _: None)
+        self.assertEqual(res["status"], "eligible_observed")
+        self.assertEqual(res["ticks"], 1)
+        self.assertEqual(len(calls), 1)
+
     def test_failure_is_not_retried(self):
         calls = []
         def broken(**kw):
