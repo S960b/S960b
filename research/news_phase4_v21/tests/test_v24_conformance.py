@@ -69,9 +69,14 @@ class ConformanceTests(unittest.TestCase):
                             for r in out["refused"]))
 
     def test_kit_has_no_network_calls(self):
-        text = (ROOT / "v24_conformance.py").read_text(encoding="utf-8") \
-            if (ROOT / "v24_conformance.py").is_file() else \
-            (HERE / "v24_conformance.py").read_text(encoding="utf-8")
+        # Resolve the module file the same way the import did: flat in the live
+        # tree, under source/ in the published one.
+        candidates = [ROOT / "v24_conformance.py", HERE / "v24_conformance.py",
+                      ROOT / "source" / "v24_conformance.py",
+                      HERE / "source" / "v24_conformance.py"]
+        path = next((c for c in candidates if c.is_file()), None)
+        self.assertIsNotNone(path, "v24_conformance.py not found in any layout")
+        text = path.read_text(encoding="utf-8")
         # Match executable calls, not the words: the module's own docstring
         # explains that it makes no network call.
         for banned in ("import urllib", "import requests", "import socket",
