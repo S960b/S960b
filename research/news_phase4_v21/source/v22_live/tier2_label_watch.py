@@ -30,6 +30,7 @@ from pathlib import Path
 
 import tier2 as T2
 import tier2_trigger as TR
+import tier2_integrity as INTEG
 
 MAX_FAILURES = 3
 MAX_WAIT_MS = 6 * 3_600_000
@@ -90,6 +91,13 @@ def sealed_rows(con):
         "ORDER BY created_ms ASC").fetchall()
     out = []
     for event_id, entry_ms, horizon_ms in rows:
+        # A sealed-looking DB row is NOT evidence of validity. Verify the
+        # canonical full-arm digest, raw bytes and attestation chain BEFORE
+        # any exchange call or irreversible +4h label write.
+        try:
+            INTEG.verify_binding(con, event_id)
+        except INTEG.IntegrityError as exc:
+            raise LabelWatchError("sealed_evidence_invalid:" + str(exc)) from None
         entry_ms, horizon_ms = int(entry_ms), int(horizon_ms)
         if entry_ms <= 0 or horizon_ms <= 0:
             raise LabelWatchError("sealed_entry_or_horizon_invalid")
