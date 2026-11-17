@@ -1,0 +1,13 @@
+# One-shot settlement attempt every five minutes AFTER a real sealed triple
+# exists. ConditionPathExists keeps this inert until Tier-2 DB is created.
+[Unit]
+Description=NEWS Tier-2 scheduled label check (no model calls)
+
+[Timer]
+OnCalendar=*:0/5
+Persistent=true
+AccuracySec=30s
+Unit=news-phase4-tier2-label.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,20 @@
+# NEWS Intelligence Tier-2 — configuration example (NO real secrets)
+# Real values live outside the repository and are never committed.
+
+# Model endpoint is the LOCAL gateway bridge; no API key is stored in code.
+GATEWAY_BASE=http://127.0.0.1:8090
+MODEL_ID=deepseek-v4-flash
+
+# Runtime data directory (created by the owner, mode 0700)
+DATA_DIR=~/.local/share/news-phase4-v25
+
+# Gate files — created by tier2_activation.py --stage / --enable-gate
+# and one owner switch; presence is the authorisation, content is minimal.
+#   TIER2_ACTIVATION.json   owner-approved trial record
+#   TIER2_ACTIVE            model-gate marker
+#   TRIGGER_ENABLED         single-trial switch (owner approval only)
+
+# Release layout
+RELEASE_ROOT=/home/kali/research/news_phase4_v25_release
+PROJECT=$RELEASE_ROOT/research/news_phase4_v21
+PYTHONPATH_ENTRIES=$PROJECT/source:$PROJECT/source/v22_live

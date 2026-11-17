@@ -1,0 +1,13 @@
+# Five-minute check: systemd does not create a second instance if active.
+# The collector itself refuses concurrent ownership via collector.pid.
+[Unit]
+Description=NEWS v2.4 periodic archive-only collector activation
+
+[Timer]
+OnCalendar=*:0/5
+Persistent=true
+AccuracySec=30s
+Unit=news-phase4-collector.service
+
+[Install]
+WantedBy=timers.target

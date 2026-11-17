@@ -1,0 +1,9 @@
+{
+ "category": "macro",
+ "observed_ms": 1800000120000,
+ "origin_url": "https://www.example-stats.gov/release/2",
+ "provenance": "primary",
+ "published_ms": 1800000100000,
+ "source_id": "bls",
+ "title": "Payrolls beat expectations"
+}

@@ -1,0 +1,17 @@
+# ChatGPT-authored NEWS v2.4 collector-only user service (NO LLM).
+# Runs the pinned isolated release; never touches the legacy GUI, strict v2.2,
+# Tier-2 activation flags or model inference.
+[Unit]
+Description=NEWS v2.4 archive-only feed collection (bounded 12h run)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/kali/research/news_phase4_v25_release/research/news_phase4_v21
+Environment=PYTHONPATH=/home/kali/research/news_phase4_v25_release/research/news_phase4_v21/source:/home/kali/research/news_phase4_v25_release/research/news_phase4_v21/source/v22_live
+UMask=0077
+ExecStart=/usr/bin/python3 /home/kali/research/news_phase4_v25_release/research/news_phase4_v21/source/v22_live/collector_only.py --max-hours 12 --interval-s 180
+Restart=no
+SuccessExitStatus=4 5 6
+TimeoutStopSec=30s
