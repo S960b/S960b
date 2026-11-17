@@ -3,6 +3,7 @@
 No feed/network or live process; all state resides under TemporaryDirectory.
 """
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -14,6 +15,23 @@ CODE = HERE / "source" / "v22_live"
 if str(CODE) not in sys.path:
     sys.path.insert(0, str(CODE))
 import collector_only as C
+
+
+def python_child():
+    """Avoid Electron/AppImage-injected sys.executable on MT hosts."""
+    executable = os.environ.get("PYTHON")
+    if executable:
+        return executable
+    if "AppImage" in sys.executable or "multitool" in sys.executable.lower():
+        return shutil.which("python3") or "/usr/bin/python3"
+    return sys.executable
+
+
+def clean_child_env():
+    env = os.environ.copy()
+    env.pop("APPDIR", None)
+    env.pop("APPIMAGE", None)
+    return env
 
 
 class AtomicSingletonTests(unittest.TestCase):
@@ -63,9 +81,9 @@ class AtomicSingletonTests(unittest.TestCase):
             " print('REFUSED',flush=True)\n"
         )
         workers = [
-            subprocess.Popen([sys.executable, "-c", code],
+            subprocess.Popen([python_child(), "-c", code],
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                             text=True)
+                             text=True, env=clean_child_env())
             for _ in range(8)
         ]
         try:
@@ -100,8 +118,9 @@ class AtomicSingletonTests(unittest.TestCase):
             "print('WIN')\n"
             "C.release(p)\n"
         )
-        p = subprocess.run([sys.executable, "-c", code],
-                           capture_output=True, text=True, timeout=10)
+        p = subprocess.run([python_child(), "-c", code],
+                           capture_output=True, text=True, timeout=10,
+                           env=clean_child_env())
         self.assertEqual(p.returncode, 0, p.stderr)
         self.assertIn("WIN", p.stdout)
 
