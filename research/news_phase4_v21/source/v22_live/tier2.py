@@ -90,6 +90,10 @@ CREATE TABLE IF NOT EXISTS tier2_outcomes(
  event_id TEXT PRIMARY KEY, due_ms INTEGER NOT NULL, price REAL NOT NULL,
  observed_ms INTEGER NOT NULL, source TEXT NOT NULL, drift_ms INTEGER NOT NULL,
  label_state TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS tier2_bindings(
+ event_id TEXT PRIMARY KEY REFERENCES tier2_triples(event_id),
+ trial_id TEXT NOT NULL, mode TEXT NOT NULL,
+ bundle_json TEXT NOT NULL, bundle_sha256 TEXT NOT NULL);
 """
 
 
@@ -383,7 +387,7 @@ def validate_candle(candle, due_ms, *, symbol=QUOTE_SYMBOL):
 
 def seal_triple(*, con, event, arm_results, quote, attestation_path, now_ms,
                 prompts_sha256, cohort_extra="|tier2", published_max_ms=None,
-                decision_ms=None):
+                decision_ms=None, trial_id=None, frozen_sha256=None):
     """Seal one Tier-2 triple; freshness is evaluated at decision, not seal.
 
     Successful model answers cannot age a previously admissible observation
@@ -474,7 +478,14 @@ def seal_triple(*, con, event, arm_results, quote, attestation_path, now_ms,
         "horizon_ms": HORIZON_MS,
         "created_ms": int(now_ms),
     }
-    seal = canonical_sha(record)
+    # The seal binds all normalized arm values and per-arm wire/attestation
+    # identities, not merely a digest of the first response.
+    import tier2_integrity as INTEG
+    bundle = INTEG.prepare_binding(
+        event_id=record["event_id"], record=record, parsed_arms=parsed,
+        attestation_path=attestation_path, trial_id=trial_id,
+        frozen_sha256=frozen_sha256)
+    seal = INTEG.sha(bundle)
 
     if con.execute("SELECT 1 FROM tier2_triples WHERE event_id=?",
                    (record["event_id"],)).fetchone():
@@ -497,6 +508,7 @@ def seal_triple(*, con, event, arm_results, quote, attestation_path, now_ms,
                      float(row["expected_return_bps"]),
                      float(row["uncertainty"]),
                      hashlib.sha256(a["text"].encode()).hexdigest(), TIER))
+    INTEG.persist_binding(con, bundle)
     con.commit()
     return {"status": "sealed", "tier": TIER, "event_id": record["event_id"],
             "seal": seal, "cohort": record["cohort"]}
