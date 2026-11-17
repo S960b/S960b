@@ -45,10 +45,9 @@ class MalformedSourceTests(unittest.TestCase):
                 "attempts": 1}
 
     def run_tick(self, sources):
-        with patch.object(AD, "fetch", side_effect=self.fake_fetch), \
-             patch.object(COL, "archive_raw", side_effect=lambda **kw:
-                          self.archive_raw(raw_dir=self.root / "raw", **kw)):
-            return COL.tick(con=self.db, limiter=None, sources=sources)
+        with patch.object(AD, "fetch", side_effect=self.fake_fetch):
+            return COL.tick(con=self.db, limiter=None, sources=sources,
+                            raw_dir=self.root / "raw")
 
     def test_F04_bad_first_rss_archived_and_sec_still_collected(self):
         out = self.run_tick(["fed_press_monetary", "sec_press"])
