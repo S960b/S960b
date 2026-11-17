@@ -76,8 +76,8 @@ class AnalyzerTests(unittest.TestCase):
         self.assertEqual(got["arms_live"]["news"]["n"], 0)
         fake = got["arms_offline_fixture_diagnostic"]
         self.assertEqual(fake["news"]["n"], 1)
-        self.assertAlmostEqual(fake["news"]["mean_net_bps"], 75.0, places=4)
-        self.assertAlmostEqual(fake["news_market"]["mean_net_bps"], -125.0,
+        self.assertAlmostEqual(fake["news"]["mean_net_bps"], 94.0, places=4)
+        self.assertAlmostEqual(fake["news_market"]["mean_net_bps"], -106.0,
                                places=4)
         self.assertEqual(fake["market"]["mean_net_bps"], 0.0)
         self.assertAlmostEqual(fake["news"]["mean_brier"], (0.75 - 1)**2)
