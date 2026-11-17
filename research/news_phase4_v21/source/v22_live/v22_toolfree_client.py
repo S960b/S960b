@@ -112,12 +112,24 @@ def call(*, model, system, user, opener=None, raw_capture=None):
         raise IsolationError("response_empty_choices")
     message = (choices[0] or {}).get("message") or {}
 
-    # Structural refusals, in the order that matters most.
-    if message.get("tool_calls"):
+    # F09: inspect ALL choices, not only choices[0]. Old chat/completions
+    # gateways use message.function_call instead of message.tool_calls. A tool
+    # attempt cannot be treated as a model-only paper prediction.
+    if data.get("function_call") is not None:
+        raise IsolationError("legacy_function_call_in_response")
+    if data.get("tool_calls") is not None:
         raise IsolationError("tool_call_present_in_response")
+    for choice in choices:
+        ch_message = (choice or {}).get("message") or {}
+        if ch_message.get("function_call") is not None:
+            raise IsolationError("legacy_function_call_in_response")
+        if ch_message.get("tool_calls") is not None:
+            raise IsolationError("tool_call_present_in_response")
     tool_items = [it for it in (data.get("output") or [])
                   if isinstance(it, dict) and it.get("type") in
-                  ("function_call", "tool_call", "computer_call")]
+                  ("function_call", "tool_call", "computer_call",
+                   "web_search_call", "file_search_call",
+                   "code_interpreter_call")]
     if tool_items:
         raise IsolationError("tool_item_present_in_response")
 
