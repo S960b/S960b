@@ -201,3 +201,114 @@ class RunnerWiringTests(unittest.TestCase):
         built = build_prompts_3(self.event, market)
         self.assertNotIn("dry run", built["market"])
         self.assertNotIn("context_news", built["market"])
+
+
+class ToolFreeClientTests(unittest.TestCase):
+    """The client must be structurally incapable of advertising tools."""
+
+    def setUp(self):
+        import v22_toolfree_client as C
+        self.C = C
+
+    def test_request_body_has_no_capability_keys(self):
+        body = self.C.build_request("m", "sys", "usr")
+        for key in ("tools", "tool_choice", "functions", "function_call",
+                    "agent", "session", "mcp"):
+            self.assertNotIn(key, body)
+
+    def test_guard_rejects_a_capability_key(self):
+        # If a future edit smuggles a capability in, the builder must raise.
+        original = self.C.FORBIDDEN_REQUEST_KEYS
+        self.C.FORBIDDEN_REQUEST_KEYS = tuple(original) + ("temperature",)
+        try:
+            with self.assertRaises(self.C.IsolationError):
+                self.C.build_request("m", "s", "u")
+        finally:
+            self.C.FORBIDDEN_REQUEST_KEYS = original
+
+    def test_tool_call_in_response_is_refused(self):
+        import io
+        import json as J
+
+        class Resp:
+            status = 200
+            headers = {}
+
+            def read(self, n=None):
+                return J.dumps({"model": "m", "choices": [{
+                    "message": {"content": "x",
+                                "tool_calls": [{"id": "1"}]},
+                    "finish_reason": "stop"}]}).encode()
+
+        with self.assertRaises(self.C.IsolationError) as ctx:
+            self.C.call(model="m", system="s", user="u",
+                        opener=lambda req, timeout=None: Resp())
+        self.assertIn("tool_call_present", str(ctx.exception))
+
+    def test_missing_model_identity_is_refused(self):
+        import json as J
+
+        class Resp:
+            status = 200
+            headers = {}
+
+            def read(self, n=None):
+                return J.dumps({"choices": [{"message": {"content": "ok"},
+                                             "finish_reason": "stop"}]}).encode()
+
+        with self.assertRaises(self.C.IsolationError) as ctx:
+            self.C.call(model="m", system="s", user="u",
+                        opener=lambda req, timeout=None: Resp())
+        self.assertIn("model_identity_missing", str(ctx.exception))
+
+    def test_empty_text_is_refused(self):
+        import json as J
+
+        class Resp:
+            status = 200
+            headers = {}
+
+            def read(self, n=None):
+                return J.dumps({"model": "m",
+                                "choices": [{"message": {"content": "  "},
+                                             "finish_reason": "stop"}]}).encode()
+
+        with self.assertRaises(self.C.IsolationError):
+            self.C.call(model="m", system="s", user="u",
+                        opener=lambda req, timeout=None: Resp())
+
+
+class CollectorTests(unittest.TestCase):
+    """Collector stores only dated items and never invents a timestamp."""
+
+    def setUp(self):
+        import tempfile
+        self.dir = tempfile.mkdtemp(prefix="v24c-")
+        import v24_collector as COL
+        self.COL = COL
+        self.con = COL.open_db(Path(self.dir) / "v24.sqlite")
+
+    def tearDown(self):
+        self.con.close()
+
+    def test_undated_item_is_not_stored_as_news(self):
+        self.assertIsNone(self.COL.parse_published("not a date"))
+        self.assertIsNone(self.COL.parse_published(None))
+
+    def test_rfc822_date_parses_to_epoch_ms(self):
+        got = self.COL.parse_published("Thu, 12 Nov 2026 17:45:00 GMT")
+        self.assertGreater(got, 1_700_000_000_000)
+
+    def test_freshness_report_is_computed_from_published(self):
+        self.con.execute(
+            "INSERT INTO v24_events VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+            ("a" * 64, "fed", "monetary_policy", "primary", "t",
+             "https://x", 1_800_000_000_000, 1_800_000_050_000, "r", "terms",
+             1_800_000_050_000))
+        self.con.commit()
+        rep = self.COL.freshness_report(self.con, now_ms=1_800_000_060_000)
+        self.assertEqual(rep[0]["newest_age_s"], 60)
+
+
+class ToolFreeClientTests2(unittest.TestCase):
+    pass
