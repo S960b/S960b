@@ -166,6 +166,7 @@ def prepare_binding(*, event_id, record, parsed_arms, attestation_path,
         "mode": mode,
         "trial_id": trial_id,
         "frozen_sha256": frozen_sha256,
+        "attestation_path": str(Path(attestation_path).resolve()),
         "triple": dict(record),
         "arms": arm_docs,
     }
@@ -178,7 +179,8 @@ def _decision_label(parsed):
 
 
 def persist_binding(con, bundle):
-    con.executescript(SCHEMA)
+    # The tier2 schema is created by open_tier2 before starting a transaction.
+    # Avoid executescript() here: it implicitly commits an in-flight transaction.
     con.execute(
         "INSERT INTO tier2_bindings(event_id,trial_id,mode,bundle_json,"
         "bundle_sha256) VALUES(?,?,?,?,?)",
@@ -235,6 +237,7 @@ def verify_binding(con, event_id, *, attestation_path=None, require_live=False):
             raise IntegrityError("sealed_arm_changed:" + str(db_row[1]))
     if require_live and mode != "live_raw":
         raise IntegrityError("offline_fixture_not_a_live_observation")
+    attestation_path = attestation_path or bundle.get("attestation_path")
     if attestation_path is not None:
         chain = load_chain(attestation_path)
         for doc in bundled_arms:
