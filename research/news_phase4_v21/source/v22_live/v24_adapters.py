@@ -173,19 +173,32 @@ QUARANTINED = {
 def harvest(source_id, *, limiter, opener=None):
     spec = SOURCES[source_id]
     fetched = fetch(spec["url"], limiter=limiter, opener=opener)
+    # A successfully fetched response is evidence EVEN IF its XML/JSON is
+    # malformed. Do not let one bad feed abort collection from other sources.
+    # The caller archives raw bytes first, then records the per-source failure.
+    parse_error = None
     if spec["format"] == "rss":
-        records = parse_rss(fetched["body"], source_id=source_id,
-                            category=spec["category"],
-                            provenance=spec["provenance"], fetched=fetched)
+        try:
+            records = parse_rss(fetched["body"], source_id=source_id,
+                                category=spec["category"],
+                                provenance=spec["provenance"], fetched=fetched)
+        except ET.ParseError:
+            records = []
+            parse_error = "rss_malformed_xml"
     else:
-        payload = json.loads(fetched["body"])
-        records = [{"source_id": source_id, "category": spec["category"],
-                    "provenance": spec["provenance"],
-                    "title": "kraken status " + json.dumps(payload.get("result", {}))[:120],
-                    "origin_url": spec["url"],
-                    "published_raw": None,
-                    "observed_ms": fetched["observed_ms"],
-                    "raw_sha256": hashlib.sha256(fetched["body"]).hexdigest()}]
+        try:
+            payload = json.loads(fetched["body"])
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            records = []
+            parse_error = "json_malformed_payload"
+        else:
+            records = [{"source_id": source_id, "category": spec["category"],
+                        "provenance": spec["provenance"],
+                        "title": "kraken status " + json.dumps(payload.get("result", {}))[:120],
+                        "origin_url": spec["url"],
+                        "published_raw": None,
+                        "observed_ms": fetched["observed_ms"],
+                        "raw_sha256": hashlib.sha256(fetched["body"]).hexdigest()}]
     for rec in records:
         rec["terms_decision"] = spec["terms"]
         rec["dated"] = spec.get("dated", True)
@@ -198,7 +211,7 @@ def harvest(source_id, *, limiter, opener=None):
             "fetched": {"status": fetched["status"],
                         "content_type": fetched["content_type"],
                                                 "attempts": fetched["attempts"]},
-            "records": records}
+            "records": records, "parse_error": parse_error}
 
 
 if __name__ == "__main__":
