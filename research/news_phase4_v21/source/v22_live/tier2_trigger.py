@@ -126,7 +126,7 @@ def close_claim(con, *, state, now_ms):
 
 def on_new_event(*, con, event, prompts, executor, quote_fn, now_ms, trial_id,
                  attestation_path, gate_check=None, clock=None,
-                 published_max_ms=None):
+                 published_max_ms=None, frozen_sha256=None):
     """Consume ONE eligible event. Refuses everything it cannot vouch for.
 
     The event must already be inside its freshness budget - the collector's
@@ -144,7 +144,8 @@ def on_new_event(*, con, event, prompts, executor, quote_fn, now_ms, trial_id,
                           executor=executor, quote_fn=quote_fn, now_ms=now_ms,
                           trial_id=trial_id, attestation_path=attestation_path,
                           gate_check=gate_check, clock=clock,
-                          published_max_ms=published_max_ms)
+                          published_max_ms=published_max_ms,
+                          frozen_sha256=frozen_sha256)
     except Exception as exc:
         close_claim(con, state="aborted", now_ms=now_ms)
         raise T2.Tier2Error("trial_aborted:" + type(exc).__name__ + ":"
