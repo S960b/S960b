@@ -74,8 +74,17 @@ def live_executor(*, model=DEFAULT_MODEL, opener=None):
 
     The gate is consulted HERE, immediately before the request is built, so a
     missing flag cannot be bypassed by calling the runner from somewhere else.
-    Every arm records `tool_evidence=known_zero` with the provenance that
-    actually justifies it: the client builds a body with no tools key at all.
+
+    Tool evidence is recorded for what was actually verified, and for nothing
+    more (stage-17 correction). Omitting the `tools` key proves the CLIENT did
+    not advertise a tool interface; it does not prove the provider refused to
+    expose one. So an arm reports three separate facts:
+      * client side   : no tool keys in the outbound request body;
+      * gateway side  : the returned response carried no tool call or tool item;
+      * upstream side : unverified - there is no server-side tool history here.
+    The overall label is therefore `upstream_unverified`, which is NOT sealable.
+    A triple can only be sealed on `known_zero`, and that requires independent,
+    server-auditable evidence this code path cannot produce.
     """
     def execute(prompts, *, now_ms):
         G.authorise("paper_arms")
@@ -93,11 +102,17 @@ def live_executor(*, model=DEFAULT_MODEL, opener=None):
                           "modelID": res["model"]},
                 "session_terminal": "completed",
                 "completed_ms": int(time.time() * 1000),
-                "tool_evidence": "known_zero",
+                "tool_evidence": A.EV_UPSTREAM_UNVERIFIED,
+                "tool_evidence_client": A.EV_CLIENT_NO_TOOLS,
+                "tool_evidence_gateway": A.EV_GATEWAY_NO_CALLS,
+                "tool_evidence_upstream": A.EV_UPSTREAM_UNVERIFIED,
                 "tool_evidence_provenance":
-                    "toolfree_client:no_tools_key_in_request"
-                    ";tools_advertised=false"
-                    ";request_keys=" + ",".join(res["request_keys"]),
+                    "client:" + A.EV_CLIENT_NO_TOOLS
+                    + ";gateway:" + A.EV_GATEWAY_NO_CALLS
+                    + ";upstream:" + A.EV_UPSTREAM_UNVERIFIED
+                    + ";request_keys=" + ",".join(res["request_keys"])
+                    + ";request_sha256=" + res["request_sha256"]
+                    + ";response_sha256=" + res["response_sha256"],
                 "tools": 0,
                 "started_ms": started,
                 "request_sha256": res["request_sha256"],
@@ -130,7 +145,7 @@ def run_triple(*, db_path, event, candles, cutoff_ms, executor,
                        state="started", now_ms=now_ms + 10)
         results = executor(prompts, now_ms=now_ms)
         for res in results:
-            ok = res.get("tool_evidence") == "known_zero"
+            ok = (res.get("tool_evidence") in A.SEALABLE_TOOL_EVIDENCE)
             L.mark_arm(con, event_id=event["event_id"], arm=res["arm"],
                        state="completed" if ok else "failed",
                        now_ms=res.get("completed_ms", now_ms + 900),

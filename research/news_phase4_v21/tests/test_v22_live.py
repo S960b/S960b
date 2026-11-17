@@ -1,6 +1,7 @@
 """NEWS v2.4 adapters — offline tests with recorded fixtures, no network."""
 import io
 import json
+import os
 import sys
 import unittest
 import urllib.error
@@ -310,6 +311,344 @@ class CollectorTests(unittest.TestCase):
         self.assertEqual(rep[0]["newest_age_s"], 60)
 
 
+class IsolationProofTests(unittest.TestCase):
+    """Hard-fail behaviour when the server or the bridge exposes tool activity."""
+
+    def setUp(self):
+        import v22_toolfree_client as TF
+        self.TF = TF
+
+    def _resp(self, payload, status=200):
+        import json as J
+
+        class R:
+            def __init__(self, p):
+                self.status = status
+                self.headers = {}
+                self._p = J.dumps(p).encode()
+
+            def read(self, n=None):
+                return self._p
+
+        return lambda req, timeout=None: R(payload)
+
+    def test_tool_call_in_response_is_refused(self):
+        with self.assertRaises(self.TF.IsolationError) as ctx:
+            self.TF.call(model="m", system="s", user="u", opener=self._resp({
+                "model": "m", "choices": [{"message": {
+                    "content": "x", "tool_calls": [{"id": "1"}]},
+                    "finish_reason": "stop"}]}))
+        self.assertIn("tool_call_present_in_response", str(ctx.exception))
+
+    def test_tool_item_in_responses_style_output_is_refused(self):
+        with self.assertRaises(self.TF.IsolationError) as ctx:
+            self.TF.call(model="m", system="s", user="u", opener=self._resp({
+                "model": "m", "output": [{"type": "function_call", "name": "f"}],
+                "choices": [{"message": {"content": "x"},
+                             "finish_reason": "stop"}]}))
+        self.assertIn("tool_item_present_in_response", str(ctx.exception))
+
+    def test_computer_call_item_is_refused(self):
+        with self.assertRaises(self.TF.IsolationError):
+            self.TF.call(model="m", system="s", user="u", opener=self._resp({
+                "model": "m", "output": [{"type": "computer_call"}],
+                "choices": [{"message": {"content": "x"},
+                             "finish_reason": "stop"}]}))
+
+    def test_empty_message_object_is_refused(self):
+        with self.assertRaises(self.TF.IsolationError):
+            self.TF.call(model="m", system="s", user="u", opener=self._resp({
+                "model": "m", "choices": [{"message": {},
+                                           "finish_reason": "stop"}]}))
+
+    def test_bridge_never_adds_tools_to_the_outbound_request(self):
+        captured = {}
+
+        class R:
+            status = 200
+            headers = {}
+
+            def read(self, n=None):
+                import json as J
+                return J.dumps({"model": "m", "choices": [
+                    {"message": {"content": "ok"}, "finish_reason": "stop"}]}).encode()
+
+        def opener(req, timeout=None):
+            captured["body"] = req.data.decode()
+            return R()
+
+        self.TF.call(model="m", system="s", user="u", opener=opener)
+        import json as J
+        sent = J.loads(captured["body"])
+        for key in ("tools", "tool_choice", "functions", "function_call"):
+            self.assertNotIn(key, sent)
+        self.assertEqual(sorted(sent),
+                         ["max_tokens", "messages", "model", "stream",
+                          "temperature"])
+
+
+class CollectorOnlyTests(unittest.TestCase):
+    """The unattended loop: singleton, kill switch, crash recovery, ordering."""
+
+    def setUp(self):
+        import tempfile
+        import collector_only as CO
+        self.CO = CO
+        self.dir = Path(tempfile.mkdtemp(prefix="v24co-"))
+        self.pidfile = self.dir / "pid"
+        self.stop = self.dir / "STOP"
+        self.log = self.dir / "log"
+        self.db = self.dir / "v24.sqlite"
+
+    def tearDown(self):
+        for p in (self.pidfile, self.stop):
+            if p.exists():
+                p.unlink()
+
+    def _args(self, **over):
+        base = {"max_hours": 12.0, "interval_s": 1, "db": str(self.db),
+                "pidfile": str(self.pidfile), "stop_file": str(self.stop),
+                "log": str(self.log), "max_ticks": 1}
+        base.update(over)
+        return base
+
+    def _lines(self):
+        import json
+        return [json.loads(x) for x in self.log.read_text().splitlines() if x]
+
+    def test_singleton_refuses_a_second_live_instance(self):
+        # A DIFFERENT live process holds the lock; the caller must be refused.
+        import subprocess
+        other = subprocess.Popen(["sleep", "5"])
+        try:
+            self.pidfile.write_text(str(other.pid))
+            with self.assertRaises(self.CO.SingletonRefused) as ctx:
+                self.CO.claim_singleton(self.pidfile)
+            self.assertIn("already_running:" + str(other.pid),
+                          str(ctx.exception))
+        finally:
+            other.terminate()
+            other.wait()
+
+    def test_stale_pid_is_reclaimed(self):
+        self.pidfile.write_text("999999")
+        self.assertIsNone(self.CO.live_pid(self.pidfile))
+        self.assertEqual(self.CO.claim_singleton(self.pidfile), os.getpid())
+
+    def test_release_does_not_steal_another_runs_lock(self):
+        self.pidfile.write_text("999998")
+        self.assertFalse(self.CO.release(self.pidfile, os.getpid()))
+        self.assertTrue(self.pidfile.exists())
+
+    def test_kill_switch_prevents_any_poll(self):
+        self.stop.write_text("stop")
+        code = self.CO.main(["--max-hours", "1", "--interval-s", "1",
+                             "--db", str(self.db), "--pidfile",
+                             str(self.pidfile), "--stop-file", str(self.stop),
+                             "--log", str(self.log), "--max-ticks", "5"])
+        self.assertEqual(code, self.CO.EXIT_STOP)
+        events = [x["event"] for x in self._lines()]
+        self.assertIn("stop_file_seen", events)
+        self.assertNotIn("tick", events)
+
+    def test_zero_event_poll_is_logged_not_hidden(self):
+        import v24_adapters as AD
+        saved = AD.harvest
+
+        def empty(sid, *, limiter, opener=None):
+            return {"source_id": sid,
+                    "fetched": {"status": 200, "content_type": "text/xml",
+                                "attempts": 1},
+                    "records": []}
+
+        AD.harvest = empty
+        try:
+            code = self.CO.main(["--max-hours", "1", "--interval-s", "1",
+                                 "--db", str(self.db), "--pidfile",
+                                 str(self.pidfile), "--stop-file",
+                                 str(self.stop), "--log", str(self.log),
+                                 "--max-ticks", "2"])
+        finally:
+            AD.harvest = saved
+        self.assertEqual(code, self.CO.EXIT_DEADLINE)
+        ticks = [x for x in self._lines() if x["event"] == "tick"]
+        self.assertEqual(len(ticks), 2)
+        for t in ticks:
+            self.assertEqual(t["new_total"], 0)
+            self.assertIsNone(t["qualifying"])
+
+    def test_tick_error_does_not_kill_the_loop(self):
+        import v24_adapters as AD
+        saved = AD.harvest
+        calls = {"n": 0}
+
+        def boom(sid, *, limiter, opener=None):
+            calls["n"] += 1
+            raise RuntimeError("feed exploded")
+
+        AD.harvest = boom
+        try:
+            code = self.CO.main(["--max-hours", "1", "--interval-s", "1",
+                                 "--db", str(self.db), "--pidfile",
+                                 str(self.pidfile), "--stop-file",
+                                 str(self.stop), "--log", str(self.log),
+                                 "--max-ticks", "1"])
+        finally:
+            AD.harvest = saved
+        self.assertEqual(code, self.CO.EXIT_DEADLINE)
+        events = [x["event"] for x in self._lines()]
+        self.assertIn("tick_error", events)
+
+    def test_pidfile_is_released_on_exit(self):
+        self.CO.main(["--max-hours", "1", "--interval-s", "1",
+                      "--db", str(self.db), "--pidfile", str(self.pidfile),
+                      "--stop-file", str(self.stop), "--log", str(self.log),
+                      "--max-ticks", "1"])
+        self.assertFalse(self.pidfile.exists())
+
+    def test_start_log_records_deadline_and_mode(self):
+        self.CO.main(["--max-hours", "12", "--interval-s", "1",
+                      "--db", str(self.db), "--pidfile", str(self.pidfile),
+                      "--stop-file", str(self.stop), "--log", str(self.log),
+                      "--max-ticks", "1"])
+        start = [x for x in self._lines() if x["event"] == "start"][0]
+        self.assertEqual(start["mode"], "collector_only")
+        self.assertEqual(start["max_hours"], 12.0)
+        self.assertGreater(start["deadline_ms"], start["started_ms"])
+
+    def test_collector_only_module_makes_no_model_call(self):
+        import collector_only as CO
+        import ast
+        src = Path(CO.__file__).read_text(encoding="utf-8")
+        tree = ast.parse(src)
+        imported = set()
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                imported.update(a.name.split(".")[0] for a in node.names)
+            elif isinstance(node, ast.ImportFrom) and node.module:
+                imported.add(node.module.split(".")[0])
+        for banned in ("v22_toolfree_client", "v22_runner", "v22_gate",
+                       "openai", "anthropic", "requests"):
+            self.assertNotIn(banned, imported)
+
+
+class FreshnessAtDecisionTimeTests(unittest.TestCase):
+    """published_ms and observed_ms must stay distinct, and freshness is
+    computed at decision time, not at ingest."""
+
+    def setUp(self):
+        import tempfile
+        import collector_only as CO
+        import v24_collector as COL
+        self.CO, self.COL = CO, COL
+        self.dir = Path(tempfile.mkdtemp(prefix="v24f-"))
+        self.con = COL.open_db(self.dir / "v24.sqlite")
+
+    def tearDown(self):
+        self.con.close()
+
+    def _insert(self, digest, category, published_ms, observed_ms):
+        self.con.execute(
+            "INSERT INTO v24_events VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+            (digest, "src", category, "primary", "t", "https://x",
+             published_ms, observed_ms, "r", "terms", observed_ms))
+        self.con.commit()
+
+    def test_stale_item_does_not_qualify(self):
+        now = 1_000_000_000_000
+        self._insert("a" * 64, "geopolitics", now - 3_600_000, now - 10_000)
+        self.assertIsNone(self.CO.freshness(self.con, now))
+
+    def test_fresh_item_qualifies_and_reports_age(self):
+        now = 1_000_000_000_000
+        self._insert("b" * 64, "geopolitics", now - 120_000, now - 1_000)
+        q = self.CO.freshness(self.con, now)
+        self.assertEqual(q["age_s"], 120)
+        self.assertEqual(q["budget_s"], 600)
+
+    def test_old_observed_time_cannot_rescue_a_stale_publication(self):
+        now = 1_000_000_000_000
+        self._insert("c" * 64, "geopolitics", now - 10_000_000, now - 5_000)
+        self.assertIsNone(self.CO.freshness(self.con, now))
+
+    def test_duplicate_publication_is_stored_once(self):
+        now = 1_000_000_000_000
+        self._insert("d" * 64, "regulatory", now - 60_000, now - 1_000)
+        import sqlite3
+        with self.assertRaises(sqlite3.IntegrityError):
+            self._insert("d" * 64, "regulatory", now - 60_000, now - 2_000)
+
+    def test_publication_and_observation_are_recorded_separately(self):
+        now = 1_000_000_000_000
+        self._insert("e" * 64, "regulatory", now - 600_000, now - 1_000)
+        pub, obs = self.con.execute(
+            "SELECT published_ms, observed_ms FROM v24_events").fetchone()
+        self.assertNotEqual(pub, obs)
+        self.assertLess(pub, obs)
+
+
+class ToolEvidenceVocabularyTests(unittest.TestCase):
+    """Known_zero must be reserved for server-auditable evidence."""
+
+    def setUp(self):
+        import v22_arms as A
+        self.A = A
+
+    def test_vocabulary_is_explicit(self):
+        for name in ("EV_CLIENT_NO_TOOLS", "EV_GATEWAY_NO_CALLS",
+                     "EV_UPSTREAM_UNVERIFIED", "EV_KNOWN_ZERO",
+                     "EV_KNOWN_POSITIVE", "EV_UNKNOWN"):
+            self.assertTrue(getattr(self.A, name))
+
+    def test_only_known_zero_is_sealable(self):
+        self.assertEqual(self.A.SEALABLE_TOOL_EVIDENCE,
+                         ("known_zero",))
+
+    def _triple(self, evidence):
+        out = []
+        for arm in self.A.ARM_NAMES:
+            out.append({"arm": arm,
+                        "attempt_id": "a" * 64,
+                        "session_id": "s",
+                        "text": '{"p_up":0.5}',
+                        "model": {"providerID": "x", "modelID": "y"},
+                        "session_terminal": "completed",
+                        "completed_ms": 1,
+                        "tool_evidence": evidence,
+                        "tool_evidence_provenance": "p",
+                        "tools": 0})
+        return out
+
+    def test_unverified_arm_blocks_the_triple(self):
+        for evidence in ("client_no_tools_advertised",
+                         "gateway_response_no_tool_calls",
+                         "upstream_unverified", "unknown",
+                         "known_positive"):
+            with self.assertRaises(Exception) as ctx:
+                self.A.validate_three_arms(self._triple(evidence))
+            self.assertIn("tool_evidence_not_server_auditable",
+                          str(ctx.exception), evidence)
+
+    def test_known_zero_passes(self):
+        self.assertTrue(self.A.validate_three_arms(
+            self._triple("known_zero")))
+
+    def test_bogus_evidence_is_rejected(self):
+        with self.assertRaises(Exception) as ctx:
+            self.A.validate_three_arms(self._triple("trust me"))
+        self.assertIn("tool_evidence_missing", str(ctx.exception))
+
+    def test_mock_harness_reports_unknown(self):
+        import v22_ledger as L
+        rows = L.mock_arm_results("e" * 64,
+                                  {"news": (0.5, 0, 0.5),
+                                   "news_market": (0.5, 0, 0.5),
+                                   "market": (0.5, 0, 0.5)})
+        for row in rows:
+            self.assertEqual(row["tool_evidence"], "unknown")
+            self.assertNotEqual(row["tool_evidence"], "known_zero")
+
+
 class GateTests(unittest.TestCase):
     """The v2.2 gate must fail closed and must never lift the legacy pause."""
 
@@ -427,8 +766,16 @@ class LiveExecutorGateTests(unittest.TestCase):
             now_ms=1)
         self.assertEqual(len(out), 3)
         for row in out:
-            self.assertEqual(row["tool_evidence"], "known_zero")
-            self.assertIn("no_tools_key_in_request",
+            # Stage-17 correction: a client that omits tools has NOT established
+            # server-side isolation, so the arm must not claim known_zero.
+            self.assertEqual(row["tool_evidence"], "upstream_unverified")
+            self.assertEqual(row["tool_evidence_client"],
+                             "client_no_tools_advertised")
+            self.assertEqual(row["tool_evidence_gateway"],
+                             "gateway_response_no_tool_calls")
+            self.assertEqual(row["tool_evidence_upstream"],
+                             "upstream_unverified")
+            self.assertIn("upstream:upstream_unverified",
                           row["tool_evidence_provenance"])
             self.assertEqual(row["tools"], 0)
 
