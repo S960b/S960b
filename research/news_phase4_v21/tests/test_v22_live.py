@@ -7,7 +7,13 @@ import urllib.error
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-sys.path.insert(0, str(HERE))
+# Two layouts: flat next to the modules (live tree) and source/v22_live in the
+# published tree. Search for the module instead of assuming where it lives.
+for _cand in (HERE, HERE.parent, HERE.parent / "source" / "v22_live",
+              HERE / "source" / "v22_live"):
+    if (_cand / "v24_adapters.py").is_file():
+        sys.path.insert(0, str(_cand))
+        break
 
 import v24_adapters as A
 
