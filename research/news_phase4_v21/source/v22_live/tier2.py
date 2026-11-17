@@ -22,6 +22,7 @@ import hashlib
 import json
 import sqlite3
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 import v21_paper_prep as P
@@ -148,10 +149,31 @@ def read_activation(path=ACTIVATION_FILE):
 
 
 def require_gate(gate=GATE_FILE, activation=ACTIVATION_FILE):
-    """Tier-2 model calls need ONE owner-approved trial record. No bypass."""
+    """Tier-2 model calls require one active, unexpired owner-approved trial.
+
+    Protocol stopping rule: one qualifying triple or 14 calendar days from
+    activation, whichever occurs first. Never retry an expired trial by merely
+    restarting a timer or regenerating a gate file.
+    """
     if not Path(gate).exists():
         raise Tier2Error("tier2_not_activated")
-    return read_activation(activation)
+    rec = read_activation(activation)
+    try:
+        start = datetime.fromisoformat(rec["started_utc"].replace("Z", "+00:00"))
+    except (ValueError, TypeError, KeyError):
+        raise Tier2Error("activation_timestamp_invalid") from None
+    if start.tzinfo is None:
+        raise Tier2Error("activation_timestamp_not_utc")
+    age = (datetime.now(timezone.utc) - start.astimezone(timezone.utc)).total_seconds()
+    if age < 0 or age >= 14 * 24 * 3600:
+        raise Tier2Error("activation_expired_or_future")
+    if rec.get("prompt_only_no_web") is not True:
+        raise Tier2Error("activation_missing_no_web_policy")
+    if rec.get("prompts_version") != PROMPTS_VERSION:
+        raise Tier2Error("activation_prompt_version_mismatch")
+    if rec.get("upstream_tool_isolation") != "unverified":
+        raise Tier2Error("activation_tier_claim_invalid")
+    return rec
 
 
 # ---------------------------------------------------------------- attestation
