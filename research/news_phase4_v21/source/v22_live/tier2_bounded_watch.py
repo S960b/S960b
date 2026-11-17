@@ -82,7 +82,9 @@ def watch(*, feed_db=D.FEED_DB, execute=False, duration_s=3600,
                 "no_eligible", "eligible_observed"):
             return {"status": status or "unknown", "ticks": ticks,
                     "last": last}
-        if single or (not execute and status == "eligible_observed"):
+        # An eligible status is terminal even if a future driver emits it in
+        # execute mode; never poll a second event after a positive detection.
+        if single or status == "eligible_observed":
             return {"status": status, "ticks": ticks, "last": last}
         remaining = deadline - clock()
         if remaining <= 0:
