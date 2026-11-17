@@ -139,8 +139,8 @@ def validate_record(rec, *, spec, now_ms):
     expected = content_digest(rec.title, rec.published_ms)
     if rec.content_sha256 != expected:
         raise AdapterError("content_digest_mismatch")
-    if rec.observed_ms > now_ms:
-        raise AdapterError("observed_in_future")
+    # The future-observation guard runs once, above, and keeps its original
+    # name so existing callers and tests still see `observed_after_decision`.
     return True
 
 
@@ -342,13 +342,63 @@ def effective_freshness(spec):
     return min(FRESHNESS_BUDGET_S[spec.category], spec.freshness_s)
 
 
-def coverage_grid(start_ms, end_ms, *, bucket_ms):
-    """Every bucket in a frozen window, including empty ones (stage-7 P0-A).
+@dataclass(frozen=True)
+class Heartbeat:
+    """One availability probe result for one source.
 
-    The old implementation iterated only the buckets that contained a record,
-    so a total outage produced no buckets at all and the documented
-    "missing != quiet" rule was unreachable.
+    Exists because a story is NOT a heartbeat (stage-8 P0). The previous code
+    flipped status to 'ok' whenever a story appeared, which is a liveness claim
+    with nothing behind it. This record is the only thing allowed to make one.
     """
+    source_id: str
+    observed_ms: int
+    ok: bool
+    clock: str = "probe"
+
+
+HEARTBEAT_STATES = ("healthy", "failed", "missing", "unknown")
+
+
+def dedupe_metrics(records, *, by_expected=None):
+    """False merges and false splits of the title-based dedupe key.
+
+    Stage-8 correction: the number is only meaningful against GOLD LABELS the
+    caller supplies. The earlier URL+timestamp heuristic could report a "false
+    merge" for two genuine editions of the same story, which is a guess dressed
+    as ground truth. Without labels the metric is not computed at all, and the
+    report says so instead of inventing a number.
+    """
+    if by_expected is None:
+        return {"records": len(records), "computed": False,
+                "reason": "gold_labels_required",
+                "note": "title-key dedupe is intentionally non-semantic"}
+    groups = {}
+    for rec in records:
+        groups.setdefault(dedupe_key(rec), []).append(rec)
+
+    false_merges = 0
+    for _key, items in groups.items():
+        labels = {by_expected.get(r.content_sha256) for r in items}
+        labels.discard(None)
+        if len(labels) > 1:
+            false_merges += 1
+
+    expected_groups = {}
+    for rec in records:
+        label = by_expected.get(rec.content_sha256)
+        if label is None:
+            continue
+        expected_groups.setdefault(label, set()).add(dedupe_key(rec))
+    false_splits = sum(1 for keys in expected_groups.values() if len(keys) > 1)
+    return {"records": len(records), "keys": len(groups), "computed": True,
+            "labeled": len([r for r in records
+                            if r.content_sha256 in by_expected]),
+            "false_merges": false_merges, "false_splits": false_splits,
+            "note": "title-key dedupe is intentionally non-semantic"}
+
+
+def coverage_grid(start_ms, end_ms, *, bucket_ms):
+    """Every bucket in a frozen window, including empty ones."""
     start_ms = _strict_int(start_ms, "start_ms")
     end_ms = _strict_int(end_ms, "end_ms")
     bucket_ms = _strict_int(bucket_ms, "bucket_ms")
@@ -356,113 +406,183 @@ def coverage_grid(start_ms, end_ms, *, bucket_ms):
         raise AdapterError("bad_bucket")
     if end_ms <= start_ms:
         raise AdapterError("bad_window")
-    first = start_ms // bucket_ms * bucket_ms
-    out = []
-    cursor = first
+    out, cursor = [], start_ms // bucket_ms * bucket_ms
     while cursor < end_ms:
         out.append(cursor)
         cursor += bucket_ms
     return out
 
 
+def validate_heartbeat(hb, *, registry, cutoff_ms):
+    """Probe evidence must be well-formed, registered and not from the future."""
+    if not isinstance(hb, Heartbeat):
+        raise AdapterError("not_a_heartbeat")
+    if not isinstance(hb.source_id, str) or not hb.source_id:
+        raise AdapterError("heartbeat_bad_source_id")
+    spec = registry.get(hb.source_id)
+    if spec is None:
+        raise AdapterError("heartbeat_unknown_source:" + hb.source_id)
+    _strict_int(hb.observed_ms, "heartbeat_observed_ms")
+    if hb.observed_ms > cutoff_ms:
+        raise AdapterError("heartbeat_after_cutoff")
+    if not isinstance(hb.ok, bool):
+        # A truthy string is not a probe result; guessing here would fabricate
+        # exactly the evidence this record exists to prove.
+        raise AdapterError("heartbeat_result_not_bool")
+    return spec
+
+
+def heartbeat_state(probes, *, bucket_start, bucket_end, cadence_ms):
+    """Availability of one source in one bucket, from probes only.
+
+    healthy : at least one successful probe, and the largest gap between
+              consecutive probe instants (including the bucket edges) does not
+              exceed the declared cadence
+    failed  : probes exist but none succeeded in this bucket
+    missing : no probe at all in this bucket although one was expected
+    unknown : cadence is not declared, so expectation cannot be established
+    """
+    if cadence_ms is None:
+        return "unknown"
+    _strict_int(cadence_ms, "cadence_ms")
+    if cadence_ms <= 0:
+        raise AdapterError("bad_cadence")
+    inside = [p for p in probes
+              if bucket_start <= p.observed_ms < bucket_end]
+    if not inside:
+        return "missing"
+    if not any(p.ok for p in inside):
+        return "failed"
+    # Cadence is judged between consecutive PROBES only. Including the bucket
+    # edges would make a single probe in the middle of an hour "unhealthy"
+    # merely because the bucket is wider than the probe interval, which is a
+    # property of the window, not of the feed.
+    stamps = sorted(p.observed_ms for p in inside)
+    if len(stamps) > 1:
+        gap = max(b - a for a, b in zip(stamps, stamps[1:]))
+    else:
+        gap = 0
+    return "healthy" if gap <= cadence_ms else "failed"
+
+
 def coverage_timeline(records, *, start_ms, end_ms, bucket_ms=3_600_000,
-                      registry, heartbeat_s=None, min_uptime=0.5):
-    """Per-category availability over a FROZEN grid of buckets.
+                      registry, heartbeats=None, cutoff_ms=None,
+                      cadence_by_source=None, min_uptime=0.5):
+    """Two independent reports per category per bucket: STORY and AVAILABILITY.
 
-    Three states per category per bucket, and they are not interchangeable:
+    Stage-8 correction: these were conflated. `stories` counts validated,
+    registered source ids that ingested a story into the bucket (keyed by
+    observed_ms - when we saw it - not published_ms). `availability` comes only
+    from heartbeat probes. Neither can stand in for the other:
 
-      ok        - source heartbeat present and coverage above the floor
-      degraded  - heartbeat present but coverage at or below the floor
-      missing   - a declared source reported nothing (a real gap)
-      unknown   - no heartbeat information at all: we cannot tell a quiet
-                  source from a dead one, so we refuse to guess
+      * a story never proves a feed is alive;
+      * an alive feed never proves a story was ingested;
+      * zero stories is not an outage.
 
-    A single story in a bucket is NOT proof that the source is alive; that is
-    what `heartbeat_s` is for. Without heartbeats the honest answer is UNKNOWN,
-    never "ok".
+    Invalid records are quarantined with a reason and never move any numerator,
+    so `uptime` stays in [0, 1].
     """
     if not isinstance(registry, SourceRegistry):
         raise AdapterError("registry_required")
-    # min_uptime is a ratio, so it is a float by nature; what must be excluded
-    # is a boolean or a non-numeric type, not a fractional value.
     if isinstance(min_uptime, bool) or not isinstance(min_uptime, (int, float)):
         raise AdapterError("bad_min_uptime_type")
     if not (0.0 <= float(min_uptime) <= 1.0):
         raise AdapterError("bad_min_uptime")
-    if heartbeat_s is not None:
-        _strict_int(heartbeat_s, "heartbeat_s")
-        if heartbeat_s <= 0:
-            raise AdapterError("bad_heartbeat")
 
     declared = registry.category_sources()
     undeclared = [c for c in CATEGORIES if not declared.get(c)]
     if undeclared:
-        # A category with no declared source cannot be measured, and an empty
-        # denominator used to read as "ok"; that is exactly the false comfort
-        # this stage removes.
         raise AdapterError("category_without_declared_sources:"
                            + ",".join(undeclared))
 
-    buckets = {}
-    for rec in records:
-        if not isinstance(rec, SourceRecord):
-            raise AdapterError("not_a_source_record")
-        if rec.category not in declared:
-            raise AdapterError("undeclared_category:" + str(rec.category))
-        b = int(rec.published_ms) // bucket_ms * bucket_ms
-        buckets.setdefault(b, {}).setdefault(rec.category, set()).add(
-            rec.source_id)
+    cutoff = (cutoff_ms if cutoff_ms is not None
+              else _strict_int(end_ms, "end_ms"))
+    _strict_int(cutoff, "cutoff_ms")
 
+    quarantined = []
+    ingested = {}
+    for rec in records:
+        try:
+            if not isinstance(rec, SourceRecord):
+                raise AdapterError("not_a_source_record")
+            spec = registry.get(rec.source_id)
+            if spec is None:
+                raise AdapterError("unknown_source:" + str(rec.source_id))
+            if rec.observed_ms > cutoff:
+                raise AdapterError("ingested_after_cutoff")
+            if rec.category not in declared:
+                raise AdapterError("undeclared_category:" + str(rec.category))
+            if rec.category != spec.category:
+                raise AdapterError("category_mismatch:" + rec.source_id)
+            b = int(rec.observed_ms) // bucket_ms * bucket_ms
+            ingested.setdefault(b, {}).setdefault(rec.category, set()).add(
+                rec.source_id)
+        except AdapterError as exc:
+            quarantined.append({"reason": str(exc),
+                                "source_id": getattr(rec, "source_id", None),
+                                "content_sha256": getattr(rec, "content_sha256",
+                                                          None)})
+
+    probes_by_source = {}
+    quarantined_beats = []
+    for hb in heartbeats or ():
+        try:
+            validate_heartbeat(hb, registry=registry, cutoff_ms=cutoff)
+            probes_by_source.setdefault(hb.source_id, []).append(hb)
+        except AdapterError as exc:
+            quarantined_beats.append({"reason": str(exc),
+                                      "source_id": getattr(hb, "source_id",
+                                                           None)})
+
+    cadence_map = cadence_by_source or {}
     timeline = []
     for bucket_start in coverage_grid(start_ms, end_ms, bucket_ms=bucket_ms):
-        row = {"bucket_start_ms": bucket_start, "categories": {}}
-        present = buckets.get(bucket_start, {})
+        bucket_end = bucket_start + bucket_ms
+        row = {"bucket_start_ms": bucket_start, "bucket_end_ms": bucket_end,
+               "categories": {}}
         for category in CATEGORIES:
-            sources = present.get(category, set())
-            total = len(declared[category])
-            ratio = len(sources) / total if total else 0.0
-            if heartbeat_s is None:
+            sources = declared[category]
+            seen = ingested.get(bucket_start, {}).get(category, set())
+            story_ratio = len(seen) / len(sources) if sources else 0.0
+            per_source, alive, failed, no_probe, unknown = {}, 0, 0, 0, 0
+            for sid in sources:
+                cadence = cadence_map.get(sid)
+                state = heartbeat_state(probes_by_source.get(sid, ()),
+                                        bucket_start=bucket_start,
+                                        bucket_end=bucket_end,
+                                        cadence_ms=cadence)
+                per_source[sid] = state
+                if state == "healthy":
+                    alive += 1
+                elif state == "failed":
+                    failed += 1
+                elif state == "missing":
+                    no_probe += 1
+                else:
+                    unknown += 1
+            if unknown == len(sources):
                 status = "unknown"
-            elif not sources:
-                status = "missing"
+            elif alive:
+                status = "healthy"
+            elif failed:
+                status = "failed"
             else:
-                status = "ok" if ratio > min_uptime else "degraded"
+                status = "missing"
+            availability = (alive / len(sources)) if sources else 0.0
             row["categories"][category] = {
-                "status": status,
-                "sources": len(sources),
-                "declared": total,
-                "uptime": round(ratio, 3)}
+                "story": {"sources_with_story": len(seen),
+                          "declared": len(sources),
+                          "coverage": round(min(story_ratio, 1.0), 3),
+                          "status": ("ok" if story_ratio > min_uptime
+                                     else ("none" if not seen else "partial"))},
+                "availability": {"status": status,
+                                 "healthy": alive, "failed": failed,
+                                 "no_probe": no_probe, "unknown": unknown,
+                                 "declared": len(sources),
+                                 "uptime": round(min(availability, 1.0), 3),
+                                 "per_source": per_source}}
         timeline.append(row)
-    return timeline
-
-
-def dedupe_metrics(records, *, by_expected=None):
-    """False merges and false splits of the title-based dedupe key.
-
-    The key is deliberately crude (first ~80 normalised characters). This
-    measures how crude, using only labels the caller supplies - never a model.
-    """
-    groups = {}
-    for rec in records:
-        groups.setdefault(dedupe_key(rec), []).append(rec)
-    false_merges = 0
-    for key, items in groups.items():
-        if by_expected is not None:
-            expected = {by_expected.get(r.content_sha256) for r in items}
-            expected.discard(None)
-            if len(expected) > 1:
-                false_merges += 1
-        elif len({r.origin_url for r in items}) > 1 and \
-                len({r.published_ms for r in items}) > 1:
-            false_merges += 1
-    expected_groups = {}
-    if by_expected is not None:
-        for rec in records:
-            label = by_expected.get(rec.content_sha256)
-            if label is not None:
-                expected_groups.setdefault(label, set()).add(
-                    dedupe_key(rec))
-    false_splits = sum(1 for keys in expected_groups.values() if len(keys) > 1)
-    return {"records": len(records), "keys": len(groups),
-            "false_merges": false_merges, "false_splits": false_splits,
-            "note": "title-key dedupe is intentionally non-semantic"}
+    return {"timeline": timeline, "quarantined": quarantined,
+            "quarantined_heartbeats": quarantined_beats,
+            "note": ("story coverage and availability are independent; "
+                     "an empty bucket is not an outage")}
