@@ -12,6 +12,17 @@ import tempfile
 import unittest
 from pathlib import Path
 
+def _sealable(results):
+    """Stage-18: the mock factory reports `unknown` provenance, correctly - it
+    proved nothing about any provider. Tests of the SEAL MECHANICS need a triple
+    that is eligible to seal, so they mark it as server-audited explicitly here.
+    That is a test fixture, not a production claim, and it keeps the seal strict."""
+    for r in results:
+        r["tool_evidence"] = "known_zero"
+        r["tool_evidence_provenance"] = "test_fixture:server_audited"
+    return results
+
+
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent if (HERE.parent / 'source').is_dir() or \
     (HERE.parent / 'v22_arms.py').is_file() else HERE
@@ -123,7 +134,7 @@ class TripleLedgerTests(unittest.TestCase):
                              quote=quote or L.mock_quote(), now_ms=2_000_000)
 
     def test_complete_triple_is_sealed(self):
-        out = self.seal(L.mock_arm_results("a" * 64, ACTIONS))
+        out = self.seal(_sealable(L.mock_arm_results("a" * 64, ACTIONS)))
         self.assertEqual(out["status"], "sealed")
         self.assertEqual(self.con.execute(
             "SELECT COUNT(*) FROM v22_arms").fetchone()[0], 3)
@@ -131,47 +142,47 @@ class TripleLedgerTests(unittest.TestCase):
             "SELECT COUNT(*) FROM v22_outcomes").fetchone()[0], 1)
 
     def test_missing_arm_is_refused(self):
-        results = L.mock_arm_results("a" * 64, ACTIONS)[:2]
+        results = _sealable(L.mock_arm_results("a" * 64, ACTIONS))[:2]
         with self.assertRaises(P.PrepError) as ctx:
             self.seal(results)
         self.assertIn("incomplete_triple", str(ctx.exception))
 
     def test_duplicate_arm_is_refused(self):
-        results = L.mock_arm_results("a" * 64, ACTIONS)
+        results = _sealable(L.mock_arm_results("a" * 64, ACTIONS))
         results[2] = dict(results[1])
         with self.assertRaises(P.PrepError):
             self.seal(results)
 
     def test_unknown_tool_evidence_blocks_the_seal(self):
-        results = L.mock_arm_results("a" * 64, ACTIONS)
+        results = _sealable(L.mock_arm_results("a" * 64, ACTIONS))
         results[0]["tool_evidence"] = "unknown"
         with self.assertRaises(P.PrepError) as ctx:
             self.seal(results)
         self.assertIn("tool_evidence", str(ctx.exception))
 
     def test_positive_tool_usage_blocks_the_seal(self):
-        results = L.mock_arm_results("a" * 64, ACTIONS)
+        results = _sealable(L.mock_arm_results("a" * 64, ACTIONS))
         results[2]["tool_evidence"] = "known_positive"
         with self.assertRaises(P.PrepError):
             self.seal(results)
 
     def test_late_entry_is_refused(self):
-        results = L.mock_arm_results("a" * 64, ACTIONS)
+        results = _sealable(L.mock_arm_results("a" * 64, ACTIONS))
         last = max(r["completed_ms"] for r in results)
         with self.assertRaises(P.PrepError) as ctx:
             self.seal(results, quote=L.mock_quote(observed_ms=last))
         self.assertIn("entry_not_after_last_arm", str(ctx.exception))
 
     def test_second_seal_is_idempotent(self):
-        first = self.seal(L.mock_arm_results("a" * 64, ACTIONS))
+        first = self.seal(_sealable(L.mock_arm_results("a" * 64, ACTIONS)))
         prompts = A.build_prompts_3(event(), MARKET)
         prepared = {"prompts_sha256": A.prompts_sha256(prompts),
                     "cutoff_ms": 999_999}
         second = L.seal_triple(self.con, event=event(), prepared=prepared,
-                               arm_results=L.mock_arm_results("a" * 64, {
+                               arm_results=_sealable(L.mock_arm_results("a" * 64, {
                                    "news": (0.9, 100, 0.1),
                                    "news_market": (0.9, 100, 0.1),
-                                   "market": (0.1, -100, 0.1)}),
+                                   "market": (0.1, -100, 0.1)})),
                                quote=L.mock_quote(), now_ms=2_000_000)
         self.assertEqual(first["status"], "sealed")
         self.assertEqual(second["status"], "already_sealed")
@@ -364,7 +375,7 @@ class DurableTripleAttemptTests(unittest.TestCase):
         prepared = {"prompts_sha256": self.hashes, "cutoff_ms": 999_999}
         with self.assertRaises(P.PrepError) as ctx:
             L.seal_triple(self.con, event=event(), prepared=prepared,
-                          arm_results=L.mock_arm_results(self.eid, ACTIONS),
+                          arm_results=_sealable(L.mock_arm_results(self.eid, ACTIONS)),
                           quote=L.mock_quote(), now_ms=2_000_000)
         self.assertIn("attempts_not_terminal", str(ctx.exception))
 
@@ -372,7 +383,7 @@ class DurableTripleAttemptTests(unittest.TestCase):
         prepared = {"prompts_sha256": self.hashes, "cutoff_ms": 999_999}
         with self.assertRaises(P.PrepError) as ctx:
             L.seal_triple(self.con, event=event(), prepared=prepared,
-                          arm_results=L.mock_arm_results(self.eid, ACTIONS),
+                          arm_results=_sealable(L.mock_arm_results(self.eid, ACTIONS)),
                           quote=L.mock_quote(), now_ms=2_000_000)
         self.assertIn("attempts_incomplete", str(ctx.exception))
 
@@ -384,7 +395,7 @@ class DurableTripleAttemptTests(unittest.TestCase):
                        now_ms=1_100)
         prepared = {"prompts_sha256": self.hashes, "cutoff_ms": 999_999}
         out = L.seal_triple(self.con, event=event(), prepared=prepared,
-                            arm_results=L.mock_arm_results(self.eid, ACTIONS),
+                            arm_results=_sealable(L.mock_arm_results(self.eid, ACTIONS)),
                             quote=L.mock_quote(), now_ms=2_000_000)
         self.assertEqual(out["status"], "sealed")
 

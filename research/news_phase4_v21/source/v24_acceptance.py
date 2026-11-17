@@ -169,6 +169,12 @@ def run(*, now_ms=FIXED_CLOCK_MS):
                                           "news_market": (0.54, 30, 0.45),
                                           "market": (0.50, 0, 0.5)},
                                          base_ms=now_ms + 1_000)
+            # The mock factory reports `unknown` provenance, correctly. This
+            # harness measures the ACCEPTANCE pipeline, not tool history, so it
+            # declares the evidence it assumes instead of inheriting a claim.
+            for _r in results:
+                _r["tool_evidence"] = A.EV_KNOWN_ZERO
+                _r["tool_evidence_provenance"] = "acceptance_fixture:assumed_audited"
             quote = {"price": 64_000.0, "observed_ms": now_ms + 10_000,
                      "source": "binance_public_ticker"}
             out = L.seal_triple(con, event=event, prepared=prepared,

@@ -283,8 +283,10 @@ def mock_arm_results(event_id, actions, *, base_ms=1_000_000, tools=0):
             "model": {"providerID": "deepseek", "modelID": "mock"},
             "session_terminal": "completed",
             "completed_ms": base_ms + i * 1000,
-            "tool_evidence": "known_zero",
-            "tool_evidence_provenance": "mock_harness",
+            # A mock harness proved nothing about any provider: it never sent a
+            # request. It is a wiring artefact, not tool evidence.
+            "tool_evidence": A.EV_UNKNOWN,
+            "tool_evidence_provenance": "mock_harness:no_request_sent",
             "tools": tools,
         })
     return out

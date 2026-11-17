@@ -254,6 +254,25 @@ def prompts_sha256(prompts):
             for arm, text in sorted(prompts.items())}
 
 
+# Tool-evidence vocabulary. `known_zero` is reserved for evidence that is
+# independently auditable on the SERVER side: a complete tool history that shows
+# no invocation and no exposed interface. A client that merely omits the tools
+# key cannot establish that, so it must not claim it (stage-17 correction).
+EV_CLIENT_NO_TOOLS = "client_no_tools_advertised"
+EV_GATEWAY_NO_CALLS = "gateway_response_no_tool_calls"
+EV_UPSTREAM_UNVERIFIED = "upstream_unverified"
+EV_KNOWN_ZERO = "known_zero"
+EV_KNOWN_POSITIVE = "known_positive"
+EV_UNKNOWN = "unknown"
+
+TOOL_EVIDENCE_VALUES = (EV_CLIENT_NO_TOOLS, EV_GATEWAY_NO_CALLS,
+                        EV_UPSTREAM_UNVERIFIED, EV_KNOWN_ZERO,
+                        EV_KNOWN_POSITIVE, EV_UNKNOWN)
+
+# A triple may only be SEALED when every arm carries server-auditable evidence.
+SEALABLE_TOOL_EVIDENCE = (EV_KNOWN_ZERO,)
+
+
 def validate_three_arms(arm_results):
     """Exactly one object per arm, in the three-arm contract (D12 extended).
 
@@ -270,9 +289,12 @@ def validate_three_arms(arm_results):
         raise P.PrepError("duplicate_arm_names")
     for r in arm_results:
         arm = r.get("arm")
-        if r.get("tool_evidence") not in ("known_zero", "known_positive",
-                                          "unknown"):
+        evidence = r.get("tool_evidence")
+        if evidence not in TOOL_EVIDENCE_VALUES:
             raise P.PrepError("tool_evidence_missing:" + str(arm))
-        if r.get("tool_evidence") != "known_zero":
-            raise P.PrepError("tool_evidence_not_verified_zero:" + str(arm))
+        if evidence not in SEALABLE_TOOL_EVIDENCE:
+            # Naming why matters: "we asked nicely" and "the server proved it"
+            # must not collapse into one refusal code.
+            raise P.PrepError("tool_evidence_not_server_auditable:"
+                              + str(arm) + ":" + str(evidence))
     return True
