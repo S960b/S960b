@@ -63,14 +63,26 @@ FIXTURES = {
                    "observed_ms": 1_800_000_640_000},
 }
 
+# Coverage cannot claim anything about a source with no declared probe
+# schedule, so every fixture source declares one here.
+SCHEDULE_START_MS = 1_800_000_000_000
+SCHEDULE_CADENCE_MS = 300_000
+
 SPECS = [
-    S.SourceSpec("bin", "crypto", "primary", 120),
-    S.SourceSpec("bls", "macro", "primary", 300),
-    S.SourceSpec("fed", "monetary_policy", "primary", 300),
-    S.SourceSpec("wire", "geopolitics", "media_wire", 600),
-    S.SourceSpec("ofac", "sanctions", "primary", 900),
-    S.SourceSpec("eia", "energy", "primary", 900),
-    S.SourceSpec("sec", "regulatory", "primary", 900),
+    S.SourceSpec("bin", "crypto", "primary", 120,
+                 start_ms=SCHEDULE_START_MS, cadence_ms=SCHEDULE_CADENCE_MS),
+    S.SourceSpec("bls", "macro", "primary", 300,
+                 start_ms=SCHEDULE_START_MS, cadence_ms=SCHEDULE_CADENCE_MS),
+    S.SourceSpec("fed", "monetary_policy", "primary", 300,
+                 start_ms=SCHEDULE_START_MS, cadence_ms=SCHEDULE_CADENCE_MS),
+    S.SourceSpec("wire", "geopolitics", "media_wire", 600,
+                 start_ms=SCHEDULE_START_MS, cadence_ms=SCHEDULE_CADENCE_MS),
+    S.SourceSpec("ofac", "sanctions", "primary", 900,
+                 start_ms=SCHEDULE_START_MS, cadence_ms=SCHEDULE_CADENCE_MS),
+    S.SourceSpec("eia", "energy", "primary", 900,
+                 start_ms=SCHEDULE_START_MS, cadence_ms=SCHEDULE_CADENCE_MS),
+    S.SourceSpec("sec", "regulatory", "primary", 900,
+                 start_ms=SCHEDULE_START_MS, cadence_ms=SCHEDULE_CADENCE_MS),
 ]
 
 

@@ -1,0 +1,68 @@
+[
+ {
+  "attempt_id": 1,
+  "clock": "system",
+  "error_code": null,
+  "finished_ms": 1800000000250,
+  "http_status": 200,
+  "outcome": "ok",
+  "probe_sha256": "2c92b8c10b445d9b6306458cfa6e24b7e40ddfa641f0387588b1ac58a5313ec1",
+  "source_id": "bin",
+  "started_ms": 1800000000000
+ },
+ {
+  "attempt_id": 2,
+  "clock": "system",
+  "error_code": null,
+  "finished_ms": 1800000120250,
+  "http_status": 200,
+  "outcome": "ok",
+  "probe_sha256": "e3a0e2acda17ddbfdc4449c97297c0ccd993eacb5d2bec83e1820e4e3ac5cae1",
+  "source_id": "bin",
+  "started_ms": 1800000120000
+ },
+ {
+  "attempt_id": 3,
+  "clock": "system",
+  "error_code": null,
+  "finished_ms": 1800000240250,
+  "http_status": 200,
+  "outcome": "ok",
+  "probe_sha256": "78a4324eaa44448e5c8971ca424896e1d364d2db17200300bc70c11d62d1d78e",
+  "source_id": "bin",
+  "started_ms": 1800000240000
+ },
+ {
+  "attempt_id": 4,
+  "clock": "system",
+  "error_code": null,
+  "finished_ms": 1800000360250,
+  "http_status": 200,
+  "outcome": "ok",
+  "probe_sha256": "996be321eb7a57beb38d3cb7a5e78ed70fbfab768713ea57ee21b6ead44c768b",
+  "source_id": "bin",
+  "started_ms": 1800000360000
+ },
+ {
+  "attempt_id": 5,
+  "clock": "system",
+  "error_code": null,
+  "finished_ms": 1800000480250,
+  "http_status": 200,
+  "outcome": "ok",
+  "probe_sha256": "e9e3f8f10e43bec432ac37aade3b71460a5ff07a70704c62e08e41d5cc4e41af",
+  "source_id": "bin",
+  "started_ms": 1800000480000
+ },
+ {
+  "attempt_id": 1,
+  "clock": "system",
+  "error_code": "ETIMEDOUT",
+  "finished_ms": 1800000040000,
+  "http_status": null,
+  "outcome": "timeout",
+  "probe_sha256": "9207f72b40522695907a0fd4c7eecbcc30f59e5a975e1fb88691a0bef31b5563",
+  "source_id": "eia",
+  "started_ms": 1800000010000
+ }
+]

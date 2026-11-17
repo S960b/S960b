@@ -316,39 +316,43 @@ class CoverageTests(unittest.TestCase):
         # The heart of stage 8: a live source with no stories must read as
         # healthy availability and zero story coverage - never "missing".
         reg = S.SourceRegistry(
-            [S.SourceSpec(f"{c}-one", c, "primary", 900) for c in S.CATEGORIES])
-        beats = [S.Heartbeat(f"{c}-one", NOW - 60_000, True)
-                 for c in S.CATEGORIES]
-        cadence = {f"{c}-one": 120_000 for c in S.CATEGORIES}
+            [S.SourceSpec(f"{c}-one", c, "primary", 900,
+                          start_ms=NOW - 3_600_000, cadence_ms=120_000)
+             for c in S.CATEGORIES])
+        beats = [S.Heartbeat(f"{c}-one", NOW - 3_600_000 + i * 120_000, True)
+                 for c in S.CATEGORIES for i in range(30)]
         out = S.coverage_timeline([], start_ms=NOW - 3_600_000, end_ms=NOW + 1,
                                   bucket_ms=3_600_000, registry=reg,
-                                  heartbeats=beats, cadence_by_source=cadence)
+                                  heartbeats=beats)
         cell = out["timeline"][0]["categories"]["crypto"]
         self.assertEqual(cell["availability"]["status"], "healthy")
         self.assertEqual(cell["story"]["status"], "none")
         self.assertEqual(cell["story"]["sources_with_story"], 0)
 
     def test_failed_probe_is_reported_as_failed(self):
-        reg = S.SourceRegistry([S.SourceSpec("crypto-one", "crypto", "primary",
-                                             120)]
-                               + [S.SourceSpec(f"{c}-one", c, "primary", 900)
-                                  for c in S.CATEGORIES if c != "crypto"])
-        beats = [S.Heartbeat("crypto-one", NOW - 60_000, False)]
-        cadence = {"crypto-one": 120_000}
+        reg = S.SourceRegistry(
+            [S.SourceSpec("crypto-one", "crypto", "primary", 120,
+                          start_ms=NOW - 3_600_000, cadence_ms=120_000)]
+            + [S.SourceSpec(f"{c}-one", c, "primary", 900,
+                            start_ms=NOW - 3_600_000, cadence_ms=120_000)
+               for c in S.CATEGORIES if c != "crypto"])
+        beats = [S.Heartbeat("crypto-one", NOW - 3_600_000 + i * 120_000, False)
+                 for i in range(30)]
         out = S.coverage_timeline([], start_ms=NOW - 3_600_000, end_ms=NOW + 1,
                                   bucket_ms=3_600_000, registry=reg,
-                                  heartbeats=beats, cadence_by_source=cadence)
+                                  heartbeats=beats)
         self.assertEqual(
             out["timeline"][0]["categories"]["crypto"]["availability"]["status"],
             "failed")
 
     def test_expected_but_absent_probe_is_missing(self):
         reg = S.SourceRegistry(
-            [S.SourceSpec(f"{c}-one", c, "primary", 900) for c in S.CATEGORIES])
+            [S.SourceSpec(f"{c}-one", c, "primary", 900,
+                          start_ms=NOW - 3_600_000, cadence_ms=120_000)
+             for c in S.CATEGORIES])
         out = S.coverage_timeline([], start_ms=NOW - 3_600_000, end_ms=NOW + 1,
                                   bucket_ms=3_600_000, registry=reg,
-                                  heartbeats=[],
-                                  cadence_by_source={"crypto-one": 120_000})
+                                  heartbeats=[])
         self.assertEqual(
             out["timeline"][0]["categories"]["crypto"]["availability"]["status"],
             "missing")

@@ -45,6 +45,12 @@ class SourceSpec:
     provenance: str
     freshness_s: int
     machine_readable: bool = True
+    # Stage 9: a probe schedule is declared per source, not inferred from the
+    # data. `start_ms` is the registered epoch the schedule is anchored to and
+    # `cadence_ms` is how often a probe is owed. Both optional: without them the
+    # source's availability is UNKNOWN, never "probably fine".
+    start_ms: int = None
+    cadence_ms: int = None
 
 
 @dataclass(frozen=True)
@@ -185,6 +191,17 @@ class SourceRegistry:
                 raise AdapterError("spec_bad_freshness:" + str(spec.source_id))
             if not isinstance(spec.source_id, str) or not spec.source_id.strip():
                 raise AdapterError("spec_bad_source_id")
+            for name in ("start_ms", "cadence_ms"):
+                value = getattr(spec, name, None)
+                if value is None:
+                    continue
+                if isinstance(value, bool) or not isinstance(value, int):
+                    raise AdapterError("spec_bad_" + name)
+                if name == "cadence_ms" and value <= 0:
+                    raise AdapterError("spec_bad_cadence")
+            if (spec.cadence_ms is None) != (spec.start_ms is None):
+                # Half a schedule is worse than none: it looks measurable.
+                raise AdapterError("spec_half_schedule:" + spec.source_id)
             if spec.source_id in self._specs:
                 raise AdapterError("duplicate_source_id:" + spec.source_id)
             self._specs[spec.source_id] = spec
@@ -267,7 +284,7 @@ def select(records, *, now_ms, registry, max_age_s=None, per_category_cap=None,
                             "source_id": getattr(rec, "source_id", None)})
 
     ordered = canonical_order(valid)
-    accepted, rejected, seen = [], [], set()
+    accepted, rejected, seen = [], [], {}
     counts = {}
     for rec in ordered:
         budget = FRESHNESS_BUDGET_S[rec.category]
@@ -284,16 +301,21 @@ def select(records, *, now_ms, registry, max_age_s=None, per_category_cap=None,
             continue
         key = dedupe_key(rec)
         if key in seen:
+            # Stage-9 correction: the winning record is now named. Without it a
+            # duplicate is indistinguishable from a silent drop, and an
+            # auditor cannot tell WHICH story survived.
             rejected.append({"reason": "duplicate",
                              "content_sha256": rec.content_sha256,
-                             "source_id": rec.source_id})
+                             "source_id": rec.source_id,
+                             "dedupe_key": key[:64],
+                             "deduplicated_by": seen[key]})
             continue
         if per_category_cap and counts.get(rec.category, 0) >= per_category_cap:
             rejected.append({"reason": "category_cap",
                              "content_sha256": rec.content_sha256,
                              "source_id": rec.source_id})
             continue
-        seen.add(key)
+        seen[key] = rec.content_sha256
         counts[rec.category] = counts.get(rec.category, 0) + 1
         accepted.append(rec)
 
@@ -432,55 +454,99 @@ def validate_heartbeat(hb, *, registry, cutoff_ms):
     return spec
 
 
-def heartbeat_state(probes, *, bucket_start, bucket_end, cadence_ms):
-    """Availability of one source in one bucket, from probes only.
+HEALTHY, INTERMITTENT, FAILED, MISSING, UNKNOWN, STALE = (
+    "healthy", "intermittent", "failed", "missing", "unknown", "stale")
 
-    healthy : at least one successful probe, and the largest gap between
-              consecutive probe instants (including the bucket edges) does not
-              exceed the declared cadence
-    failed  : probes exist but none succeeded in this bucket
-    missing : no probe at all in this bucket although one was expected
-    unknown : cadence is not declared, so expectation cannot be established
+
+def expected_probes(spec, bucket_start, bucket_end, *, grace_ms):
+    """The probe schedule a source OWNS inside one bucket.
+
+    Stage-9 correction: "one successful probe and gaps <= cadence" declared an
+    hourly bucket healthy from a single probe. The schedule is now explicit: a
+    source registered with `start_ms` owes a probe every `cadence_ms`, and the
+    expected instants inside the bucket are enumerated before any evidence is
+    looked at. Grace extends the deadline of each probe; it never adds or
+    removes an expectation.
     """
-    if cadence_ms is None:
-        return "unknown"
-    _strict_int(cadence_ms, "cadence_ms")
-    if cadence_ms <= 0:
+    schedule = getattr(spec, "start_ms", None)
+    cadence = getattr(spec, "cadence_ms", None)
+    if cadence is None or schedule is None:
+        return None                     # no declared expectation -> unknown
+    _strict_int(cadence, "cadence_ms")
+    _strict_int(grace_ms, "grace_ms")
+    if cadence <= 0 or grace_ms < 0:
         raise AdapterError("bad_cadence")
-    inside = [p for p in probes
-              if bucket_start <= p.observed_ms < bucket_end]
+    first = schedule if schedule > bucket_start else bucket_start
+    offset = (first - schedule) // cadence
+    instant = schedule + offset * cadence
+    while instant < schedule:
+        instant += cadence
+    expected = []
+    while instant < bucket_end:
+        if instant + grace_ms > bucket_start or instant >= bucket_start:
+            if instant >= bucket_start:
+                expected.append(instant)
+        instant += cadence
+    return expected
+
+
+def heartbeat_state(probes, *, spec, bucket_start, bucket_end, grace_ms):
+    """Availability of one source in one bucket, judged against its schedule.
+
+    States are ordered by what they permit us to claim:
+      unknown      - the source declares no schedule; nothing can be asserted
+      missing      - a schedule exists but not one probe arrived
+      failed       - probes arrived, none succeeded
+      intermittent - some expected instances answered, others did not
+      stale        - a probe answered, but the last expected instance before
+                     the bucket end is unanswered: the feed may have died
+                     silently
+      healthy      - every expected instance is answered (or still inside grace)
+    """
+    expected = expected_probes(spec, bucket_start, bucket_end,
+                               grace_ms=grace_ms)
+    if expected is None:
+        return UNKNOWN
+    # Sort by the probe instant, not by the dataclass: Heartbeat is not orderable.
+    inside = sorted((p for p in probes
+                     if bucket_start <= p.observed_ms < bucket_end),
+                    key=lambda p: p.observed_ms)
+    if not expected:
+        # No probe was due inside this bucket at all.
+        return UNKNOWN if not inside else HEALTHY
     if not inside:
-        return "missing"
+        return MISSING
+    answered = 0
+    for instant in expected:
+        if any(abs(p.observed_ms - instant) <= grace_ms for p in inside):
+            answered += 1
+    if answered == 0:
+        return FAILED
     if not any(p.ok for p in inside):
-        return "failed"
-    # Cadence is judged between consecutive PROBES only. Including the bucket
-    # edges would make a single probe in the middle of an hour "unhealthy"
-    # merely because the bucket is wider than the probe interval, which is a
-    # property of the window, not of the feed.
-    stamps = sorted(p.observed_ms for p in inside)
-    if len(stamps) > 1:
-        gap = max(b - a for a, b in zip(stamps, stamps[1:]))
-    else:
-        gap = 0
-    return "healthy" if gap <= cadence_ms else "failed"
+        return FAILED
+    # Order matters: a feed whose last expected probe is unanswered may have
+    # died silently, so `stale` outranks a partial answer set. A feed that
+    # answered everything but the final instant is stale, not intermittent;
+    # intermittent means it missed instances in the MIDDLE while still being
+    # alive at the end.
+    last = expected[-1]
+    last_answered = any(abs(p.observed_ms - last) <= grace_ms for p in inside)
+    if not last_answered:
+        return STALE
+    return HEALTHY if answered == len(expected) else INTERMITTENT
 
 
 def coverage_timeline(records, *, start_ms, end_ms, bucket_ms=3_600_000,
                       registry, heartbeats=None, cutoff_ms=None,
-                      cadence_by_source=None, min_uptime=0.5):
-    """Two independent reports per category per bucket: STORY and AVAILABILITY.
+                      grace_ms=90_000, min_uptime=0.5):
+    """Per bucket: STORY coverage and AVAILABILITY, as independent reports.
 
-    Stage-8 correction: these were conflated. `stories` counts validated,
-    registered source ids that ingested a story into the bucket (keyed by
-    observed_ms - when we saw it - not published_ms). `availability` comes only
-    from heartbeat probes. Neither can stand in for the other:
+    Availability comes only from heartbeat probes judged against each source's
+    DECLARED schedule (start_ms + cadence_ms + grace). A source that never
+    declares a schedule contributes `unknown`, never a health claim.
 
-      * a story never proves a feed is alive;
-      * an alive feed never proves a story was ingested;
-      * zero stories is not an outage.
-
-    Invalid records are quarantined with a reason and never move any numerator,
-    so `uptime` stays in [0, 1].
+    A late probe can be supplied only through an explicit correction event
+    (see `apply_correction`); it never mutates a frozen bucket silently.
     """
     if not isinstance(registry, SourceRegistry):
         raise AdapterError("registry_required")
@@ -488,6 +554,9 @@ def coverage_timeline(records, *, start_ms, end_ms, bucket_ms=3_600_000,
         raise AdapterError("bad_min_uptime_type")
     if not (0.0 <= float(min_uptime) <= 1.0):
         raise AdapterError("bad_min_uptime")
+    _strict_int(grace_ms, "grace_ms")
+    if grace_ms < 0:
+        raise AdapterError("bad_grace")
 
     declared = registry.category_sources()
     undeclared = [c for c in CATEGORIES if not declared.get(c)]
@@ -525,16 +594,21 @@ def coverage_timeline(records, *, start_ms, end_ms, bucket_ms=3_600_000,
 
     probes_by_source = {}
     quarantined_beats = []
+    seen_beats = set()
     for hb in heartbeats or ():
         try:
             validate_heartbeat(hb, registry=registry, cutoff_ms=cutoff)
+            key = (hb.source_id, hb.observed_ms, hb.ok, hb.clock)
+            if key in seen_beats:
+                # Duplicate probe: counted once. It is evidence, not a vote.
+                continue
+            seen_beats.add(key)
             probes_by_source.setdefault(hb.source_id, []).append(hb)
         except AdapterError as exc:
             quarantined_beats.append({"reason": str(exc),
                                       "source_id": getattr(hb, "source_id",
                                                            None)})
 
-    cadence_map = cadence_by_source or {}
     timeline = []
     for bucket_start in coverage_grid(start_ms, end_ms, bucket_ms=bucket_ms):
         bucket_end = bucket_start + bucket_ms
@@ -544,45 +618,64 @@ def coverage_timeline(records, *, start_ms, end_ms, bucket_ms=3_600_000,
             sources = declared[category]
             seen = ingested.get(bucket_start, {}).get(category, set())
             story_ratio = len(seen) / len(sources) if sources else 0.0
-            per_source, alive, failed, no_probe, unknown = {}, 0, 0, 0, 0
+            per_source, counts = {}, {}
             for sid in sources:
-                cadence = cadence_map.get(sid)
+                spec = registry.get(sid)
                 state = heartbeat_state(probes_by_source.get(sid, ()),
-                                        bucket_start=bucket_start,
+                                        spec=spec, bucket_start=bucket_start,
                                         bucket_end=bucket_end,
-                                        cadence_ms=cadence)
+                                        grace_ms=grace_ms)
                 per_source[sid] = state
-                if state == "healthy":
-                    alive += 1
-                elif state == "failed":
-                    failed += 1
-                elif state == "missing":
-                    no_probe += 1
-                else:
-                    unknown += 1
-            if unknown == len(sources):
-                status = "unknown"
-            elif alive:
-                status = "healthy"
-            elif failed:
-                status = "failed"
+                counts[state] = counts.get(state, 0) + 1
+            healthy = counts.get(HEALTHY, 0)
+            if counts.get(UNKNOWN, 0) == len(sources):
+                status = UNKNOWN
+            elif healthy:
+                status = HEALTHY
+            elif counts.get(FAILED):
+                status = FAILED
+            elif counts.get(STALE):
+                status = STALE
+            elif counts.get(INTERMITTENT):
+                status = INTERMITTENT
             else:
-                status = "missing"
-            availability = (alive / len(sources)) if sources else 0.0
+                status = MISSING
+            availability = (healthy / len(sources)) if sources else 0.0
             row["categories"][category] = {
                 "story": {"sources_with_story": len(seen),
                           "declared": len(sources),
                           "coverage": round(min(story_ratio, 1.0), 3),
                           "status": ("ok" if story_ratio > min_uptime
                                      else ("none" if not seen else "partial"))},
-                "availability": {"status": status,
-                                 "healthy": alive, "failed": failed,
-                                 "no_probe": no_probe, "unknown": unknown,
+                "availability": {"status": status, "counts": counts,
                                  "declared": len(sources),
                                  "uptime": round(min(availability, 1.0), 3),
                                  "per_source": per_source}}
         timeline.append(row)
     return {"timeline": timeline, "quarantined": quarantined,
             "quarantined_heartbeats": quarantined_beats,
-            "note": ("story coverage and availability are independent; "
-                     "an empty bucket is not an outage")}
+            "note": ("availability comes only from scheduled probes; a late "
+                     "probe changes a frozen bucket only via a correction")}
+
+
+def apply_correction(timeline_row, *, source_id, late_probe, reason):
+    """Explicit, versioned correction of one frozen bucket.
+
+    A late heartbeat must not silently rewrite a decision that was already
+    published. The corrected row is a NEW object with a version and the original
+    state preserved, so the audit trail keeps both.
+    """
+    if not isinstance(reason, str) or not reason.strip():
+        raise AdapterError("correction_reason_required")
+    if not isinstance(late_probe, Heartbeat):
+        raise AdapterError("not_a_heartbeat")
+    original = timeline_row["categories"][source_id]["availability"]
+    corrected = json.loads(json.dumps(timeline_row))
+    corrected["correction"] = {
+        "source_id": source_id, "late_probe_observed_ms":
+            int(late_probe.observed_ms), "late_probe_ok": bool(late_probe.ok),
+        "reason": reason, "original_status": original["status"],
+        "original_uptime": original["uptime"], "version":
+            (timeline_row.get("version") or 1) + 1}
+    corrected["version"] = corrected["correction"]["version"]
+    return corrected

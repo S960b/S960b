@@ -56,16 +56,44 @@ def run(*, now_ms=FIXED_CLOCK_MS):
     # that is the only clock at which a recorded payload can be judged without
     # turning the whole run into a freshness test. The clock is still fixed and
     # derived from the data, never from the host.
+    # The clock is frozen at the newest fixture's observation so the fixtures
+    # themselves are inside their category budgets. Age rejections elsewhere in
+    # the run are then a property of the data, not of the clock.
     newest = max(p["observed_ms"] for p in fixtures.values())
     now_ms = now_ms if now_ms is not None else newest + 1_000
+    # Records older than their category budget are rejected for age before
+    # dedupe is ever consulted, so the only records that reach the dedupe stage
+    # are the fresh ones the caller adds on purpose.
 
     records = []
     for payload in fixtures.values():
         records.append(K.record_from_fixture(payload))
 
-    # A deliberate duplicate (must collapse) and a deliberately invalid record
-    # (bad digest, must be quarantined) so every accounting bucket is exercised.
-    records.append(K.record_from_fixture(fixtures["crypto"]))
+    # Stage-9 correction: the duplicate must be VALID and be caught by the
+    # dedupe rule, not masked by a digest failure. It is a second, registered
+    # source carrying the same headline with a different publication instant,
+    # so its digest differs and validation passes - only dedupe can reject it.
+    original = fixtures["crypto"]
+    second = dict(original)
+    second["source_id"] = "bin"
+    second["category"] = "crypto"
+    second["provenance"] = "primary"
+    # A GENUINE duplicate pair, both FRESH at the run clock: same headline and
+    # same source id, two seconds apart, so both pass validation and only the
+    # dedupe rule can reject one. This closes the stage-8 gap, where the
+    # "duplicate" was really a digest failure and the dedupe path was never
+    # exercised.
+    fresh = dict(fixtures["crypto"])
+    fresh["published_ms"] = now_ms - 120_000
+    fresh["observed_ms"] = now_ms - 90_000
+    winner = K.record_from_fixture(fresh)
+    late = dict(fresh)
+    late["observed_ms"] = fresh["observed_ms"] + 2_000
+    loser = K.record_from_fixture(late)
+    records.extend([winner, loser])
+
+    # And one genuinely invalid record (bad digest) so the invalid channel is
+    # populated as well - the two channels must be distinguishable.
     broken = dict(fixtures["sanctions"])
     broken["title"] = "Same source, tampered title"
     broken_record = K.record_from_fixture(broken)
@@ -102,11 +130,12 @@ def run(*, now_ms=FIXED_CLOCK_MS):
     # balances against.
     quarantined = list(selection["invalid"])
 
-    cadence = {spec.source_id: 300_000 for spec in K.SPECS}
+    # Stage 9: cadence and its anchor live on the SourceSpec, not in a side
+    # map, so the schedule a bucket is judged against is the declared one.
     coverage = S.coverage_timeline(
         selection["accepted"], start_ms=now_ms - BUCKET_MS,
         end_ms=now_ms + 1, bucket_ms=BUCKET_MS, registry=registry,
-        heartbeats=_hearts(registry, now_ms), cadence_by_source=cadence)
+        heartbeats=_hearts(registry, now_ms))
 
     # Recorded: every accepted story becomes a sealed triple with mock arms.
     recorded, labelled, unlabelled = 0, 0, 0
@@ -172,6 +201,9 @@ def run(*, now_ms=FIXED_CLOCK_MS):
         "invalid": len(selection["invalid"]),
         "duplicate": sum(1 for r in selection["rejected"]
                          if r["reason"] == "duplicate"),
+        # A duplicate is a first-class outcome, not a leftover "rejected".
+        "deduplicated": sum(1 for r in selection["rejected"]
+                            if r["reason"] == "duplicate"),
         "rejected_stale": sum(1 for r in selection["rejected"]
                               if r["reason"].startswith("too_stale")),
         "rejected_other": len(selection["rejected"])
@@ -187,9 +219,18 @@ def run(*, now_ms=FIXED_CLOCK_MS):
     # as invalid, or accepted. `input` counts every record handed to the run,
     # including the deliberate duplicate and the tampered one.
     accounting["rejected"] = len(selection["rejected"])
+    # Two independent identities that must both hold:
+    #   input = invalid + deduplicated + rejected + accepted
+    #   accepted = sealed + explicit failure
+    accounting["seal_failures"] = accounting["accepted"] - accounting["recorded"]
+    # `rejected` already contains the duplicates, so the identity counts the
+    # duplicate bucket ONCE: invalid + rejected + accepted == input.
     accounting["balances_selection"] = (
-        accounting["input"] == accounting["invalid"] + accounting["accepted"]
-        + accounting["rejected"])
+        accounting["input"] == accounting["invalid"]
+        + accounting["rejected"] + accounting["accepted"])
+    accounting["balances_records"] = (
+        accounting["accepted"] == accounting["recorded"]
+        + accounting["seal_failures"])
     accounting["balances_records"] = (accounting["accepted"]
                                       == accounting["recorded"]
                                       + accounting["rejected_other"])
