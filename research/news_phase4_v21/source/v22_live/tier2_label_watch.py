@@ -242,12 +242,10 @@ def settle_one(con, row, *, now_ms, candle_fn, dry, max_failures=MAX_FAILURES,
 
     try:
         candle = candle_fn(due_ms=due)
-        T2.validate_candle(candle, due, symbol=TR.LABEL_SYMBOL)
     except Exception as exc:
-        # F06: a correctly timed request can still find that the exchange
-        # has not published the first closed candle. Waiting for publication
-        # does not spend failure attempts. After the hard max-wait deadline,
-        # retain the existing censoring rule instead of waiting forever.
+        # An exchange that has not yet published a closed candle is not a
+        # transport failure. Only the FETCH stage may grant this exception:
+        # validation bugs must never be hidden by matching an error substring.
         if ("label_pending_candle_open" in str(exc)
                 or "candle_not_closed" in str(exc)):
             if int(now_ms) - int(due) <= max_wait_ms:
@@ -255,9 +253,23 @@ def settle_one(con, row, *, now_ms, candle_fn, dry, max_failures=MAX_FAILURES,
                         "reason": "await_exchange_candle_close",
                         "due_ms": due}
         if classify(exc) != "transient":
-            # A bug is not an outage. Surface it and leave the row untouched.
             return {"event_id": event_id, "status": "error",
                     "reason": type(exc).__name__ + ":" + str(exc)[:160]}
+        if not _attempts_table_exists(con):
+            ensure_attempts(con)
+        return _count_failure(con, event_id, now_ms=now_ms, error=exc,
+                              due_ms=due, max_failures=max_failures,
+                              max_wait_ms=max_wait_ms)
+
+    try:
+        T2.validate_candle(candle, due, symbol=TR.LABEL_SYMBOL)
+    except Exception as exc:
+        # A malformed/contradictory candle returned by our parser is a
+        # validation failure, not "exchange not yet published". Count bounded
+        # failures and preserve the diagnostic in tier2_label_attempts.
+        if classify(exc) != "transient":
+            return {"event_id": event_id, "status": "error",
+                    "reason": "validation:" + type(exc).__name__ + ":" + str(exc)[:150]}
         if not _attempts_table_exists(con):
             ensure_attempts(con)
         return _count_failure(con, event_id, now_ms=now_ms, error=exc,
