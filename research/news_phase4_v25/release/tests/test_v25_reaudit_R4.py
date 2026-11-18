@@ -95,6 +95,42 @@ class BpsRangeTests(unittest.TestCase):
             "uncertainty": 0.4, "rationale": "offline",
         })
 
+    def _three_prompts(self, *, max_abs_bps=None):
+        import v22_arms as ARMS
+        import v22_runner as RUN
+        now = 1_800_000_000_000
+        cutoff = now // 3_600_000 * 3_600_000
+        candles = [(cutoff - i * 3_600_000,
+                    cutoff - i * 3_600_000 + 3_599_999,
+                    60_000.0 + i) for i in range(30, 0, -1)]
+        market = RUN.frozen_market(candles, cutoff)
+        event = {"event_id": "d" * 64, "source": "offline",
+                 "cohort": "geopolitics", "published_ms": now - 300_000,
+                 "observed_ms": now - 150_000,
+                 "title": "offline headline", "summary": ""}
+        kwargs = {} if max_abs_bps is None else {
+            "max_abs_bps": max_abs_bps}
+        return ARMS.build_prompts_3(event, market, **kwargs)
+
+    def test_F07_remaining_actual_tier2_wire_prompts_declare_10000(self):
+        prompts = self._three_prompts(max_abs_bps=int(max(
+            abs(T2.BPS_RANGE[0]), abs(T2.BPS_RANGE[1]))))
+        self.assertEqual(set(prompts), {"news", "news_market", "market"})
+        for arm in prompts:
+            outbound = TF.build_request("deepseek-v4-flash",
+                                        T2.ARM_SYSTEM_T2, prompts[arm])
+            user = outbound["messages"][1]["content"]
+            self.assertIn("expected_return_bps (-10000..10000)", user)
+            self.assertNotIn("(-2000..2000)", user)
+        self.assertNotIn("offline headline", prompts["market"])
+
+    def test_F07_remaining_legacy_v22_header_unchanged(self):
+        prompts = self._three_prompts()
+        self.assertTrue(all("expected_return_bps (-2000..2000)"
+                            in text for text in prompts.values()))
+        self.assertTrue(all("(-10000..10000)" not in text
+                            for text in prompts.values()))
+
     def test_F07_legacy_v21_parser_still_refuses_9000(self):
         with self.assertRaises(P.PrepError):
             P.parse_arm_response(self.text(9000))

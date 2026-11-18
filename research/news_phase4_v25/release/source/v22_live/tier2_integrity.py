@@ -63,7 +63,7 @@ def _message_content(raw):
 
 
 def _verify_live_arm(*, arm, trial_id, attestation_path, record,
-                     frozen_sha256):
+                     frozen_sha256, triple):
     """Check *actual* response content and exact request against all evidence."""
     if record.get("extra") != {"arm": arm["arm"], "trial_id": trial_id}:
         raise IntegrityError("attestation_arm_or_trial_mismatch:" + arm["arm"])
@@ -83,6 +83,26 @@ def _verify_live_arm(*, arm, trial_id, attestation_path, record,
     content = _message_content(wire["response"])
     if hashlib.sha256(content.encode("utf-8")).hexdigest() != arm["text_sha256"]:
         raise IntegrityError("response_text_not_raw_bound:" + arm["arm"])
+
+    # F02: hashes of a locally rewritten DB+bundle do NOT prove that the
+    # numeric decision originated from the raw model response. Reparse the
+    # original response with the same strict Tier-2 parser used at seal time.
+    import v21_paper_prep as P
+    import tier2 as T2
+    try:
+        parsed = P.parse_arm_response(
+            content, max_abs_bps=max(abs(T2.BPS_RANGE[0]),
+                                     abs(T2.BPS_RANGE[1])))
+        T2.validate_arm_payload(parsed, arm=arm["arm"])
+    except (P.PrepError, T2.Tier2Error, ValueError, TypeError) as exc:
+        raise IntegrityError("raw_forecast_invalid:" + arm["arm"] + ":"
+                             + str(exc)) from None
+    for field in ("p_up", "expected_return_bps", "uncertainty"):
+        if float(parsed[field]) != float(arm[field]):
+            raise IntegrityError("raw_forecast_numeric_mismatch:"
+                                 + arm["arm"] + ":" + field)
+    if T2.decision_label(parsed) != arm["action"]:
+        raise IntegrityError("raw_forecast_action_mismatch:" + arm["arm"])
 
     freeze = Path(attestation_path).parent / ("frozen-" + trial_id + ".json")
     if freeze.is_symlink() or not freeze.is_file():
@@ -104,6 +124,23 @@ def _verify_live_arm(*, arm, trial_id, attestation_path, record,
         raise IntegrityError("request_does_not_match_frozen_input:" + arm["arm"])
     if request.get("model") != arm["model_observed"]:
         raise IntegrityError("request_model_mismatch:" + arm["arm"])
+
+    # The real immutable input includes the precise candidate. A genuine
+    # triple must be tied to THAT candidate, not merely to the same prompts
+    # and raw response files. This check is required at seal and at read time.
+    event = frozen.get("event")
+    if not isinstance(event, dict) or not isinstance(triple, dict):
+        raise IntegrityError("frozen_event_or_triple_missing")
+    if (triple.get("event_id") != event.get("event_id")
+            or triple.get("cohort") != str(event.get("cohort")) + "|tier2"
+            or triple.get("published_ms") != event.get("published_ms")
+            or triple.get("cutoff_ms")
+               != int(event.get("cutoff_ms") or event["published_ms"])):
+        raise IntegrityError("frozen_event_triple_mismatch")
+    if (triple.get("prompts_sha256") != T2.canonical_sha(frozen["prompts"])
+            or triple.get("prompts_version") != frozen.get("prompt_version")
+            or triple.get("protocol_file_sha256") != frozen.get("protocol_sha256")):
+        raise IntegrityError("frozen_protocol_or_prompts_mismatch")
     return True
 
 
@@ -155,7 +192,7 @@ def prepare_binding(*, event_id, record, parsed_arms, attestation_path,
             _verify_live_arm(arm=arm_doc, trial_id=trial_id,
                              attestation_path=attestation_path,
                              record=chain[arm_doc["attestation_record_sha256"]][1],
-                             frozen_sha256=frozen_sha256)
+                             frozen_sha256=frozen_sha256, triple=record)
     else:
         # Fake/mock evidence has no genuine wire data. It may exercise the seal
         # logic offline but cannot be interpreted as a prospective observation.
@@ -252,7 +289,8 @@ def verify_binding(con, event_id, *, attestation_path=None, require_live=False):
             if mode == "live_raw":
                 _verify_live_arm(arm=doc, trial_id=trial,
                                  attestation_path=attestation_path,
-                                 record=att, frozen_sha256=bundle["frozen_sha256"])
+                                 record=att, frozen_sha256=bundle["frozen_sha256"],
+                                 triple=bundle["triple"])
     elif mode == "live_raw":
         raise IntegrityError("live_binding_requires_attestation_path")
     return bundle
