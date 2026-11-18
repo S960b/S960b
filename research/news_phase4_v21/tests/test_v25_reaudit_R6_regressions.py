@@ -28,8 +28,7 @@ class R6Regressions(unittest.TestCase):
             self.assertTrue(pid.is_symlink())
 
     def test_local_validation_not_infinite_pending(self):
-        import sqlite3
-        con = sqlite3.connect(":memory:")
+        con = T2.open_tier2(":memory:")
         due = 1_800_000_000_000
         row = {"event_id": "fixture", "due_ms": due}
         old = T2.validate_candle
