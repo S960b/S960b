@@ -106,6 +106,11 @@ class RealWireBindingTests(unittest.TestCase):
         self.att = self.root / "attestation.jsonl"
         self.freeze_bytes = (json.dumps({
             "trial_id": self.trial, "prompts": self.prompts,
+            "event": self.event,
+            "decision_ms": int(time.time() * 1000),
+            "cutoff_ms": self.event["published_ms"],
+            "prompt_version": T2.PROMPTS_VERSION,
+            "protocol_sha256": T2.protocol_sha(),
             "system_prompt": T2.ARM_SYSTEM_T2,
         }, sort_keys=True) + "\n").encode()
         (self.root / ("frozen-" + self.trial + ".json")).write_bytes(
@@ -188,6 +193,40 @@ class RealWireBindingTests(unittest.TestCase):
                                     "raw_evidence_invalid"):
             I.verify_binding(self.con, self.event["event_id"],
                              require_live=True)
+
+    def test_F02_remaining_frozen_event_cannot_change_before_seal(self):
+        answers = self._call_three()
+        self.event["event_id"] = "f" * 64
+        with self.assertRaisesRegex(I.IntegrityError,
+                                    "frozen_event_triple_mismatch"):
+            self._seal(answers)
+        self.assertEqual(self.con.execute(
+            "SELECT COUNT(*) FROM tier2_triples").fetchone()[0], 0)
+
+    def test_F02_remaining_rehashed_db_numbers_do_not_override_raw(self):
+        answers = self._call_three()
+        self._seal(answers)
+        eid = self.event["event_id"]
+        raw = self.con.execute(
+            "SELECT bundle_json FROM tier2_bindings WHERE event_id=?",
+            (eid,)).fetchone()[0]
+        bundle = json.loads(raw)
+        news = next(doc for doc in bundle["arms"]
+                    if doc["arm"] == "news")
+        news["p_up"] = 0.99   # raw still says 0.56
+        sha = I.sha(bundle)
+        self.con.execute(
+            "UPDATE tier2_arms SET p_up=0.99 WHERE event_id=? AND arm='news'",
+            (eid,))
+        self.con.execute(
+            "UPDATE tier2_bindings SET bundle_json=?,bundle_sha256=? "
+            "WHERE event_id=?", (I.canonical(bundle), sha, eid))
+        self.con.execute(
+            "UPDATE tier2_triples SET seal_sha256=? WHERE event_id=?", (sha, eid))
+        self.con.commit()
+        with self.assertRaisesRegex(I.IntegrityError,
+                                    "raw_forecast_numeric_mismatch"):
+            I.verify_binding(self.con, eid, require_live=True)
 
     def test_F02_modified_frozen_prompt_rejected(self):
         answers = self._call_three()
