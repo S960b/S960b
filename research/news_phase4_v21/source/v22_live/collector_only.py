@@ -60,7 +60,7 @@ _SINGLETON_LOCKS = {}
 def live_pid(pidfile=PIDFILE):
     """Return the pid in the file if that process is really alive, else None."""
     path = Path(pidfile)
-    if not path.exists():
+    if path.is_symlink() or not path.exists():
         return None
     try:
         pid = int(path.read_text().strip())
@@ -81,8 +81,10 @@ def claim_singleton(pidfile=PIDFILE, pid=None):
     Existing pre-F10 collectors still own the PID file without flock: honour
     their live PID until they exit rather than launching another writer.
     """
-    pidfile = Path(pidfile).resolve()
+    pidfile = Path(os.path.abspath(os.fspath(pidfile)))
     pidfile.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    if pidfile.is_symlink():
+        raise SingletonRefused("pidfile_symlink_refused")
     owner = int(os.getpid() if pid is None else pid)
     key = str(pidfile)
     existing = _SINGLETON_LOCKS.get(key)
@@ -126,10 +128,12 @@ def release(pidfile=PIDFILE, pid=None):
     A stale/foreign PID value is never erased. The permanent sidecar lock
     inode stays in place for every future contender.
     """
-    pidfile = Path(pidfile).resolve()
+    pidfile = Path(os.path.abspath(os.fspath(pidfile)))
     key = str(pidfile)
     owner = int(os.getpid() if pid is None else pid)
     held = _SINGLETON_LOCKS.get(key)
+    if pidfile.is_symlink():
+        return False
     if held is None or held[1] != owner:
         return False
     if live_pid(pidfile) != owner:
