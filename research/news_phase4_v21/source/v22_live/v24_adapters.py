@@ -30,7 +30,9 @@ TERMS NOTES (evidence, not licences):
     seconds, far below the 10 req/s ceiling.
 """
 import hashlib
+import http.client
 import json
+import ssl
 import time
 import urllib.error
 import urllib.request
@@ -89,7 +91,15 @@ def fetch(url, *, limiter, opener=None, accept=None):
         req = urllib.request.Request(url, headers=headers)
         try:
             opened = (opener or urllib.request.urlopen)(req, timeout=TIMEOUT_S)
-            raw = opened.read(MAX_BYTES + 1)
+            try:
+                raw = opened.read(MAX_BYTES + 1)
+            except (TimeoutError, ConnectionError, ssl.SSLError,
+                    http.client.IncompleteRead) as exc:
+                # F04: urllib may return a response successfully then time out
+                # while reading its body. A body-read outage belongs to THIS
+                # source only; the collector can log FetchError and poll SEC.
+                # Never reinterpret a partial response as a complete RSS.
+                raise FetchError("transport_body:" + type(exc).__name__) from None
             if len(raw) > MAX_BYTES:
                 raise FetchError("payload_too_large")
             return {"url": url, "body": raw,
