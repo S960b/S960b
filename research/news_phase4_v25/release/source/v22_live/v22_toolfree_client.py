@@ -62,29 +62,49 @@ def digest(obj):
     return hashlib.sha256(payload).hexdigest()
 
 
-def call(*, model, system, user, opener=None):
-    """One bounded generation call. Returns evidence, or raises IsolationError."""
+def call(*, model, system, user, opener=None, raw_capture=None):
+    """One generation; optionally fsync raw wire bytes BEFORE interpreting them.
+
+    The capture hook is invoked BEFORE any outbound request, and after receipt
+    of the complete response body even for invalid JSON or HTTP errors.
+    This is observational capture, not evidence of upstream tool isolation.
+    """
     body = build_request(model, system, user)
     raw = json.dumps(body).encode()
+    if raw_capture is not None:
+        raw_capture("request", raw, {"status": None})
     req = urllib.request.Request(ENDPOINT, data=raw, method="POST",
                                  headers={"Content-Type": "application/json"})
     try:
         resp = (opener or urllib.request.urlopen)(req, timeout=TIMEOUT_S)
         status = getattr(resp, "status", 200)
-        payload = resp.read().decode("utf-8", "replace")
-        # The gateway reports its identity in the body (`id`), and only falls
-        # back to headers on other deployments. Either is fine; absence is not,
-        # because the seal requires a non-empty session identity.
-        request_id = (resp.headers.get("x-request-id")
-                      or resp.headers.get("x-gw-request-id"))
+        response_bytes = resp.read()
+        headers = getattr(resp, "headers", {}) or {}
+        request_id = (headers.get("x-request-id")
+                      or headers.get("x-gw-request-id"))
     except urllib.error.HTTPError as exc:
+        # Preserve an HTTP failure body if it exists. No retries. Close the
+        # response even when the capture fails; otherwise tests -W error warn.
+        try:
+            response_bytes = exc.read()
+            if raw_capture is not None and response_bytes:
+                raw_capture("response", response_bytes, {
+                    "status": exc.code, "provider_request_id": None,
+                    "transport_error": True})
+        finally:
+            exc.close()
         raise IsolationError("http_" + str(exc.code)) from None
     except urllib.error.URLError as exc:
+        # Only the request exists; absence of response is an explicit failure.
         raise IsolationError("transport:" + type(exc.reason).__name__) from None
 
+    if raw_capture is not None:
+        raw_capture("response", response_bytes, {
+            "status": status, "provider_request_id": request_id})
     try:
+        payload = response_bytes.decode("utf-8", "strict")
         data = json.loads(payload)
-    except ValueError:
+    except (UnicodeError, ValueError):
         raise IsolationError("response_not_json") from None
 
     choices = data.get("choices") or []
@@ -92,12 +112,24 @@ def call(*, model, system, user, opener=None):
         raise IsolationError("response_empty_choices")
     message = (choices[0] or {}).get("message") or {}
 
-    # Structural refusals, in the order that matters most.
-    if message.get("tool_calls"):
+    # F09: inspect ALL choices, not only choices[0]. Old chat/completions
+    # gateways use message.function_call instead of message.tool_calls. A tool
+    # attempt cannot be treated as a model-only paper prediction.
+    if data.get("function_call") is not None:
+        raise IsolationError("legacy_function_call_in_response")
+    if data.get("tool_calls") is not None:
         raise IsolationError("tool_call_present_in_response")
+    for choice in choices:
+        ch_message = (choice or {}).get("message") or {}
+        if ch_message.get("function_call") is not None:
+            raise IsolationError("legacy_function_call_in_response")
+        if ch_message.get("tool_calls") is not None:
+            raise IsolationError("tool_call_present_in_response")
     tool_items = [it for it in (data.get("output") or [])
                   if isinstance(it, dict) and it.get("type") in
-                  ("function_call", "tool_call", "computer_call")]
+                  ("function_call", "tool_call", "computer_call",
+                   "web_search_call", "file_search_call",
+                   "code_interpreter_call")]
     if tool_items:
         raise IsolationError("tool_item_present_in_response")
 
@@ -127,7 +159,7 @@ def call(*, model, system, user, opener=None):
         # The actual bytes, not a reconstruction: an attestation hashed from a
         # rebuilt body would be a claim about what we meant to send.
         "request_raw": raw,
-        "response_raw": payload.encode(),
+        "response_raw": response_bytes,
         "request_body": body,
         "model": model_id,
         "provider_request_id": request_id,

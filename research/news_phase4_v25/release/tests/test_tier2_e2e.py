@@ -94,6 +94,17 @@ class EndToEndTests(unittest.TestCase):
             "observational_tier2")
         self.assertEqual(TR.claim_state(self.con)["state"], "done")
 
+    def test_F01_completed_slow_arms_not_discarded_after_entry(self):
+        # At the decision time the news is fresh; the post-response quote can
+        # arrive after the category freshness window without invalidating it.
+        out = self._run(clock=lambda: NOW + 900_000)
+        self.assertEqual(out["status"], "sealed")
+        row = self.con.execute(
+            "SELECT COUNT(*), MAX(created_ms) FROM tier2_triples").fetchone()
+        self.assertEqual(row[0], 1)
+        self.assertGreaterEqual(row[1], NOW + 900_000)
+        self.assertEqual(TR.claim_state(self.con)["state"], "done")
+
     def test_second_attempt_is_refused_and_no_second_triple(self):
         self._run()
         with self.assertRaises(T2.Tier2Error) as ctx:

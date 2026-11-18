@@ -90,6 +90,10 @@ CREATE TABLE IF NOT EXISTS tier2_outcomes(
  event_id TEXT PRIMARY KEY, due_ms INTEGER NOT NULL, price REAL NOT NULL,
  observed_ms INTEGER NOT NULL, source TEXT NOT NULL, drift_ms INTEGER NOT NULL,
  label_state TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS tier2_bindings(
+ event_id TEXT PRIMARY KEY REFERENCES tier2_triples(event_id),
+ trial_id TEXT NOT NULL, mode TEXT NOT NULL,
+ bundle_json TEXT NOT NULL, bundle_sha256 TEXT NOT NULL);
 """
 
 
@@ -382,9 +386,16 @@ def validate_candle(candle, due_ms, *, symbol=QUOTE_SYMBOL):
 # --------------------------------------------------------------------- seal
 
 def seal_triple(*, con, event, arm_results, quote, attestation_path, now_ms,
-                prompts_sha256, cohort_extra="|tier2", published_max_ms=None):
-    """Seal one Tier-2 triple. Refuses rather than repairs."""
-    validate_event(event, now_ms, published_max_ms=published_max_ms)
+                prompts_sha256, cohort_extra="|tier2", published_max_ms=None,
+                decision_ms=None, trial_id=None, frozen_sha256=None):
+    """Seal one Tier-2 triple; freshness is evaluated at decision, not seal.
+
+    Successful model answers cannot age a previously admissible observation
+    into a refusal. The caller must pass the immutable pre-inference decision
+    timestamp. Older offline fixtures retain their original now_ms behaviour.
+    """
+    validate_event(event, now_ms if decision_ms is None else decision_ms,
+                   published_max_ms=published_max_ms)
     validate_arm_set(arm_results)
     last_arm_ms = max(int(a["completed_ms"]) for a in arm_results)
     validate_quote(quote, last_arm_ms, event["published_ms"], now_ms=now_ms)
@@ -429,7 +440,8 @@ def seal_triple(*, con, event, arm_results, quote, attestation_path, now_ms,
     parsed = []
     for a in arm_results:
         try:
-            row = P.parse_arm_response(a["text"])
+            row = P.parse_arm_response(
+                a["text"], max_abs_bps=max(abs(BPS_RANGE[0]), abs(BPS_RANGE[1])))
         except Exception as exc:
             raise Tier2Error("arm_payload_invalid:" + str(a["arm"]) + ":"
                              + str(exc)) from None
@@ -467,7 +479,14 @@ def seal_triple(*, con, event, arm_results, quote, attestation_path, now_ms,
         "horizon_ms": HORIZON_MS,
         "created_ms": int(now_ms),
     }
-    seal = canonical_sha(record)
+    # The seal binds all normalized arm values and per-arm wire/attestation
+    # identities, not merely a digest of the first response.
+    import tier2_integrity as INTEG
+    bundle = INTEG.prepare_binding(
+        event_id=record["event_id"], record=record, parsed_arms=parsed,
+        attestation_path=attestation_path, trial_id=trial_id,
+        frozen_sha256=frozen_sha256)
+    seal = INTEG.sha(bundle)
 
     if con.execute("SELECT 1 FROM tier2_triples WHERE event_id=?",
                    (record["event_id"],)).fetchone():
@@ -490,6 +509,7 @@ def seal_triple(*, con, event, arm_results, quote, attestation_path, now_ms,
                      float(row["expected_return_bps"]),
                      float(row["uncertainty"]),
                      hashlib.sha256(a["text"].encode()).hexdigest(), TIER))
+    INTEG.persist_binding(con, bundle)
     con.commit()
     return {"status": "sealed", "tier": TIER, "event_id": record["event_id"],
             "seal": seal, "cohort": record["cohort"]}
@@ -771,6 +791,7 @@ def live_executor(*, model="deepseek-v4-flash", attestation_path,
     """
     import v22_attestation as AT
     import v22_toolfree_client as TF
+    import tier2_raw_store as RAW
 
     def execute(prompts, *, now_ms, con=None, trial_id=None):
         # The gate is re-checked before EVERY invocation, not once per executor.
@@ -791,8 +812,16 @@ def live_executor(*, model="deepseek-v4-flash", attestation_path,
             # must cost a slot, otherwise restarting could exceed three calls.
             record_invocation(con, trial_id=trial_id, arm=arm, now_ms=started,
                               session_id="pending", limit=act["max_model_invocations"])
+            # Write exact request bytes BEFORE network; fsync the response
+            # BEFORE parsing it, even when the response is invalid JSON/HTTP.
+            # Incomplete artifacts stay as evidence; no automatic retry.
+            capture = RAW.raw_capture(attestation_path=attestation_path,
+                                      trial_id=trial_id, arm=arm)
             res = TF.call(model=model, system=ARM_SYSTEM_T2,
-                          user=prompts[arm], opener=opener)
+                          user=prompts[arm], opener=opener, raw_capture=capture)
+            RAW.verify_wire(attestation_path=attestation_path, trial_id=trial_id,
+                            arm=arm, request_sha256=res["request_sha256"],
+                            response_sha256=res["response_sha256"])
             # Digests come from the ACTUAL bytes: what the client sent, and what
             # the gateway returned. Nothing is rebuilt into the record.
             #

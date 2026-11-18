@@ -1329,7 +1329,7 @@ class Tier2ProtocolTests(unittest.TestCase):
         names = {r[0] for r in self.con.execute(
             "SELECT name FROM sqlite_master WHERE type='table'")}
         self.assertEqual(names, {"tier2_triples", "tier2_arms",
-                                 "tier2_outcomes"})
+                                 "tier2_outcomes", "tier2_bindings"})
 
 
 class Tier2ActivationTests(unittest.TestCase):

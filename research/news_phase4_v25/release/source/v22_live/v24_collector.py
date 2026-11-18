@@ -202,8 +202,12 @@ def resolve_identity(con, *, source_id, title, published_ms):
     return canonical, False
 
 
-def tick(*, con, limiter, sources=None, keep_raw=True):
-    """One bounded collection pass. Returns per-source counts."""
+def tick(*, con, limiter, sources=None, keep_raw=True, raw_dir=None):
+    """One bounded collection pass. Explicit raw_dir isolates offline tests.
+
+    Production defaults to the existing archive namespace; test callers pass
+    a disposable path. This avoids reliance on patching an import-time default.
+    """
     out = {}
     for sid in (sources or list(AD.SOURCES)):
         try:
@@ -220,9 +224,10 @@ def tick(*, con, limiter, sources=None, keep_raw=True):
         # One archive entry per successful HTTP response, even when the parsed
         # feed yields no dated items: the bytes are the provenance, the items are
         # a derivation. A zero-item poll with no archived body is unverifiable.
-        archived_for_source = (archive_raw(fetched=got.get("raw_body") or {},
-                                          source_id=sid)
-                              if keep_raw else None)
+        archived_for_source = (
+            archive_raw(fetched=got.get("raw_body") or {}, source_id=sid,
+                        raw_dir=RAW_DIR if raw_dir is None else raw_dir)
+            if keep_raw else None)
         if archived_for_source:
             con.execute(
                 "INSERT OR IGNORE INTO v24_raw_manifest(raw_sha256, source_id,"
@@ -235,6 +240,23 @@ def tick(*, con, limiter, sources=None, keep_raw=True):
                  archived_for_source["raw_path"],
                  int(time.time() * 1000)))
             con.commit()
+
+        # A malformed feed is still an authentic HTTP response and must be
+        # archived, but cannot produce news items. Record the individual source
+        # failure, then continue polling the remaining allowlisted sources.
+        parse_error = got.get("parse_error")
+        if parse_error:
+            con.execute(
+                "INSERT INTO v24_fetch_log(at_ms,source_id,url,http_status,"
+                "content_type,attempts,records_seen,records_new,error) "
+                "VALUES(?,?,?,?,?,?,?,?,?)",
+                (int(time.time() * 1000), sid, AD.SOURCES[sid]["url"],
+                 got["fetched"]["status"], got["fetched"]["content_type"],
+                 got["fetched"]["attempts"], 0, 0, str(parse_error)))
+            con.commit()
+            out[sid] = {"error": str(parse_error), "archived": bool(archived_for_source),
+                        "new": 0}
+            continue
 
         new = duplicated = unparseable = state_recorded = 0
         for rec in got["records"]:

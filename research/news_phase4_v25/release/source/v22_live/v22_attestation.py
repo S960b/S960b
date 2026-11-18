@@ -116,9 +116,18 @@ def response_facts(parsed):
     types = [it.get("type") for it in items if isinstance(it, dict)]
     calls = [t for t in types if t in TOOL_ITEM_TYPES]
     msg_tool_calls = []
+    legacy_calls = []
     for it in items:
-        if isinstance(it, dict) and it.get("tool_calls"):
+        if isinstance(it, dict) and it.get("tool_calls") is not None:
             msg_tool_calls.append(len(it["tool_calls"]))
+    for choice in parsed.get("choices") or []:
+        msg = (choice or {}).get("message") or {}
+        if msg.get("tool_calls") is not None:
+            msg_tool_calls.append(len(msg["tool_calls"]))
+        if msg.get("function_call") is not None:
+            legacy_calls.append("message.function_call")
+    if parsed.get("function_call") is not None:
+        legacy_calls.append("response.function_call")
     return {
         "parsed": True,
         "response_id": parsed.get("id"),
@@ -127,6 +136,7 @@ def response_facts(parsed):
         "output_item_types": sorted(set(t for t in types if t)),
         "tool_items": calls,
         "tool_calls_in_items": msg_tool_calls,
+        "legacy_function_calls": legacy_calls,
         "has_top_level_tools": "tools" in parsed,
     }
 
@@ -225,6 +235,7 @@ def attest(*, chat_body, upstream_body, parsed, latency_ms, model_expected,
             "gateway": "gateway_response_no_tool_calls"
                        if not facts.get("tool_items")
                        and not facts.get("tool_calls_in_items")
+                       and not facts.get("legacy_function_calls")
                        else "gateway_response_has_tool_calls",
             "upstream": "upstream_unverified",
         },

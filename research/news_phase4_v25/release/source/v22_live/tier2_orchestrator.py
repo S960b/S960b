@@ -35,7 +35,7 @@ class OrchestratorError(RuntimeError):
 
 def run_trial(*, con, event, prompts, executor, quote_fn, now_ms,
               trial_id, attestation_path, gate_check=None, candle_fn=None,
-              published_max_ms=None, clock=None):
+              published_max_ms=None, clock=None, frozen_sha256=None):
     """Execute one Tier-2 trial end to end. Returns a step-by-step record.
 
     `executor`, `quote_fn` and `candle_fn` are injected so the harness can run
@@ -53,9 +53,13 @@ def run_trial(*, con, event, prompts, executor, quote_fn, now_ms,
     step("gate", trial_id=trial_id)
 
     # 2. event ------------------------------------------------------------
-    T2.validate_event(event, now_ms, published_max_ms=published_max_ms)
+    # This is the pre-inference decision clock. Model latency must never
+    # redefine eligibility; the post-response clock is for entry/quote only.
+    decision_ms = int(now_ms)
+    T2.validate_event(event, decision_ms, published_max_ms=published_max_ms)
     step("event", event_id=event["event_id"], cohort=event["cohort"],
-         age_s=(int(now_ms) - int(event.get("observed_ms")
+         decision_ms=decision_ms,
+         age_s=(decision_ms - int(event.get("observed_ms")
                                   or event["published_ms"])) // 1000)
 
     # 3. reserve ----------------------------------------------------------
@@ -101,7 +105,9 @@ def run_trial(*, con, event, prompts, executor, quote_fn, now_ms,
                             attestation_path=attestation_path,
                             now_ms=max(int(now_ms), quote["observed_ms"] + 1),
                             prompts_sha256=prompts_sha,
-                            published_max_ms=published_max_ms)
+                            published_max_ms=published_max_ms,
+                            decision_ms=decision_ms, trial_id=trial_id,
+                            frozen_sha256=frozen_sha256)
     step("seal", status=sealed["status"], seal=sealed.get("seal"),
          cohort=sealed.get("cohort"))
 

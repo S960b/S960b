@@ -99,7 +99,17 @@ def fetch(url, *, limiter, opener=None, accept=None):
                     "attempts": attempts}
         except urllib.error.HTTPError as exc:
             # A 403 is a policy answer. Report it; never retry around it.
-            raise FetchError("http_" + str(exc.code)) from None
+            # Retain bounded Retry-After diagnostics for 429/503 without
+            # changing retries, admission, or feed-processing semantics.
+            retry_after = (exc.headers.get("Retry-After") or "").strip() if exc.headers else ""
+            if exc.code in (429, 503) and retry_after:
+                # Untrusted response headers must not inject log lines.
+                safe = "".join(c for c in retry_after[:64]
+                               if c.isalnum() and c.isascii() or c in " ,:-")
+                suffix = ":retry_after=" + safe if safe else ""
+            else:
+                suffix = ""
+            raise FetchError("http_" + str(exc.code) + suffix) from None
         except urllib.error.URLError as exc:
             if attempts >= MAX_ATTEMPTS:
                 raise FetchError("transport:" + type(exc.reason).__name__) from None
@@ -173,19 +183,36 @@ QUARANTINED = {
 def harvest(source_id, *, limiter, opener=None):
     spec = SOURCES[source_id]
     fetched = fetch(spec["url"], limiter=limiter, opener=opener)
+    # A successfully fetched response is evidence EVEN IF its XML/JSON is
+    # malformed. Do not let one bad feed abort collection from other sources.
+    # The caller archives raw bytes first, then records the per-source failure.
+    parse_error = None
     if spec["format"] == "rss":
-        records = parse_rss(fetched["body"], source_id=source_id,
-                            category=spec["category"],
-                            provenance=spec["provenance"], fetched=fetched)
+        try:
+            records = parse_rss(fetched["body"], source_id=source_id,
+                                category=spec["category"],
+                                provenance=spec["provenance"], fetched=fetched)
+        except ET.ParseError:
+            records = []
+            parse_error = "rss_malformed_xml"
     else:
-        payload = json.loads(fetched["body"])
-        records = [{"source_id": source_id, "category": spec["category"],
-                    "provenance": spec["provenance"],
-                    "title": "kraken status " + json.dumps(payload.get("result", {}))[:120],
-                    "origin_url": spec["url"],
-                    "published_raw": None,
-                    "observed_ms": fetched["observed_ms"],
-                    "raw_sha256": hashlib.sha256(fetched["body"]).hexdigest()}]
+        try:
+            payload = json.loads(fetched["body"])
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            records = []
+            parse_error = "json_malformed_payload"
+        else:
+            if not isinstance(payload, dict):
+                records = []
+                parse_error = "json_wrong_root"
+            else:
+                records = [{"source_id": source_id, "category": spec["category"],
+                            "provenance": spec["provenance"],
+                            "title": "kraken status " + json.dumps(payload.get("result", {}))[:120],
+                            "origin_url": spec["url"],
+                            "published_raw": None,
+                            "observed_ms": fetched["observed_ms"],
+                            "raw_sha256": hashlib.sha256(fetched["body"]).hexdigest()}]
     for rec in records:
         rec["terms_decision"] = spec["terms"]
         rec["dated"] = spec.get("dated", True)
@@ -198,7 +225,7 @@ def harvest(source_id, *, limiter, opener=None):
             "fetched": {"status": fetched["status"],
                         "content_type": fetched["content_type"],
                                                 "attempts": fetched["attempts"]},
-            "records": records}
+            "records": records, "parse_error": parse_error}
 
 
 if __name__ == "__main__":

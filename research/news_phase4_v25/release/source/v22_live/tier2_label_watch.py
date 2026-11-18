@@ -30,6 +30,7 @@ from pathlib import Path
 
 import tier2 as T2
 import tier2_trigger as TR
+import tier2_integrity as INTEG
 
 MAX_FAILURES = 3
 MAX_WAIT_MS = 6 * 3_600_000
@@ -90,6 +91,13 @@ def sealed_rows(con):
         "ORDER BY created_ms ASC").fetchall()
     out = []
     for event_id, entry_ms, horizon_ms in rows:
+        # A sealed-looking DB row is NOT evidence of validity. Verify the
+        # canonical full-arm digest, raw bytes and attestation chain BEFORE
+        # any exchange call or irreversible +4h label write.
+        try:
+            INTEG.verify_binding(con, event_id)
+        except INTEG.IntegrityError as exc:
+            raise LabelWatchError("sealed_evidence_invalid:" + str(exc)) from None
         entry_ms, horizon_ms = int(entry_ms), int(horizon_ms)
         if entry_ms <= 0 or horizon_ms <= 0:
             raise LabelWatchError("sealed_entry_or_horizon_invalid")
@@ -211,6 +219,16 @@ def settle_one(con, row, *, now_ms, candle_fn, dry, max_failures=MAX_FAILURES,
         return {"event_id": event_id, "status": "pending",
                 "reason": "not_due_yet", "due_ms": due}
 
+    # F06: the target Binance candle cannot be closed until the end of the
+    # minute containing due_ms. Polling sooner is NOT an exchange failure and
+    # must not consume the bounded three-failure budget. Binance kline close
+    # timestamps are minute_open + 59_999 milliseconds.
+    first_close_ms = (int(due) // 60_000) * 60_000 + 59_999
+    if int(now_ms) <= first_close_ms:
+        return {"event_id": event_id, "status": "pending",
+                "reason": "await_first_closed_candle",
+                "due_ms": due, "first_close_ms": first_close_ms}
+
     if dry:
         # Dry decides what it WOULD do. No writes, no schema creation.
         try:
@@ -224,12 +242,34 @@ def settle_one(con, row, *, now_ms, candle_fn, dry, max_failures=MAX_FAILURES,
 
     try:
         candle = candle_fn(due_ms=due)
-        T2.validate_candle(candle, due, symbol=TR.LABEL_SYMBOL)
     except Exception as exc:
+        # An exchange that has not yet published a closed candle is not a
+        # transport failure. Only the FETCH stage may grant this exception:
+        # validation bugs must never be hidden by matching an error substring.
+        if ("label_pending_candle_open" in str(exc)
+                or "candle_not_closed" in str(exc)):
+            if int(now_ms) - int(due) <= max_wait_ms:
+                return {"event_id": event_id, "status": "pending",
+                        "reason": "await_exchange_candle_close",
+                        "due_ms": due}
         if classify(exc) != "transient":
-            # A bug is not an outage. Surface it and leave the row untouched.
             return {"event_id": event_id, "status": "error",
                     "reason": type(exc).__name__ + ":" + str(exc)[:160]}
+        if not _attempts_table_exists(con):
+            ensure_attempts(con)
+        return _count_failure(con, event_id, now_ms=now_ms, error=exc,
+                              due_ms=due, max_failures=max_failures,
+                              max_wait_ms=max_wait_ms)
+
+    try:
+        T2.validate_candle(candle, due, symbol=TR.LABEL_SYMBOL)
+    except Exception as exc:
+        # A malformed/contradictory candle returned by our parser is a
+        # validation failure, not "exchange not yet published". Count bounded
+        # failures and preserve the diagnostic in tier2_label_attempts.
+        if classify(exc) != "transient":
+            return {"event_id": event_id, "status": "error",
+                    "reason": "validation:" + type(exc).__name__ + ":" + str(exc)[:150]}
         if not _attempts_table_exists(con):
             ensure_attempts(con)
         return _count_failure(con, event_id, now_ms=now_ms, error=exc,

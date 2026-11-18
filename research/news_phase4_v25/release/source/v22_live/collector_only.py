@@ -18,6 +18,8 @@ Hard rules encoded here, not documented elsewhere:
 Run: python3 collector_only.py --max-hours 12 --interval-s 180
 """
 import argparse
+import errno
+import fcntl
 import json
 import os
 import signal
@@ -48,10 +50,17 @@ class SingletonRefused(RuntimeError):
     pass
 
 
+# One held kernel lock per PID file, for the entire collector lifetime.
+# A separate permanent inode avoids a PID-file unlink/replacement lock race.
+# Atomic flock closes the concurrent claim window, while the PID file
+# preserves compatibility with older pre-F10 collectors already running.
+_SINGLETON_LOCKS = {}
+
+
 def live_pid(pidfile=PIDFILE):
     """Return the pid in the file if that process is really alive, else None."""
     path = Path(pidfile)
-    if not path.exists():
+    if path.is_symlink() or not path.exists():
         return None
     try:
         pid = int(path.read_text().strip())
@@ -65,29 +74,80 @@ def live_pid(pidfile=PIDFILE):
 
 
 def claim_singleton(pidfile=PIDFILE, pid=None):
-    """Write our pid, or raise if another live instance holds the file."""
-    pidfile = Path(pidfile)
-    pidfile.parent.mkdir(parents=True, exist_ok=True)
-    other = live_pid(pidfile)
-    if other is not None and other != (pid or os.getpid()):
-        raise SingletonRefused(f"already_running:{other}")
-    pidfile.write_text(str(pid or os.getpid()))
-    return pid or os.getpid()
+    """Atomically claim a persistent sidecar flock, then publish PID safely.
+
+    The sidecar file is NEVER unlinked. Different processes lock the same
+    inode, including when the PID file is stale, absent, or being replaced.
+    Existing pre-F10 collectors still own the PID file without flock: honour
+    their live PID until they exit rather than launching another writer.
+    """
+    pidfile = Path(os.path.abspath(os.fspath(pidfile)))
+    pidfile.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    if pidfile.is_symlink():
+        raise SingletonRefused("pidfile_symlink_refused")
+    owner = int(os.getpid() if pid is None else pid)
+    key = str(pidfile)
+    existing = _SINGLETON_LOCKS.get(key)
+    if existing is not None:
+        if existing[1] == owner:
+            return owner
+        raise SingletonRefused("already_running:" + str(existing[1]))
+    lockpath = pidfile.with_name(pidfile.name + ".lock")
+    flags = os.O_CREAT | os.O_RDWR
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    fd = os.open(str(lockpath), flags, 0o600)
+    try:
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            raise SingletonRefused("already_locked") from None
+        other = live_pid(pidfile)
+        if other is not None and other != owner:
+            raise SingletonRefused(f"already_running:{other}")
+        # PID writes are serialized by the sidecar, even if pidfile was stale.
+        flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
+        if hasattr(os, "O_NOFOLLOW"):
+            flags |= os.O_NOFOLLOW
+        pid_fd = os.open(str(pidfile), flags, 0o600)
+        try:
+            os.write(pid_fd, str(owner).encode("ascii"))
+            os.fsync(pid_fd)
+        finally:
+            os.close(pid_fd)
+        _SINGLETON_LOCKS[key] = (fd, owner)
+        return owner
+    except BaseException:
+        os.close(fd)
+        raise
 
 
 def release(pidfile=PIDFILE, pid=None):
-    """Remove the pid file only if it is ours (a crash of another run must not
-    let us delete its lock)."""
-    pidfile = Path(pidfile)
-    try:
-        holder = int(pidfile.read_text().strip())
-    except (ValueError, OSError):
-        return False
-    if holder != (pid or os.getpid()):
-        return False
-    pidfile.unlink(missing_ok=True)
-    return True
+    """Release only the current process's held lock and matching PID file.
 
+    A stale/foreign PID value is never erased. The permanent sidecar lock
+    inode stays in place for every future contender.
+    """
+    pidfile = Path(os.path.abspath(os.fspath(pidfile)))
+    key = str(pidfile)
+    owner = int(os.getpid() if pid is None else pid)
+    held = _SINGLETON_LOCKS.get(key)
+    if pidfile.is_symlink():
+        return False
+    if held is None or held[1] != owner:
+        return False
+    if live_pid(pidfile) != owner:
+        # If someone tampered with the PID file, do not remove their entry,
+        # but do release our own kernel lock on shutdown.
+        os.close(held[0])
+        del _SINGLETON_LOCKS[key]
+        return False
+    try:
+        pidfile.unlink(missing_ok=True)
+    finally:
+        os.close(held[0])
+        del _SINGLETON_LOCKS[key]
+    return True
 
 def stop_requested(stop_file=STOP_FILE):
     return Path(stop_file).exists()
