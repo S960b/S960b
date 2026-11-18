@@ -37,14 +37,20 @@ class AnalyzerTests(unittest.TestCase):
                      "market": (0.5, 0.0, 0.5)})["due_ms"]
 
     def label(self, due, price=64640.0):
+        # Store an actual minute-aligned first eligible close, not a fabricated
+        # close at due+59999 (due is not generally minute aligned).
+        close_ms = (int(due) // 60_000) * 60_000 + 59_999
+        if close_ms < due:
+            close_ms += 60_000
         self.con.execute(
             "INSERT INTO tier2_outcomes VALUES (?,?,?,?,?,?,?)",
-            (self.event_id, due, price, due + 59_999,
-             "binance_public_1m_kline", 59_999, "labelled"))
+            (self.event_id, due, price, close_ms,
+             "binance_public_1m_kline", close_ms - due, "labelled"))
         self.con.commit()
 
     def analyze(self, **kw):
-        return A.analyze(db_path=self.db, now_ms=NOW, **kw)
+        return A.analyze(db_path=self.db,
+                         now_ms=NOW + T2.HORIZON_MS + 120_000, **kw)
 
     def test_F08_absent_db_never_created(self):
         missing = self.root / "absent.sqlite"
@@ -127,6 +133,72 @@ class AnalyzerTests(unittest.TestCase):
         got = self.analyze(include_offline_fixtures=True)
         self.assertEqual(got["status"], "invalid_evidence_found")
         self.assertEqual(got["counts"]["invalid"], 1)
+
+    def test_F08_remaining_unverified_label_source_rejected(self):
+        due = self.seal_fixture()
+        self.label(due)
+        self.con.execute(
+            "UPDATE tier2_outcomes SET source='manual_unverified'")
+        self.con.commit()
+        got = self.analyze(include_offline_fixtures=True)
+        self.assertEqual(got["status"], "invalid_evidence_found")
+        self.assertEqual(got["counts"]["invalid"], 1)
+        self.assertEqual(got["arms_offline_fixture_diagnostic"]["news"]["n"], 0)
+
+    def test_F08_remaining_exactly_60000_drift_refused(self):
+        due = self.seal_fixture()
+        self.label(due)
+        self.con.execute(
+            "UPDATE tier2_outcomes SET observed_ms=?, drift_ms=60000",
+            (due + 60_000,))
+        self.con.commit()
+        got = self.analyze(include_offline_fixtures=True)
+        self.assertEqual(got["status"], "invalid_evidence_found")
+        self.assertEqual(got["counts"]["invalid"], 1)
+
+    def test_F08_remaining_future_label_not_in_as_of_snapshot(self):
+        due = self.seal_fixture()
+        self.label(due)
+        close = self.con.execute(
+            "SELECT observed_ms FROM tier2_outcomes").fetchone()[0]
+        before = A.analyze(db_path=self.db, now_ms=close - 1,
+                           include_offline_fixtures=True)
+        self.assertEqual(before["status"], "invalid_evidence_found")
+        self.assertEqual(before["arms_live"]["news"]["n"], 0)
+        self.assertEqual(before["arms_offline_fixture_diagnostic"]["news"]["n"], 0)
+        after = A.analyze(db_path=self.db, now_ms=close + 1,
+                          include_offline_fixtures=True)
+        self.assertEqual(after["status"], "ok")
+        self.assertEqual(after["arms_offline_fixture_diagnostic"]["news"]["n"], 1)
+
+    def test_F08_remaining_aborted_trial_visible_without_any_triple(self):
+        import tier2_trigger as TR
+        self.con.executescript(TR.CLAIM_SCHEMA)
+        T2.open_attempts(self.con)
+        trial = "aborted-r6-example"
+        self.con.execute(
+            "INSERT INTO tier2_claim(id,trial_id,event_id,claimed_ms,state)"
+            " VALUES(1,?,?,?,'aborted')", (trial, self.event_id, NOW))
+        for arm, state in (("news", "completed"), ("news_market", "completed"),
+                           ("market", "failed")):
+            self.con.execute(
+                "INSERT INTO tier2_attempts("
+                "trial_id,arm,state,reserved_ms) VALUES(?,?,?,?)",
+                (trial, arm, state, NOW))
+            self.con.execute(
+                "INSERT INTO tier2_calls(trial_id,arm,invoked_ms,session_id)"
+                " VALUES(?,?,?,?)", (trial, arm, NOW, "mock-only"))
+        self.con.commit()
+        got = self.analyze()
+        self.assertEqual(got["counts"]["triples"], 0)
+        diag = got["trial_diagnostics"]
+        self.assertEqual(diag["claim_states"]["aborted"], 1)
+        self.assertEqual(diag["aborted_without_triple"], 1)
+        self.assertEqual(diag["trials_without_triple"], 1)
+        self.assertEqual(diag["attempt_states"]["completed"], 2)
+        self.assertEqual(diag["attempt_states"]["failed"], 1)
+        self.assertEqual(diag["model_invocations"], 3)
+        self.assertEqual(got["arms_live"]["news"]["n"], 0)
 
     def test_F08_feed_transport_lag_diagnostics_only(self):
         feed = self.root / "feed.sqlite"
