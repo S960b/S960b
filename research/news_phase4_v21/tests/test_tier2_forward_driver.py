@@ -178,12 +178,14 @@ class CandidateTest(unittest.TestCase):
              patch.object(D.T2, "DATA", self.root), \
              patch.object(D.P, "fetch_market", return_value={"candle_count": 26}), \
              patch.object(D.A, "audit_market_payload"), \
-             patch.object(D.A, "build_prompts_3", return_value=prompts), \
+             patch.object(D.A, "build_prompts_3",
+                          return_value=prompts) as mocked_builder, \
              patch.object(D.A, "audit_market_arm_isolation"), \
              patch.object(D.T2, "open_tier2", side_effect=AssertionError("no_db")), \
              patch.object(D.T2, "live_executor", side_effect=AssertionError("no_model")):
             result = D.execute_once(feed_db=self.db, now_ms=self.now, dry=False)
         self.assertEqual(result["status"], "freeze_already_exists")
+        self.assertEqual(mocked_builder.call_args.kwargs["max_abs_bps"], 10000)
         self.assertEqual(result["freeze_sha256"], hashlib.sha256(
             path.read_bytes()).hexdigest())
 
