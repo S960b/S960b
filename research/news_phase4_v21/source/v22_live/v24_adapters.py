@@ -99,7 +99,17 @@ def fetch(url, *, limiter, opener=None, accept=None):
                     "attempts": attempts}
         except urllib.error.HTTPError as exc:
             # A 403 is a policy answer. Report it; never retry around it.
-            raise FetchError("http_" + str(exc.code)) from None
+            # Retain bounded Retry-After diagnostics for 429/503 without
+            # changing retries, admission, or feed-processing semantics.
+            retry_after = (exc.headers.get("Retry-After") or "").strip() if exc.headers else ""
+            if exc.code in (429, 503) and retry_after:
+                # Untrusted response headers must not inject log lines.
+                safe = "".join(c for c in retry_after[:64]
+                               if c.isalnum() and c.isascii() or c in " ,:-")
+                suffix = ":retry_after=" + safe if safe else ""
+            else:
+                suffix = ""
+            raise FetchError("http_" + str(exc.code) + suffix) from None
         except urllib.error.URLError as exc:
             if attempts >= MAX_ATTEMPTS:
                 raise FetchError("transport:" + type(exc.reason).__name__) from None
