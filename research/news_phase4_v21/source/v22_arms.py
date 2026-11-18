@@ -49,7 +49,8 @@ NEWS_FIELDS = ("news", "title", "summary", "source", "source_kind",
                "published_ms", "observed_ms", "event_id")
 
 
-def build_prompts_3(event, market, *, prompt_version=PROMPT_VERSION):
+def build_prompts_3(event, market, *, prompt_version=PROMPT_VERSION,
+                    max_abs_bps=2000):
     """Return the three arm prompts plus their digests.
 
     N  = news block only (the v1 contract, unchanged in content)
@@ -62,6 +63,12 @@ def build_prompts_3(event, market, *, prompt_version=PROMPT_VERSION):
     """
     if prompt_version not in (PROMPT_VERSION,):
         raise P.PrepError("unknown_prompt_version")
+    if type(max_abs_bps) is not int or max_abs_bps not in (2000, 10000):
+        raise P.PrepError("unknown_prompt_bps_contract")
+    # The strict v2.2 path keeps its original header exactly. Only an
+    # explicit Tier-2 caller may ask for the separately preregistered ±10000.
+    header = (PROMPT_SYSTEM_V22 if max_abs_bps == 2000 else
+              PROMPT_SYSTEM_V22.replace("(-2000..2000)", "(-10000..10000)"))
     if not isinstance(market, dict) or market.get("candle_count") != 26:
         raise P.PrepError("market_features_required")
     # A dict carrying only the count is not a feature vector: the M arm would
@@ -91,9 +98,9 @@ def build_prompts_3(event, market, *, prompt_version=PROMPT_VERSION):
     # only difference between M and the news arms above the JSON is the word
     # after "ARM:". It says what inputs exist, never which event this is.
     prompts = {
-        ARM_NEWS: PROMPT_SYSTEM_V22 + "\nARM:news_only\nFROZEN_INPUT_JSON:\n" + n_body,
-        ARM_NEWS_MARKET: PROMPT_SYSTEM_V22 + "\nARM:news_plus_market\nFROZEN_INPUT_JSON:\n" + nm_body,
-        ARM_MARKET: PROMPT_SYSTEM_V22 + "\nARM:market_only\nFROZEN_INPUT_JSON:\n" + m_body,
+        ARM_NEWS: header + "\nARM:news_only\nFROZEN_INPUT_JSON:\n" + n_body,
+        ARM_NEWS_MARKET: header + "\nARM:news_plus_market\nFROZEN_INPUT_JSON:\n" + nm_body,
+        ARM_MARKET: header + "\nARM:market_only\nFROZEN_INPUT_JSON:\n" + m_body,
     }
     if len(set(prompts.values())) != 3:
         raise P.PrepError("degenerate_arm_prompts")
