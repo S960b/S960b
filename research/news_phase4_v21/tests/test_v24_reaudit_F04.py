@@ -95,6 +95,46 @@ class MalformedSourceTests(unittest.TestCase):
         self.assertEqual(got["records"], [])
         self.assertEqual(got["raw_body"]["body"], b"[]")
 
+    def test_F04_remaining_timeout_inside_body_read_continues_sec(self):
+        class Response:
+            status = 200
+            headers = {"Content-Type": "application/rss+xml"}
+
+            def __init__(self, *, fail, body=b""):
+                self.fail, self.body = fail, body
+
+            def read(self, limit):
+                if self.fail:
+                    raise TimeoutError("timed out while reading RSS body")
+                return self.body
+
+        called = []
+        def fake_open(req, timeout=None):
+            url = req.full_url
+            called.append(url)
+            if "federalreserve.gov" in url:
+                return Response(fail=True)
+            if "sec.gov" in url:
+                return Response(fail=False, body=self.good)
+            raise AssertionError("unexpected test URL " + url)
+
+        with patch.object(AD.urllib.request, "urlopen",
+                          side_effect=fake_open):
+            out = COL.tick(con=self.db,
+                           limiter=AD.RateLimiter(now=lambda: self.now),
+                           sources=["fed_press_monetary", "sec_press"],
+                           raw_dir=self.root / "raw")
+        self.assertEqual(len(called), 2)
+        self.assertEqual(out["fed_press_monetary"]["error"],
+                         "transport_body:TimeoutError")
+        self.assertEqual(out["sec_press"]["new"], 1)
+        self.assertEqual(self.db.execute(
+            "SELECT error FROM v24_fetch_log WHERE source_id='fed_press_monetary'"
+        ).fetchone()[0], "transport_body:TimeoutError")
+        self.assertEqual(self.db.execute(
+            "SELECT COUNT(*) FROM v24_events WHERE source_id='sec_press'"
+        ).fetchone()[0], 1)
+
     def test_F04_no_silent_success_on_corrupt_payload(self):
         first = self.run_tick(["fed_press_monetary"])
         self.assertIn("error", first["fed_press_monetary"])
