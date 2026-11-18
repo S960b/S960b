@@ -206,7 +206,12 @@ def execute_once(*, feed_db=FEED_DB, now_ms=None, dry=True):
     cutoff = P.decision_cutoff(now_ms)
     market = P.fetch_market("live", cutoff)
     A.audit_market_payload(market, cutoff_ms=cutoff, now_ms=now_ms)
-    prompts = A.build_prompts_3(event, market)
+    # F07: the actual three transmitted user prompts must declare the SAME
+    # ±10000 bps that the preregistered Tier-2 parser and seal enforce.
+    # No effect on legacy strict-v2.2 callers using the 2000-bps default.
+    prompts = A.build_prompts_3(
+        event, market, max_abs_bps=int(max(abs(T2.BPS_RANGE[0]),
+                                            abs(T2.BPS_RANGE[1]))))
     meta = {arm: A.execution_metadata(arm, event_ms=cutoff,
                                       model_id="deepseek-v4-flash")
             for arm in A.ARM_NAMES}
