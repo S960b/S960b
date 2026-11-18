@@ -71,7 +71,7 @@ def _arm_stats(records):
     }
 
 
-def _event_outcome(con, event_id, triple, bundle):
+def _event_outcome(con, event_id, triple, bundle, *, now_ms):
     outcome = con.execute(
         "SELECT due_ms, price, observed_ms, source, drift_ms, label_state "
         "FROM tier2_outcomes WHERE event_id=?", (event_id,)).fetchone()
@@ -85,12 +85,29 @@ def _event_outcome(con, event_id, triple, bundle):
     if state != "labelled":
         raise AnalysisError("unrecognised_outcome_state")
     expected_due = int(triple["entry_observed_ms"]) + int(triple["horizon_ms"])
-    if (int(due) != expected_due or not math.isfinite(float(price))
-            or float(price) <= 0
-            or int(observed) < expected_due
-            or int(drift) != int(observed) - expected_due
-            or abs(int(drift)) > T2.MAX_DRIFT_MS):
-        raise AnalysisError("outcome_fields_invalid")
+    if (type(due) is not int or type(observed) is not int
+            or type(drift) is not int or due != expected_due
+            or observed > int(now_ms)):
+        # now_ms has as-of snapshot semantics. A future observation cannot
+        # contribute to an earlier descriptive report.
+        raise AnalysisError("outcome_time_or_due_invalid")
+    if source != "binance_public_1m_kline":
+        raise AnalysisError("outcome_source_not_verified")
+    if drift != observed - expected_due:
+        raise AnalysisError("outcome_drift_inconsistent")
+    # Stored outcomes keep close_ms and price but not open_ms/closed flag. A
+    # real 1m close has open_ms = close_ms - 59999, minute-aligned. Delegate
+    # ALL price/alignment/drift conditions to the SAME Tier-2 validator as the
+    # live label worker; do not reconstruct a relaxed competing contract.
+    try:
+        T2.validate_candle({
+            "symbol": T2.QUOTE_SYMBOL, "closed": True,
+            "open_ms": observed - T2.CANDLE_INTERVAL_MS + 1,
+            "close_ms": observed, "close": price,
+            "source": source,
+        }, expected_due)
+    except T2.Tier2Error as exc:
+        raise AnalysisError("outcome_candle_invalid:" + str(exc)) from None
     entry = float(triple["entry_price"])
     if not math.isfinite(entry) or entry <= 0:
         raise AnalysisError("entry_price_invalid")
@@ -158,6 +175,43 @@ def inspect_feed_lags(feed_db, now_ms):
         con.close()
 
 
+def _trial_diagnostics(con):
+    """Report abandoned attempts even when zero triples could be sealed.
+
+    Claims and attempt state are durable operational evidence, not trades or
+    samples for PnL. Read-only queries must not create missing tables.
+    """
+    tables = _tables(con)
+    result = {
+        "available_tables": sorted(tables.intersection(
+            {"tier2_claim", "tier2_attempts", "tier2_calls"})),
+        "claim_states": {}, "attempt_states": {},
+        "model_invocations": 0, "aborted_without_triple": 0,
+        "trials_without_triple": 0,
+    }
+    if "tier2_claim" in tables:
+        rows = con.execute(
+            "SELECT c.trial_id,c.event_id,c.state,"
+            "CASE WHEN t.event_id IS NULL THEN 0 ELSE 1 END "
+            "FROM tier2_claim c LEFT JOIN tier2_triples t "
+            "ON c.event_id=t.event_id LIMIT ?", (MAX_ROWS + 1,)).fetchall()
+        if len(rows) > MAX_ROWS:
+            raise AnalysisError("claim_row_limit_exceeded")
+        result["claim_states"] = dict(Counter(row[2] for row in rows))
+        result["aborted_without_triple"] = sum(
+            row[2] == "aborted" and not row[3] for row in rows)
+        result["trials_without_triple"] = sum(not row[3] for row in rows)
+    if "tier2_attempts" in tables:
+        rows = con.execute(
+            "SELECT state,COUNT(*) FROM tier2_attempts GROUP BY state"
+        ).fetchall()
+        result["attempt_states"] = dict(rows)
+    if "tier2_calls" in tables:
+        result["model_invocations"] = con.execute(
+            "SELECT COUNT(*) FROM tier2_calls").fetchone()[0]
+    return result
+
+
 def analyze(*, db_path, feed_db=None, now_ms=None,
             attestation_path=None, include_offline_fixtures=False):
     now_ms = int(time.time() * 1000) if now_ms is None else int(now_ms)
@@ -173,6 +227,12 @@ def analyze(*, db_path, feed_db=None, now_ms=None,
             "pending": 0, "censored": 0, "invalid": 0,
         },
         "invalid": [],
+        "trial_diagnostics": {
+            "available_tables": [], "claim_states": {}, "attempt_states": {},
+            "model_invocations": 0, "aborted_without_triple": 0,
+            "trials_without_triple": 0,
+        },
+        "as_of_ms": now_ms,
         "arms_live": {a: _arm_stats([]) for a in ARMS},
         "arms_offline_fixture_diagnostic": {a: _arm_stats([]) for a in ARMS},
         "feed_lag_diagnostics": inspect_feed_lags(feed_db, now_ms),
@@ -187,6 +247,7 @@ def analyze(*, db_path, feed_db=None, now_ms=None,
                     "tier2_bindings"}
         if not required.issubset(_tables(con)):
             raise AnalysisError("required_tier2_tables_missing")
+        report["trial_diagnostics"] = _trial_diagnostics(con)
         ids = [x[0] for x in con.execute(
             "SELECT event_id FROM tier2_triples ORDER BY created_ms,event_id "
             "LIMIT ?", (MAX_ROWS + 1,))]
@@ -206,7 +267,8 @@ def analyze(*, db_path, feed_db=None, now_ms=None,
                 kind = ("verified_live" if mode == "live_raw"
                         else "verified_offline_fixture")
                 report["counts"][kind] += 1
-                result = _event_outcome(con, event_id, bundle["triple"], bundle)
+                result = _event_outcome(con, event_id, bundle["triple"], bundle,
+                                        now_ms=now_ms)
                 state = result["state"]
                 if state == "pending":
                     report["counts"]["pending"] += 1
