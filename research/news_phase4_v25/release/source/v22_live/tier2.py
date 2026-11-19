@@ -775,6 +775,30 @@ def record_invocation(con, *, trial_id, arm, now_ms, session_id, limit=3):
     return used + 1
 
 
+def record_call_response(con, *, trial_id, arm, provider_response_id):
+    """Store an actual response id in the durable call row, once.
+
+    Never turn an absent id into a synthetic id. Historical 'pending' entries
+    remain untouched; new reservations start as SQL NULL.
+    """
+    ident = (provider_response_id if provider_response_id is not None
+             else "unavailable:no_provider_id")
+    if not isinstance(ident, str) or not ident or len(ident) > 256:
+        raise Tier2Error("provider_response_id_invalid")
+    con.execute("BEGIN IMMEDIATE")
+    try:
+        cur = con.execute(
+            "UPDATE tier2_calls SET session_id=? "
+            "WHERE trial_id=? AND arm=? AND session_id IS NULL",
+            (ident, trial_id, arm))
+        if cur.rowcount != 1:
+            raise Tier2Error("call_response_not_reserved_or_duplicate")
+        con.commit()
+    except BaseException:
+        con.rollback()
+        raise
+
+
 def calls_used(con, trial_id):
     return con.execute("SELECT COUNT(*) FROM tier2_calls WHERE trial_id=?",
                        (trial_id,)).fetchone()[0]
@@ -811,7 +835,7 @@ def live_executor(*, model="deepseek-v4-flash", attestation_path,
             # Consume the durable budget BEFORE the call: a crash mid-flight
             # must cost a slot, otherwise restarting could exceed three calls.
             record_invocation(con, trial_id=trial_id, arm=arm, now_ms=started,
-                              session_id="pending", limit=act["max_model_invocations"])
+                              session_id=None, limit=act["max_model_invocations"])
             # Write exact request bytes BEFORE network; fsync the response
             # BEFORE parsing it, even when the response is invalid JSON/HTTP.
             # Incomplete artifacts stay as evidence; no automatic retry.
@@ -819,6 +843,10 @@ def live_executor(*, model="deepseek-v4-flash", attestation_path,
                                       trial_id=trial_id, arm=arm)
             res = TF.call(model=model, system=ARM_SYSTEM_T2,
                           user=prompts[arm], opener=opener, raw_capture=capture)
+            # A provider response id is best-effort provenance; it is not a
+            # network request header and must not be fabricated.
+            record_call_response(con, trial_id=trial_id, arm=arm,
+                                 provider_response_id=res.get("provider_request_id"))
             RAW.verify_wire(attestation_path=attestation_path, trial_id=trial_id,
                             arm=arm, request_sha256=res["request_sha256"],
                             response_sha256=res["response_sha256"])
