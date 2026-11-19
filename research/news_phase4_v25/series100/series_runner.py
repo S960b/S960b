@@ -272,7 +272,13 @@ def execute_one():
             # No replay of this claimed event. Even one failed model call costs
             # its slot and keeps all raw artifacts for independent review.
             try:
-                G.finalize(con, event_id=event["event_id"], state="unknown",
+                # A failed freeze/preflight before ANY model invocation is
+                # definitely aborted; uncertain in-flight calls remain unknown.
+                used = con.execute(
+                    "SELECT COUNT(*) FROM series_invocations WHERE event_id=?",
+                    (event["event_id"],)).fetchone()[0]
+                final_state = "aborted" if used == 0 else "unknown"
+                G.finalize(con, event_id=event["event_id"], state=final_state,
                            reason=(type(exc).__name__ + ":" + str(exc))[:180])
             except Exception as final_error:
                 print("series_claim_finalize_failed:" + type(final_error).__name__
