@@ -162,6 +162,13 @@ def parse_feed(raw, *, source_id, observed_ms):
         # Parse item summaries as descriptive metadata, no article scraping.
         summary_raw = first_value(item, ("description", "summary", "encoded", "content"))
         summary = plaintext(summary_raw, MAX_SUMMARY)
+        # CryptoSlate includes a promotional trailer in RSS descriptions.
+        # Trim only known trailing boilerplate, never the news title.
+        if source_id == "cryptoslate":
+            for marker in ("Read the full story on CryptoSlate", "Get The Catalyst"):
+                idx = summary.lower().find(marker.lower())
+                if idx >= 0:
+                    summary = summary[:idx].rstrip(" .:;—-")
         out.append({
             "source_id": source_id,
             "category": category,
@@ -207,6 +214,13 @@ def selftest():
     got = parse_feed(rss, source_id="bitcoin_core", observed_ms=time_observed)
     assert got["entries_seen"] == 1 and len(got["records"]) == 1, got
     assert got["records"][0]["summary"] == "Upgrade details"
+    promo = (b'<rss><channel><item><title>BTC upgrade</title>'
+             b'<link>https://example.org/bitcoin</link>'
+             b'<pubDate>Thu, 19 Nov 2026 19:00:00 GMT</pubDate>'
+             b'<description>Important market event. Read the full story on CryptoSlate'
+             b' Get The Catalyst</description></item></channel></rss>')
+    trimmed = parse_feed(promo, source_id="cryptoslate", observed_ms=time_observed)
+    assert trimmed["records"][0]["summary"] == "Important market event"
     assert publication(got["records"][0]["published_raw"])[0] == got["records"][0]["published_ms"]
     atom = (b'<feed xmlns="http://www.w3.org/2005/Atom">'
             b'<entry><title>SOL network restored</title>'
