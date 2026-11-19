@@ -94,7 +94,7 @@ def _item_witness(*, raw_body, source, cohort, provenance, title,
                for rec in records)
 
 
-def candidate(con, now_ms):
+def candidate(con, now_ms, exclude_ids=None):
     """Admit only an EXACT item from an authenticated archived RSS response.
 
     SHA + matching timestamps alone are not enough: the headline/link/date
@@ -114,11 +114,14 @@ def candidate(con, now_ms):
     ORDER BY e.published_ms DESC, e.content_sha256 ASC
     """
     rows = con.execute(query).fetchall()
+    excluded = set(exclude_ids or ())
     for row in rows:
         (event_id, source, cohort, provenance, title, origin_url, pub, obs,
          raw_sha, path, manifest_path, status,
          obs_raw_sha, obs_recorded_ms, manifest_source, manifest_ms,
          obs_title, obs_url, obs_published, obs_source, manifest_url) = row
+        if event_id in excluded:
+            continue
         # Historical records may acquire a later RSS archive when their feed is
         # re-fetched. That is NOT evidence of the bytes observed originally.
         spec = AD.SOURCES.get(source)
