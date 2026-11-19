@@ -24,6 +24,9 @@ unverified; evidence tier observational_tier2.
   Sealing binds raw request/response bytes and attestation evidence.
 - Labels are independently settled at the due time; missing/invalid labels
   remain censored or pending, never fabricated.
+- Activation has explicit start and expiry timestamps chosen before GO. At
+  expiry stop new inferences and report attained n, even if below 100. Due
+  +4-hour labels already sealed remain eligible to settle after expiry.
 - Stop on 100 sealed, 300 calls, expired activation, explicit revocation,
   unexpected integrity failure, or unrecoverable operational condition.
   No real orders, positions, leverage, trades or wallets.
