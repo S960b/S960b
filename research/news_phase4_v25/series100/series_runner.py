@@ -18,7 +18,10 @@ from contextlib import closing
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-LIVE = HERE.parent / "release" / "source" / "v22_live"
+SOURCE = HERE.parent / "release" / "source"
+LIVE = SOURCE / "v22_live"
+if str(SOURCE) not in sys.path:
+    sys.path.insert(0, str(SOURCE))
 if str(LIVE) not in sys.path:
     sys.path.insert(0, str(LIVE))
 if str(HERE) not in sys.path:
@@ -168,6 +171,32 @@ def model_executor(*, event_id, series_id, attestation_path):
     return execute
 
 
+def _singleton():
+    """Acquire nonblocking local exclusive lock before any model-related work.
+
+    This is defense-in-depth; SQLite claims/limits remain the authority.
+    """
+    import contextlib
+    import fcntl
+    import os
+    @contextlib.contextmanager
+    def hold():
+        if ROOT.is_symlink():
+            raise SeriesError("series_root_is_symlink")
+        ROOT.mkdir(parents=True, exist_ok=True, mode=0o700)
+        fd = os.open(str(ROOT / "SERIES_RUN.lock"),
+                     os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
+        try:
+            try:
+                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                raise SeriesError("series_run_already_active") from None
+            yield
+        finally:
+            os.close(fd)
+    return hold()
+
+
 def execute_one():
     act = approved()
     if DB.is_symlink():
@@ -245,8 +274,9 @@ def execute_one():
             try:
                 G.finalize(con, event_id=event["event_id"], state="unknown",
                            reason=(type(exc).__name__ + ":" + str(exc))[:180])
-            except Exception:
-                pass
+            except Exception as final_error:
+                print("series_claim_finalize_failed:" + type(final_error).__name__
+                      + ":" + str(final_error)[:180], file=sys.stderr, flush=True)
             raise
 
 
@@ -297,8 +327,12 @@ def main(argv=None):
                        help="settle due market labels; NO model calls")
     args = ap.parse_args(argv)
     try:
-        result = (execute_one() if args.execute else
-                  settle_labels() if args.label else status())
+        if args.execute:
+            approved()
+            with _singleton():
+                result = execute_one()
+        else:
+            result = settle_labels() if args.label else status()
         print(json.dumps(result, ensure_ascii=False, sort_keys=True))
         return 0
     except Exception as exc:
