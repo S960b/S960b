@@ -387,7 +387,8 @@ def validate_candle(candle, due_ms, *, symbol=QUOTE_SYMBOL):
 
 def seal_triple(*, con, event, arm_results, quote, attestation_path, now_ms,
                 prompts_sha256, cohort_extra="|tier2", published_max_ms=None,
-                decision_ms=None, trial_id=None, frozen_sha256=None):
+                decision_ms=None, trial_id=None, frozen_sha256=None,
+                protocol_file_sha256=None):
     """Seal one Tier-2 triple; freshness is evaluated at decision, not seal.
 
     Successful model answers cannot age a previously admissible observation
@@ -464,7 +465,7 @@ def seal_triple(*, con, event, arm_results, quote, attestation_path, now_ms,
         "tier": TIER,
         "prompts_version": PROMPTS_VERSION,
         "prompts_sha256": prompts_sha256,
-        "protocol_file_sha256": protocol_sha(),
+        "protocol_file_sha256": protocol_file_sha256 or protocol_sha(),
         "attestation_record_sha256": arm_results[0]["attestation_record_sha256"],
         "attestation_chain_pos": arm_results[0]["_chain_pos"],
         "model_observed": arm_results[0]["model_observed"],
