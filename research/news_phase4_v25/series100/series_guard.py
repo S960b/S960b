@@ -88,12 +88,16 @@ def validate_activation(*, activation_path, gate_path, current_ms=None):
         raise Refused("owner_go_missing")
     if not isinstance(data.get("series_id"), str) or not ID_RE.fullmatch(data["series_id"]):
         raise Refused("invalid_series_id")
-    start, expires = data.get("started_ms"), data.get("expires_ms")
-    if not isinstance(start, int) or not isinstance(expires, int) or expires <= start:
+    # Owner chose no calendar expiry: stop on approved budget or gate revocation.
+    # An activation must DECLARE that policy, not simply omit an expiry.
+    start = data.get("started_ms")
+    if (type(start) is not int or start <= 0
+            or data.get("no_calendar_expiry") is not True
+            or data.get("expires_ms", None) is not None):
         raise Refused("invalid_activation_window")
     t = now_ms() if current_ms is None else int(current_ms)
-    if not start <= t < expires:
-        raise Refused("series_expired_or_not_started")
+    if t < start:
+        raise Refused("series_not_started")
     return data
 
 
