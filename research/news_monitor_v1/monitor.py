@@ -83,7 +83,7 @@ def snapshot(tier2, news, series=None):
     out = {"checked_at": datetime.now(timezone.utc).isoformat(), "events": [],
            "counts": {"triples":0,"labelled":0,"model_calls":0}, "errors": [],
            "components": {k:state(u) for k,u in [
-               ("collector","news-phase4-v24-collector.timer"),
+               ("collector","news-phase4-collector.timer"),
                ("trial","news-phase4-tier2-trial.timer"),
                ("label","news-phase4-tier2-label.timer")]}}
     titles = {}
