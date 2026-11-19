@@ -59,11 +59,19 @@ class GuardTests(unittest.TestCase):
             "upstream_tool_isolation": "unverified", "paper_only": True,
             "max_model_invocations": 300, "max_events": 100, "owner_go": True,
             "owner_seq": 500, "series_id": "multi100",
-            "started_ms": 1000, "expires_ms": 3000
+            "started_ms": 1000, "expires_ms": None,
+            "no_calendar_expiry": True
         }
         act.write_text(json.dumps(record))
         self.assertEqual(g.validate_activation(activation_path=act, gate_path=gate,
                                               current_ms=1200)["series_id"], "multi100")
+        self.assertEqual(g.validate_activation(activation_path=act, gate_path=gate,
+                                              current_ms=3000000)["series_id"], "multi100")
+        record["expires_ms"] = 4000
+        act.write_text(json.dumps(record))
+        with self.assertRaises(g.Refused):
+            g.validate_activation(activation_path=act, gate_path=gate, current_ms=1200)
+        record["expires_ms"] = None
         record["max_model_invocations"] = 301
         act.write_text(json.dumps(record))
         with self.assertRaises(g.Refused):
