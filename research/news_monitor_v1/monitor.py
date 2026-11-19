@@ -79,48 +79,76 @@ def state(unit):
     except (OSError,subprocess.TimeoutExpired):
         return {"state":"unavailable"}
 
-def snapshot(tier2, news):
-    out = {"checked_at": datetime.now(timezone.utc).isoformat(), "events":[], "counts":{}, "errors":[],
+def snapshot(tier2, news, series=None):
+    out = {"checked_at": datetime.now(timezone.utc).isoformat(), "events": [],
+           "counts": {"triples":0,"labelled":0,"model_calls":0}, "errors": [],
            "components": {k:state(u) for k,u in [
-               ("collector","news-phase4-v24-collector.timer"),("trial","news-phase4-tier2-trial.timer"),
+               ("collector","news-phase4-v24-collector.timer"),
+               ("trial","news-phase4-tier2-trial.timer"),
                ("label","news-phase4-tier2-label.timer")]}}
-    titles={}
+    titles = {}
     try:
-        c=db(news)
-        if c is None: raise FileNotFoundError(str(news))
+        c = db(news)
+        if c is None:
+            raise FileNotFoundError(str(news))
         try:
-            if has_table(c,"v24_events"):
+            if has_table(c, "v24_events"):
                 for r in c.execute("SELECT published_ms,category,title,source_id FROM v24_events ORDER BY published_ms DESC LIMIT 5000"):
                     titles.setdefault((r["published_ms"],r["category"]),[]).append(dict(r))
-        finally: c.close()
-    except (OSError,sqlite3.Error) as e: out["errors"].append("News DB: "+str(e))
-    try:
-        c=db(tier2)
-        if c is None: raise FileNotFoundError(str(tier2))
+        finally:
+            c.close()
+    except (OSError,sqlite3.Error) as e:
+        out["errors"].append("News DB: " + str(e))
+    sources = [("first",tier2)]
+    if series is not None:
+        sources.append(("series100",series))
+    for tag,path in sources:
         try:
-            if not has_table(c,"tier2_triples"): return out
-            triples=c.execute("SELECT event_id,cohort,published_ms,created_ms,entry_price FROM tier2_triples ORDER BY created_ms DESC LIMIT 300").fetchall()
-            arms={}
-            if has_table(c,"tier2_arms"):
-                for r in c.execute("SELECT event_id,arm,action,p_up,expected_return_bps FROM tier2_arms"):
-                    arms.setdefault(r["event_id"],[]).append(dict(r))
-            outcomes={}
-            if has_table(c,"tier2_outcomes"):
-                outcomes={r["event_id"]:dict(r) for r in c.execute("SELECT event_id,price,label_state FROM tier2_outcomes")}
-            out["counts"]["triples"]=c.execute("SELECT COUNT(*) FROM tier2_triples").fetchone()[0]
-            out["counts"]["labelled"]=sum(1 for r in outcomes.values() if r["label_state"]=="labelled")
-            out["counts"]["model_calls"]=c.execute("SELECT COUNT(*) FROM tier2_calls").fetchone()[0] if has_table(c,"tier2_calls") else 0
-            for t in triples:
-                cat=t["cohort"].split("|",1)[0]; candidates=titles.get((t["published_ms"],cat),[])
-                source=candidates[0] if len(candidates)==1 else {}
-                outcome=outcomes.get(t["event_id"],{})
-                bps=round(10000*(outcome["price"]/t["entry_price"]-1),2) if outcome.get("label_state")=="labelled" and t["entry_price"] else None
-                out["events"].append({"id":t["event_id"],"published_ms":t["published_ms"],"category":cat,
-                   "title":source.get("title"),"source":source.get("source_id"),
-                   "arms":sorted(arms.get(t["event_id"],[]),key=lambda x:{"news":0,"news_market":1,"market":2}.get(x["arm"],9)),
-                   "label_state":outcome.get("label_state","pending"),"market_bps":bps})
-        finally: c.close()
-    except (OSError,sqlite3.Error) as e: out["errors"].append("Tier2 DB: "+str(e))
+            c=db(path)
+            if c is None:
+                if tag == "series100":
+                    continue
+                raise FileNotFoundError(str(path))
+            try:
+                if not has_table(c,"tier2_triples"):
+                    continue
+                triples=c.execute(
+                    "SELECT event_id,cohort,published_ms,created_ms,entry_price FROM tier2_triples ORDER BY created_ms DESC LIMIT 300"
+                ).fetchall()
+                arms={}
+                if has_table(c,"tier2_arms"):
+                    for row in c.execute(
+                        "SELECT event_id,arm,action,p_up,expected_return_bps FROM tier2_arms"
+                    ):
+                        arms.setdefault(row["event_id"],[]).append(dict(row))
+                outcomes={}
+                if has_table(c,"tier2_outcomes"):
+                    outcomes={row["event_id"]:dict(row) for row in c.execute(
+                        "SELECT event_id,price,label_state FROM tier2_outcomes"
+                    )}
+                out["counts"]["triples"] += c.execute("SELECT COUNT(*) FROM tier2_triples").fetchone()[0]
+                out["counts"]["labelled"] += sum(
+                    1 for row in outcomes.values() if row["label_state"]=="labelled")
+                if has_table(c,"tier2_calls"):
+                    out["counts"]["model_calls"] += c.execute("SELECT COUNT(*) FROM tier2_calls").fetchone()[0]
+                for t in triples:
+                    category=t["cohort"].split("|",1)[0]
+                    found=titles.get((t["published_ms"],category),[])
+                    src=found[0] if len(found)==1 else {}
+                    outcome=outcomes.get(t["event_id"],{})
+                    bps=round(10000*(outcome["price"]/t["entry_price"]-1),2) if outcome.get("label_state")=="labelled" and t["entry_price"] else None
+                    out["events"].append({
+                        "id":t["event_id"],"trial":tag,"published_ms":t["published_ms"],
+                        "created_ms":t["created_ms"],"category":category,
+                        "title":src.get("title"),"source":src.get("source_id"),
+                        "arms":sorted(arms.get(t["event_id"],[]),
+                          key=lambda x:{"news":0,"news_market":1,"market":2}.get(x["arm"],9)),
+                        "label_state":outcome.get("label_state","pending"),"market_bps":bps})
+            finally:
+                c.close()
+        except (OSError,sqlite3.Error) as e:
+            out["errors"].append(tag+" DB: "+str(e))
+    out["events"].sort(key=lambda x:x.get("created_ms") or 0,reverse=True)
     return out
 
 class Handler(BaseHTTPRequestHandler):
@@ -129,7 +157,7 @@ class Handler(BaseHTTPRequestHandler):
         if target=="/": payload=HTML.encode();mime="text/html; charset=utf-8"
         elif target=="/health": payload=b"ok\n";mime="text/plain; charset=utf-8"
         elif target=="/api/snapshot":
-            payload=json.dumps(snapshot(self.server.tier2_db,self.server.news_db),ensure_ascii=False).encode()
+            payload=json.dumps(snapshot(self.server.tier2_db,self.server.news_db,self.server.series_db),ensure_ascii=False).encode()
             mime="application/json; charset=utf-8"
         else: self.send_error(404);return
         self.send_response(200)
@@ -143,9 +171,11 @@ def main():
     p.add_argument("--port",type=int,default=8788)
     p.add_argument("--tier2-db",type=Path,default=TIER2)
     p.add_argument("--news-db",type=Path,default=NEWS)
+    p.add_argument("--series-db",type=Path,
+                   default=Path.home()/".local/share/news-phase4-v25-series100/tier2_series.sqlite")
     a=p.parse_args()
     server=ThreadingHTTPServer(("127.0.0.1",a.port),Handler)
-    server.tier2_db=a.tier2_db;server.news_db=a.news_db
+    server.tier2_db=a.tier2_db;server.news_db=a.news_db;server.series_db=a.series_db
     print("NEWS Monitor on http://127.0.0.1:"+str(a.port),flush=True)
     server.serve_forever()
 if __name__=="__main__":main()
