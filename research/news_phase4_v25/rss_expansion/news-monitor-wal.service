@@ -1,0 +1,25 @@
+[Unit]
+Description=NEWS Intelligence local read-only monitor (127.0.0.1:8788)
+After=news-phase4-collector.service
+
+[Service]
+Type=simple
+WorkingDirectory=/home/kali/research/news_monitor_v1
+Environment=PYTHONPATH=/home/kali/research/news_monitor_v1
+UMask=0077
+ExecStart=/usr/bin/python3 /home/kali/research/news_monitor_v1/monitor.py --port 8788
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=read-only
+# WAL mode requires SQLite's shared-memory coordination. The monitor opens
+# the DB with mode=ro + PRAGMA query_only; only this directory is writable
+# inside the service mount namespace, for -shm maintenance. Other NEWS
+# databases remain read-only. No immutable=1: it can ignore active WAL data.
+ReadOnlyPaths=/home/kali/.local/share/news-phase4-v24 /home/kali/.local/share/news-phase4-v25
+ReadWritePaths=/home/kali/.local/share/news-phase4-v25-series100
+
+[Install]
+WantedBy=default.target
