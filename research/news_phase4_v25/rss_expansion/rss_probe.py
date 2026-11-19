@@ -191,7 +191,7 @@ def request(url, timeout_s):
         if len(raw) > MAX_BYTES:
             raise ValueError("response_too_large")
         return {
-            "status": getattr(resp, "status", None),
+            "http_status": getattr(resp, "status", None),
             "resolved_url": resolved,
             "content_type": resp.headers.get("Content-Type", ""),
             "bytes": len(raw),
