@@ -36,7 +36,7 @@ class OrchestratorError(RuntimeError):
 def run_trial(*, con, event, prompts, executor, quote_fn, now_ms,
               trial_id, attestation_path, gate_check=None, candle_fn=None,
               published_max_ms=None, clock=None, frozen_sha256=None,
-              cohort_extra="|tier2"):
+              cohort_extra="|tier2", protocol_file_sha256=None):
     """Execute one Tier-2 trial end to end. Returns a step-by-step record.
 
     `executor`, `quote_fn` and `candle_fn` are injected so the harness can run
@@ -109,7 +109,8 @@ def run_trial(*, con, event, prompts, executor, quote_fn, now_ms,
                             published_max_ms=published_max_ms,
                             decision_ms=decision_ms, trial_id=trial_id,
                             frozen_sha256=frozen_sha256,
-                            cohort_extra=cohort_extra)
+                            cohort_extra=cohort_extra,
+                            protocol_file_sha256=protocol_file_sha256)
     step("seal", status=sealed["status"], seal=sealed.get("seal"),
          cohort=sealed.get("cohort"))
 
