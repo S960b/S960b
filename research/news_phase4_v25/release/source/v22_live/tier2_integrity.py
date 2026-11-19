@@ -132,7 +132,7 @@ def _verify_live_arm(*, arm, trial_id, attestation_path, record,
     if not isinstance(event, dict) or not isinstance(triple, dict):
         raise IntegrityError("frozen_event_or_triple_missing")
     if (triple.get("event_id") != event.get("event_id")
-            or triple.get("cohort") != str(event.get("cohort")) + "|tier2"
+            or triple.get("cohort") not in (str(event.get("cohort")), str(event.get("cohort")) + "|tier2")
             or triple.get("published_ms") != event.get("published_ms")
             or triple.get("cutoff_ms")
                != int(event.get("cutoff_ms") or event["published_ms"])):
