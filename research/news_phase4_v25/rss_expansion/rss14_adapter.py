@@ -198,7 +198,7 @@ def validate_roster():
 
 def selftest():
     validate_roster()
-    time_observed = 1795110000000
+    time_observed = 1795118400000
     rss = (b'<rss><channel><item><title>Bitcoin upgrade</title>'
            b'<link>https://example.org/bitcoin</link>'
            b'<pubDate>Thu, 19 Nov 2026 19:00:00 GMT</pubDate>'
@@ -215,7 +215,7 @@ def selftest():
             b'<summary>Incident restored</summary></entry></feed>')
     got = parse_feed(atom, source_id="solana_status", observed_ms=time_observed)
     assert len(got["records"]) == 1 and got["format"] == "atom", got
-    future = parse_feed(atom, source_id="solana_status", observed_ms=1795100000000)
+    future = parse_feed(atom, source_id="solana_status", observed_ms=1795111200000)
     assert future["records"] == [] and future["excluded"]["future_date"] == 1
     try:
         parse_feed(b'<!DOCTYPE foo><rss/>', source_id="solana_status", observed_ms=time_observed)
