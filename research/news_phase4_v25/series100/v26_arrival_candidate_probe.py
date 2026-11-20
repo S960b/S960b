@@ -11,9 +11,18 @@ from __future__ import annotations
 import argparse
 import json
 import sqlite3
+import sys
 import time
 from collections import Counter
 from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+SOURCE = HERE.parent / "release" / "source"
+LIVE = SOURCE / "v22_live"
+RSS = HERE.parent / "rss_expansion"
+for directory in (HERE, SOURCE, LIVE, RSS):
+    if str(directory) not in sys.path:
+        sys.path.insert(0, str(directory))
 
 import v26_rss_arrival_audit as ARRIVAL
 import rss_noise_filter as NOISE
