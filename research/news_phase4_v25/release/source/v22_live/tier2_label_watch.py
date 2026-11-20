@@ -209,7 +209,7 @@ def _write_label(con, event_id, *, due_ms, candle):
 
 
 def settle_one(con, row, *, now_ms, candle_fn, dry, max_failures=MAX_FAILURES,
-               max_wait_ms=MAX_WAIT_MS):
+               max_wait_ms=MAX_WAIT_MS, symbol_fn=None):
     event_id, due = row["event_id"], row["due_ms"]
 
     state = existing_outcome(con, event_id)
@@ -229,11 +229,21 @@ def settle_one(con, row, *, now_ms, candle_fn, dry, max_failures=MAX_FAILURES,
                 "reason": "await_first_closed_candle",
                 "due_ms": due, "first_close_ms": first_close_ms}
 
+    # The v2.6 caller supplies an immutable event-to-symbol lookup. Legacy
+    # callers omit it and retain the original BTC-only contract.
+    symbol = TR.LABEL_SYMBOL if symbol_fn is None else symbol_fn(con, event_id)
+    if symbol_fn is not None and symbol not in ("BTCUSDT", "ETHUSDT", "SOLUSDT"):
+        raise LabelWatchError("invalid_sealed_symbol")
+
     if dry:
         # Dry decides what it WOULD do. No writes, no schema creation.
         try:
-            candle = candle_fn(due_ms=due)
-            T2.validate_candle(candle, due, symbol=TR.LABEL_SYMBOL)
+            candle = (candle_fn(due_ms=due) if symbol_fn is None
+                      else candle_fn(due_ms=due, symbol=symbol))
+            if symbol_fn is not None and (not isinstance(candle, dict)
+                                          or candle.get("symbol") != symbol):
+                raise LabelWatchError("candle_symbol_missing_or_mismatch")
+            T2.validate_candle(candle, due, symbol=symbol)
         except Exception as exc:
             return {"event_id": event_id, "status": "would_pending",
                     "reason": str(exc)[:80], "kind": classify(exc)}
@@ -241,7 +251,8 @@ def settle_one(con, row, *, now_ms, candle_fn, dry, max_failures=MAX_FAILURES,
                 "price": candle["close"], "source": candle.get("source")}
 
     try:
-        candle = candle_fn(due_ms=due)
+        candle = (candle_fn(due_ms=due) if symbol_fn is None
+                  else candle_fn(due_ms=due, symbol=symbol))
     except Exception as exc:
         # An exchange that has not yet published a closed candle is not a
         # transport failure. Only the FETCH stage may grant this exception:
@@ -262,7 +273,10 @@ def settle_one(con, row, *, now_ms, candle_fn, dry, max_failures=MAX_FAILURES,
                               max_wait_ms=max_wait_ms)
 
     try:
-        T2.validate_candle(candle, due, symbol=TR.LABEL_SYMBOL)
+        if symbol_fn is not None and (not isinstance(candle, dict)
+                                      or candle.get("symbol") != symbol):
+            raise LabelWatchError("candle_symbol_missing_or_mismatch")
+        T2.validate_candle(candle, due, symbol=symbol)
     except Exception as exc:
         # A malformed/contradictory candle returned by our parser is a
         # validation failure, not "exchange not yet published". Count bounded
