@@ -48,6 +48,39 @@ CREATE TABLE IF NOT EXISTS series_asset_bindings(
  system_sha256 TEXT NOT NULL,
  binding_version TEXT NOT NULL
 );
+-- Independent snapshot captured in the same transaction as the sealed triple.
+CREATE TABLE IF NOT EXISTS series_seal_symbols(
+ event_id TEXT PRIMARY KEY REFERENCES tier2_triples(event_id),
+ symbol TEXT NOT NULL CHECK(symbol IN ('BTCUSDT','ETHUSDT','SOLUSDT')),
+ prompts_sha256 TEXT NOT NULL
+);
+CREATE TRIGGER IF NOT EXISTS v26_binding_immutable_update
+BEFORE UPDATE ON series_asset_bindings
+BEGIN SELECT RAISE(ABORT,'v26_binding_immutable'); END;
+CREATE TRIGGER IF NOT EXISTS v26_binding_immutable_delete
+BEFORE DELETE ON series_asset_bindings
+BEGIN SELECT RAISE(ABORT,'v26_binding_immutable'); END;
+CREATE TRIGGER IF NOT EXISTS v26_seal_symbol_immutable_update
+BEFORE UPDATE ON series_seal_symbols
+BEGIN SELECT RAISE(ABORT,'v26_seal_symbol_immutable'); END;
+CREATE TRIGGER IF NOT EXISTS v26_seal_symbol_immutable_delete
+BEFORE DELETE ON series_seal_symbols
+BEGIN SELECT RAISE(ABORT,'v26_seal_symbol_immutable'); END;
+CREATE TRIGGER IF NOT EXISTS v26_seal_requires_fixed_binding
+BEFORE INSERT ON tier2_triples
+BEGIN
+ SELECT CASE WHEN NOT EXISTS(
+  SELECT 1 FROM series_asset_bindings b
+  WHERE b.event_id=NEW.event_id AND b.prompts_sha256=NEW.prompts_sha256)
+ THEN RAISE(ABORT,'v26_seal_binding_mismatch') END;
+END;
+CREATE TRIGGER IF NOT EXISTS v26_capture_sealed_symbol
+AFTER INSERT ON tier2_triples
+BEGIN
+ INSERT INTO series_seal_symbols(event_id,symbol,prompts_sha256)
+ SELECT NEW.event_id,b.symbol,NEW.prompts_sha256
+ FROM series_asset_bindings b WHERE b.event_id=NEW.event_id;
+END;
 """
 
 class BindingError(ValueError):
@@ -193,7 +226,20 @@ def bound_symbol(con, event_id):
         (event_id,)).fetchone()
     if found is None:
         raise BindingError("unbound_event_symbol")
-    return M.checked_symbol(found[0])
+    symbol = M.checked_symbol(found[0])
+    sealed = con.execute(
+        "SELECT prompts_sha256 FROM tier2_triples WHERE event_id=?",
+        (event_id,)).fetchone()
+    if sealed is not None:
+        snap = con.execute(
+            "SELECT symbol,prompts_sha256 FROM series_seal_symbols "
+            "WHERE event_id=?", (event_id,)).fetchone()
+        if (snap is None or snap != (symbol,sealed[0])
+                or con.execute(
+                    "SELECT prompts_sha256 FROM series_asset_bindings "
+                    "WHERE event_id=?", (event_id,)).fetchone() != sealed):
+            raise BindingError("binding_symbol_mismatch")
+    return symbol
 
 
 def check_entry(con, event_id, quote, *, last_arm_ms, now_ms):
@@ -254,6 +300,17 @@ def selftest():
                              symbol="ETHUSDT", decision_ms=cutoff+3_000,
                              market_snapshot=market, prompts=prompts)
         assert binding["symbol"] == bound_symbol(con, eid) == "ETHUSDT"
+        # Even direct SQL writes cannot silently rewrite a claimed asset.
+        for sql in (
+            "UPDATE series_asset_bindings SET symbol='BTCUSDT' WHERE event_id=?",
+            "DELETE FROM series_asset_bindings WHERE event_id=?",
+        ):
+            try:
+                con.execute(sql,(eid,))
+                raise AssertionError("mutable asset binding accepted")
+            except sqlite3.IntegrityError as exc:
+                assert "v26_binding_immutable" in str(exc),exc
+        assert bound_symbol(con,eid)=="ETHUSDT"
         try:
             bind_claim(con, event_id=eid, rss_row=row,
                        symbol="ETHUSDT", decision_ms=cutoff+3_000,
