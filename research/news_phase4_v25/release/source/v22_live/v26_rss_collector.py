@@ -71,20 +71,13 @@ class RSS14Adapter:
 AD = RSS14Adapter()
 
 def tick(*, con, limiter, sources=None, keep_raw=True, raw_dir=None):
-    """Run original v24 collector against RSS-only adapter without live patching.
+    """Use explicit adapter injection; safe alongside other collector instances.
 
-    The v24 collector uses module-level AD. Temporarily swap it and always
-    restore, including on exceptions. This is a single-threaded offline runner;
-    do not use concurrently in a process running the old collector.
+    This wrapper remains unarmed and opt-in. The legacy default remains AD.
     """
-    old = LEGACY_COLLECTOR.AD
-    try:
-        LEGACY_COLLECTOR.AD = AD
-        return LEGACY_COLLECTOR.tick(
-            con=con, limiter=limiter, sources=sources or list(SOURCES),
-            keep_raw=keep_raw, raw_dir=raw_dir)
-    finally:
-        LEGACY_COLLECTOR.AD = old
+    return LEGACY_COLLECTOR.tick(
+        con=con, limiter=limiter, sources=sources or list(SOURCES),
+        keep_raw=keep_raw, raw_dir=raw_dir, adapter=AD)
 
 def selftest():
     assert len(SOURCES) == 14
