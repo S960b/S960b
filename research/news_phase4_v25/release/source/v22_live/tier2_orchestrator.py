@@ -36,7 +36,9 @@ class OrchestratorError(RuntimeError):
 def run_trial(*, con, event, prompts, executor, quote_fn, now_ms,
               trial_id, attestation_path, gate_check=None, candle_fn=None,
               published_max_ms=None, clock=None, frozen_sha256=None,
-              cohort_extra="|tier2", protocol_file_sha256=None):
+              cohort_extra="|tier2", protocol_file_sha256=None,
+              symbol=T2.QUOTE_SYMBOL, protocol_id=T2.PROTOCOL_ID,
+              prompts_version=T2.PROMPTS_VERSION):
     """Execute one Tier-2 trial end to end. Returns a step-by-step record.
 
     `executor`, `quote_fn` and `candle_fn` are injected so the harness can run
@@ -95,7 +97,8 @@ def run_trial(*, con, event, prompts, executor, quote_fn, now_ms,
     wall_ms = int(clock() if clock is not None else time.time() * 1000)
     if wall_ms < int(now_ms):
         raise OrchestratorError("clock_went_backwards")
-    T2.validate_quote(quote, last_arm_ms, event["published_ms"], now_ms=wall_ms)
+    T2.validate_quote(quote, last_arm_ms, event["published_ms"],
+                      now_ms=wall_ms, symbol=symbol)
     now_ms = max(int(now_ms), wall_ms)
     step("quote", price=quote["price"], observed_ms=quote["observed_ms"],
          source=quote["source"])
@@ -110,7 +113,9 @@ def run_trial(*, con, event, prompts, executor, quote_fn, now_ms,
                             decision_ms=decision_ms, trial_id=trial_id,
                             frozen_sha256=frozen_sha256,
                             cohort_extra=cohort_extra,
-                            protocol_file_sha256=protocol_file_sha256)
+                            protocol_file_sha256=protocol_file_sha256,
+                            symbol=symbol, protocol_id=protocol_id,
+                            prompts_version=prompts_version)
     step("seal", status=sealed["status"], seal=sealed.get("seal"),
          cohort=sealed.get("cohort"))
 
@@ -127,14 +132,15 @@ def run_trial(*, con, event, prompts, executor, quote_fn, now_ms,
             "due_ms": due_ms, "cohort": sealed.get("cohort")}
 
 
-def write_label(*, con, event_id, due_ms, candle, now_ms):
+def write_label(*, con, event_id, due_ms, candle, now_ms,
+                symbol=T2.QUOTE_SYMBOL):
     """Write the +4 h outcome from a CLOSED candle, or refuse.
 
     The D15 rule is reused: the exit is the first closed 1m candle at/after due,
     drift in [0, 60 s). A missing or invalid candle leaves the row pending - a
     fabricated price would be worse than a censored row.
     """
-    T2.validate_candle(candle, due_ms, symbol="BTCUSDT")
+    T2.validate_candle(candle, due_ms, symbol=symbol)
     drift = int(candle["close_ms"]) - int(due_ms)
     cur = con.execute(
         "INSERT INTO tier2_outcomes(event_id,due_ms,price,observed_ms,source,"
