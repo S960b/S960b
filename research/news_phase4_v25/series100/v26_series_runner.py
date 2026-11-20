@@ -118,6 +118,7 @@ def store():
         pass
     con = G.open_db(DB)
     B.install_schema(con)
+    STORY.install_series_schema(con)
     con.executescript(MARKET_LINKS_SCHEMA)
     return con
 
@@ -155,6 +156,10 @@ def poll_one_cycle():
 def choose(con, now):
     current = con.execute(
         "SELECT event_id,semantic_cluster_id FROM series_claims").fetchall()
+    claimed_stories = {v[0] for v in con.execute(
+        "SELECT story_key FROM series_story_claims").fetchall()}
+    if len(current)!=len(claimed_stories):
+        raise SeriesV26Error("v26_story_claim_migration_required")
     excluded = {v[0] for v in current}
     clusters = {v[1] for v in current}
     pair = feed_readonly()
@@ -169,11 +174,13 @@ def choose(con, now):
             if result is None:
                 return None
             event, rss_row, symbol = result
-            # Durable unique claim across pubDate changes of the same URL.
-            # The v24 archive still preserves all publisher revisions.
-            semantic = STORY.story_key(event["source"],event["origin_url"])
-            if semantic not in clusters:
-                return event, rss_row, symbol, semantic
+            # Preserve independent cross-source semantic dedup AND add
+            # stable same-publication identity, even when pubDate changes.
+            semantic = COL.semantic_cluster_id(
+                event["title"],event["published_ms"])
+            story = STORY.story_key(event["source"],event["origin_url"])
+            if semantic not in clusters and story not in claimed_stories:
+                return event, rss_row, symbol, semantic, story
             excluded.add(event["event_id"])
     finally:
         feed.close()
@@ -372,7 +379,7 @@ def execute_one():
         result=choose(con,ms())
         if result is None:
             return {"status":"no_eligible","counts":counters}
-        event,row,symbol,semantic=result
+        event,row,symbol,semantic,story=result
         if len(event["event_id"])!=64:
             raise SeriesV26Error("bad_event_id")
         trial_id="evt-"+event["event_id"]
@@ -396,8 +403,9 @@ def execute_one():
             raise SeriesV26Error("candidate_no_longer_eligible")
         if approved()["series_id"]!=activation["series_id"]:
             raise SeriesV26Error("activation_changed")
-        G.claim(con,event_id=event["event_id"],semantic_cluster_id=semantic,
-                trial_id=trial_id,at_ms=decision)
+        STORY.claim(con,event_id=event["event_id"],
+                    semantic_cluster_id=semantic,story=story,
+                    trial_id=trial_id,at_ms=decision)
         try:
             B.bind_claim(con,event_id=event["event_id"],rss_row=row,
                          symbol=symbol,decision_ms=decision,
