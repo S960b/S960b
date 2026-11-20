@@ -183,6 +183,49 @@ class Regression(unittest.TestCase):
                 candle_fn=lambda **k:self.fail("tamper fetched a new candle"))
         self.assertEqual(tampered["outcomes"][0]["status"],"censored")
 
+    def test_three_transport_timeouts_are_censored_not_failed(self):
+        # A genuine TimeoutError is TRANSIENT. Three attempts (not one
+        # programming error) must reach censored, consuming each attempt.
+        p=self._label_db()
+        row={"event_id":"e"*64,"due_ms":1000}
+        results=[]
+        with mock.patch.object(LABEL.LW,"sealed_rows",return_value=[row]):
+            for t in (70_000,71_000,72_000):
+                value=LABEL.settle(
+                    db_path=p,now_ms=t,
+                    symbol_fn=lambda *a:"ETHUSDT",
+                    verify_fn=lambda *a,**k:None,
+                    candle_fn=lambda **k:(_ for _ in ()).throw(
+                        TimeoutError("simulated Binance timeout")))
+                results.append(value["outcomes"][0]["status"])
+        self.assertEqual(results,["pending","pending","censored"])
+        with sqlite3.connect(p) as con:
+            self.assertEqual(con.execute(
+                "SELECT attempts,state FROM tier2_label_attempts").fetchone(),
+                (3,"censored"))
+            self.assertEqual(con.execute(
+                "SELECT label_state FROM tier2_outcomes").fetchone(),("censored",))
+
+    def test_valid_closed_exchange_candle_is_labelled(self):
+        p=self._label_db()
+        row={"event_id":"e"*64,"due_ms":1000}
+        candle={"symbol":"ETHUSDT","open_ms":0,"close_ms":59_999,
+                "close":2500.0,"closed":True,
+                "source":"binance_public_1m_kline"}
+        evidence_calls=[]
+        with mock.patch.object(LABEL.LW,"sealed_rows",return_value=[row]):
+            result=LABEL.settle(
+                db_path=p,now_ms=70_000,
+                symbol_fn=lambda *a:"ETHUSDT",
+                verify_fn=lambda *a,**k:evidence_calls.append("verified"),
+                candle_fn=lambda **k:candle)
+        self.assertEqual(result["outcomes"][0]["status"],"labelled")
+        self.assertEqual(evidence_calls,["verified"])
+        with sqlite3.connect(p) as con:
+            self.assertEqual(con.execute(
+                "SELECT label_state,price FROM tier2_outcomes").fetchone(),
+                ("labelled",2500.0))
+
     def test_pubdate_revisions_keep_raw_occurrences_but_not_candidates(self):
         con=sqlite3.connect(":memory:")
         self.addCleanup(con.close)
