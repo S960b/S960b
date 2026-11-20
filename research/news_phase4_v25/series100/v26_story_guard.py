@@ -73,6 +73,60 @@ def is_first(events_db, *, event_id, source_id, origin_url):
     return first is not None and first[1]==event_id
 
 
+
+SERIES_STORY_SCHEMA = """
+CREATE TABLE IF NOT EXISTS series_story_claims(
+ story_key TEXT PRIMARY KEY,
+ event_id TEXT NOT NULL UNIQUE REFERENCES series_claims(event_id)
+);
+CREATE TRIGGER IF NOT EXISTS v26_story_claim_immutable_update
+BEFORE UPDATE ON series_story_claims
+BEGIN SELECT RAISE(ABORT,'v26_story_claim_immutable'); END;
+CREATE TRIGGER IF NOT EXISTS v26_story_claim_immutable_delete
+BEFORE DELETE ON series_story_claims
+BEGIN SELECT RAISE(ABORT,'v26_story_claim_immutable'); END;
+"""
+
+
+def install_series_schema(con):
+    con.executescript(SERIES_STORY_SCHEMA)
+
+
+def claim(con, *, event_id, semantic_cluster_id, story, trial_id, at_ms):
+    """Single transaction protects BOTH cross-source cluster and publication.
+
+    Legacy semantic cluster dedups matching headlines across outlets. The
+    v2.6 stable story key separately prevents a changed pubDate/edited title
+    for the SAME article URL from generating a second independent prediction.
+    """
+    import sqlite3
+    import series_guard as G
+    ids=(event_id,semantic_cluster_id,story,trial_id)
+    if any(type(x) is not str or G.ID_RE.fullmatch(x) is None for x in ids):
+        raise G.Refused("invalid_v26_story_claim_identity")
+    con.execute("BEGIN IMMEDIATE")
+    try:
+        counts=G.counters(con)
+        if counts["sealed"]>=G.SERIES_LIMIT or counts["calls_reserved"]>=G.CALL_LIMIT:
+            raise G.Refused("series_budget_exhausted")
+        con.execute(
+            "INSERT INTO series_claims"
+            "(event_id,semantic_cluster_id,trial_id,claimed_ms,state)"
+            "VALUES(?,?,?,?,'claimed')",
+            (event_id,semantic_cluster_id,trial_id,int(at_ms)))
+        con.execute(
+            "INSERT INTO series_story_claims(story_key,event_id) VALUES(?,?)",
+            (story,event_id))
+        con.commit()
+    except sqlite3.IntegrityError as exc:
+        con.rollback()
+        raise G.Refused("duplicate_v26_story_or_cross_source_cluster") from exc
+    except BaseException:
+        con.rollback()
+        raise
+    return trial_id
+
+
 def selftest():
     import sqlite3
     a=story_key("decrypt","https://EXAMPLE.org/bitcoin?article=42&utm_source=rss")
@@ -96,7 +150,24 @@ def selftest():
     assert is_first(con,event_id="new",source_id="decrypt",
                     origin_url="https://example.org/bitcoin?article=43")
     con.close()
-    print("NEWS V26 STORY GUARD SELFTEST OK: pubDate revision, URL tracking, distinct link")
+    import tempfile
+    import series_guard as G
+    with tempfile.TemporaryDirectory() as temp:
+        db=G.open_db(__import__("pathlib").Path(temp)/"series.sqlite")
+        install_series_schema(db)
+        claim(db,event_id="a"*64,semantic_cluster_id="b"*64,
+              story="c"*64,trial_id="evt1",at_ms=100)
+        for same_cluster,same_story in (("d"*64,"c"*64),
+                                        ("b"*64,"e"*64)):
+            try:
+                claim(db,event_id="f"*64,semantic_cluster_id=same_cluster,
+                      story=same_story,trial_id="evt2",at_ms=110)
+                raise AssertionError("duplicate story or cluster accepted")
+            except G.Refused:
+                pass
+        assert G.counters(db)["claimed"]==1
+        db.close()
+    print("NEWS V26 STORY GUARD SELFTEST OK: stable URL, publisher revisions, two unique claim keys")
 
 
 if __name__=="__main__":
