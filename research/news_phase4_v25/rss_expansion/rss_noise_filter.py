@@ -23,7 +23,8 @@ EVENT = re.compile(
     r"approval|approved|reject(?:ed|ion)|lawsuit|settlement|"
     r"etf|hard fork|security advisory|vulnerabilit(?:y|ies)|"
     r"cve-\d{4}-\d+|emergency|restor(?:ed|ation)|"
-    r"fomc|federal reserve|interest rate|rate cut|rate hike|"\n    r"fraud|cluster instability|degrad(?:ed|ation)|offline|elevated error rate)\b", re.I)
+    r"fomc|federal reserve|interest rate|rate cut|rate hike|"
+    r"fraud|cluster instability|degrad(?:ed|ation)|offline|elevated error rate)\b", re.I)
 NOISE = re.compile(
     r"\b(?:giveaway|contest|sweepstakes|sponsored|advertorial|"
     r"price prediction|technical analysis|death cross|"
@@ -34,10 +35,13 @@ SCHEDULED = re.compile(
 # The source of a globally relevant event is not enough: non-crypto
 # government releases must have a clear market-moving subject.
 MACRO = re.compile(
-    r"\b(?:fomc statement|fomc minutes|federal funds rate|"\n    r"minutes of the federal open market committee|"
+    r"\b(?:fomc statement|fomc minutes|federal funds rate|"
+    r"minutes of the federal open market committee|"
     r"interest rate decision|emergency rate cut|bitcoin etf|"
     r"ethereum etf|crypto(?:currency)? regulation|stablecoin|usdc)\b", re.I)
-CRYPTO_ENFORCEMENT = re.compile(r"\b(?:crypto(?:currency)?|digital assets?|tokens?|trading platforms?)\b", re.I)\nSEC_ENFORCEMENT = re.compile(r"\b(?:fraud|steal|stolen|enforcement action|lawsuit|settlement|charged?|indict(?:ed|ment))\b", re.I)\nSTATUS = frozenset(("solana_status", "coinbase_exchange_status",
+CRYPTO_ENFORCEMENT = re.compile(r"\b(?:crypto(?:currency)?|digital assets?|tokens?|trading platforms?)\b", re.I)
+SEC_ENFORCEMENT = re.compile(r"\b(?:fraud|steal|stolen|enforcement action|lawsuit|settlement|charged?|indict(?:ed|ment))\b", re.I)
+STATUS = frozenset(("solana_status", "coinbase_exchange_status",
                     "kraken_incidents", "circle_status"))
 GLOBAL_OFFICIAL = frozenset(("fed_press_monetary", "sec_press",
                              "whitehouse_actions"))
@@ -80,6 +84,28 @@ def decide(row, *, now_ms, max_age_ms=MAX_AGE_MS):
         return Decision(False, None, "scheduled")
     if source in STATUS and re.search(r"\b(?:testnet|test network)\b", text, re.I):
         return Decision(False, None, "testnet")
+    # Status-page outages are not automatically chain/network outages.
+    # Exclude peripheral-only disruptions even when "offline"/"degraded" occurs.
+    if source in STATUS:
+        peripheral = re.search(
+            r"\b(?:explorer|docs?|documentation|website|web site|"
+            r"dashboard|user interface|\bui\b|support portal|status page)\b",
+            headline, re.I)
+        network = re.search(
+            r"\b(?:mainnet|block production|validators?|consensus|"
+            r"finality|chain halted|cluster instability|network outage|"
+            r"rpc (?:down|unavailable|outage)|transactions? (?:halted|stalled))\b",
+            headline, re.I)
+        if peripheral and not network:
+            return Decision(False, None, "peripheral_only")
+        # "degraded" alone is insufficient evidence of a market-moving outage.
+        weak = re.search(r"\b(?:degraded|elevated error rate|offline)\b", headline, re.I)
+        strong = re.search(
+            r"\b(?:outage|halted|stalled|cluster instability|"
+            r"network unavailable|withdrawals? suspended|"
+            r"deposits? suspended|transactions? delayed)\b", headline, re.I)
+        if weak and not strong and not network:
+            return Decision(False, None, "impact_unconfirmed")
     mentioned = {a for a, p in ASSET_PATTERNS.items() if p.search(text)}
     if scope in SYMBOLS:
         if mentioned and scope not in mentioned:
@@ -128,9 +154,13 @@ def selftest():
     check("SEC: Eight Entities Used Fake Crypto Asset Trading Platforms to Steal More Than $37 Million", "GLOBAL", "sec_press", True, "BTCUSDT")
     check("SEC Announces Enforcement Annual Results for Fiscal Year 2026", "GLOBAL", "sec_press", False)
     check("Cluster Instability", "SOL", "solana_status", True, "SOLUSDT")
-    check("Public Endpoints and Explorer offline", "SOL", "solana_status", True, "SOLUSDT")
+    check("Public Endpoints and Explorer offline", "SOL", "solana_status", False, reason="peripheral_only")
+    check("Explorer UI degraded — RPC unaffected", "SOL", "solana_status", False, reason="peripheral_only")
+    check("Docs site offline for maintenance", "SOL", "solana_status", False, reason="scheduled")
+    check("Mainnet Beta outage — block production halted", "SOL", "solana_status", True, "SOLUSDT")
+    check("Solana mainnet halted, validators offline", "SOL", "solana_status", True, "SOLUSDT")
     check("Bitcoin (BTC) Funding Maintenance", "GLOBAL", "kraken_incidents", False)
-    print("RSS NOISE FILTER SELFTEST OK (18 cases)")
+    print("RSS NOISE FILTER SELFTEST OK (22 cases)")
 
 if __name__ == "__main__":
     selftest()
