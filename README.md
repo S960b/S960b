@@ -9,7 +9,7 @@
 > synthetic fixtures: [audit_fixtures/](research/news_phase4_v25/audit_fixtures/)
 >
 > Source commit `059026bb66c42833cf0e23426ac1a99d976cd9dd`, audit commit
-> `AUDIT_COMMIT_PLACEHOLDER`. Algorithms unchanged; only documentation added.
+> `57d18cbc98c5`. Algorithms unchanged; only documentation added.
 > This branch is not the development branch and must not be merged back.
 >
 > ---
