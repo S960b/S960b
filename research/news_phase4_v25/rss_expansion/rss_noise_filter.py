@@ -119,8 +119,8 @@ def selftest():
     check("Bitcoin BTC Funding Maintenance", "GLOBAL", "kraken_incidents", False)
     check("SEC Proposes Executive Compensation Disclosure Reforms", "GLOBAL", "sec_press", False)
     check("Bitcoin and Ethereum ETF approved", "MULTI", "coindesk", False, reason="multiple_assets")
-    check("Solana mainnet halted", "SOL", "solana_status", False, reason="stale",
-          published_ms=1000, first_observed_ms=900000)
+    old = dict(base, title="Solana mainnet halted", source_id="solana_status", asset_scope="SOL", published_ms=1000)
+    assert decide(old, now_ms=102000, max_age_ms=10000).reason == "stale"
     check("Delayed USDC transactions on Pharos testnet", "GLOBAL", "circle_status", False)
     check("FOMC statement: federal funds rate cut", "GLOBAL", "fed_press_monetary", True, "BTCUSDT")
     check("CVE-2025-62859 Bitcoin vulnerability", "BTC", "bitcoin_core", True, "BTCUSDT")
