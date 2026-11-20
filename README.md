@@ -1,3 +1,21 @@
+> ## 🔍 AUDIT BRANCH — NEWS Intelligence v2.6
+>
+> You are on `audit/news-v26-rss14-multiasset-20261120`, a read-only snapshot
+> prepared for independent review. **Start here:**
+> **[research/news_phase4_v25/README_AUDIT_RU.md](research/news_phase4_v25/README_AUDIT_RU.md)**
+>
+> Audit pack root: [`research/news_phase4_v25/`](research/news_phase4_v25/) ·
+> file hashes: [AUDIT_MANIFEST.md](research/news_phase4_v25/AUDIT_MANIFEST.md) ·
+> synthetic fixtures: [audit_fixtures/](research/news_phase4_v25/audit_fixtures/)
+>
+> Source commit `059026bb66c42833cf0e23426ac1a99d976cd9dd`, audit commit
+> `AUDIT_COMMIT_PLACEHOLDER`. Algorithms unchanged; only documentation added.
+> This branch is not the development branch and must not be merged back.
+>
+> ---
+>
+> The repository's own README follows below, unchanged.
+
 # Cybersecurity Portfolio
 
 **English** | [Русский](README.ru.md)
