@@ -224,6 +224,67 @@ def write_witness(con, *, event_id, operation, symbol, witness):
     return {"status":"recorded"}
 
 
+def verify_saved_witness(con, *, event_id, operation, symbol):
+    """Re-verify DB row -> exact manifest -> exact Binance response bytes.
+
+    Unlike write_witness(), this operates on durable historical evidence and
+    MUST be invoked again before computing a +4h label. HTTP proof here means
+    local request/response integrity, not Binance-signed asset authentication.
+    """
+    MARKET.checked_symbol(symbol)
+    if operation not in ("hourly", "entry", "exit"):
+        raise SeriesV26Error("invalid_market_witness_operation")
+    record=con.execute(
+        "SELECT symbol,request_url,raw_sha256,manifest_sha256,result_sha256 "
+        "FROM series_market_witnesses WHERE event_id=? AND operation=?",
+        (event_id,operation)).fetchone()
+    if record is None:
+        raise SeriesV26Error("market_witness_missing:"+operation)
+    db_symbol,url,raw_sha,manifest_sha,result_sha=record
+    if db_symbol!=symbol:
+        raise SeriesV26Error("market_witness_symbol_mismatch")
+    if any(type(h) is not str or len(h)!=64
+           or any(c not in "0123456789abcdef" for c in h)
+           for h in (raw_sha,manifest_sha,result_sha)):
+        raise SeriesV26Error("market_witness_bad_digest")
+    if MARKET_RAW.is_symlink():
+        raise SeriesV26Error("market_witness_dir_symlink")
+    manifest_path=MARKET_RAW/(manifest_sha+".json")
+    raw_path=MARKET_RAW/(raw_sha+".bin")
+    if any(p.is_symlink() or not p.is_file() for p in (manifest_path,raw_path)):
+        raise SeriesV26Error("market_witness_evidence_missing")
+    payload=manifest_path.read_bytes()
+    raw=raw_path.read_bytes()
+    if digest(payload)!=manifest_sha or digest(raw)!=raw_sha:
+        raise SeriesV26Error("market_witness_raw_or_manifest_modified")
+    try:
+        witness=json.loads(payload)
+        PROV.verify_manifest(witness,raw)
+    except (KeyError,TypeError,ValueError,PROV.WitnessError) as exc:
+        raise SeriesV26Error("market_witness_manifest_invalid") from exc
+    if (witness.get("operation")!=operation
+            or witness.get("symbol")!=symbol
+            or witness.get("request_url")!=url
+            or witness.get("raw_sha256")!=raw_sha
+            or witness.get("result_sha256")!=result_sha
+            or witness.get("raw_path")!=str(raw_path)):
+        raise SeriesV26Error("market_witness_db_manifest_conflict")
+    return True
+
+
+def verify_sealed_market(con, *, event_id, symbol):
+    """A sealed v2.6 event must retain both its entry and hourly evidence."""
+    B.bound_symbol(con,event_id)
+    verify_saved_witness(con,event_id=event_id,operation="hourly",symbol=symbol)
+    verify_saved_witness(con,event_id=event_id,operation="entry",symbol=symbol)
+    # An existing exit observation must also remain immutable on retries.
+    if con.execute(
+        "SELECT 1 FROM series_market_witnesses WHERE event_id=? "
+        "AND operation='exit'", (event_id,)).fetchone() is not None:
+        verify_saved_witness(con,event_id=event_id,operation="exit",symbol=symbol)
+    return True
+
+
 def model_executor(*, event_id, series_id, system_prompt):
     """Existing auditable raw wire client, with v2.6 instrument system text."""
     import tier2_raw_store as RAW
