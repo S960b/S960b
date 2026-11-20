@@ -202,20 +202,21 @@ def resolve_identity(con, *, source_id, title, published_ms):
     return canonical, False
 
 
-def tick(*, con, limiter, sources=None, keep_raw=True, raw_dir=None):
+def tick(*, con, limiter, sources=None, keep_raw=True, raw_dir=None, adapter=None):
     """One bounded collection pass. Explicit raw_dir isolates offline tests.
 
     Production defaults to the existing archive namespace; test callers pass
     a disposable path. This avoids reliance on patching an import-time default.
     """
+    adapter = AD if adapter is None else adapter
     out = {}
-    for sid in (sources or list(AD.SOURCES)):
+    for sid in (sources or list(adapter.SOURCES)):
         try:
-            got = AD.harvest(sid, limiter=limiter)
-        except AD.FetchError as exc:
+            got = adapter.harvest(sid, limiter=limiter)
+        except adapter.FetchError as exc:
             con.execute("INSERT INTO v24_fetch_log(at_ms,source_id,url,error) "
                         "VALUES(?,?,?,?)",
-                        (int(time.time() * 1000), sid, AD.SOURCES[sid]["url"],
+                        (int(time.time() * 1000), sid, adapter.SOURCES[sid]["url"],
                          str(exc)))
             con.commit()
             out[sid] = {"error": str(exc)}
@@ -234,7 +235,7 @@ def tick(*, con, limiter, sources=None, keep_raw=True, raw_dir=None):
                 " url, http_status, observed_ms, bytes, path, verified_ms) "
                 "VALUES(?,?,?,?,?,?,?,?)",
                 (archived_for_source["raw_sha256"], sid,
-                 AD.SOURCES[sid]["url"], got["fetched"]["status"],
+                 adapter.SOURCES[sid]["url"], got["fetched"]["status"],
                  (got.get("raw_body") or {}).get("observed_ms"),
                  archived_for_source["bytes"],
                  archived_for_source["raw_path"],
@@ -250,7 +251,7 @@ def tick(*, con, limiter, sources=None, keep_raw=True, raw_dir=None):
                 "INSERT INTO v24_fetch_log(at_ms,source_id,url,http_status,"
                 "content_type,attempts,records_seen,records_new,error) "
                 "VALUES(?,?,?,?,?,?,?,?,?)",
-                (int(time.time() * 1000), sid, AD.SOURCES[sid]["url"],
+                (int(time.time() * 1000), sid, adapter.SOURCES[sid]["url"],
                  got["fetched"]["status"], got["fetched"]["content_type"],
                  got["fetched"]["attempts"], 0, 0, str(parse_error)))
             con.commit()
@@ -318,7 +319,7 @@ def tick(*, con, limiter, sources=None, keep_raw=True, raw_dir=None):
             "INSERT INTO v24_fetch_log(at_ms,source_id,url,http_status,"
             "content_type,attempts,records_seen,records_new) "
             "VALUES(?,?,?,?,?,?,?,?)",
-            (int(time.time() * 1000), sid, AD.SOURCES[sid]["url"],
+            (int(time.time() * 1000), sid, adapter.SOURCES[sid]["url"],
              got["fetched"]["status"], got["fetched"]["content_type"],
              got["fetched"]["attempts"], len(got["records"]), new))
         con.commit()
