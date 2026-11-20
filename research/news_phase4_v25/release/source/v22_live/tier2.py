@@ -388,7 +388,8 @@ def validate_candle(candle, due_ms, *, symbol=QUOTE_SYMBOL):
 def seal_triple(*, con, event, arm_results, quote, attestation_path, now_ms,
                 prompts_sha256, cohort_extra="|tier2", published_max_ms=None,
                 decision_ms=None, trial_id=None, frozen_sha256=None,
-                protocol_file_sha256=None):
+                protocol_file_sha256=None, symbol=QUOTE_SYMBOL,
+                protocol_id=PROTOCOL_ID, prompts_version=PROMPTS_VERSION):
     """Seal one Tier-2 triple; freshness is evaluated at decision, not seal.
 
     Successful model answers cannot age a previously admissible observation
@@ -399,7 +400,8 @@ def seal_triple(*, con, event, arm_results, quote, attestation_path, now_ms,
                    published_max_ms=published_max_ms)
     validate_arm_set(arm_results)
     last_arm_ms = max(int(a["completed_ms"]) for a in arm_results)
-    validate_quote(quote, last_arm_ms, event["published_ms"], now_ms=now_ms)
+    validate_quote(quote, last_arm_ms, event["published_ms"], now_ms=now_ms,
+                   symbol=symbol)
 
     # An empty chain means nothing can be vouched for: refusing outright stops a
     # caller from "re-attesting" a triple whose evidence was deleted. The seal
@@ -461,9 +463,9 @@ def seal_triple(*, con, event, arm_results, quote, attestation_path, now_ms,
 
     record = {
         "event_id": event["event_id"],
-        "protocol_id": PROTOCOL_ID,
+        "protocol_id": protocol_id,
         "tier": TIER,
-        "prompts_version": PROMPTS_VERSION,
+        "prompts_version": prompts_version,
         "prompts_sha256": prompts_sha256,
         "protocol_file_sha256": protocol_file_sha256 or protocol_sha(),
         "attestation_record_sha256": arm_results[0]["attestation_record_sha256"],
