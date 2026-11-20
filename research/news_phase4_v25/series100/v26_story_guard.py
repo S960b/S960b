@@ -11,8 +11,12 @@ from __future__ import annotations
 import hashlib
 import urllib.parse
 
+# Only known attribution parameters are removed. Query parameters such as
+# "id", "article", "story", "p" or other publisher article identifiers MUST
+# remain part of the story identity to prevent false cross-article dedup.
 TRACKERS=frozenset(("fbclid","gclid","gbraid","wbraid","mc_cid","mc_eid",
-                   "igshid","ref_src"))
+                   "igshid","ref_src","ref","ref_id","source",
+                   "campaign","_ga","_gl","_hsenc","_hsmi"))
 
 class StoryError(ValueError):
     pass
@@ -133,6 +137,12 @@ def selftest():
     b=story_key("decrypt","https://example.org/bitcoin?article=42#top")
     assert a==b
     assert story_key("decrypt","https://example.org/bitcoin?article=43")!=a
+    assert a==story_key("decrypt","https://example.org/bitcoin?article=42"
+                       "&ref=rss&campaign=autumn&_ga=tracking")
+    assert a==story_key("decrypt","https://example.org/bitcoin?article=42"
+                       "&source=feed&ref_id=promo")
+    assert story_key("decrypt","https://example.org/article?id=123") != (
+           story_key("decrypt","https://example.org/article?id=124"))
     assert story_key("coindesk","https://example.org/bitcoin?article=42")!=a
     con=sqlite3.connect(":memory:")
     con.execute("CREATE TABLE v24_events(content_sha256 TEXT,source_id TEXT,"
