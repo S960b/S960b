@@ -40,6 +40,7 @@ import tier2 as T2
 import tier2_orchestrator as O
 import tier2_forward_driver as F
 import tier2_label_watch as LW
+import v26_label_policy as V26LABEL
 import v21_paper_prep as P
 import v22_arms as ARMS
 import tier2_integrity as INTEG
@@ -490,10 +491,12 @@ def settle_labels():
         B.check_exit(con,eid,candle,due_ms=due_ms)
         write_witness(con,event_id=eid,operation="exit",symbol=symbol,
                       witness=proof)
+        verify_saved_witness(con,event_id=eid,operation="exit",symbol=symbol)
         return candle
 
-    out=LW.settle(db_path=DB,now_ms=now,
-                  symbol_fn=symbol_fn,candle_fn=candle_fn,dry=False)
+    out=V26LABEL.settle(db_path=DB,now_ms=now,
+                        symbol_fn=symbol_fn,candle_fn=candle_fn,
+                        verify_fn=verify_sealed_market)
     with contextlib.closing(G.open_db(DB)) as con:
         rows=con.execute(
             "SELECT event_id,label_state,observed_ms FROM tier2_outcomes "
