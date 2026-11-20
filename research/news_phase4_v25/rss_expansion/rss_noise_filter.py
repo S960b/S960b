@@ -23,7 +23,7 @@ EVENT = re.compile(
     r"approval|approved|reject(?:ed|ion)|lawsuit|settlement|"
     r"etf|hard fork|security advisory|vulnerabilit(?:y|ies)|"
     r"cve-\d{4}-\d+|emergency|restor(?:ed|ation)|"
-    r"fomc|federal reserve|interest rate|rate cut|rate hike)\b", re.I)
+    r"fomc|federal reserve|interest rate|rate cut|rate hike|"\n    r"fraud|cluster instability|degrad(?:ed|ation)|offline|elevated error rate)\b", re.I)
 NOISE = re.compile(
     r"\b(?:giveaway|contest|sweepstakes|sponsored|advertorial|"
     r"price prediction|technical analysis|death cross|"
@@ -34,10 +34,10 @@ SCHEDULED = re.compile(
 # The source of a globally relevant event is not enough: non-crypto
 # government releases must have a clear market-moving subject.
 MACRO = re.compile(
-    r"\b(?:fomc statement|fomc minutes|federal funds rate|"
+    r"\b(?:fomc statement|fomc minutes|federal funds rate|"\n    r"minutes of the federal open market committee|"
     r"interest rate decision|emergency rate cut|bitcoin etf|"
     r"ethereum etf|crypto(?:currency)? regulation|stablecoin|usdc)\b", re.I)
-STATUS = frozenset(("solana_status", "coinbase_exchange_status",
+CRYPTO_ENFORCEMENT = re.compile(r"\b(?:crypto(?:currency)?|digital assets?|tokens?|trading platforms?)\b", re.I)\nSEC_ENFORCEMENT = re.compile(r"\b(?:fraud|steal|stolen|enforcement action|lawsuit|settlement|charged?|indict(?:ed|ment))\b", re.I)\nSTATUS = frozenset(("solana_status", "coinbase_exchange_status",
                     "kraken_incidents", "circle_status"))
 GLOBAL_OFFICIAL = frozenset(("fed_press_monetary", "sec_press",
                              "whitehouse_actions"))
@@ -48,7 +48,7 @@ class Decision:
     accepted: bool
     symbol: str | None
     reason: str
-    rule_version: str = "rss_noise_v1_shadow"
+    rule_version: str = "rss_noise_v2_shadow"
 
 def decide(row, *, now_ms, max_age_ms=MAX_AGE_MS):
     """Accept sidecar-style row; no external I/O or nondeterministic clock."""
@@ -90,7 +90,7 @@ def decide(row, *, now_ms, max_age_ms=MAX_AGE_MS):
             asset = next(iter(mentioned))
         elif len(mentioned) > 1:
             return Decision(False, None, "multiple_assets")
-        elif source in GLOBAL_OFFICIAL and MACRO.search(text):
+        elif source in GLOBAL_OFFICIAL and (MACRO.search(text) or (source == "sec_press" and CRYPTO_ENFORCEMENT.search(text) and SEC_ENFORCEMENT.search(text))):
             asset = "BTC"  # predefined benchmark for global macro
         elif source in STATUS and re.search(r"\b(?:exchange|trading platform|all trading|all withdrawals|usdc|stablecoin)\b", text, re.I):
             asset = "BTC"  # global risk benchmark; no automatic 3x calls
@@ -98,7 +98,7 @@ def decide(row, *, now_ms, max_age_ms=MAX_AGE_MS):
             return Decision(False, None, "no_target_asset")
     else:
         return Decision(False, None, "unknown_scope")
-    if not EVENT.search(text) and not (source in GLOBAL_OFFICIAL and MACRO.search(text)):
+    if not EVENT.search(text) and not (source in GLOBAL_OFFICIAL and (MACRO.search(text) or (source == "sec_press" and CRYPTO_ENFORCEMENT.search(text) and SEC_ENFORCEMENT.search(text)))):
         return Decision(False, None, "no_material_event")
     return Decision(True, SYMBOLS[asset], "candidate")
 
@@ -124,7 +124,13 @@ def selftest():
     check("Delayed USDC transactions on Pharos testnet", "GLOBAL", "circle_status", False)
     check("FOMC statement: federal funds rate cut", "GLOBAL", "fed_press_monetary", True, "BTCUSDT")
     check("CVE-2025-62859 Bitcoin vulnerability", "BTC", "bitcoin_core", True, "BTCUSDT")
-    print("RSS NOISE FILTER SELFTEST OK (12 cases)")
+    check("Minutes of the Federal Open Market Committee, October 27-28, 2026", "GLOBAL", "fed_press_monetary", True, "BTCUSDT")
+    check("SEC: Eight Entities Used Fake Crypto Asset Trading Platforms to Steal More Than $37 Million", "GLOBAL", "sec_press", True, "BTCUSDT")
+    check("SEC Announces Enforcement Annual Results for Fiscal Year 2026", "GLOBAL", "sec_press", False)
+    check("Cluster Instability", "SOL", "solana_status", True, "SOLUSDT")
+    check("Public Endpoints and Explorer offline", "SOL", "solana_status", True, "SOLUSDT")
+    check("Bitcoin (BTC) Funding Maintenance", "GLOBAL", "kraken_incidents", False)
+    print("RSS NOISE FILTER SELFTEST OK (18 cases)")
 
 if __name__ == "__main__":
     selftest()
