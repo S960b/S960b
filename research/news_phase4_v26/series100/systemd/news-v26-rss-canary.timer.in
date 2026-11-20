@@ -1,0 +1,14 @@
+# NEWS Intelligence v2.6 — one public RSS-only poll per wall-clock minute.
+# Do NOT attach this timer to the --execute runner. No DeepSeek or trading calls.
+[Unit]
+Description=NEWS v2.6 isolated RSS14 canary poll (every 60 seconds)
+
+[Timer]
+OnCalendar=*-*-* *:*:00
+AccuracySec=1s
+RandomizedDelaySec=0
+Persistent=false
+Unit=news-v26-rss-canary.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,20 @@
+# ChatGPT-authored one-trial PAPER-only observation, NOT a trading service.
+# This is explicitly limited to the pre-registered first Tier-2 trial.
+# Prerequisite flags installed separately after owner-approved preflight.
+[Unit]
+Description=NEWS Tier-2 single observational three-arm paper trial
+Wants=network-online.target
+After=network-online.target
+ConditionPathExists=/home/kali/.local/share/news-phase4-v25/TIER2_ACTIVE
+ConditionPathExists=/home/kali/.local/share/news-phase4-v25/TRIGGER_ENABLED
+ConditionPathExists=!/home/kali/.local/share/news-phase4-v25/frozen-tier2-paper-20261117-first.json
+ConditionPathExists=!/home/kali/.local/share/news-phase4-v25/tier2.sqlite
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/kali/research/news_phase4_v25_release/research/news_phase4_v21
+Environment=PYTHONPATH=/home/kali/research/news_phase4_v25_release/research/news_phase4_v21/source:/home/kali/research/news_phase4_v25_release/research/news_phase4_v21/source/v22_live
+UMask=0077
+ExecStart=/usr/bin/python3 /home/kali/research/news_phase4_v25_release/research/news_phase4_v21/source/v22_live/tier2_bounded_watch.py --execute
+TimeoutStartSec=600s
+Restart=no

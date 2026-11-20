@@ -1,0 +1,17 @@
+# NEWS Intelligence v2.6 — public RSS-only collection. No inference, no orders.
+# Install into ~/.config/systemd/user/ AFTER replacing @PYTHON@ and @RUNNER@.
+# Do not enable the old v2.5 series timer. Do not reuse this service for --execute.
+[Unit]
+Description=NEWS v2.6 isolated RSS14 canary collector (zero model calls)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=@PYTHON@ @RUNNER@ --poll
+UMask=0077
+Environment=PYTHONDONTWRITEBYTECODE=1
+NoNewPrivileges=true
+TimeoutStartSec=120
+StandardOutput=journal
+StandardError=journal

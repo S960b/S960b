@@ -1,8 +1,0 @@
-[
-  ["NOTE", "SYNTHETIC Binance-shaped payload, generated deterministically.",
-   "Shape matches /api/v3/klines: [open_ms, open, high, low, close, volume, close_ms].",
-   "Not a captured exchange response; NOT proof of any real price or asset identity."],
-  [1799989200000, "100.0", "101.0", "99.0", "100.5", "1.0", 1799992799999],
-  [1799992800000, "100.5", "101.5", "99.5", "101.0", "1.0", 1799996399999],
-  [1799996400000, "101.0", "102.0", "100.0", "101.5", "1.0", 1799999999999]
-]

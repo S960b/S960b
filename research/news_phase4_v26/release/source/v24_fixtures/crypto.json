@@ -1,0 +1,9 @@
+{
+ "category": "crypto",
+ "observed_ms": 1800000030000,
+ "origin_url": "https://www.example-exchange.com/news/1",
+ "provenance": "primary",
+ "published_ms": 1800000000000,
+ "source_id": "bin",
+ "title": "Funding rate flips positive"
+}

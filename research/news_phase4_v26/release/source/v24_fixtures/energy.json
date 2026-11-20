@@ -1,0 +1,9 @@
+{
+ "category": "energy",
+ "observed_ms": 1800000560000,
+ "origin_url": "https://www.example-energy.gov/data/6",
+ "provenance": "primary",
+ "published_ms": 1800000500000,
+ "source_id": "eia",
+ "title": "Crude inventories fall sharply"
+}

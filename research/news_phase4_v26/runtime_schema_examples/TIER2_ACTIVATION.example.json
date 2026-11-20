@@ -1,0 +1,17 @@
+{
+  "erratum_sha256": "b67f2d3feb4cacfe1ce8034bcf8d3af3664d7320b6ae7ba759ea8e8359523ac0",
+  "max_model_invocations": 3,
+  "max_triples": 1,
+  "model": "deepseek-v4-flash",
+  "owner_approval_context": "<OWNER APPROVAL TEXT REDACTED>",
+  "owner_seq": 157,
+  "owner_task_id": "task_760cfd0ff32f51a5c99ad18ef08613a5",
+  "paper_only": true,
+  "prompt_only_no_web": true,
+  "prompts_version": "v2.5-tier2-arms3-prompt-no-web-v1",
+  "protocol_sha256": "17a09a6db947d7aa948938ce02d595f2b6fe5e15e06576b97f499926d4023e5e",
+  "purpose": "one_tier2_forward_paper_trial",
+  "started_utc": "2026-11-17T16:01:24.587636Z",
+  "trial_id": "tier2-paper-20261117-first",
+  "upstream_tool_isolation": "unverified"
+}

@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+# Private NEWS runtime evidence; never include with public research sources.
+raw_model_calls/
+attestation.jsonl
+tier2.sqlite*
+tier2_claims.sqlite*
+TIER2_ACTIVE
+TRIGGER_ENABLED
+TIER2_ACTIVATION.json
+frozen-*.json
+*.sqlite-wal
+*.sqlite-shm

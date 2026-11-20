@@ -1,0 +1,1767 @@
+{
+ "attempt_reconciliation": [
+  {
+   "arm_reservations": 2,
+   "attempted_ms": 1794823322099,
+   "cohort": null,
+   "event_id": "40d21dd674c8e6e0d84dcb215cc9db6de4e8d1181ff71f19d468acd95aaa6062",
+   "evidence_level": "reconstructed",
+   "recorded": false,
+   "refusal_reason": null,
+   "status": "refused",
+   "synthetic": null
+  },
+  {
+   "arm_reservations": 2,
+   "attempted_ms": 1794823982264,
+   "cohort": "context_news",
+   "event_id": "e0c7b377a0186abeeb4c5cc230956ff78c077aadba835ec744a20e5017dc4c22",
+   "evidence_level": "trace",
+   "recorded": true,
+   "refusal_reason": null,
+   "status": "recorded",
+   "synthetic": 0
+  },
+  {
+   "arm_reservations": 2,
+   "attempted_ms": 1794825062113,
+   "cohort": null,
+   "event_id": "d619c25574da9fc6b2be9d2f2d0a16c1b9bdfbc3b38fe5443576e99eef61547b",
+   "evidence_level": "trace",
+   "recorded": false,
+   "refusal_reason": "invalid_response_json",
+   "status": "refused",
+   "synthetic": null
+  },
+  {
+   "arm_reservations": 2,
+   "attempted_ms": 1794826409398,
+   "cohort": "context_news",
+   "event_id": "f89bc542ffdd20a41d9401bab43989b3ebb7eea578205bd9858347466d49c064",
+   "evidence_level": "trace",
+   "recorded": true,
+   "refusal_reason": null,
+   "status": "recorded",
+   "synthetic": 0
+  },
+  {
+   "arm_reservations": 2,
+   "attempted_ms": 1794827311442,
+   "cohort": "fast_verified",
+   "event_id": "df3eb36487c1b29be648bbf9ec984c1d124538681cefb63ab2aa787ee7f0906f",
+   "evidence_level": "trace",
+   "recorded": true,
+   "refusal_reason": null,
+   "status": "recorded",
+   "synthetic": 0
+  },
+  {
+   "arm_reservations": 2,
+   "attempted_ms": 1794828211441,
+   "cohort": "context_news",
+   "event_id": "c377be7226e9d67b13a5fe438dc72d2b5509828bd845b33d86c2838fce607feb",
+   "evidence_level": "trace",
+   "recorded": true,
+   "refusal_reason": null,
+   "status": "recorded",
+   "synthetic": 0
+  },
+  {
+   "arm_reservations": 2,
+   "attempted_ms": 1794829111448,
+   "cohort": "context_news",
+   "event_id": "a60797c69a967df22da93cce98c5c31f9a60120389ce24ba0b8e9c6bcff8ff68",
+   "evidence_level": "trace",
+   "recorded": true,
+   "refusal_reason": null,
+   "status": "recorded",
+   "synthetic": 0
+  },
+  {
+   "arm_reservations": 2,
+   "attempted_ms": 1794830011459,
+   "cohort": "context_news",
+   "event_id": "39f9256b7bc154049336508ada96bd6cbf38633a94c97b2c7ad53dbc23cb85e7",
+   "evidence_level": "trace",
+   "recorded": true,
+   "refusal_reason": null,
+   "status": "recorded",
+   "synthetic": 0
+  }
+ ],
+ "dispatch": {
+  "lease": [
+   "39f9256b7bc154049336508ada96bd6cbf38633a94c97b2c7ad53dbc23cb85e7",
+   1794830011459,
+   1794830311459,
+   0
+  ],
+  "policy": {
+   "note": "research throttle, not a provider quota"
+  },
+  "quick_check": "ok",
+  "reservations": [
+   {
+    "arm": "news",
+    "event_id": "40d21dd674c8e6e0d84dcb215cc9db6de4e8d1181ff71f19d468acd95aaa6062",
+    "reserved_ms": 1794823322099,
+    "state": "reserved",
+    "synthetic": 0
+   },
+   {
+    "arm": "news_market",
+    "event_id": "40d21dd674c8e6e0d84dcb215cc9db6de4e8d1181ff71f19d468acd95aaa6062",
+    "reserved_ms": 1794823322099,
+    "state": "reserved",
+    "synthetic": 0
+   },
+   {
+    "arm": "news",
+    "event_id": "e0c7b377a0186abeeb4c5cc230956ff78c077aadba835ec744a20e5017dc4c22",
+    "reserved_ms": 1794823982264,
+    "state": "completed",
+    "synthetic": 0
+   },
+   {
+    "arm": "news_market",
+    "event_id": "e0c7b377a0186abeeb4c5cc230956ff78c077aadba835ec744a20e5017dc4c22",
+    "reserved_ms": 1794823982264,
+    "state": "completed",
+    "synthetic": 0
+   },
+   {
+    "arm": "news",
+    "event_id": "d619c25574da9fc6b2be9d2f2d0a16c1b9bdfbc3b38fe5443576e99eef61547b",
+    "reserved_ms": 1794825062113,
+    "state": "reserved",
+    "synthetic": 0
+   },
+   {
+    "arm": "news_market",
+    "event_id": "d619c25574da9fc6b2be9d2f2d0a16c1b9bdfbc3b38fe5443576e99eef61547b",
+    "reserved_ms": 1794825062113,
+    "state": "reserved",
+    "synthetic": 0
+   },
+   {
+    "arm": "news",
+    "event_id": "f89bc542ffdd20a41d9401bab43989b3ebb7eea578205bd9858347466d49c064",
+    "reserved_ms": 1794826409398,
+    "state": "completed",
+    "synthetic": 0
+   },
+   {
+    "arm": "news_market",
+    "event_id": "f89bc542ffdd20a41d9401bab43989b3ebb7eea578205bd9858347466d49c064",
+    "reserved_ms": 1794826409398,
+    "state": "completed",
+    "synthetic": 0
+   },
+   {
+    "arm": "news",
+    "event_id": "df3eb36487c1b29be648bbf9ec984c1d124538681cefb63ab2aa787ee7f0906f",
+    "reserved_ms": 1794827311442,
+    "state": "completed",
+    "synthetic": 0
+   },
+   {
+    "arm": "news_market",
+    "event_id": "df3eb36487c1b29be648bbf9ec984c1d124538681cefb63ab2aa787ee7f0906f",
+    "reserved_ms": 1794827311442,
+    "state": "completed",
+    "synthetic": 0
+   },
+   {
+    "arm": "news",
+    "event_id": "c377be7226e9d67b13a5fe438dc72d2b5509828bd845b33d86c2838fce607feb",
+    "reserved_ms": 1794828211441,
+    "state": "completed",
+    "synthetic": 0
+   },
+   {
+    "arm": "news_market",
+    "event_id": "c377be7226e9d67b13a5fe438dc72d2b5509828bd845b33d86c2838fce607feb",
+    "reserved_ms": 1794828211441,
+    "state": "completed",
+    "synthetic": 0
+   },
+   {
+    "arm": "news",
+    "event_id": "a60797c69a967df22da93cce98c5c31f9a60120389ce24ba0b8e9c6bcff8ff68",
+    "reserved_ms": 1794829111448,
+    "state": "completed",
+    "synthetic": 0
+   },
+   {
+    "arm": "news_market",
+    "event_id": "a60797c69a967df22da93cce98c5c31f9a60120389ce24ba0b8e9c6bcff8ff68",
+    "reserved_ms": 1794829111448,
+    "state": "completed",
+    "synthetic": 0
+   },
+   {
+    "arm": "news",
+    "event_id": "39f9256b7bc154049336508ada96bd6cbf38633a94c97b2c7ad53dbc23cb85e7",
+    "reserved_ms": 1794830011459,
+    "state": "completed",
+    "synthetic": 0
+   },
+   {
+    "arm": "news_market",
+    "event_id": "39f9256b7bc154049336508ada96bd6cbf38633a94c97b2c7ad53dbc23cb85e7",
+    "reserved_ms": 1794830011459,
+    "state": "completed",
+    "synthetic": 0
+   }
+  ]
+ },
+ "events": {
+  "quick_check": "ok",
+  "rows": [
+   {
+    "cohort": "history_only",
+    "event_id": "d9e9c1c627ad1581a896a0cf69a6cdd65c345e359d95874b609ce697c130ac89",
+    "observed_ms": 1794802715587,
+    "origin_id_present": true,
+    "published_ms": 1767225600000,
+    "source": "bls",
+    "source_kind": "primary",
+    "title": "BLS Total nonfarm payrolls January 2026: 158592",
+    "url": null
+   },
+   {
+    "cohort": "history_only",
+    "event_id": "2b2b4010aaa3ff6b63cbd0a0f9b4adcf7e106a8ffb3269f7d616e2ce73dfc06a",
+    "observed_ms": 1794802715587,
+    "origin_id_present": true,
+    "published_ms": 1767225600000,
+    "source": "bls",
+    "source_kind": "primary",
+    "title": "BLS CPI-U all items January 2026: 325.252",
+    "url": null
+   },
+   {
+    "cohort": "history_only",
+    "event_id": "65de0a06e26d6a549e0e358739968b91c19eb564964adfba681c726f6e7ab736",
+    "observed_ms": 1794802715587,
+    "origin_id_present": true,
+    "published_ms": 1767225600000,
+    "source": "bls",
+    "source_kind": "primary",
+    "title": "BLS Unemployment rate January 2026: 4.3",
+    "url": null
+   },
+   {
+    "cohort": "history_only",
+    "event_id": "1f0abc782b45ce09f389cff06bc21db77284702240fdb5273457727379adb664",
+    "observed_ms": 1794802715587,
+    "origin_id_present": true,
+    "published_ms": 1769904000000,
+    "source": "bls",
+    "source_kind": "primary",
+    "title": "BLS Total nonfarm payrolls February 2026: 158436",
+    "url": null
+   },
+   {
+    "cohort": "history_only",
+    "event_id": "45407998a6b8ce00c1a8dad78a71d8ec9f66257531b002ca3506c8867d363579",
+    "observed_ms": 1794802715587,
+    "origin_id_present": true,
+    "published_ms": 1769904000000,
+    "source": "bls",
+    "source_kind": "primary",
+    "title": "BLS CPI-U all items February 2026: 326.785",
+    "url": null
+   },
+   {
+    "cohort": "history_only",
+    "event_id": "9bf1580957fe3b02bdfb9ea9b2cae7755d67636f5c786fdabbbe8931644113ab",
+    "observed_ms": 1794802715587,
+    "origin_id_present": true,
+    "published_ms": 1769904000000,
+    "source": "bls",
+    "source_kind": "primary",
+    "title": "BLS Unemployment rate February 2026: 4.4",
+    "url": null
+   },
+   {
+    "cohort": "history_only",
+    "event_id": "4069259b3cd786cfc7ebcab09b53c355103822a808de472520e8f71345faa501",
+    "observed_ms": 1794802715587,
+    "origin_id_present": true,
+    "published_ms": 1772323200000,
+    "source": "bls",
+    "source_kind": "primary",
+    "title": "BLS Total nonfarm payrolls March 2026: 158650",
+    "url": null
+   },
+   {
+    "cohort": "history_only",
+    "event_id": "e9f2fb39387e46d6055bc744da93a76e44246f3ce91dffa8db247e1d185cc83b",
+    "observed_ms": 1794802715587,
+    "origin_id_present": true,
+    "published_ms": 1772323200000,
+    "source": "bls",
+    "source_kind": "primary",
+    "title": "BLS CPI-U all items March 2026: 330.213",
+    "url": null
+   },
+   {
+    "cohort": "history_only",
+    "event_id": "dbe74ea496d857e0cb881e8aec12da1338aa749d5391332a95863481bd4e291f",
+    "observed_ms": 1794802715587,
+    "origin_id_present": true,
+    "published_ms": 1772323200000,
+    "source": "bls",
+    "source_kind": "primary",
+    "title": "BLS Unemployment rate March 2026: 4.3",
+    "url": null
+   },
+   {
+    "cohort": "history_only",
+    "event_id": "6b749150991e6e5f72013f0c9a81a2a39ff87a0cd6bff20a56a87db51aa2c822",
+    "observed_ms": 1794802715587,
+    "origin_id_present": true,
+    "published_ms": 1775001600000,
+    "source": "bls",
+    "source_kind": "primary",
+    "title": "BLS Total nonfarm payrolls April 2026: 158798",
+    "url": null
+   },
+   {
+    "cohort": "history_only",
+    "event_id": "efa2ddc931d3b261a80716d234f71e64050fdd2b21d51dffa1a2e6608b2dde32",
+    "observed_ms": 1794802715587,
+    "origin_id_present": true,
+    "published_ms": 1775001600000,
+    "source": "bls",
+    "source_kind": "primary",
+    "title": "BLS CPI-U all items April 2026: 333.020",
+    "url": null
+   },
+   {
+    "cohort": "history_only",
+    "event_id": "5beac678737041c871a547a152dc69f7e5faa44a22105d47df64daa7a002094a",
+    "observed_ms": 1794802715587,
+    "origin_id_present": true,
+    "published_ms": 1775001600000,
+    "source": "bls",
+    "source_kind": "primary",
+    "title": "BLS Unemployment rate April 2026: 4.3",
+    "url": null
+   },
+   {
+    "cohort": "history_only",
+    "event_id": "1e13b540ad10c2bb10e312b07a44ce38ee84b0f9199a927462984229133ec5f6",
+    "observed_ms": 1794802715587,
+    "origin_id_present": true,
+    "published_ms": 1777593600000,
+    "source": "bls",
+    "source_kind": "primary",
+    "title": "BLS Total nonfarm payrolls May 2026: 158861",
+    "url": null
+   },
+   {
+    "cohort": "history_only",
+    "event_id": "c2b6906f09b88b9dc4dac605cd865621b8c2a9120e7a3002386a4f098cb88610",
+    "observed_ms": 1794802715587,
+    "origin_id_present": true,
+    "published_ms": 1777593600000,
+    "source": "bls",
+    "source_kind": "primary",
+    "title": "BLS CPI-U all items May 2026: 335.123",
+    "url": null
+   },
+   {
+    "cohort": "history_only",
+    "event_id": "2c2622e3a4b5215699d3e0bc59de93c644ef8b552ecbf12a1afea39b1f8f4e2b",
+    "observed_ms": 1794802715587,
+    "origin_id_present": true,
+    "published_ms": 1777593600000,
+    "source": "bls",
+    "source_kind": "primary",
+    "title": "BLS Unemployment rate May 2026: 4.3",
+    "url": null
+   },
+   {
+    "cohort": "history_only",
+    "event_id": "61ba86a2145d0f17531970d88aece0ad5523bc8286186c7c2dec0ae9ae7c3de9",
+    "observed_ms": 1794802715587,
+    "origin_id_present": true,
+    "published_ms": 1780272000000,
+    "source": "bls",
+    "source_kind": "primary",
+    "title": "BLS Total nonfarm payrolls June 2026: 158892",
+    "url": null
+   },
+   {
+    "cohort": "history_only",
+    "event_id": "59a2a9462af15a2d4ea107878643f2adf662ec09e70cdd8226e2febcabd9fc67",
+    "observed_ms": 1794802715587,
+    "origin_id_present": true,
+    "published_ms": 1780272000000,
+    "source": "bls",
+    "source_kind": "primary",
+    "title": "BLS CPI-U all items June 2026: 333.952",
+    "url": null
+   },
+   {
+    "cohort": "history_only",
+    "event_id": "8c0acaf5c682212e9afb281148ff9203c3061a4087f87ea060c7451735090972",
+    "observed_ms": 1794802715587,
+    "origin_id_present": true,
+    "published_ms": 1780272000000,
+    "source": "bls",
+    "source_kind": "primary",
+    "title": "BLS Unemployment rate June 2026: 4.2",
+    "url": null
+   },
+   {
+    "cohort": "history_only",
+    "event_id": "aedcb6d03a9985a6ee6f370d31ab1737a43aab0c16393c885727ddc576a16dbe",
+    "observed_ms": 1794802715587,
+    "origin_id_present": true,
+    "published_ms": 1782864000000,
+    "source": "bls",
+    "source_kind": "primary",
+    "title": "BLS Total nonfarm payrolls July 2026: 158882",
+    "url": null
+   },
+   {
+    "cohort": "history_only",
+    "event_id": "57806652e14eb24088a42d3816b978472be2cca6859444f09c16f9e2257e5f9b",
+    "observed_ms": 1794802715587,
+    "origin_id_present": true,
+    "published_ms": 1782864000000,
+    "source": "bls",
+    "source_kind": "primary",
+    "title": "BLS CPI-U all items July 2026: 333.918",
+    "url": null
+   },
+   {
+    "cohort": "history_only",
+    "event_id": "09c47ff502a49ee28154f7e600b2b464c66706b7217ff639f9ee8e4e3fcc4fbf",
+    "observed_ms": 1794802715587,
+    "origin_id_present": true,
+    "published_ms": 1782864000000,
+    "source": "bls",
+    "source_kind": "primary",
+    "title": "BLS Unemployment rate July 2026: 4.1",
+    "url": null
+   },
+   {
+    "cohort": "history_only",
+    "event_id": "0325511976389ce5c162dd4159b86542584b55178e47c4d163a9bdf79e2f3d66",
+    "observed_ms": 1794802715587,
+    "origin_id_present": true,
+    "published_ms": 1785542400000,
+    "source": "bls",
+    "source_kind": "primary",
+    "title": "BLS Total nonfarm payrolls August 2026: 159068",
+    "url": null
+   },
+   {
+    "cohort": "history_only",
+    "event_id": "739c17e6294cb5fa20985c891dd649d134a3a39da208c7d9c2e568174e495b5a",
+    "observed_ms": 1794802715587,
+    "origin_id_present": true,
+    "published_ms": 1785542400000,
+    "source": "bls",
+    "source_kind": "primary",
+    "title": "BLS CPI-U all items August 2026: 334.980",
+    "url": null
+   },
+   {
+    "cohort": "history_only",
+    "event_id": "fc272668ab542bc11c87d3629ccd6f96e78ad870327a9d23eeaeaa2462d091f2",
+    "observed_ms": 1794802715587,
+    "origin_id_present": true,
+    "published_ms": 1785542400000,
+    "source": "bls",
+    "source_kind": "primary",
+    "title": "BLS Unemployment rate August 2026: 4.1",
+    "url": null
+   },
+   {
+    "cohort": "history_only",
+    "event_id": "c32d552834a0f614cb5f3399ed5814963481eee2511ad7d417df8af3263d6b6b",
+    "observed_ms": 1794802715587,
+    "origin_id_present": true,
+    "published_ms": 1788220800000,
+    "source": "bls",
+    "source_kind": "primary",
+    "title": "BLS Total nonfarm payrolls September 2026: 159128",
+    "url": null
+   },
+   {
+    "cohort": "history_only",
+    "event_id": "95223f7faa7863b600c6d45d411067f6835085acb7139090018a2682011b416d",
+    "observed_ms": 1794802715587,
+    "origin_id_present": true,
+    "published_ms": 1788220800000,
+    "source": "bls",
+    "source_kind": "primary",
+    "title": "BLS CPI-U all items September 2026: 336.940",
+    "url": null
+   },
+   {
+    "cohort": "history_only",
+    "event_id": "11f11356d11adf2fe7695f1176f06e05f7d62785a1a91c6db31d0fe3c729984e",
+    "observed_ms": 1794802715587,
+    "origin_id_present": true,
+    "published_ms": 1788220800000,
+    "source": "bls",
+    "source_kind": "primary",
+    "title": "BLS Unemployment rate September 2026: 4.2",
+    "url": null
+   },
+   {
+    "cohort": "history_only",
+    "event_id": "250c3e2867bc1ab7ceb75f738de2119829c7e621b8bfa03c1166004af1d4468c",
+    "observed_ms": 1794802715587,
+    "origin_id_present": true,
+    "published_ms": 1790812800000,
+    "source": "bls",
+    "source_kind": "primary",
+    "title": "BLS Total nonfarm payrolls October 2026: 159293",
+    "url": null
+   },
+   {
+    "cohort": "history_only",
+    "event_id": "91d2096ea523d33b9932319a7a43dac6412368da173717438e14975be89e9945",
+    "observed_ms": 1794802715587,
+    "origin_id_present": true,
+    "published_ms": 1790812800000,
+    "source": "bls",
+    "source_kind": "primary",
+    "title": "BLS CPI-U all items October 2026: 337.511",
+    "url": null
+   },
+   {
+    "cohort": "history_only",
+    "event_id": "92ea2a5f96833e788fe6a1fcc4e745ec114e8ef4e96c4b65e2a0261677c85707",
+    "observed_ms": 1794802715587,
+    "origin_id_present": true,
+    "published_ms": 1790812800000,
+    "source": "bls",
+    "source_kind": "primary",
+    "title": "BLS Unemployment rate October 2026: 4.1",
+    "url": null
+   },
+   {
+    "cohort": "history_only",
+    "event_id": "7ebda8e95e59047f3a40168afbb1c3d935ce5d1cc7f3864712442ce26252c4df",
+    "observed_ms": 1794799906853,
+    "origin_id_present": true,
+    "published_ms": 1794264809000,
+    "source": "whitehouse",
+    "source_kind": "primary",
+    "title": "Nominations and Withdrawals Sent to the Senate",
+    "url": null
+   },
+   {
+    "cohort": "history_only",
+    "event_id": "03be8c85a439806b33330d26fffa91fac2c3cfc03cdae943a4ad67f94b656eed",
+    "observed_ms": 1794799906244,
+    "origin_id_present": true,
+    "published_ms": 1794327335000,
+    "source": "sec",
+    "source_kind": "primary",
+    "title": "SEC Announces Enforcement Annual Results for Fiscal Year 2026",
+    "url": null
+   },
+   {
+    "cohort": "history_only",
+    "event_id": "79f3a3dbfe0632a0af6d69f4410cfceeff80629fa7c1154420f23a7f448ca180",
+    "observed_ms": 1794799906853,
+    "origin_id_present": true,
+    "published_ms": 1794345067000,
+    "source": "whitehouse",
+    "source_kind": "primary",
+    "title": "Presidential Determination Concerning Wildfire Suppression Activities in the United States",
+    "url": null
+   },
+   {
+    "cohort": "history_only",
+    "event_id": "7599d20e701be7bde8dbcb2df2c232445dd92d8c5869f6ebc49f58f663118f75",
+    "observed_ms": 1794799906853,
+    "origin_id_present": true,
+    "published_ms": 1794345135000,
+    "source": "whitehouse",
+    "source_kind": "primary",
+    "title": "VETERANS DAY, 2026",
+    "url": null
+   },
+   {
+    "cohort": "history_only",
+    "event_id": "81900db5dfb9df400b2a350d986b90acc229215622cf74b9a22c18df4b9fc34c",
+    "observed_ms": 1794799906853,
+    "origin_id_present": true,
+    "published_ms": 1794347809000,
+    "source": "whitehouse",
+    "source_kind": "primary",
+    "title": "Nominations and Withdrawals Sent to the Senate",
+    "url": null
+   },
+   {
+    "cohort": "history_only",
+    "event_id": "bb6fb2b0f41322a0884b2f7b431af4dae8a5430ce2a3bfb79cf6c2957fa69f23",
+    "observed_ms": 1794799905816,
+    "origin_id_present": true,
+    "published_ms": 1794505500000,
+    "source": "fed",
+    "source_kind": "primary",
+    "title": "Federal Reserve announces revised tentative schedule of Federal Open Market Committee meetings in 2027",
+    "url": null
+   },
+   {
+    "cohort": "history_only",
+    "event_id": "09b43d2cf3b2625867995f0e7f5974c0d554c9e647f18fb44ebc6cdf556d566d",
+    "observed_ms": 1794799906853,
+    "origin_id_present": true,
+    "published_ms": 1794521081000,
+    "source": "whitehouse",
+    "source_kind": "primary",
+    "title": "Nominations Sent to the Senate",
+    "url": null
+   },
+   {
+    "cohort": "history_only",
+    "event_id": "908f9a4a8614bbaf90563f9c65214feac3ce5874cc01f9643c8ea839b1b4c205",
+    "observed_ms": 1794799906244,
+    "origin_id_present": true,
+    "published_ms": 1794589020000,
+    "source": "sec",
+    "source_kind": "primary",
+    "title": "SEC Proposes Executive and Director Compensation Disclosure Reforms",
+    "url": null
+   },
+   {
+    "cohort": "history_only",
+    "event_id": "3bb5fcd5c648d568b3270e31a25a48ce06c36e23ed1dd0e6933948e27f64f2a3",
+    "observed_ms": 1794791986969,
+    "origin_id_present": true,
+    "published_ms": 1794711057000,
+    "source": "coindesk",
+    "source_kind": "secondary",
+    "title": "XRP crashes to its lowest since November 2024 as money leaves crypto",
+    "url": null
+   },
+   {
+    "cohort": "history_only",
+    "event_id": "587ea5a68001fb5dabb1b41f0c2235ef8cecaa2053c5632788f4597251ca49ee",
+    "observed_ms": 1794791987638,
+    "origin_id_present": true,
+    "published_ms": 1794724046000,
+    "source": "cointelegraph",
+    "source_kind": "secondary",
+    "title": "RWA protocol stUSDT winds down three years after $2.3B TVL peak",
+    "url": null
+   },
+   {
+    "cohort": "history_only",
+    "event_id": "ed6c5cb8eb8429e6d68382c64e64d063a80385506f863d97686f0731b2fc7165",
+    "observed_ms": 1794791987638,
+    "origin_id_present": true,
+    "published_ms": 1794730078000,
+    "source": "cointelegraph",
+    "source_kind": "secondary",
+    "title": "Coinone warns of phishing, identity theft after customer data breach",
+    "url": null
+   },
+   {
+    "cohort": "history_only",
+    "event_id": "565410e7f5d286ee7476b22939d011d3228ff9ab67f31ab922a39a09684a1a91",
+    "observed_ms": 1794791987638,
+    "origin_id_present": true,
+    "published_ms": 1794738197000,
+    "source": "cointelegraph",
+    "source_kind": "secondary",
+    "title": "Bitcoin falls to four-month low near $62K as crypto selloff deepens",
+    "url": null
+   },
+   {
+    "cohort": "history_only",
+    "event_id": "e470d43e16d45d8ae4dffb72a4827adefb0fe898e62b07441936a5de5d024ba8",
+    "observed_ms": 1794791987638,
+    "origin_id_present": true,
+    "published_ms": 1794741528000,
+    "source": "cointelegraph",
+    "source_kind": "secondary",
+    "title": "Here’s what happened in crypto today",
+    "url": null
+   },
+   {
+    "cohort": "history_only",
+    "event_id": "8ce2593935e628ad3c413541473cc6a2f53b6b18642d61239ad4963df7ff416f",
+    "observed_ms": 1794791986969,
+    "origin_id_present": true,
+    "published_ms": 1794751200000,
+    "source": "coindesk",
+    "source_kind": "secondary",
+    "title": "Crypto insiders aren't counting on silver linings in Congress' 'lame duck' session",
+    "url": null
+   },
+   {
+    "cohort": "history_only",
+    "event_id": "24ca9725dddd377a6193d8fc1731e1e7a45c0d19cd84aacb7be6117f8a6aa5fc",
+    "observed_ms": 1794791987298,
+    "origin_id_present": true,
+    "published_ms": 1794751262000,
+    "source": "decrypt",
+    "source_kind": "secondary",
+    "title": "Bitcoin ETFs Lose $2.1 Billion in November as Outflow Streak Hits Seven Days",
+    "url": null
+   },
+   {
+    "cohort": "history_only",
+    "event_id": "709bd040eb7985c245a2ff66c158c9d675cc5a79f6f104f8e29c583fb5a7f771",
+    "observed_ms": 1794791987638,
+    "origin_id_present": true,
+    "published_ms": 1794753000000,
+    "source": "cointelegraph",
+    "source_kind": "secondary",
+    "title": "Enterprise blockchain is going to come back from the dead",
+    "url": null
+   },
+   {
+    "cohort": "history_only",
+    "event_id": "adf0037926e59ac954b07fb7341401ea7ecaa77ccbd9e2cacfd712f7151ee8c5",
+    "observed_ms": 1794791987298,
+    "origin_id_present": true,
+    "published_ms": 1794758462000,
+    "source": "decrypt",
+    "source_kind": "secondary",
+    "title": "How Wall Street Is Racing to Claim the Onchain Dollar",
+    "url": null
+   },
+   {
+    "cohort": "history_only",
+    "event_id": "beb759756566ab6db7198bba7677812a77898e0bc42d334ee400ac13cd3dbcdc",
+    "observed_ms": 1794791986969,
+    "origin_id_present": true,
+    "published_ms": 1794771000000,
+    "source": "coindesk",
+    "source_kind": "secondary",
+    "title": "Did prediction markets call the U.S. midterm election?: State of Crypto",
+    "url": null
+   },
+   {
+    "cohort": "history_only",
+    "event_id": "d1250bfb17d473c38e1dd7c2811faab95e98828d0ca2d4ae186a6d9f38c70dbf",
+    "observed_ms": 1794791987966,
+    "origin_id_present": true,
+    "published_ms": 1794774797000,
+    "source": "theblock",
+    "source_kind": "secondary",
+    "title": "Traders claim $6 million profit by spotting BitGo’s public pull request and frontrunning memecoin listing",
+    "url": null
+   },
+   {
+    "cohort": "history_only",
+    "event_id": "8dcc6b381742a8aa0eaec303c369791b1667f70ec09e0912c9d473edeefb3da4",
+    "observed_ms": 1794791987966,
+    "origin_id_present": true,
+    "published_ms": 1794779873000,
+    "source": "theblock",
+    "source_kind": "secondary",
+    "title": "CZ denies Binance sold crypto as Bitcoin bounces from four-month low near $62,000",
+    "url": null
+   },
+   {
+    "cohort": "history_only",
+    "event_id": "460531a47b3d3073e80bce30e34164b77cfee9cd5f05ac8a4b9022d3d3dd5007",
+    "observed_ms": 1794791987638,
+    "origin_id_present": true,
+    "published_ms": 1794783059000,
+    "source": "cointelegraph",
+    "source_kind": "secondary",
+    "title": "US sellers drive Bitcoin crash, Jensen plots Nvidia comeback: Hodler’s Digest",
+    "url": null
+   },
+   {
+    "cohort": "context_news",
+    "event_id": "d010d7bcd19bc103004578fa17e41d46fdc22c7e5c0dc5c1c8ccb36dbc09b351",
+    "observed_ms": 1794791987638,
+    "origin_id_present": true,
+    "published_ms": 1794786465000,
+    "source": "cointelegraph",
+    "source_kind": "secondary",
+    "title": "Jensen Huang weighs Nvidia comeback days after shock exit: FT",
+    "url": null
+   },
+   {
+    "cohort": "context_news",
+    "event_id": "9fa76a988f57f363e0d21426af94509973619d9a61affa3d0462e6934266eea9",
+    "observed_ms": 1794796706497,
+    "origin_id_present": true,
+    "published_ms": 1794796387000,
+    "source": "cointelegraph",
+    "source_kind": "secondary",
+    "title": "Luxor CEO warns of AI ‘dark forest’ after Bitcoin miner hijack",
+    "url": null
+   },
+   {
+    "cohort": "context_news",
+    "event_id": "670b04399289d8be8eed8fbbbbe4a17e2b843931e9caa2b7099074ce8bf133bb",
+    "observed_ms": 1794803776935,
+    "origin_id_present": true,
+    "published_ms": 1794803734000,
+    "source": "theblock",
+    "source_kind": "secondary",
+    "title": "Luxor hit by AI-enabled attack that redirected client hashrate, says vulnerability patched",
+    "url": null
+   },
+   {
+    "cohort": "context_news",
+    "event_id": "19787ae1010fe0b981a305a00b77c3dc762440ceeb1e975a1421d32743b27e12",
+    "observed_ms": 1794804622102,
+    "origin_id_present": true,
+    "published_ms": 1794804127000,
+    "source": "cointelegraph",
+    "source_kind": "secondary",
+    "title": "Asian chip stocks tumble ahead of Nvidia Q3 earnings",
+    "url": null
+   },
+   {
+    "cohort": "context_news",
+    "event_id": "7cab49e8319897f544311996ab007bcc45eddcd7bc55e421b28a8d7e3860ca28",
+    "observed_ms": 1794805345886,
+    "origin_id_present": true,
+    "published_ms": 1794805277000,
+    "source": "coindesk",
+    "source_kind": "secondary",
+    "title": "Bitcoin’s biggest bet is now a drop below $60,000, not a rally above $100,000",
+    "url": null
+   },
+   {
+    "cohort": "context_news",
+    "event_id": "f7eb38846ad491bb1a935a737d0614c683f5c4e679bafec02635b8db7520730f",
+    "observed_ms": 1794807256626,
+    "origin_id_present": true,
+    "published_ms": 1794806920000,
+    "source": "cointelegraph",
+    "source_kind": "secondary",
+    "title": "Aster CEO suspects foul play after token plunges 32% in minutes",
+    "url": null
+   },
+   {
+    "cohort": "context_news",
+    "event_id": "0f8606f23f4875a8f7a786c23201aa4d5d2157be0b6e9efdc7701196841fc7ec",
+    "observed_ms": 1794809055930,
+    "origin_id_present": true,
+    "published_ms": 1794808901000,
+    "source": "coindesk",
+    "source_kind": "secondary",
+    "title": "Trump administration to name Nvidia, OpenAI and several others as AI national champions",
+    "url": null
+   },
+   {
+    "cohort": "context_news",
+    "event_id": "1dafe03ac810561ccbc5ededea33a71a9a89f4d6cacdd231c91aa9ee3681ddf4",
+    "observed_ms": 1794810495943,
+    "origin_id_present": true,
+    "published_ms": 1794810462000,
+    "source": "coindesk",
+    "source_kind": "secondary",
+    "title": "Cardano holders vote down $5 million bid to buy warehouse copper",
+    "url": null
+   },
+   {
+    "cohort": "fast_verified",
+    "event_id": "107bf7d1968e496e270c4c809259ff366cb9b321ed57e951474c79e28e6d0a6b",
+    "observed_ms": 1794812295437,
+    "origin_id_present": true,
+    "published_ms": 1794812249445,
+    "source": "kraken_status",
+    "source_kind": "primary",
+    "title": "Kava (KAVA) Funding Delays",
+    "url": null
+   },
+   {
+    "cohort": "context_news",
+    "event_id": "73992702002d4543cd3a96d460cfb2d5aba2e57712f1ff121731201a80318afd",
+    "observed_ms": 1794815546058,
+    "origin_id_present": true,
+    "published_ms": 1794815475000,
+    "source": "coindesk",
+    "source_kind": "secondary",
+    "title": "Bitcoin miners were hijacked and their BTC rewards redirected to an attacker",
+    "url": null
+   },
+   {
+    "cohort": "context_news",
+    "event_id": "d96a4e15bab85382b33fdae7eceda6411203220e3d599ad4b64676886a41010d",
+    "observed_ms": 1794817225873,
+    "origin_id_present": true,
+    "published_ms": 1794817083000,
+    "source": "coindesk",
+    "source_kind": "secondary",
+    "title": "Vitalik Buterin flips to ‘total bull’ on a faster route to quantum-safe Ethereum",
+    "url": null
+   },
+   {
+    "cohort": "context_news",
+    "event_id": "e0c7b377a0186abeeb4c5cc230956ff78c077aadba835ec744a20e5017dc4c22",
+    "observed_ms": 1794818056402,
+    "origin_id_present": true,
+    "published_ms": 1794817659000,
+    "source": "cointelegraph",
+    "source_kind": "secondary",
+    "title": "Harvard, Dartmouth keep Bitcoin ETF stakes steady as fund gains 42% in Q3",
+    "url": null
+   },
+   {
+    "cohort": "context_news",
+    "event_id": "3ae3846e03675058c2c1858485f383f4967ec99cf6e2d58c1ad076877513c622",
+    "observed_ms": 1794819495821,
+    "origin_id_present": true,
+    "published_ms": 1794818760000,
+    "source": "coindesk",
+    "source_kind": "secondary",
+    "title": "JPMorgan and DBS let clients move dollars across borders on weekends",
+    "url": null
+   },
+   {
+    "cohort": "context_news",
+    "event_id": "6d12f0dcfc52a6057aa531ebc0a79f7ddf5575d9f8363dbe06a975e683e59338",
+    "observed_ms": 1794819256702,
+    "origin_id_present": true,
+    "published_ms": 1794819050000,
+    "source": "cointelegraph",
+    "source_kind": "secondary",
+    "title": "DBS, JPMorgan’s Kinexys launch 24/7 transfers of tokenized deposits",
+    "url": null
+   },
+   {
+    "cohort": "context_news",
+    "event_id": "d4f76a9fbeac276c8d1261c88eecf9c9e42f89a6da2d62dc7ada488689dfce33",
+    "observed_ms": 1794819257032,
+    "origin_id_present": true,
+    "published_ms": 1794819153000,
+    "source": "theblock",
+    "source_kind": "secondary",
+    "title": "South Korean fintech giant Toss to launch in-app non-custodial crypto wallet: report",
+    "url": null
+   },
+   {
+    "cohort": "context_news",
+    "event_id": "651d663a26c99aa3c5d502329f387e88f33d89eb0308b58f823d56613f071f24",
+    "observed_ms": 1794819976927,
+    "origin_id_present": true,
+    "published_ms": 1794819902000,
+    "source": "theblock",
+    "source_kind": "secondary",
+    "title": "CoW Swap goes live on Solana with intent-based trading",
+    "url": null
+   },
+   {
+    "cohort": "context_news",
+    "event_id": "8fe61e7b9198cf3953a87196b9fd3b4997c714dfa2143fb754b487669d3b71db",
+    "observed_ms": 1794821065686,
+    "origin_id_present": true,
+    "published_ms": 1794820987000,
+    "source": "coindesk",
+    "source_kind": "secondary",
+    "title": "FOMC minutes, Nvidia earnings, Russia’s retail crypto rules: Crypto Week Ahead",
+    "url": null
+   },
+   {
+    "cohort": "context_news",
+    "event_id": "740b5ba6584443d3c980b425152c7556de8135c409824793e50b383353ec403d",
+    "observed_ms": 1794821186142,
+    "origin_id_present": true,
+    "published_ms": 1794821101000,
+    "source": "decrypt",
+    "source_kind": "secondary",
+    "title": "Elon Musk Joins 160,000 Backing Petition to Bring Jensen Huang Back to Nvidia",
+    "url": null
+   },
+   {
+    "cohort": "context_news",
+    "event_id": "c5ff7d20b104dfd20b12209abc590f50628ab4d00d4d6c36e73eba5736097504",
+    "observed_ms": 1794821306884,
+    "origin_id_present": true,
+    "published_ms": 1794821199000,
+    "source": "theblock",
+    "source_kind": "secondary",
+    "title": "DBS, JPMorgan launch instant tokenized deposit transfers between US and Singapore",
+    "url": null
+   },
+   {
+    "cohort": "context_news",
+    "event_id": "40d21dd674c8e6e0d84dcb215cc9db6de4e8d1181ff71f19d468acd95aaa6062",
+    "observed_ms": 1794821775968,
+    "origin_id_present": true,
+    "published_ms": 1794821658000,
+    "source": "coindesk",
+    "source_kind": "secondary",
+    "title": "Live news: Bitcoin posts sixth weekly loss as tech stocks and metals slide",
+    "url": null
+   },
+   {
+    "cohort": "context_news",
+    "event_id": "d619c25574da9fc6b2be9d2f2d0a16c1b9bdfbc3b38fe5443576e99eef61547b",
+    "observed_ms": 1794822986218,
+    "origin_id_present": true,
+    "published_ms": 1794822895000,
+    "source": "decrypt",
+    "source_kind": "secondary",
+    "title": "Vitalik Buterin Now ‘a Total Bull’ on leanPCS as Fast Track to Quantum-Safe Ethereum",
+    "url": null
+   },
+   {
+    "cohort": "context_news",
+    "event_id": "39f9256b7bc154049336508ada96bd6cbf38633a94c97b2c7ad53dbc23cb85e7",
+    "observed_ms": 1794824776348,
+    "origin_id_present": true,
+    "published_ms": 1794824715000,
+    "source": "decrypt",
+    "source_kind": "secondary",
+    "title": "German Lawmakers Back Customs Powers to Seize Crypto of 'Unclear Origin'",
+    "url": null
+   },
+   {
+    "cohort": "context_news",
+    "event_id": "a60797c69a967df22da93cce98c5c31f9a60120389ce24ba0b8e9c6bcff8ff68",
+    "observed_ms": 1794825027078,
+    "origin_id_present": true,
+    "published_ms": 1794824970000,
+    "source": "theblock",
+    "source_kind": "secondary",
+    "title": "Vitalik Buterin backs higher gas costs for creating accounts and deploying smart contracts to help Ethereum scale",
+    "url": null
+   },
+   {
+    "cohort": "context_news",
+    "event_id": "f89bc542ffdd20a41d9401bab43989b3ebb7eea578205bd9858347466d49c064",
+    "observed_ms": 1794825856637,
+    "origin_id_present": true,
+    "published_ms": 1794825545000,
+    "source": "cointelegraph",
+    "source_kind": "secondary",
+    "title": "BTC price tags 18-week low into Nvidia earnings: Three things to know in Bitcoin this week",
+    "url": null
+   },
+   {
+    "cohort": "context_news",
+    "event_id": "a8917546fa63c474c3f8a8071eeb8968dabc5897a304362ed04cd035119ccc3c",
+    "observed_ms": 1794826116817,
+    "origin_id_present": true,
+    "published_ms": 1794825999000,
+    "source": "theblock",
+    "source_kind": "secondary",
+    "title": "Upbit parent Dunamu posts $14 million Q3 net loss as revenue falls 61%",
+    "url": null
+   },
+   {
+    "cohort": "context_news",
+    "event_id": "5b2fa36ed3d4a260e9d90332d6f2f8593d906c8b05893acb31dc6dec9b432cde",
+    "observed_ms": 1794826466608,
+    "origin_id_present": true,
+    "published_ms": 1794826152000,
+    "source": "cointelegraph",
+    "source_kind": "secondary",
+    "title": "Singapore, Germany test cross-border FX settlement with CBDCs",
+    "url": null
+   },
+   {
+    "cohort": "fast_verified",
+    "event_id": "df3eb36487c1b29be648bbf9ec984c1d124538681cefb63ab2aa787ee7f0906f",
+    "observed_ms": 1794826695489,
+    "origin_id_present": true,
+    "published_ms": 1794826645848,
+    "source": "kraken_status",
+    "source_kind": "primary",
+    "title": "EthereumPoW Funding Delays",
+    "url": null
+   },
+   {
+    "cohort": "context_news",
+    "event_id": "c377be7226e9d67b13a5fe438dc72d2b5509828bd845b33d86c2838fce607feb",
+    "observed_ms": 1794827055804,
+    "origin_id_present": true,
+    "published_ms": 1794826994000,
+    "source": "coindesk",
+    "source_kind": "secondary",
+    "title": "Bitcoin slips after rebounding from July 14 low that triggered $2 billion of liquidations",
+    "url": null
+   },
+   {
+    "cohort": "context_news",
+    "event_id": "22e699180e5269b0a79109ecdd3806034c65b3b05d8055113540d9f106f17859",
+    "observed_ms": 1794829705937,
+    "origin_id_present": true,
+    "published_ms": 1794829632000,
+    "source": "coindesk",
+    "source_kind": "secondary",
+    "title": "Singapore, Germany test cross-border payments to reduce settlement risk",
+    "url": null
+   },
+   {
+    "cohort": "fast_verified",
+    "event_id": "a8b615df536b6fa052a5cdd692e65008c8b0280d1406d9789d1d7f089933cc50",
+    "observed_ms": 1794830775680,
+    "origin_id_present": true,
+    "published_ms": 1794830707281,
+    "source": "kraken_status",
+    "source_kind": "primary",
+    "title": "Ethereum PoW (ETHW) Funding Delays",
+    "url": null
+   },
+   {
+    "cohort": "context_news",
+    "event_id": "8401b81d6361580983fb3249ac219f542862554d12cb8af6c912f74c97c500c4",
+    "observed_ms": 1794831265983,
+    "origin_id_present": true,
+    "published_ms": 1794830940000,
+    "source": "coindesk",
+    "source_kind": "secondary",
+    "title": "Bitcoin was supposed to gain as AI faltered, but it crashed. Here's why.",
+    "url": null
+   },
+   {
+    "cohort": "fast_verified",
+    "event_id": "4b28664fd8651713df281773324f549effab59ce32907245a51ea3975848200f",
+    "observed_ms": 1794831375452,
+    "origin_id_present": true,
+    "published_ms": 1794831275261,
+    "source": "kraken_status",
+    "source_kind": "primary",
+    "title": "EthereumPoW Funding Delays",
+    "url": null
+   },
+   {
+    "cohort": "context_news",
+    "event_id": "2f641d1b290cc7f94a675f7f3f0c8fe2778575146b6b23901f646b795c8a411e",
+    "observed_ms": 1794832356862,
+    "origin_id_present": true,
+    "published_ms": 1794832235000,
+    "source": "theblock",
+    "source_kind": "secondary",
+    "title": "Solana drops ‘mainnet beta’ label and adopts protocol version 1.0",
+    "url": null
+   },
+   {
+    "cohort": "context_news",
+    "event_id": "c2b4ec9eb0fdef8a43b3bb48e61d0e34d7608bb400b4f7122a4479bd8a9dca69",
+    "observed_ms": 1794834016608,
+    "origin_id_present": true,
+    "published_ms": 1794833691000,
+    "source": "cointelegraph",
+    "source_kind": "secondary",
+    "title": "HKMA, Swift explore tokenized deposits for cross-border bank payments",
+    "url": null
+   },
+   {
+    "cohort": "context_news",
+    "event_id": "b769d0313cf66e89d6a9051de5f753836d314ef1f21b6e394f1d5d38f9c8c731",
+    "observed_ms": 1794833786143,
+    "origin_id_present": true,
+    "published_ms": 1794833746000,
+    "source": "coindesk",
+    "source_kind": "secondary",
+    "title": "Old crypto feud reignites: Why OKX's Star Xu blames Binance for two years of October crashes",
+    "url": null
+   },
+   {
+    "cohort": "context_news",
+    "event_id": "8f6398d107396ee40fd928ea6eaa8cc1f06627924c7a9f6183b4caf9e0aeb18c",
+    "observed_ms": 1794835818016,
+    "origin_id_present": true,
+    "published_ms": 1794834000000,
+    "source": "cointelegraph",
+    "source_kind": "secondary",
+    "title": "Binance Pay Later offers credit backed by Bitcoin, Ether and BNB holdings",
+    "url": null
+   },
+   {
+    "cohort": "context_news",
+    "event_id": "2216c7ba0d8a102214a3a76f6647002aa6fdb905b9dfcaade49768628f7272a3",
+    "observed_ms": 1794834266276,
+    "origin_id_present": true,
+    "published_ms": 1794834196000,
+    "source": "coindesk",
+    "source_kind": "secondary",
+    "title": "Solana drops ‘beta’ label after more than six years",
+    "url": null
+   },
+   {
+    "cohort": "context_news",
+    "event_id": "aeb70fadc665fe0a42904fbc33a00b2b2d6938008ba291cd81050f6ee0d3c655",
+    "observed_ms": 1794834866296,
+    "origin_id_present": true,
+    "published_ms": 1794834728000,
+    "source": "decrypt",
+    "source_kind": "secondary",
+    "title": "Ledger Brings Clear Signing to Solana, Ending 'Blind' Signing for Jupiter Swaps",
+    "url": null
+   },
+   {
+    "cohort": "context_news",
+    "event_id": "1b7c57c197a5367404f088858d244a84b36dc5a397ce49cf2939cd2b84bcd1e1",
+    "observed_ms": 1794834867018,
+    "origin_id_present": true,
+    "published_ms": 1794834794000,
+    "source": "theblock",
+    "source_kind": "secondary",
+    "title": "‘This dip could use a little orange’: Michael Saylor’s Strategy buys another 485 BTC for $33 million as bitcoin tumbles",
+    "url": null
+   },
+   {
+    "cohort": "context_news",
+    "event_id": "51e5184a81848dc80f6b9322098c9ce0fb75149b9e0b95455cfdd49b390cd54f",
+    "observed_ms": 1794835456257,
+    "origin_id_present": true,
+    "published_ms": 1794835397000,
+    "source": "decrypt",
+    "source_kind": "secondary",
+    "title": "Morning Minute: Crypto Hits Extreme Fear as Bitcoin Plunges",
+    "url": null
+   }
+  ]
+ },
+ "gateway_usage": {
+  "sessions": [
+   {
+    "agent": null,
+    "completions": 1,
+    "cost_usd": 0.00889,
+    "created_ms": 1794823292161,
+    "model": "deepseek-v4-flash",
+    "provider": "deepseek",
+    "session_title": "NEWS v2.1 probe",
+    "tokens_in": 20051,
+    "tokens_out": 13,
+    "tools": 0
+   },
+   {
+    "agent": null,
+    "completions": 2,
+    "cost_usd": 0.010501,
+    "created_ms": 1794823323362,
+    "model": "deepseek-v4-flash",
+    "provider": "deepseek",
+    "session_title": "NEWS v2.1 news 40d21dd674c8",
+    "tokens_in": 22327,
+    "tokens_out": 228,
+    "tools": 1
+   },
+   {
+    "agent": null,
+    "completions": 3,
+    "cost_usd": 0.012221,
+    "created_ms": 1794823336576,
+    "model": "deepseek-v4-flash",
+    "provider": "deepseek",
+    "session_title": "NEWS v2.1 news_market 40d21dd674c8",
+    "tokens_in": 24908,
+    "tokens_out": 429,
+    "tools": 2
+   },
+   {
+    "agent": null,
+    "completions": 2,
+    "cost_usd": 0.010253,
+    "created_ms": 1794823983511,
+    "model": "deepseek-v4-flash",
+    "provider": "deepseek",
+    "session_title": "NEWS v2.1 news e0c7b377a018",
+    "tokens_in": 21830,
+    "tokens_out": 200,
+    "tools": 1
+   },
+   {
+    "agent": null,
+    "completions": 2,
+    "cost_usd": 0.001697,
+    "created_ms": 1794823995737,
+    "model": "deepseek-v4-flash",
+    "provider": "deepseek",
+    "session_title": "NEWS v2.1 news_market e0c7b377a018",
+    "tokens_in": 1267,
+    "tokens_out": 361,
+    "tools": 1
+   },
+   {
+    "agent": null,
+    "completions": 1,
+    "cost_usd": 0.008968,
+    "created_ms": 1794825063388,
+    "model": "deepseek-v4-flash",
+    "provider": "deepseek",
+    "session_title": "NEWS v2.1 news d619c25574da",
+    "tokens_in": 20055,
+    "tokens_out": 68,
+    "tools": 0
+   },
+   {
+    "agent": null,
+    "completions": 2,
+    "cost_usd": 0.001231,
+    "created_ms": 1794825069815,
+    "model": "deepseek-v4-flash",
+    "provider": "deepseek",
+    "session_title": "NEWS v2.1 news_market d619c25574da",
+    "tokens_in": 832,
+    "tokens_out": 153,
+    "tools": 1
+   },
+   {
+    "agent": "news-restricted",
+    "completions": 1,
+    "cost_usd": 0.000546,
+    "created_ms": 1794826411428,
+    "model": "deepseek-v4-flash",
+    "provider": "deepseek",
+    "session_title": "NEWS v2.1 news f89bc542ffdd",
+    "tokens_in": 329,
+    "tokens_out": 54,
+    "tools": 0
+   },
+   {
+    "agent": "news-restricted",
+    "completions": 1,
+    "cost_usd": 0.000611,
+    "created_ms": 1794826415801,
+    "model": "deepseek-v4-flash",
+    "provider": "deepseek",
+    "session_title": "NEWS v2.1 news_market f89bc542ffdd",
+    "tokens_in": 433,
+    "tokens_out": 69,
+    "tools": 0
+   },
+   {
+    "agent": "news-restricted",
+    "completions": 1,
+    "cost_usd": 0.009284,
+    "created_ms": 1794827312659,
+    "model": "deepseek-v4-flash",
+    "provider": "deepseek",
+    "session_title": "NEWS v2.1 news df3eb36487c1",
+    "tokens_in": 20822,
+    "tokens_out": 60,
+    "tools": 0
+   },
+   {
+    "agent": "news-restricted",
+    "completions": 2,
+    "cost_usd": 0.010363,
+    "created_ms": 1794827344910,
+    "model": "deepseek-v4-flash",
+    "provider": "deepseek",
+    "session_title": "NEWS v2.1 news_market df3eb36487c1",
+    "tokens_in": 21747,
+    "tokens_out": 317,
+    "tools": 1
+   },
+   {
+    "agent": "news-restricted",
+    "completions": 1,
+    "cost_usd": 0.00057,
+    "created_ms": 1794828212798,
+    "model": "deepseek-v4-flash",
+    "provider": "deepseek",
+    "session_title": "NEWS v2.1 news c377be7226e9",
+    "tokens_in": 353,
+    "tokens_out": 64,
+    "tools": 0
+   },
+   {
+    "agent": "news-restricted",
+    "completions": 2,
+    "cost_usd": 0.001592,
+    "created_ms": 1794828219662,
+    "model": "deepseek-v4-flash",
+    "provider": "deepseek",
+    "session_title": "NEWS v2.1 news_market c377be7226e9",
+    "tokens_in": 1386,
+    "tokens_out": 242,
+    "tools": 1
+   },
+   {
+    "agent": "news-restricted",
+    "completions": 2,
+    "cost_usd": 0.001272,
+    "created_ms": 1794829112698,
+    "model": "deepseek-v4-flash",
+    "provider": "deepseek",
+    "session_title": "NEWS v2.1 news a60797c69a96",
+    "tokens_in": 712,
+    "tokens_out": 224,
+    "tools": 1
+   },
+   {
+    "agent": "news-restricted",
+    "completions": 1,
+    "cost_usd": 0.009373,
+    "created_ms": 1794829126600,
+    "model": "deepseek-v4-flash",
+    "provider": "deepseek",
+    "session_title": "NEWS v2.1 news_market a60797c69a96",
+    "tokens_in": 20994,
+    "tokens_out": 70,
+    "tools": 0
+   },
+   {
+    "agent": "news-restricted",
+    "completions": 1,
+    "cost_usd": 0.002379,
+    "created_ms": 1794830012821,
+    "model": "deepseek-v4-flash",
+    "provider": "deepseek",
+    "session_title": "NEWS v2.1 news 39f9256b7bc1",
+    "tokens_in": 4565,
+    "tokens_out": 74,
+    "tools": 0
+   },
+   {
+    "agent": "news-restricted",
+    "completions": 2,
+    "cost_usd": 0.012795,
+    "created_ms": 1794830020217,
+    "model": "deepseek-v4-flash",
+    "provider": "deepseek",
+    "session_title": "NEWS v2.1 news_market 39f9256b7bc1",
+    "tokens_in": 27155,
+    "tokens_out": 354,
+    "tools": 1
+   }
+  ],
+  "status": "ok",
+  "total": {
+   "completions": 27,
+   "cost_usd": 0.102546,
+   "tokens_in": 209766,
+   "tokens_out": 2980,
+   "tools": 10
+  }
+ },
+ "kind": "news_v21_public_export",
+ "paper": {
+  "arms": [
+   {
+    "action": "FLAT",
+    "arm": "news",
+    "attempt_id": "5c0230d832cb3409376ab99d4e97834b630f767d692867fe1e2538e3357fe168",
+    "completed_ms": 1794830020211,
+    "event_id": "39f9256b7bc154049336508ada96bd6cbf38633a94c97b2c7ad53dbc23cb85e7",
+    "expected_return_bps": -15.0,
+    "p_up": 0.48,
+    "prompt_sha256": "6b2eaed9156bc1505db8da1c285aca3eb55e8b6f635fcb5eebfa305ee4e0a379",
+    "response_sha256": "5c8de5faae600544043084084f59bb57ab6238845f38f0ce3b73db7d5a95ad49",
+    "session_id": "ses_e5e1bcb6e6afferfaMxugTxdtnGp",
+    "uncertainty": 0.55
+   },
+   {
+    "action": "FLAT",
+    "arm": "news_market",
+    "attempt_id": "41e714c8e08a2b71ebe6dc47cd27c904f19e02bcde7d3447a44a44d1adc51d77",
+    "completed_ms": 1794830034514,
+    "event_id": "39f9256b7bc154049336508ada96bd6cbf38633a94c97b2c7ad53dbc23cb85e7",
+    "expected_return_bps": -15.0,
+    "p_up": 0.48,
+    "prompt_sha256": "0173f4f9694e5c79ae69e495c6b81d03ebcacb815c1dfc641f44c31b23f46e4c",
+    "response_sha256": "8e86e17905dd37dbab6231f8063164552eebdd0a6a605e89f0767c9debc8ec69",
+    "session_id": "ses_e5e1bcb5186ffedix79q0WABJEOW",
+    "uncertainty": 0.55
+   },
+   {
+    "action": "FLAT",
+    "arm": "news",
+    "attempt_id": "3dc41f68e48df34eb2cbb1255f12c075f49342dcb603ec5c8576e3cc22a5135f",
+    "completed_ms": 1794829126597,
+    "event_id": "a60797c69a967df22da93cce98c5c31f9a60120389ce24ba0b8e9c6bcff8ff68",
+    "expected_return_bps": 5.0,
+    "p_up": 0.51,
+    "prompt_sha256": "dac7b580e3e883c471a2651c672e9b84ecbea30be74215d1b403cc329fef9fb4",
+    "response_sha256": "cd5c38cf8daf896d05e41e2361a29641028a29a0d08183dcebc376507340f724",
+    "session_id": "ses_e5e1bd92a85ffe86FV1ZvKy7yS5Y",
+    "uncertainty": 0.72
+   },
+   {
+    "action": "FLAT",
+    "arm": "news_market",
+    "attempt_id": "4b33f7d3a5734fdd243c809955ff556a60407003f25bbb3fa7fdbafa86e28854",
+    "completed_ms": 1794829133375,
+    "event_id": "a60797c69a967df22da93cce98c5c31f9a60120389ce24ba0b8e9c6bcff8ff68",
+    "expected_return_bps": -5.0,
+    "p_up": 0.44,
+    "prompt_sha256": "ff41611e1da0e364bcf4450484e8d9f1378f001033aa1c51bb3949a8c8a79f4c",
+    "response_sha256": "790f30e9bde8720b1b52f8d422939762ba63b45921e7cff377ca21e7bfc945fc",
+    "session_id": "ses_e5e1bd8f437ffe41GL2gux3kmsZq",
+    "uncertainty": 0.55
+   },
+   {
+    "action": "SHORT_PAPER",
+    "arm": "news",
+    "attempt_id": "7bab51eab286237efaefb758279c64170958b28879736b21a8b3edaaed9e68c2",
+    "completed_ms": 1794828219660,
+    "event_id": "c377be7226e9d67b13a5fe438dc72d2b5509828bd845b33d86c2838fce607feb",
+    "expected_return_bps": -80.0,
+    "p_up": 0.35,
+    "prompt_sha256": "1179943132e53c1ed540ce71a9b9d8bd0463cf90d9f605b2335d9a0253407fcf",
+    "response_sha256": "321e0d396e14c6bb810ab048f73f6526a4977002c6910975198993f99ccc212b",
+    "session_id": "ses_e5e1be6e5c1ffePU48s13fmVdMM2",
+    "uncertainty": 0.7
+   },
+   {
+    "action": "FLAT",
+    "arm": "news_market",
+    "attempt_id": "d13bea56ba740588af441f3becfd9adafeadee61edf94611dfa05c558dbee4fd",
+    "completed_ms": 1794828254278,
+    "event_id": "c377be7226e9d67b13a5fe438dc72d2b5509828bd845b33d86c2838fce607feb",
+    "expected_return_bps": -25.0,
+    "p_up": 0.42,
+    "prompt_sha256": "109069238468a3f7a0e042f98301ab1564ce6021665b836fe13378be667c1959",
+    "response_sha256": "47c6419dcb7d9aeaa28141983c342f194ae648eefc73e455c82c898b4da0131d",
+    "session_id": "ses_e5e1be6caf1ffeJ7RQzWLmFUuYtq",
+    "uncertainty": 0.6
+   },
+   {
+    "action": "FLAT",
+    "arm": "news",
+    "attempt_id": "718fbb10f3572855dd68dd0c9f23c8c5993bc76d5a63e2d1a26bd1ffc130dc2a",
+    "completed_ms": 1794827344907,
+    "event_id": "df3eb36487c1b29be648bbf9ec984c1d124538681cefb63ab2aa787ee7f0906f",
+    "expected_return_bps": 0.0,
+    "p_up": 0.5,
+    "prompt_sha256": "6f99d7cc3417f67d05296aa92dccdbed77fb95b8fee40ee9da0fecbe0047337e",
+    "response_sha256": "2d84142538ac1d02db46c31bee23df88ff0ad816a2d3171bbca0fc3bd9b23ea0",
+    "session_id": "ses_e5e1bf4a1ecffeRZ7AwniE3g90qb",
+    "uncertainty": 0.7
+   },
+   {
+    "action": "FLAT",
+    "arm": "news_market",
+    "attempt_id": "4605870aeb6e1a37425389d9857fc2c5540d763e68267af58281ff7aff47772b",
+    "completed_ms": 1794827375173,
+    "event_id": "df3eb36487c1b29be648bbf9ec984c1d124538681cefb63ab2aa787ee7f0906f",
+    "expected_return_bps": 18.0,
+    "p_up": 0.58,
+    "prompt_sha256": "01628e2bca19f1a3ca1da9fc4f0953dc3134d3b470526a1fcdacd179b864b2c7",
+    "response_sha256": "0c103b7adac8ec5b82ecaa7c45309811b205fc46ff89eafe70907fe25278a356",
+    "session_id": "ses_e5e1bf423f1ffepWF3mZ7QV6ytX9",
+    "uncertainty": 0.68
+   },
+   {
+    "action": "FLAT",
+    "arm": "news",
+    "attempt_id": "deeba70b9c68c8ecfaa4cd5ebed2467cd79fa7364a035369a0475c8bc886107b",
+    "completed_ms": 1794823995734,
+    "event_id": "e0c7b377a0186abeeb4c5cc230956ff78c077aadba835ec744a20e5017dc4c22",
+    "expected_return_bps": 0.0,
+    "p_up": 0.5,
+    "prompt_sha256": "27f6a308d4246910e1177337afd891dd73a4508f995cf52103b720ba4efd2732",
+    "response_sha256": "85ffbc87bfbf3f1fb340844890018ecd347d98ce4f181fe87e7a956305d67469",
+    "session_id": "ses_e5e1c276e68ffeySy83seQo6hd6p",
+    "uncertainty": 0.6
+   },
+   {
+    "action": "FLAT",
+    "arm": "news_market",
+    "attempt_id": "b1169da19c7a36667388d690cccf1ddac5f1bff06b5431f2256b3d225a6eec01",
+    "completed_ms": 1794824014671,
+    "event_id": "e0c7b377a0186abeeb4c5cc230956ff78c077aadba835ec744a20e5017dc4c22",
+    "expected_return_bps": -15.0,
+    "p_up": 0.45,
+    "prompt_sha256": "2bcccd4630b365845c7b7f47863a6c8c3f4fcab107c902f31b6f6459a591e8f9",
+    "response_sha256": "5504f662a5e13852d48e09ace074837c489900c1a0f30d35c45740348376d45d",
+    "session_id": "ses_e5e1c273ea6ffejC5W2tsYUtiE5p",
+    "uncertainty": 0.7
+   },
+   {
+    "action": "SHORT_PAPER",
+    "arm": "news",
+    "attempt_id": "dcfd4c1b98b0110f45adc58b549b1bb851df64d241d023ef05f0c4b2bde9c255",
+    "completed_ms": 1794826415798,
+    "event_id": "f89bc542ffdd20a41d9401bab43989b3ebb7eea578205bd9858347466d49c064",
+    "expected_return_bps": -95.0,
+    "p_up": 0.45,
+    "prompt_sha256": "37accfca67b8623914b8824050a41c7c1dca8fa2e028a8cb2381f795b4c3837f",
+    "response_sha256": "ec603eece4357af208db0babc86c29df1712373c009a4a4e3d280cf34d4a7c25",
+    "session_id": "ses_e5e1c02625bffePRLjNgQfj3clWN",
+    "uncertainty": 0.6
+   },
+   {
+    "action": "SHORT_PAPER",
+    "arm": "news_market",
+    "attempt_id": "db813d929735e2fde5ff6b94badb582ef3ccd4a302f18370176a2706b005b414",
+    "completed_ms": 1794826424728,
+    "event_id": "f89bc542ffdd20a41d9401bab43989b3ebb7eea578205bd9858347466d49c064",
+    "expected_return_bps": -85.0,
+    "p_up": 0.34,
+    "prompt_sha256": "9107247b66e56bf23ca05870563e2c5291ad140493b0464cfca09f56f3a0528f",
+    "response_sha256": "6ebe8201d76e18496575e460865a94abebd44172227f8bc90f38a8d591148bae",
+    "session_id": "ses_e5e1c025146ffeZqkJTCtsp02jZI",
+    "uncertainty": 0.68
+   }
+  ],
+  "entries": [
+   {
+    "event_id": "e0c7b377a0186abeeb4c5cc230956ff78c077aadba835ec744a20e5017dc4c22",
+    "observed_ms": 1794824015304,
+    "price": 64408.49,
+    "source": "binance_public_ticker"
+   },
+   {
+    "event_id": "f89bc542ffdd20a41d9401bab43989b3ebb7eea578205bd9858347466d49c064",
+    "observed_ms": 1794826425617,
+    "price": 64488.84,
+    "source": "binance_public_ticker"
+   },
+   {
+    "event_id": "df3eb36487c1b29be648bbf9ec984c1d124538681cefb63ab2aa787ee7f0906f",
+    "observed_ms": 1794827375805,
+    "price": 64647.93,
+    "source": "binance_public_ticker"
+   },
+   {
+    "event_id": "c377be7226e9d67b13a5fe438dc72d2b5509828bd845b33d86c2838fce607feb",
+    "observed_ms": 1794828254888,
+    "price": 64721.76,
+    "source": "binance_public_ticker"
+   },
+   {
+    "event_id": "a60797c69a967df22da93cce98c5c31f9a60120389ce24ba0b8e9c6bcff8ff68",
+    "observed_ms": 1794829134012,
+    "price": 64631.3,
+    "source": "binance_public_ticker"
+   },
+   {
+    "event_id": "39f9256b7bc154049336508ada96bd6cbf38633a94c97b2c7ad53dbc23cb85e7",
+    "observed_ms": 1794830035122,
+    "price": 64524.32,
+    "source": "binance_public_ticker"
+   }
+  ],
+  "outcomes": [],
+  "quick_check": "ok",
+  "records": [
+   {
+    "cohort": "context_news",
+    "completed_ms": 1794824015393,
+    "cutoff_ms": 1794823200000,
+    "event_id": "e0c7b377a0186abeeb4c5cc230956ff78c077aadba835ec744a20e5017dc4c22",
+    "model_id": "deepseek-v4-flash",
+    "observed_ms": 1794818056402,
+    "provider_id": "deepseek",
+    "published_ms": 1794817659000,
+    "reserved_ms": 1794823982264,
+    "seal_sha256": "a7b82c1e9b45d1e37f238c82181aef46e34ac5e545a544d4d98e389f016ce6de",
+    "source": "cointelegraph",
+    "state": "complete",
+    "synthetic": 0
+   },
+   {
+    "cohort": "context_news",
+    "completed_ms": 1794826425714,
+    "cutoff_ms": 1794823200000,
+    "event_id": "f89bc542ffdd20a41d9401bab43989b3ebb7eea578205bd9858347466d49c064",
+    "model_id": "deepseek-v4-flash",
+    "observed_ms": 1794825856637,
+    "provider_id": "deepseek",
+    "published_ms": 1794825545000,
+    "reserved_ms": 1794826409398,
+    "seal_sha256": "647cce99b28a1d242c30087be2b9c0a8b38b017bd21143a815ffe5d2ca240d04",
+    "source": "cointelegraph",
+    "state": "complete",
+    "synthetic": 0
+   },
+   {
+    "cohort": "fast_verified",
+    "completed_ms": 1794827375896,
+    "cutoff_ms": 1794826800000,
+    "event_id": "df3eb36487c1b29be648bbf9ec984c1d124538681cefb63ab2aa787ee7f0906f",
+    "model_id": "deepseek-v4-flash",
+    "observed_ms": 1794826695489,
+    "provider_id": "deepseek",
+    "published_ms": 1794826645848,
+    "reserved_ms": 1794827311442,
+    "seal_sha256": "5737cc9c817bf95e81cba1b11d5647143dc6c5584e265bc9741053ab112a93e2",
+    "source": "kraken_status",
+    "state": "complete",
+    "synthetic": 0
+   },
+   {
+    "cohort": "context_news",
+    "completed_ms": 1794828254981,
+    "cutoff_ms": 1794826800000,
+    "event_id": "c377be7226e9d67b13a5fe438dc72d2b5509828bd845b33d86c2838fce607feb",
+    "model_id": "deepseek-v4-flash",
+    "observed_ms": 1794827055804,
+    "provider_id": "deepseek",
+    "published_ms": 1794826994000,
+    "reserved_ms": 1794828211441,
+    "seal_sha256": "21a43b4718f29985ef3e583929e536006bed515fddbde2208f6fa2d87726bcf5",
+    "source": "coindesk",
+    "state": "complete",
+    "synthetic": 0
+   },
+   {
+    "cohort": "context_news",
+    "completed_ms": 1794829134104,
+    "cutoff_ms": 1794826800000,
+    "event_id": "a60797c69a967df22da93cce98c5c31f9a60120389ce24ba0b8e9c6bcff8ff68",
+    "model_id": "deepseek-v4-flash",
+    "observed_ms": 1794825027078,
+    "provider_id": "deepseek",
+    "published_ms": 1794824970000,
+    "reserved_ms": 1794829111448,
+    "seal_sha256": "884bb5edb9baa048cea0d908c0d09668c10ff68829216a548b2be0e6e8fd350d",
+    "source": "theblock",
+    "state": "complete",
+    "synthetic": 0
+   },
+   {
+    "cohort": "context_news",
+    "completed_ms": 1794830035209,
+    "cutoff_ms": 1794826800000,
+    "event_id": "39f9256b7bc154049336508ada96bd6cbf38633a94c97b2c7ad53dbc23cb85e7",
+    "model_id": "deepseek-v4-flash",
+    "observed_ms": 1794824776348,
+    "provider_id": "deepseek",
+    "published_ms": 1794824715000,
+    "reserved_ms": 1794830011459,
+    "seal_sha256": "26245428e243384d6699c85832c86073f62d2d906d6476ee2f45e8c58121982c",
+    "source": "decrypt",
+    "state": "complete",
+    "synthetic": 0
+   }
+  ],
+  "schema": {
+   "paper_arms": "CREATE TABLE paper_arms(\n event_id TEXT NOT NULL,\n arm TEXT NOT NULL,\n attempt_id TEXT NOT NULL,\n session_id TEXT,\n prompt_sha256 TEXT NOT NULL,\n p_up REAL, expected_return_bps REAL, uncertainty REAL,\n action TEXT, response_sha256 TEXT,\n completed_ms INTEGER,\n PRIMARY KEY(event_id, arm))",
+   "paper_entries": "CREATE TABLE paper_entries(\n event_id TEXT PRIMARY KEY,\n price REAL NOT NULL,\n observed_ms INTEGER NOT NULL,\n source TEXT NOT NULL)",
+   "paper_outcomes": "CREATE TABLE paper_outcomes(\n event_id TEXT NOT NULL,\n horizon_h INTEGER NOT NULL,\n exit_ms INTEGER NOT NULL,\n price REAL NOT NULL,\n settled_ms INTEGER NOT NULL,\n observed_ms INTEGER NOT NULL,\n PRIMARY KEY(event_id, horizon_h))",
+   "paper_records": "CREATE TABLE paper_records(\n event_id TEXT PRIMARY KEY,\n cohort TEXT NOT NULL,\n source TEXT NOT NULL,\n published_ms INTEGER,\n observed_ms INTEGER,\n cutoff_ms INTEGER NOT NULL,\n reserved_ms INTEGER NOT NULL,\n completed_ms INTEGER,\n provider_id TEXT,\n model_id TEXT,\n seal_sha256 TEXT NOT NULL,\n synthetic INTEGER NOT NULL DEFAULT 0,\n state TEXT NOT NULL)"
+  }
+ },
+ "refusals": [
+  {
+   "arms": [
+    {
+     "arm": "news",
+     "len": 268,
+     "model": {
+      "modelID": "deepseek-v4-flash",
+      "providerID": "deepseek"
+     }
+    },
+    {
+     "arm": "news_market",
+     "len": 289,
+     "model": {
+      "modelID": "deepseek-v4-flash",
+      "providerID": "deepseek"
+     }
+    }
+   ],
+   "at_ms": 1794825176324,
+   "event_id": "d619c25574da9fc6b2be9d2f2d0a16c1b9bdfbc3b38fe5443576e99eef61547b",
+   "reason": "invalid_response_json"
+  }
+ ],
+ "taken_ms": 1794836030763,
+ "timezone": "all timestamps are milliseconds since epoch, UTC",
+ "version": 1
+}
