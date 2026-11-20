@@ -9,9 +9,11 @@ databases. No HTTP, model calls, live orders or DB writes.
 from __future__ import annotations
 
 import argparse
+from contextlib import closing
 import json
 import sqlite3
 import sys
+import tempfile
 import time
 from collections import Counter
 from pathlib import Path
@@ -68,6 +70,45 @@ def policy(row, *, at_ms):
     return {"candidate":True,"reason":"eligible_at_capture","symbol":d.symbol}
 
 
+
+def joined_rows(*, feeds_db, metadata_db):
+    """Read two independent SQLite files; NEVER cross-join in one connection.
+
+    The collector stores v24_events in rss.sqlite and rss_metadata in
+    rss_meta.sqlite. Compare occurrence identities and evidence in Python.
+    A mismatched/partially committed pair is refused, not called eligible.
+    """
+    with closing(_read(feeds_db)) as feed, closing(_read(metadata_db)) as side:
+        event_rows = feed.execute(
+            "SELECT content_sha256,source_id,title,published_ms,observed_ms,"
+            "raw_sha256,category,provenance FROM v24_events"
+        ).fetchall()
+        meta_rows = side.execute(
+            "SELECT occurrence_id,source_id,title,summary,asset_scope,"
+            "published_ms,first_observed_ms,raw_sha256 FROM rss_metadata"
+        ).fetchall()
+    events = {r[0]: r for r in event_rows}
+    if len(events) != len(event_rows):
+        raise ProbeError("duplicate_feed_event_identity")
+    found = set()
+    joined = []
+    for m in meta_rows:
+        eid, src, title, summary, scope, pub, observed, sha = m
+        if eid in found:
+            raise ProbeError("duplicate_metadata_identity")
+        found.add(eid)
+        event = events.get(eid)
+        if event is None:
+            raise ProbeError("metadata_without_event")
+        if ((src, title, pub, observed, sha) !=
+                (event[1], event[2], event[3], event[4], event[5])):
+            raise ProbeError("two_db_evidence_mismatch")
+        joined.append((*m, event[6], event[7]))
+    if found != set(events):
+        raise ProbeError("event_without_metadata")
+    return sorted(joined, key=lambda r: (r[6], r[0]))
+
+
 def probe(*,feeds_db,metadata_db,baseline_file,now_ms=None):
     now_ms=time.time_ns()//1_000_000 if now_ms is None else now_ms
     baseline_path=Path(baseline_file)
@@ -78,14 +119,7 @@ def probe(*,feeds_db,metadata_db,baseline_file,now_ms=None):
     initial=set(baseline["baseline_ids"])
     entries=ARRIVAL.inventory(feeds_db,metadata_db)
     at={r["occurrence_id"]:r for r in entries}
-    with _read(feeds_db) as feed, _read(metadata_db) as side:
-        rows=side.execute(
-            "SELECT m.occurrence_id,m.source_id,m.title,m.summary,m.asset_scope,"
-            "m.published_ms,m.first_observed_ms,m.raw_sha256,"
-            "e.category,e.provenance "
-            "FROM rss_metadata m "
-            "JOIN v24_events e ON e.content_sha256=m.occurrence_id "
-            "ORDER BY m.first_observed_ms,m.occurrence_id").fetchall()
+    rows = joined_rows(feeds_db=feeds_db, metadata_db=metadata_db)
     fields=("occurrence_id","source_id","title","summary","asset_scope",
             "published_ms","first_observed_ms","raw_sha256",
             "category","provenance")
@@ -154,7 +188,58 @@ def selftest():
     irrelevant=policy(mk("Cathie Wood's Ark Invest bought Anthropic IPO shares"),
                       at_ms=b+80_000)
     assert not irrelevant["candidate"],irrelevant
-    print("NEWS V26 ARRIVAL CANDIDATE PROBE SELFTEST OK: fast eligible, slow stale, irrelevant")
+    # Reproduce the REAL deployment topology: metadata and events are in
+    # DIFFERENT SQLite database files. A single-db SQL JOIN must fail here.
+    with tempfile.TemporaryDirectory() as tmp:
+        feed_path = Path(tmp) / "rss.sqlite"
+        meta_path = Path(tmp) / "rss_meta.sqlite"
+        with closing(sqlite3.connect(feed_path)) as feed, \
+             closing(sqlite3.connect(meta_path)) as side:
+            feed.execute(
+                "CREATE TABLE v24_events (content_sha256 TEXT PRIMARY KEY,"
+                "source_id TEXT,title TEXT,published_ms INTEGER,"
+                "observed_ms INTEGER,raw_sha256 TEXT,category TEXT,"
+                "provenance TEXT)")
+            side.execute(
+                "CREATE TABLE rss_metadata (occurrence_id TEXT PRIMARY KEY,"
+                "source_id TEXT,title TEXT,summary TEXT,asset_scope TEXT,"
+                "published_ms INTEGER,first_observed_ms INTEGER,"
+                "raw_sha256 TEXT)")
+            record=mk("Ethereum suffers major exploit")
+            eid=record["occurrence_id"]
+            feed.execute(
+                "INSERT INTO v24_events VALUES (?,?,?,?,?,?,?,?)",
+                (eid,record["source_id"],record["title"],
+                 record["published_ms"],record["first_observed_ms"],
+                 record["raw_sha256"],record["category"],
+                 record["provenance"]))
+            side.execute(
+                "INSERT INTO rss_metadata VALUES (?,?,?,?,?,?,?,?)",
+                (eid,record["source_id"],record["title"],record["summary"],
+                 record["asset_scope"],record["published_ms"],
+                 record["first_observed_ms"],record["raw_sha256"]))
+            feed.commit()
+            side.commit()
+        two_db=joined_rows(feeds_db=feed_path,metadata_db=meta_path)
+        assert len(two_db)==1 and two_db[0][0]==eid,two_db
+        assert two_db[0][-2:]==("crypto","secondary_media")
+        snap=ARRIVAL.snapshot([],at_ms=b-1)
+        baseline=Path(tmp)/"baseline.json"
+        baseline.write_text(json.dumps(snap),encoding="utf-8")
+        output=probe(feeds_db=feed_path,metadata_db=meta_path,
+                     baseline_file=baseline,now_ms=b+100_000)
+        assert output["counts"]["potentially_eligible_at_capture"]==1,output
+        with closing(sqlite3.connect(meta_path)) as side:
+            side.execute(
+                "UPDATE rss_metadata SET raw_sha256=? WHERE occurrence_id=?",
+                ("c"*64,eid))
+            side.commit()
+        try:
+            joined_rows(feeds_db=feed_path,metadata_db=meta_path)
+            raise AssertionError("cross_db_mismatch_accepted")
+        except ProbeError as exc:
+            assert str(exc)=="two_db_evidence_mismatch",exc
+    print("NEWS V26 ARRIVAL CANDIDATE PROBE SELFTEST OK: two SQLite files, eligible, mismatch, stale, irrelevant")
 
 def main(argv=None):
     p=argparse.ArgumentParser(description=__doc__)
