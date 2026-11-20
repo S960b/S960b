@@ -61,6 +61,7 @@ def report(*, series_path, feeds_path, now_ms=None):
             for symbol in SYMBOLS:
                 assets[symbol]={
                     "claimed":0,"sealed":0,"labelled":0,"censored":0,
+                    "failed":0,
                     "reserved_calls":0,"witness_hourly":0,
                     "witness_entry":0,"witness_exit":0
                 }
@@ -79,7 +80,7 @@ def report(*, series_path, feeds_path, now_ms=None):
                 "SELECT b.symbol,o.label_state,COUNT(*) "
                 "FROM series_asset_bindings b JOIN tier2_outcomes o "
                 "ON o.event_id=b.event_id GROUP BY b.symbol,o.label_state"):
-                if state in ("labelled","censored"):
+                if state in ("labelled","censored","failed"):
                     assets[symbol][state]=int(n)
             for symbol,n in series.execute(
                 "SELECT b.symbol,COUNT(*) FROM series_asset_bindings b "
