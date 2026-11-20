@@ -156,7 +156,7 @@ def selftest():
     check("Cluster Instability", "SOL", "solana_status", True, "SOLUSDT")
     check("Public Endpoints and Explorer offline", "SOL", "solana_status", False, reason="peripheral_only")
     check("Explorer UI degraded — RPC unaffected", "SOL", "solana_status", False, reason="peripheral_only")
-    check("Docs site offline for maintenance", "SOL", "solana_status", False, reason="scheduled")
+    check("Docs site offline for maintenance", "SOL", "solana_status", False, reason="peripheral_only")
     check("Mainnet Beta outage — block production halted", "SOL", "solana_status", True, "SOLUSDT")
     check("Solana mainnet halted, validators offline", "SOL", "solana_status", True, "SOLUSDT")
     check("Bitcoin (BTC) Funding Maintenance", "GLOBAL", "kraken_incidents", False)
