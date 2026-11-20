@@ -20,6 +20,10 @@ This file does not grant permission to make a model call or a real trade.
   separate metadata sidecar. Never rewrite publication/observation times.
 - Preserve v2.5 Tier-2 **per-cohort freshness** budgets and separately enforce
   the filter's proposed `MAX_AGE_MS=600000`. Neither threshold is relaxed.
+  **Effective admission is the stricter of the two limits:** crypto = 120 s,
+  monetary policy/macro = 300 s, geopolitics = 600 s, regulatory = 600 s
+  (filter is stricter than its 900 s Tier-2 limit). Source publication-to-first-
+  observation lag is also checked, independently of decision-time age.
 
 ## Prediction contract
 
