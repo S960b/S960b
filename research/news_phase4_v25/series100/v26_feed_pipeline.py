@@ -17,6 +17,7 @@ from pathlib import Path
 import v24_collector as COL
 import v26_rss_collector as RSSCOL
 import rss_sidecar as SC
+import v26_story_guard as STORY
 import rss_noise_filter as NOISE
 import tier2 as T2
 import v21_paper_prep as PREP
@@ -140,6 +141,12 @@ def candidate(*, events_db, sidecar_db, now_ms, excluded=()):
                 or meta_pub != pub or first != observed or meta_sha != raw_sha
                 or scope != spec["asset_scope"] or meta_category != cohort
                 or meta_provenance != provenance):
+            continue
+        # V24 keeps every edited pubDate as a separate RAW occurrence.
+        # V26 MUST NOT grant another forecast or renewed freshness to a
+        # later revision of an already-observed source + article URL.
+        if not STORY.is_first(events_db,event_id=eid,source_id=sid,
+                              origin_url=url):
             continue
         # Discard stale without touching the raw archive.
         row = {"source_id":sid,"title":title,"origin_url":url,
