@@ -199,6 +199,19 @@ def write_witness(con, *, event_id, operation, symbol, witness):
     if (stored.get("symbol") != symbol or stored.get("operation") != operation
             or stored.get("raw_sha256") != witness["raw_sha256"]):
         raise SeriesV26Error("market_witness_manifest_mismatch")
+    # Re-observing an unchanged historical candle is safe after a crash.
+    # Keep the FIRST immutable manifest. A changed raw response must never
+    # silently replace evidence or produce a different label for this event.
+    current = con.execute(
+        "SELECT symbol,request_url,raw_sha256,result_sha256 "
+        "FROM series_market_witnesses WHERE event_id=? AND operation=?",
+        (event_id,operation)).fetchone()
+    expected = (symbol,witness["request_url"],witness["raw_sha256"],
+                witness["result_sha256"])
+    if current is not None:
+        if tuple(current) != expected:
+            raise SeriesV26Error("market_witness_conflict")
+        return {"status":"already_recorded"}
     con.execute(
         "INSERT INTO series_market_witnesses"
         "(event_id,operation,symbol,request_url,raw_sha256,"
@@ -206,6 +219,7 @@ def write_witness(con, *, event_id, operation, symbol, witness):
         (event_id,operation,symbol,witness["request_url"],witness["raw_sha256"],
          digest(payload),witness["result_sha256"]))
     con.commit()
+    return {"status":"recorded"}
 
 
 def model_executor(*, event_id, series_id, system_prompt):
@@ -516,8 +530,12 @@ def main(argv=None):
             with singleton():
                 output=execute_one()
         elif args.label:
-            with singleton():
-                output=settle_labels()
+            # No lock, directories or side effects when no series exists.
+            if not DB.is_file() or DB.is_symlink():
+                output={"status":"no_series"}
+            else:
+                with singleton():
+                    output=settle_labels()
         else:
             output=status()
         print(json.dumps(output,sort_keys=True,ensure_ascii=False))
