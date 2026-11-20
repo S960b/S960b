@@ -1,0 +1,5 @@
+{
+  "_note": "SYNTHETIC Binance-shaped payload for /api/v3/ticker/price. Not a captured response.",
+  "symbol": "ETHUSDT",
+  "price": "2510.42"
+}

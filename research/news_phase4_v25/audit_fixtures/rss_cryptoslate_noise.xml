@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SYNTHETIC fixture created for the audit pack. Not a captured feed response. -->
+<rss version="2.0"><channel>
+<title>SYNTHETIC media feed</title>
+<link>https://example.invalid/media</link>
+<item>
+  <title>Cathie Wood's Ark Invest piled into Anthropic IPO</title>
+  <link>https://example.invalid/anthropic-ipo</link>
+  <pubDate>Fri, 20 Nov 2026 09:48:52 GMT</pubDate>
+  <description>SYNTHETIC: no BTC/ETH/SOL target present, used to test no_target_asset.</description>
+</item>
+<item>
+  <title>Bitcoin price prediction 2027</title>
+  <link>https://example.invalid/prediction</link>
+  <pubDate>Fri, 20 Nov 2026 09:50:00 GMT</pubDate>
+  <description>SYNTHETIC: editorial noise case.</description>
+</item>
+</channel></rss>
