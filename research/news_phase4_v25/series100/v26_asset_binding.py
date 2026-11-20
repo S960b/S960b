@@ -226,6 +226,9 @@ def selftest():
     import series_guard as G
     with tempfile.TemporaryDirectory() as d:
         con = G.open_db(Path(d) / "series.sqlite")
+        # Real production series store() applies the Tier-2 schema separately.
+        # Reproduce that schema in this disposable test database only.
+        con.executescript(T2.SCHEMA)
         install_schema(con)
         cutoff = 1_800_000_000_000
         pub = cutoff+1_000
@@ -263,7 +266,7 @@ def selftest():
                 "source":"binance_public_ticker", "observed_ms":cutoff+6_000},
                 last_arm_ms=cutoff+5_000, now_ms=cutoff+6_000)
             raise AssertionError("wrong quote symbol accepted")
-        except T2.Tier2Error:
+        except BindingError:
             pass
         assert check_entry(con, eid, {"symbol":"ETHUSDT", "price": 2500.,
                 "source":"binance_public_ticker", "observed_ms":cutoff+6_000},
