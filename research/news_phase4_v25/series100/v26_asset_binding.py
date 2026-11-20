@@ -198,6 +198,8 @@ def bound_symbol(con, event_id):
 
 def check_entry(con, event_id, quote, *, last_arm_ms, now_ms):
     symbol = bound_symbol(con, event_id)
+    if not isinstance(quote, dict) or quote.get("symbol") != symbol:
+        raise BindingError("entry_symbol_missing_or_mismatch")
     T2.validate_quote(quote, last_arm_ms, now_ms=now_ms, symbol=symbol)
     return symbol
 
@@ -213,6 +215,8 @@ def check_exit(con, event_id, candle, *, due_ms):
     sealed_due = int(triple[0]) + int(triple[1])
     if type(due_ms) is not int or sealed_due != due_ms:
         raise BindingError("exit_due_not_sealed")
+    if not isinstance(candle, dict) or candle.get("symbol") != symbol:
+        raise BindingError("exit_symbol_missing_or_mismatch")
     T2.validate_candle(candle, due_ms, symbol=symbol)
     return symbol
 
