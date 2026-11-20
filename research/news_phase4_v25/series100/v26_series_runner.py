@@ -30,6 +30,7 @@ for directory in (SOURCE, LIVE, RSS, HERE):
 import series_guard as G
 import v26_asset_binding as B
 import v26_feed_pipeline as PIPE
+import v26_story_guard as STORY
 import v26_market_provenance as PROV
 import v26_symbol_market as MARKET
 import rss_sidecar as SIDECAR
@@ -167,8 +168,9 @@ def choose(con, now):
             if result is None:
                 return None
             event, rss_row, symbol = result
-            semantic = COL.semantic_cluster_id(
-                event["title"], event["published_ms"])
+            # Durable unique claim across pubDate changes of the same URL.
+            # The v24 archive still preserves all publisher revisions.
+            semantic = STORY.story_key(event["source"],event["origin_url"])
             if semantic not in clusters:
                 return event, rss_row, symbol, semantic
             excluded.add(event["event_id"])
