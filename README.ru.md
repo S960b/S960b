@@ -22,6 +22,7 @@
 ## Проекты и инфраструктура
 
 - [Hermes Chat Bridge](hermes_chat_bridge/) — мост на базе Git между ChatGPT и локальным ИИ-агентом (MultiTool / Hermes). Координация задач, история сообщений, передача ходов и локальная панель управления.
+- [Hermes PostgreSQL Bridge](hermes_pg_bridge/README.ru.md) — новый PostgreSQL/MCP-мост ChatGPT ↔ Hermes/MultiTool; формируется открытый архив исходников для независимого аудита.
 
 ## Исследования (Research)
 
