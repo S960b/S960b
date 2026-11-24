@@ -2,7 +2,7 @@
 
 [Русский](README.ru.md) · [Previous Git-based bridge](../hermes_chat_bridge/)
 
-**Status (2026-11-24): source inventory/export in progress.** This directory is being prepared for independent review. Until the source and its manifest appear, it is NOT a complete audit package.
+**Status (2026-11-24): sanitized audit source snapshot published.** [Source scope](SOURCE_SCOPE.md) · [Manifest with provenance and exclusions](AUDIT_MANIFEST.json). This is not a private runtime backup.
 
 [Independent audit checklist](AUDIT_REQUEST.md)
 
@@ -41,4 +41,4 @@ Historical scripts are review material, not instructions to reinstall or replay 
 - Two successive tasks were verified through one Stage 39 session, but full six-hour renewal under real disruptions was not established by that test alone.
 - A successful message append is not proof that MultiTool executed the task; delivery ACK is distinct.
 
-See the accompanying manifest and audit notes once export is finished; do not treat this provisional index as a completeness statement.
+See the manifest for the exact public-file list, source hashes and exclusions. A public snapshot is not proof of a live runtime state.

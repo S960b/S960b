@@ -1,0 +1,10 @@
+[Unit]
+Description=Check Hermes PG v2 local write capabilities every two minutes
+
+[Timer]
+OnBootSec=30s
+OnUnitInactiveSec=2min
+Unit=hermes-pg-stage37a-permit-watchdog.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,108 @@
+:root {
+  color-scheme: light;
+  font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: #f2f4f6;
+  color: #202935;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { max-width: 1490px; margin: 26px auto; padding: 0 22px 36px; }
+h1 { font-size: 24px; margin: 0 0 5px; letter-spacing: -.3px; }
+h2 { font-size: 20px; margin: 0; }
+header, .detailhead, .toolbar, .pagination {
+  display: flex; align-items: center; gap: 12px;
+  justify-content: space-between; flex-wrap: wrap;
+}
+header { margin-bottom: 25px; }
+.muted, small { color: #59697b; }
+p { margin: 7px 0; }
+button {
+  background: #ffffff; border: 1px solid #c8d2dc; color: #273747;
+  border-radius: 8px; padding: 8px 13px; cursor: pointer;
+  font: inherit; font-size: 13px; transition: background .12s, border-color .12s;
+}
+button:hover { background: #e7edf4; border-color: #7893b0; }
+button:focus-visible { outline: 3px solid #4a90dc; outline-offset: 2px; }
+button:disabled { opacity: .47; cursor: default; }
+button.danger { background: #fff9f8; color: #a73f40; border-color: #ddb3b3; }
+button.danger:hover { background: #ffeae6; }
+button.history-btn {
+  background: #218650; color: #fff; border-color: #218650;
+  font-weight: 650; min-width: 93px;
+}
+button.history-btn:hover { background: #166d40; border-color: #166d40; }
+button.copy { font-size: 12px; padding: 2px 6px; margin-left: 6px; }
+input[type=checkbox] { accent-color: #238650; }
+table {
+  border-collapse: separate; border-spacing: 0; width: 100%;
+  min-width: 870px; margin-top: 12px; background: #fbfcfd;
+  border: 1px solid #d5dde5; border-radius: 10px; overflow: hidden;
+}
+th, td { text-align: left; padding: 14px 12px; border-bottom: 1px solid #e0e6ec; vertical-align: top; }
+tr:last-child td { border-bottom: none; }
+tbody tr:hover { background: #f3f8fc; }
+th { font-size: 12px; color: #435267; background: #e9eef3; font-weight: 700; }
+.title { font-size: 15px; font-weight: 700; margin-bottom: 3px; }
+.success { color: #17744a; font-weight: 650; }
+.warn { color: #9d5a1f; font-weight: 650; }
+.tablewrap { overflow-x: auto; }
+.pagination { margin-top: 14px; justify-content: flex-start; }
+code, pre {
+  font: 12px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace;
+  overflow-wrap: anywhere;
+}
+code { color: #465b71; }
+.actor {
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 7px; border: 1px solid transparent; padding: 2px 9px;
+  font-size: 16px; font-weight: 800; line-height: 1.45; letter-spacing: .01em;
+}
+.actor-mt { color: #075fbb; background: #e2efff; border-color: #a6cbf3; }
+.actor-chatgpt { color: #7432af; background: #f1e5fc; border-color: #d4b5f1; }
+.actor-unknown { color: #455568; background: #e7edf3; border-color: #ccd7e1; }
+.direction {
+  display: inline-flex; align-items: center; flex-wrap: wrap;
+  gap: 5px; font-weight: 700;
+}
+.arrow { font-size: 21px; font-weight: 800; color: #667b91; padding: 0 3px; }
+.turn-line { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 7px; }
+.turn-label { font-weight: 700; font-size: 14px; color: #42516a; }
+#detail {
+  position: fixed; z-index: 30; inset: 0; overflow-y: auto;
+  background: rgb(35 47 62 / 44%);
+  padding: 30px 16px;
+}
+.detail-shell {
+  background: #f9fafb; border: 1px solid #cdd7e3; box-shadow: 0 18px 70px #24374c44;
+  max-width: 1120px; min-height: 180px; margin: 0 auto; padding: 24px;
+  border-radius: 14px;
+}
+#detail-meta {
+  margin-top: 15px; padding: 12px; border-radius: 9px;
+  background: #edf2f7; border: 1px solid #d8e1e9;
+}
+#detail-meta .muted { margin-top: 5px; }
+.message {
+  margin-top: 13px; padding: 14px 16px; background: white;
+  border: 1px solid #dbe3eb; border-radius: 9px;
+}
+.message-meta { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.message-meta strong { font-size: 15px; }
+.message-id { padding: 3px 7px; background: #f1f5f9; border-radius: 5px; }
+pre {
+  background: #f4f6f9; color: #203041; border: 1px solid #dbe3eb;
+  border-radius: 7px; padding: 14px; white-space: pre-wrap;
+  max-height: 460px; overflow: auto; font-size: 13px;
+}
+#loading-history { font-weight: 600; color: #466788; padding: 26px 4px; }
+#error { color: #af3438; font-weight: 600; }
+@media (max-width: 650px) {
+  body { margin: 12px auto; padding: 0 10px 26px; }
+  #detail { padding: 10px 6px; } .detail-shell { padding: 14px; }
+  .actor { font-size: 14px; }
+  h1 { font-size: 20px; } h2 { font-size: 18px; }
+}
+
+/* P32.5: withdrawn messages remain readable history, but visually inactive. */
+.message.withdrawn { opacity: .63; border-style: dashed; background: #f1f3f5; }
+.message.withdrawn pre { color: #65717d; background: #e9edf1; }

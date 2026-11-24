@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PG Dialog · P32 Taskboard</title><link rel="stylesheet" href="/taskboard.css"></head>
+<body>
+<header><div><h1>PG Dialog · таскборда P32</h1>
+<p class="muted">Новый PG-мост · S960b/agent-dialogs · последние сообщения сверху</p></div>
+<div class="toolbar"><button id="refresh">Обновить</button>
+<label><input id="show-archived" type="checkbox"> Показать архивные</label></div></header>
+<p class="muted" id="notice">Загрузка...</p><p id="error" role="alert"></p><p id="count" class="muted"></p>
+<div class="tablewrap"><table><thead><tr><th>Название задачи / task_id</th><th>Последняя джоба / message_id</th>
+<th>Ход / состояние</th><th>Последнее действие</th><th>Действия</th></tr></thead><tbody id="rows"></tbody></table></div>
+<div class="pagination"><button id="list-prev">← Новее задачи</button><button id="list-next">Старее задачи →</button></div>
+<section id="detail" role="dialog" aria-modal="true" aria-labelledby="detail-title" hidden>
+  <div class="detail-shell">
+    <div class="detailhead"><h2 id="detail-title"></h2>
+      <div class="toolbar"><button id="copy-task">⧉ task_id</button><button id="close">Закрыть ✕</button></div>
+    </div>
+    <div id="detail-meta"></div><div id="loading-history" role="status" aria-live="polite"></div>
+    <div id="messages"></div>
+    <div class="pagination"><button id="history-prev">← Новее сообщения</button>
+      <button id="history-next">Старее сообщения →</button></div>
+  </div>
+</section>
+<script src="/taskboard.js" defer></script></body></html>
