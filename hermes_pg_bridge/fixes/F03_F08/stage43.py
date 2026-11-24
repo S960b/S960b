@@ -28,7 +28,7 @@ STOP=KDIR/'393_close_session.sh'
 NODE=H/'.hermes/node/bin/node'
 BASE_SHA={
  'cli':'bf8cad69a02e71a70ec3377504c24a3fc2cb71a38f2c8c4a025abc587b774485',
- 'read':'443967becd000dbbedb3cbcac7291b2c3ddbfb3718976b984ca9130046fac',
+ 'read':'443967becd000dbbedb3cbcac7291b2c3ddbfb3718318976b984ca9130046fac',
  'watchdog':'66cdc42d30cacf4f6ac8f038a11001a2fbac722bdd9c4848f89dbe4424625f07',
  'keeper':'4c8e380f1420781409dab3ad1fb66ef9af802d1bba3867aa1d2d16da24901009',
  'plugin':'1c4e7ff0c892b1a9fde92711c44d94886790124bde16328e3d8b38d0b0843427',
