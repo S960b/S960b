@@ -23,6 +23,7 @@ Writeups and technical notes from CTF competitions, structured as `ctf/<event>/<
 ## Projects & infrastructure
 
 - [Hermes Chat Bridge](hermes_chat_bridge/) — a Git-backed bridge connecting ChatGPT with a local AI agent (MultiTool / Hermes). It coordinates tasks, maintains per-task conversation history, tracks handoffs and displays activity in a local taskboard.
+- [Hermes PostgreSQL Bridge](hermes_pg_bridge/) — PostgreSQL-backed ChatGPT ↔ Hermes/MultiTool MCP bridge; source export and independent security audit in progress.
 
 ## Research
 
