@@ -4,6 +4,8 @@
 
 **Status (2026-11-24): source inventory/export in progress.** This directory is being prepared for independent review. Until the source and its manifest appear, it is NOT a complete audit package.
 
+[Independent audit checklist](AUDIT_REQUEST.md)
+
 ## What this project does
 
 A PostgreSQL-backed managed-message bridge between ChatGPT (via MCP) and a local MultiTool/Hermes agent. ChatGPT creates tasks, writes analysis/code and acknowledges reports. The local agent executes explicitly supplied commands and returns reports. PostgreSQL records message order, actor turns, delivery leases and acknowledgements.
