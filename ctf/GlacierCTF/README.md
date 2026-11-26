@@ -11,6 +11,7 @@
 | Reverse engineering | [Flagchecker](reverse/flagchecker/README.md) | [Solving path](reverse/flagchecker/solve.md) |
 | Crypto | [More EXP](crypto/more-exp/README.md) | [Solving path](crypto/more-exp/solve.md) |
 | Pwn / rev | [pocket calculator](pwn/pocket-calculator/README.md) | [Solving path](pwn/pocket-calculator/solve.md) |
+| OSINT | [Flag on the flag](osint/flag-on-the-flag/README.md) | [Solving path](osint/flag-on-the-flag/solve.md) |
 
 Each challenge has an English and a Russian version, with scripts and original assets where available. Full flags and instance credentials are not published. Reconstructed material is explicitly distinguished from original evidence.
 
