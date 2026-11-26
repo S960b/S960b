@@ -60,6 +60,6 @@ The exact deployed protoc version and its server-side validator source were not 
 
 ## 6. Evidence limitations
 
-The original "Proto Prism Analysis" conversation ended before a flag was found. The later agent archive contains the breakthrough, reconstructed final solve.py, an unchanged example.zip and HTML form, local PWNED artifact, and [the transcribed successful run](evidence/README.md). The last successful solution was executed as an inline script and was only reconstructed into solve.py later; the complete HTTP response was not saved byte-for-byte. There is **no evidence of a platform submission**, only real remote flag extraction.
+The original "Proto Prism Analysis" conversation ended before a flag was found. The later agent archive contains the breakthrough, reconstructed final solve.py, an unchanged example.zip and HTML form, local PWNED artifact, and [the transcribed successful run](evidence/README.md). The last successful solution was executed as an inline script and was only reconstructed into solve.py later; the complete HTTP response was not saved byte-for-byte. **The participant confirms platform acceptance of the recovered flag.** The raw submission/acceptance response was not retained with the agent archive.
 
 The lesson: validate argv boundaries and disable response-file and plugin execution paths when invoking compilers on untrusted filenames.
