@@ -8,7 +8,7 @@
 - **Challenge:** “I wrote a brainfuck interpreter! I don't know how to sandbox it properly, so i just put it into our educational OS.”
 - **Service (historical):** `challs.glacierctf.com:13370`
 - **Handout:** `brainrot.tar.gz`
-- **Result:** recovered from the remote SWEB debug-console transcript. The full flag is masked in this public repository.
+- **Result:** recovered from the remote SWEB debug-console transcript; platform acceptance confirmed by the participant. The full flag is masked in this public repository.
 
 ## Summary
 
