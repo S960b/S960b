@@ -111,7 +111,7 @@ FORGED OPEN: 200 ... classification=restricted&sample=Ice-VII&...&flag=gctf%7B..
 
 Оба пользовательских ZIP идентичны. В них есть исходный архив и его распакованная копия, оригинальный `scripts/solve.py` с `session.py`, `exploit.py`, скрипты прежних проверок, архивные ответы десяти инстансов и реальный `evidence/03_successful_run.log`.
 
-В GitHub опубликован переносимый [scripts/solve.py](scripts/solve.py), без жёсткого пути `/tmp/gigatool/cold`, и [scripts/test_offline.py](scripts/test_offline.py) для проверки GF-арифметики по сохранённым данным. Оригинальный инстанс истёк, новых запросов во время создания райтапа не выполнялось.
+В GitHub опубликован переносимый [scripts/solve.py](scripts/solve.py), без жёсткого пути `/tmp/gigatool/cold`, и [scripts/test_offline.py](scripts/test_offline.py) для проверки GF-арифметики на синтетической паре с повторным nonce. Оригинальный инстанс истёк, новых запросов во время создания райтапа не выполнялось.
 
 ## 7. Выводы для защиты
 
