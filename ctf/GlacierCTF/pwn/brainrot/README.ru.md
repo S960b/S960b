@@ -8,7 +8,7 @@
 - **Условие:** «I wrote a brainfuck interpreter! I don't know how to sandbox it properly, so i just put it into our educational OS.»
 - **Сервис:** `challs.glacierctf.com:13370` (исторический, сейчас не используется)
 - **Архив:** `brainrot.tar.gz`
-- **Результат:** флаг получен в логе удалённого SWEB; в публичном GitHub он замаскирован.
+- **Результат:** флаг получен в логе удалённого SWEB и принят платформой по подтверждению участника; в публичном GitHub он замаскирован.
 
 ## Кратко
 
