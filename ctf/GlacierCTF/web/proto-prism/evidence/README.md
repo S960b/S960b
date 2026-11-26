@@ -22,6 +22,6 @@ A local protoc experiment executed the same /bin/sh-plugin polyglot and saved PW
 - evidence/local_repro_stderr.txt, SHA-256 **bb2fc331a582a00cfe0973b6b7d295da02a7d9233f6df294fdb8b2682d2da687**.
 - evidence/probe_http_log.txt, SHA-256 **b930ace5892d651ac40d56f8893f21019303924bfc9d4460f9a9d92b30fbe0b9**.
 
-The initial chat "Proto Prism Analysis" stopped after negative/inconclusive probes. The agent's later archive demonstrates the successful response-file + /bin/sh + 35-byte-filename chain. The final successful inline script was subsequently reconstructed as scripts/solve.py. No screenshot of a platform submission exists; mark **live flag extraction as solved**, but **platform acceptance as unverified**.
+The initial chat "Proto Prism Analysis" stopped after negative/inconclusive probes. The agent's later archive demonstrates the successful response-file + /bin/sh + 35-byte-filename chain. The final successful inline script was subsequently reconstructed as scripts/solve.py. The participant confirms **successful platform acceptance** of the recovered flag. No screenshot of that acceptance is included in the archive; the raw HTTP extraction transcript was also not preserved.
 
 Full flags, webhook tokens, ephemeral instance IDs and the raw private transcript are omitted from the public repo.
