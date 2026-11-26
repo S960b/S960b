@@ -23,6 +23,7 @@
 | Web | [Team-Check](web/team-check/README.md) | [Solving path](web/team-check/solve.md) |
 | Crypto / web | [Cold Storage](crypto/cold-storage/README.md) | [Solving path](crypto/cold-storage/solve.md) |
 | Crypto | [CSI-HASH](crypto/csi-hash/README.md) | [Solving path](crypto/csi-hash/solve.md) |
+| Crypto | [Cold Echo](crypto/cold-echo/README.md) | [Solving path](crypto/cold-echo/solve.md) |
 
 Each challenge has an English and a Russian version, with scripts and original assets where available. Full flags and instance credentials are not published. Reconstructed material is explicitly distinguished from original evidence.
 
