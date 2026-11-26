@@ -1,6 +1,6 @@
 # CSI-HASH organizer handout
 
-Original `csi-hash.tar.gz` (4,274 bytes), SHA-256 `90140513b2577f1d...` (full digest is recorded in private MANIFEST.txt). The user-supplied private evidence ZIP includes the **unaltered** organizer tarball and extracted `assets/handout/` files:
+Original `csi-hash.tar.gz` (4,274 bytes), SHA-256 `90140513b2577f1d1aee63851bb541761d83487003c518171fc6c5cdd120c511`. The user-supplied private evidence ZIP includes the **unaltered** organizer tarball and extracted `assets/handout/` files:
 
 - `challenge.sage`: Sage implementation of the isogeny hash and 32-letter challenge.
 - `Dockerfile`: base `sagemath/sagemath` Sage 10.6; `socat` and a 180-second timeout.
