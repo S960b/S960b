@@ -19,4 +19,4 @@ Source: user-provided `glacierctf_brainrot_materials.zip`, prepared by the local
 - Inspecting the original remote transcript confirms the full flag was printed by the challenge session.
 - The historical conversation also records a successful **synthetic local** `gctf{LOCAL_TEST_SUCCESS}` probe.
 
-The full real flag and the unredacted remote log remain outside the public repository. A platform submission screenshot is not available. The original solver is lost, so reproduction claims are limited to the source and records actually preserved.
+The full real flag and the unredacted remote log remain outside the public repository. The participant confirms platform acceptance; a submission screenshot is not available in the retained evidence. The original solver is lost, so reproduction claims are limited to the source and records actually preserved.
