@@ -16,6 +16,6 @@ Source: `glacierctf_sensory_box_materials.zip`, assembled on November 27, 2026 f
 
 ## Evidence boundaries
 
-The final 40-byte value was printed by a script reading the **remote** tar archive; the report describes it as a live flag. There is **no preserved raw tarball, raw TCP transcript, or platform acceptance result**. The final output is a transcription. The agent report explicitly states the flag had not been submitted on the platform.
+The final 40-byte value was printed by a script reading the **remote** tar archive; the report describes it as a live flag. There is **no preserved raw tarball, raw TCP transcript, or acceptance screenshot**. The final output is a transcription. The agent report reflects the earlier stage before submission; the participant has subsequently confirmed that the platform accepted the flag.
 
-This repository therefore distinguishes recovered live flag data from a separately confirmed challenge submission. The full flag and temporary age private keys are not copied to public GitHub.
+The recovered live flag and **participant-confirmed platform acceptance** establish the solved status. The full flag and temporary age private keys are not copied to public GitHub.
