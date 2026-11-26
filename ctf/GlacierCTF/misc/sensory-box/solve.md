@@ -111,7 +111,7 @@ boxes/box_01/dice.txt 1734571110 b'gctf'
 boxes/box_02/dice.txt 2067214453 b'{70u'
 ```
 
-The full recovered value is masked in GitHub and retained in the private archive. **The archive explicitly says that submission to the CTF platform was not performed or recorded**; we therefore claim successful live extraction, not a platform acceptance screenshot. The successful compressed tar was not saved separately, but the agent preserved the reconstructed stdout.
+The full recovered value is masked in GitHub and retained in the private archive. **The earlier agent archive predates platform submission, but the participant has now confirmed that the recovered flag was accepted.** There is no saved screenshot of the platform result. The successful compressed tar was not saved separately, but the agent preserved the reconstructed stdout.
 
 ## 7. Security lesson
 
