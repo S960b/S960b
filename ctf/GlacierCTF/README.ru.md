@@ -24,6 +24,12 @@
 | Crypto / web | [Cold Storage](crypto/cold-storage/README.ru.md) | [Путь решения](crypto/cold-storage/solve.ru.md) |
 | Crypto | [CSI-HASH](crypto/csi-hash/README.ru.md) | [Путь решения](crypto/csi-hash/solve.ru.md) |
 | Crypto | [Cold Echo](crypto/cold-echo/README.ru.md) | [Путь решения](crypto/cold-echo/solve.ru.md) |
+| Web | [LosVault (partial research)](web/losvault/README.ru.md) | [Путь решения](web/losvault/solve.ru.md) |
+| Web | [Frozen Query](web/frozen-query/README.ru.md) | [Путь решения](web/frozen-query/solve.ru.md) |
+| Rev | [mircosoft](reverse/mircosoft/README.ru.md) | [Путь решения](reverse/mircosoft/solve.ru.md) |
+| Crypto | [Twisted Vigenere](crypto/twisted-vigenere/README.ru.md) | [Путь решения](crypto/twisted-vigenere/solve.ru.md) |
+| Crypto | [Decipher Stage 2](crypto/decipher-stage-2/README.ru.md) | [Путь решения](crypto/decipher-stage-2/solve.ru.md) |
+| Crypto | [Decipher Stage 1](crypto/decipher-stage-1/README.ru.md) | [Путь решения](crypto/decipher-stage-1/solve.ru.md) |
 
 Для каждой задачи предусмотрены английская и русская версии, скрипты и исходные материалы при наличии. Полные флаги и данные доступа к инстансам не публикуются. Восстановленные материалы явно отделены от оригинальных доказательств.
 
