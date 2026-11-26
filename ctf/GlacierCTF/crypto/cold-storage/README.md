@@ -21,7 +21,7 @@ One imported known plaintext and one public archived ciphertext share the same k
 - [solve.md](solve.md) — English technical write-up and cryptographic derivation.
 - [solve.ru.md](solve.ru.md) — Russian technical write-up.
 - [scripts/solve.py](scripts/solve.py) — portable standalone solver, with explicit `--url` or `--spawn`.
-- [scripts/test_offline.py](scripts/test_offline.py) — offline algebra self-test against the preserved import and archive records.
+- [scripts/test_offline.py](scripts/test_offline.py) — offline algebra self-test with a controlled synthetic nonce-reuse example.
 - [assets/README.md](assets/README.md) — organizer source and checksum.
 - [evidence/README.md](evidence/README.md) — successful log and investigation provenance.
 
