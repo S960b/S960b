@@ -27,4 +27,4 @@ Goal: recover the flag without factoring the modulus. The solution first recover
 - [evidence/competition-redacted.log](evidence/competition-redacted.log): successful competition run, actual flag masked.
 - [evidence/local-redacted.log](evidence/local-redacted.log): independent local reproduction with the supplied dummy flag.
 
-The server flag was recovered and both RSA checks passed. The supplied materials do not contain a platform submission receipt. The real flag is not published.
+The server flag was recovered and both RSA checks passed. The real flag is not published.

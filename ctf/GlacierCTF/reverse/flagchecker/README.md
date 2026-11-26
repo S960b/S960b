@@ -12,6 +12,6 @@ The original solution record reports 1,337 XOR-encoded strings, a single-byte XO
 - [scripts/solve.py](scripts/solve.py): reconstructed candidate extractor and optional local verifier.
 - [assets/README.md](assets/README.md): status of the original archive.
 
-The archive itself and the original command log could not be recovered when preparing this write-up. The author, points, and verbatim challenge description are not available in the retained record. The solver is a reconstruction, not a claim that the original script survived. The local acceptance result was recorded during the competition; a separate platform submission receipt is unavailable.
+The archive itself and the original command log could not be recovered when preparing this write-up. The author, points, and verbatim challenge description are not available in the retained record. The solver is a reconstruction, not a claim that the original script survived. The local acceptance result was recorded during the competition.
 
 The complete flag is intentionally masked as `gctf{...}`.

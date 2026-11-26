@@ -249,7 +249,7 @@ The successful preserved run:
 [+] BOTH RSA CHECKS PASSED
 ```
 
-The remote flag was recovered during the competition. The original success log exists and is published with the flag masked. No platform submission receipt was supplied; the first-run log and exact numeric RSA parameters are not retained. The live competition endpoint was not contacted while preparing this write-up.
+The remote flag was recovered during the competition. The original success log exists and is published with the flag masked. The first-run log and exact numeric RSA parameters are not retained. The live competition endpoint was not contacted while preparing this write-up.
 
 ## 9. What should be fixed
 

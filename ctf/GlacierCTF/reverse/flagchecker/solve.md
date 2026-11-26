@@ -122,7 +122,7 @@ The retained competition-time result records a complete flag, entry No. 706 and 
 The flag is valid!
 ```
 
-This is a preserved result from the conversation, not a newly generated terminal log. The flag is masked here as `gctf{...}`. The original executable is currently unavailable, so the reconstructed script cannot be rerun against it as part of preparing this write-up. A platform submission receipt was not recovered.
+This is a preserved result from the conversation, not a newly generated terminal log. The flag is masked here as `gctf{...}`. The original executable is currently unavailable, so the reconstructed script cannot be rerun against it as part of preparing this write-up.
 
 ## 7. Takeaway
 
