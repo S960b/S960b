@@ -13,7 +13,7 @@ Key preserved files:
 - `scripts/solve.py`, `scripts/exploit.py`, `scripts/session.py` — original successful Python files in the agent bundle.
 - `assets/cold-storage.tar.gz` and extracted organizer source.
 
-The archive includes the actual live `ciphertext`, `tag` and matching record from the same instance; public [test_offline.py](../scripts/test_offline.py) rechecks the field arithmetic without connecting to the service.
+The successful log retains the live imported `ciphertext` and `tag` and reports `H verified`, but does not reproduce the matching archive ciphertext/tag as a standalone line. Archived datasets from other instances must **not** be mixed with it. Public [test_offline.py](../scripts/test_offline.py) instead checks the same field arithmetic on a controlled synthetic pair without contacting the service.
 
 **Flag accepted by the CTF platform**, as confirmed by the participant for the completed GlacierCTF tasks. The original raw remote response already contains the flag. No screenshot of submission acceptance is needed to establish the status stated by the participant.
 
