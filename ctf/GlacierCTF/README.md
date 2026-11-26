@@ -20,6 +20,7 @@
 | Crypto | [El Clásico](crypto/el-clasico/README.md) | [Solving path](crypto/el-clasico/solve.md) |
 | Misc | [Orbital Privacy Screwer](misc/orbital-privacy-screwer/README.md) | [Solving path](misc/orbital-privacy-screwer/solve.md) |
 | Web | [Proto Prism](web/proto-prism/README.md) | [Solving path](web/proto-prism/solve.md) |
+| Web | [Team-Check](web/team-check/README.md) | [Solving path](web/team-check/solve.md) |
 | Crypto / web | [Cold Storage](crypto/cold-storage/README.md) | [Solving path](crypto/cold-storage/solve.md) |
 | Crypto | [CSI-HASH](crypto/csi-hash/README.md) | [Solving path](crypto/csi-hash/solve.md) |
 
