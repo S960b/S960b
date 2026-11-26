@@ -1,0 +1,7 @@
+7bfbad17fe4649929a4cec9aa4ddef9d5b717094a75670850d029cf4a063cdec  ./Dockerfile
+566ceafeb22feaa4ec2bba8bf83edfccf10512ae7b6cf30635bf0033e2a32536  ./challenge
+95137756a4c4ecd94b1c7ec0ffeb21c679ed526bd1f3f9f6f745aa64d9680433  ./entrypoint.sh
+6cc4e5fb79eb10fefc68aef9a70100f486aabaeeee13ea6e1ed227ce218cc9fe  ./flag.txt
+e27a288120bbd0d6ff65ed98af8c24d918e8bb509355d3e99acc2860a78d1597  ./requirements.txt
+7a5669f8429df237a09f03fa96d96a210efc7cfafe66c233f9559a89013df84d  ./deploy.sh
+19db869f980df815a6cea4e94715e77fad93089a944f0d09d76aaf58a0c0a0f2  ./deploy.bat

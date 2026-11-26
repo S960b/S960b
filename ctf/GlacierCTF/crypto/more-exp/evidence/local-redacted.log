@@ -1,0 +1,18 @@
+# Local reproduction; original challenge source, loopback socat, OpenSSL prime
+# generation compatibility shim in place of unavailable PyCryptodome.
+# Solver destination changed to the ephemeral local port.
+# Dummy flag masked in this log. Solver exit code 0.
+Welcome to FuzzyGmbH's simple signature service
+Example: {"e": 65537, "msg": 0x1337}
+Please provide us with the message to sign and the public exponents
+> 
+[*] known msg 2 gcd bits 65537
+[*] known msg 3 gcd bits 4098
+[*] known msg 5 gcd bits 4096
+[*] gcd bits 4096
+[+] N bits 4096
+[*] ciphertexts obtained
+[+] RAW b'gctf{...}\n'
+[+] FLAG gctf{...}
+
+[+] BOTH RSA CHECKS PASSED

@@ -9,6 +9,7 @@
 | Категория | Задача | Решение |
 | --- | --- | --- |
 | Reverse engineering | [Flagchecker](reverse/flagchecker/README.ru.md) | [Путь решения](reverse/flagchecker/solve.ru.md) |
+| Crypto | [More EXP](crypto/more-exp/README.ru.md) | [Путь решения](crypto/more-exp/solve.ru.md) |
 
 Для каждой задачи предусмотрены английская и русская версии, скрипты и исходные материалы при наличии. Полные флаги и данные доступа к инстансам не публикуются. Восстановленные материалы явно отделены от оригинальных доказательств.
 

@@ -1,0 +1,76 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# Respect the shebang and mark file as executable
+
+import json
+
+from Crypto.Util.number import getPrime
+from Crypto.Util.number import bytes_to_long
+
+
+class EncryptionService:
+    def __init__(self, bit_size: int=512):
+        self.num_bits = bit_size
+        p = getPrime(bit_size)
+        q = getPrime(bit_size)
+        self.N = p*q
+        self.phi_n = (p-1)*(q-1)
+
+    def encrypt(self, e: int, message: int) -> int:
+        # We should pad here so we are not vulnerable to plaintext RSA attacks
+        return pow(message, e, self.N)
+
+
+def main():
+
+    with open("flag.txt", "r") as flag_file:
+        FLAG = flag_file.read()
+
+    print("Welcome to FuzzyGmbH's simple signature service")
+    print('Example: {"e": 65537, "msg": 0x1337}')
+
+    # We at FuzzyCorp want the best encryption money can buy
+    service = EncryptionService(2048)
+
+    while True:
+        print("Please provide us with the message to sign and the public exponents")
+        data = input("> ")
+
+        if not data:
+            print("Good bye!")
+            return 1
+        try:
+            parsed_data = json.loads(data)
+        except:
+            print("An error occured while handeling your input.")
+            return 1
+
+        if "msg" in parsed_data:
+            message_to_sign = parsed_data["msg"]
+        else:
+            message_to_sign = FLAG
+
+        public_exponents = parsed_data["e"]
+
+        try:
+            exp = int(public_exponents)
+        except:
+            print("look like, you didn't provide us with a number here :/")
+            return 1
+
+        if exp < 0x10001:
+            print("This exponent is too small")
+            return 1
+
+        if isinstance(message_to_sign, str):
+            encrypted_msg = service.encrypt(
+                exp, bytes_to_long(message_to_sign.encode())
+            )
+        else:
+            encrypted_msg = service.encrypt(exp, message_to_sign)
+
+        print(f"Your encrypted message for {exp}: {hex(encrypted_msg)}")
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())
