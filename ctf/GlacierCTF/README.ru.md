@@ -12,6 +12,7 @@
 | Crypto | [More EXP](crypto/more-exp/README.ru.md) | [Путь решения](crypto/more-exp/solve.ru.md) |
 | Pwn / rev | [pocket calculator](pwn/pocket-calculator/README.ru.md) | [Путь решения](pwn/pocket-calculator/solve.ru.md) |
 | OSINT | [Flag on the flag](osint/flag-on-the-flag/README.ru.md) | [Путь решения](osint/flag-on-the-flag/solve.ru.md) |
+| OSINT | [find me if you can (частичное исследование)](osint/find-me-if-you-can/README.ru.md) | [Заметки](osint/find-me-if-you-can/solve.ru.md) |
 | Misc | [Flagpression](misc/flagpression/README.ru.md) | [Путь решения](misc/flagpression/solve.ru.md) |
 | Pwn | [Glacier Catch](pwn/glacier-catch/README.ru.md) | [Путь решения](pwn/glacier-catch/solve.ru.md) |
 | Pwn | [brainrot](pwn/brainrot/README.ru.md) | [Путь решения](pwn/brainrot/solve.ru.md) |
