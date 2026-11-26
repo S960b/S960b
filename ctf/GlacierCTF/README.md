@@ -21,6 +21,7 @@
 | Misc | [Orbital Privacy Screwer](misc/orbital-privacy-screwer/README.md) | [Solving path](misc/orbital-privacy-screwer/solve.md) |
 | Web | [Proto Prism](web/proto-prism/README.md) | [Solving path](web/proto-prism/solve.md) |
 | Crypto / web | [Cold Storage](crypto/cold-storage/README.md) | [Solving path](crypto/cold-storage/solve.md) |
+| Crypto | [CSI-HASH](crypto/csi-hash/README.md) | [Solving path](crypto/csi-hash/solve.md) |
 
 Each challenge has an English and a Russian version, with scripts and original assets where available. Full flags and instance credentials are not published. Reconstructed material is explicitly distinguished from original evidence.
 
