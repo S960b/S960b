@@ -23,6 +23,7 @@
 | Web | [Team-Check](web/team-check/README.ru.md) | [Путь решения](web/team-check/solve.ru.md) |
 | Crypto / web | [Cold Storage](crypto/cold-storage/README.ru.md) | [Путь решения](crypto/cold-storage/solve.ru.md) |
 | Crypto | [CSI-HASH](crypto/csi-hash/README.ru.md) | [Путь решения](crypto/csi-hash/solve.ru.md) |
+| Crypto | [Cold Echo](crypto/cold-echo/README.ru.md) | [Путь решения](crypto/cold-echo/solve.ru.md) |
 
 Для каждой задачи предусмотрены английская и русская версии, скрипты и исходные материалы при наличии. Полные флаги и данные доступа к инстансам не публикуются. Восстановленные материалы явно отделены от оригинальных доказательств.
 
