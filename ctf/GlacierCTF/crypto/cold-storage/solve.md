@@ -122,7 +122,7 @@ The research archive records substantial negative tests before inspecting the so
 
 The participant-provided `glacierctf_cold-storage_materials.zip` and `glacierctf_cold-storage_materials(1).zip` are identical. Both contain the organizer's original tarball, extracted Node.js sources, the actual successful `scripts/solve.py`, helper scripts `session.py` and `exploit.py`, intermediate experiments, 10 archived instance datasets and `evidence/03_successful_run.log`.
 
-The [public standalone solver](scripts/solve.py) removes the author's hardcoded `/tmp/gigatool/cold` import path and supports explicitly passing the instance URL or spawning a new one. The [offline test](scripts/test_offline.py) validates the GHASH derivation using ciphertexts from the historical run and archive, without network use.
+The [public standalone solver](scripts/solve.py) removes the author's hardcoded `/tmp/gigatool/cold` import path and supports explicitly passing the instance URL or spawning a new one. The [offline test](scripts/test_offline.py) validates the GHASH derivation using a controlled synthetic example; historical log data are documented separately, without network use.
 
 The remote instance expired; no new session was opened while producing this write-up.
 
