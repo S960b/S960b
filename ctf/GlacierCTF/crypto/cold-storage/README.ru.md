@@ -21,7 +21,7 @@
 - [solve.ru.md](solve.ru.md) — подробный технический райтап и формулы.
 - [solve.md](solve.md) — английская версия.
 - [scripts/solve.py](scripts/solve.py) — самостоятельный солвер с параметрами `--url` / `--spawn`.
-- [scripts/test_offline.py](scripts/test_offline.py) — независимая локальная проверка криптоарифметики на данных из архива.
+- [scripts/test_offline.py](scripts/test_offline.py) — локальная проверка криптоарифметики на контрольном синтетическом примере.
 - [assets/README.md](assets/README.md) — исходники организатора и хеш.
 - [evidence/README.md](evidence/README.md) — логи успешной сессии.
 
