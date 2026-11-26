@@ -6,7 +6,7 @@
 - **Points:** 50
 - **Remote:** `nc challs.glacierctf.com 13377` (historical)
 - **Attachment:** `sensory_box.tar.gz`
-- **Status:** complete flag recovered from live service; platform submission was **not** recorded in the evidence.
+- **Status:** complete flag recovered from live service; the participant confirms the flag was accepted by the platform.
 
 > Can you guess all the dice correctly to get the full prize?
 
