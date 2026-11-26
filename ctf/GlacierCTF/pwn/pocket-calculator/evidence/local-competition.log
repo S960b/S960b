@@ -1,0 +1,7 @@
+# Historical excerpt restored from the conversation on 2026-11-20.
+# Local test changed the path to /tmp/pcflag, containing the synthetic flag.
+> SecureHeap destruction...
+> SecureHeap destruction done
+gctf{LOCAL_TEST_OK}
+
+FLAGS: ['gctf{LOCAL_TEST_OK}']

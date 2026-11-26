@@ -1,0 +1,11 @@
+# Independent rerun during write-up preparation on 2026-11-26.
+# Original checksum-verified challenge; original local_test_exploit.py.
+# Selected stdout/stderr lines; interactive output and NUL padding omitted.
+ROP words=30, ends=0x60cff0
+Writes=35, bytes_input=592
+LOCAL exit= 0
+...
+> SecureHeap destruction...
+SecureHeap destruction done
+gctf{LOCAL_TEST_OK}
+FLAGS: ['gctf{LOCAL_TEST_OK}']
