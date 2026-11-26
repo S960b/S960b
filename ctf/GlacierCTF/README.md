@@ -24,6 +24,12 @@
 | Crypto / web | [Cold Storage](crypto/cold-storage/README.md) | [Solving path](crypto/cold-storage/solve.md) |
 | Crypto | [CSI-HASH](crypto/csi-hash/README.md) | [Solving path](crypto/csi-hash/solve.md) |
 | Crypto | [Cold Echo](crypto/cold-echo/README.md) | [Solving path](crypto/cold-echo/solve.md) |
+| Web | [LosVault (partial research)](web/losvault/README.md) | [Solving path](web/losvault/solve.md) |
+| Web | [Frozen Query](web/frozen-query/README.md) | [Solving path](web/frozen-query/solve.md) |
+| Rev | [mircosoft](reverse/mircosoft/README.md) | [Solving path](reverse/mircosoft/solve.md) |
+| Crypto | [Twisted Vigenere](crypto/twisted-vigenere/README.md) | [Solving path](crypto/twisted-vigenere/solve.md) |
+| Crypto | [Decipher Stage 2](crypto/decipher-stage-2/README.md) | [Solving path](crypto/decipher-stage-2/solve.md) |
+| Crypto | [Decipher Stage 1](crypto/decipher-stage-1/README.md) | [Solving path](crypto/decipher-stage-1/solve.md) |
 
 Each challenge has an English and a Russian version, with scripts and original assets where available. Full flags and instance credentials are not published. Reconstructed material is explicitly distinguished from original evidence.
 
