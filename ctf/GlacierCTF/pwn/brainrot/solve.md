@@ -111,7 +111,7 @@ program> [*] booting SWEB (debug console follows; grep for the flag)...
 
 The same **21,273-byte** remote log includes `gctf{...}` (masked here) at byte offset 18894. After the flag, the guest later reports an assertion in `File::~File` about file descriptors during filesystem teardown, followed by a kernel panic. The flag is already present in the output; a clean guest shutdown is not necessary for CTF success.
 
-The historical session records flag recovery. A separate screenshot of platform acceptance was not saved; this is deliberately not conflated with the observed remote stdout.
+The historical session records flag recovery, and the participant confirms the flag was accepted by the platform. A separate screenshot of acceptance was not saved with the agent materials.
 
 ## 7. Artifacts and reproduction boundaries
 
