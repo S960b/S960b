@@ -1,0 +1,68 @@
+#!/usr/bin/env python3
+"""Offline check against the *actual archived* CSI-HASH maximal-class logs.
+
+The vector [-3]*32 is a verified relation in the exact nonmaximal
+discriminant -4p order (see archived csi_fixed.log). Here we check the
+necessary relation in Cl(O_K) using the 32 saved ideal logarithms.
+This pure-Python check is not a substitute for the PARI Qfb exact-order test.
+"""
+from solve import preimage
+
+PRIMES = [3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,
+          61,67,71,73,79,83,89,97,101,103,107,109,113,127,131,179]
+LOGS = [
+407420844431758343694144148,
+319221364783451284945771203,
+161131039620359463023304927,
+223243751549119205690523670,
+51396726695113527799925617,
+404479875027085456278375758,
+81991395665710625503564278,
+161720230826644640025111596,
+292266956326256555304670122,
+136305674296215478701194738,
+7706921590031691300479880,
+189662865472318197161067335,
+229244071657183915887200133,
+249526814697591624406313172,
+148684444173041413301203680,
+77793738983520782489118894,
+150442638778473065255050828,
+374516588276090594308481195,
+381455277359704323197042200,
+270344641389529140187526673,
+261498673299945895354108951,
+49774589560295804418569326,
+293593640624982350200231561,
+85591834182900762130024246,
+363723334220359515807203888,
+146389993317697288923639389,
+278701604924362494364480343,
+300482340192969831914435831,
+196662286061144117589580738,
+51802907510180130087829571,
+58189870020254692322358549,
+91768492578728061730004633
+]
+P = 188270939500840731196151103351923464818418726348041539
+H_MAX = 407420844431758343694144149
+H_ORDER = 1222262533295275031082432447
+
+def main():
+    assert len(PRIMES) == len(LOGS) == 32
+    prod=4
+    for ell in PRIMES: prod*=ell
+    assert prod-1==P
+    assert P%8==3 and H_ORDER==3*H_MAX
+    residue=sum(LOGS)%H_MAX
+    print("sum 32 prime-ideal logarithms mod h(-p):",residue)
+    assert residue==0, "No all-ones relation in maximal class group"
+    old=b"PBERSLhMGAMlyzVagLFVVXyYMwdKGIml"
+    new=preimage(old)
+    assert new==b"M?BOPIeJD>JivwS^dICSSUvVJtaHDFji"
+    assert all(b-a==-3 for a,b in zip(old,new))
+    print("PASS: archived maximal-order relation and exact recorded preimage")
+    print("Exact D=-4p relation was checked separately in PARI (archived csi_fixed.log).")
+
+if __name__=="__main__":
+    main()
