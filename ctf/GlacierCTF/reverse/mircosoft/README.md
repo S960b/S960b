@@ -1,30 +1,29 @@
 # mircosoft — GlacierCTF 2026
 
-[Русская версия](README.ru.md) · [Technical write-up](solve.md)
+[Русская версия](README.ru.md) · [Full English write-up](solve.md) · [Combined EN/RU](WRITEUP_RU_EN.md)
 
-**Category:** rev / Windows · **Points:** 50 · **Status:** solved — accepted by the platform (participant confirmation).
+**Category:** rev / Windows · **Points:** 50 · **Status:** Solved, independently reproduced from the original handout.
 
-This challenge contains a protected Windows launcher (`mircosoft.exe`), a machine-bound license (`license.bin`), and a **Windows MiniDump** of the administrator machine (`admin_machine.dmp`). The original solve recovered the embedded PE, extracted five hardware identifiers from the dump, reproduced the custom MAC, derived the stream key and decrypted the license.
+An obfuscated Windows PE launcher hides four DRM keys; the supplied administrator MiniDump provides the machine fingerprint. Reversing the loader, reconstructing a nested PE, rebuilding the machine-bound license MAC, and decrypting an eight-block XTEA-derived stream recovers the platform-accepted flag.
 
-**Accepted flag:** `gctf{...}` (redacted in the public repository).
+**The previous missing intermediate has been recovered.** The original solve conversation supplied [`scripts/unpack.py`](scripts/unpack.py), a real static PE unpacker. It was tested against the original organizer tarball:
 
-## Recovered challenge artifacts
+```text
+unpacked_pe.bin: 18432 bytes
+SHA256: 9d5df8e2717f29b5ee8af7a0b2c423de754aac7676e65c4429bc74361f191d80
+Calculated license MAC: 8305d5d5c5316f76bd27ddbbc5221f56
+Stored license MAC:     8305d5d5c5316f76bd27ddbbc5221f56
+Flag: gctf{...} [accepted, redacted in public text]
+```
 
-The real organizer handout `mircosoft (1).tar.gz` was checked and all three organizer SHA-256 checks passed. We independently parsed the seven memory ranges in the MiniDump and confirmed the exact offsets consumed by the saved original final solver.
+## Run end to end
 
-| Organizer file | Size |
-| --- | ---: |
-| `mircosoft.exe` | 27,136 bytes |
-| `license.bin` | 104 bytes |
-| `admin_machine.dmp` | 50,328 bytes |
+```sh
+python3 scripts/reproduce.py /path/to/mircosoft.tar.gz
+```
 
-## Contents
+Requires Python 3.10+ and the original organizer tarball, **no Wine, Windows, or third-party Python modules**.
 
-- [solve.md](solve.md) — full EN technical explanation, checksum/MAC and TEA-like license decryption.
-- [solve.ru.md](solve.ru.md) — full RU write-up.
-- [scripts/solve.py](scripts/solve.py) — **original script from the successful November 20 solve**, including MAC calculation and final decryption (uses locally unpacked PE).
-- [scripts/extract_minidump.py](scripts/extract_minidump.py) — new stdlib-only extraction of all MiniDump memory regions.
-- [assets/README.md](assets/README.md) — original file sizes, hashes and byte offsets.
-- [evidence/README.md](evidence/README.md) — exact reproduction scope and unavailable original unpacker.
+This invokes the original [three-stage PE unpacker](scripts/unpack.py), [MiniDump extractor](scripts/extract_minidump.py), and the [historical final decryption algorithm](scripts/solve.py) in a temporary directory, verifying the embedded PE hash and license MAC.
 
-**Reproduction scope:** The original final `solve.py` is preserved verbatim and the MiniDump extraction is reproducible from the handout. The earlier session's separately unpacked `unpacked_pe.bin` and its unpacking helper were not included in the organizer archive or recoverable old files, so a new end-to-end unpacking claim would be misleading. The accepted flag and successful checksum validation are recorded from that prior session.
+Read [solve.md](solve.md) for a step-by-step technical write-up, [evidence](evidence/README.md) for independent verification, and [scripts](scripts/README.md) for commands and inputs. The full accepted flag is retained in the solve conversation and intentionally masked here.
