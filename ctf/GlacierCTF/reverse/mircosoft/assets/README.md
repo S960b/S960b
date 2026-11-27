@@ -49,4 +49,4 @@ Concatenation order: **CPUID || volume serial || MachineGuid || SMBIOS UUID || M
 
 The `license.bin` header stores a 16-byte MAC at `[8:24]`, 8-byte nonce `[24:32]`, and 64-byte encrypted data `[32:96]`.
 
-The original archive is unaltered in the conversation attachment. The initial unpacked PE is an **analysis product**, not an organizer-distributed file.
+The original archive is unaltered in the conversation attachment. The unpacked PE is an **analysis product**, not an organizer-distributed file. It is now **fully reproducible from the original** `mircosoft.exe` using [scripts/unpack.py](../scripts/unpack.py): 18,432 bytes, SHA-256 `9d5df8e2717f29b5ee8af7a0b2c423de754aac7676e65c4429bc74361f191d80`. Its `.data` at file offset `0x3e00` contains the four 16-byte license keys. End-to-end reproduction: `python3 scripts/reproduce.py mircosoft.tar.gz`; this was checked locally with the supplied organizer files and returns the accepted flag.
