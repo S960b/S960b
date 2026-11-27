@@ -1,23 +1,46 @@
-# find me if you can — historical flight and photo geolocation research
+# find me if you can — identifying the accepted GVA–VIE flight and coordinates
 
 [Русская версия](solve.ru.md)
 
-## Challenge goal
+## Challenge
 
-Using organizer image `2024.JPG` and the route **GVA → VIE**, identify the marketed flight and flight number, actual ATC callsign and the approximate airplane position. The flag uses `gctf{Marketed flight/Flightnumber_ATC callsign_LAT.xx_LONG.xx}`, so mixing a codeshare marketing label with a live radio callsign will make a plausible-looking answer fail.
+The organizer supplied `2024.JPG` and the GVA → VIE route. The required format was:
 
-## Previous research and correction
+```text
+gctf{Marketed flight/Flightnumber_ATC callsign_LAT.xx_LONG.xx}
+```
 
-The initial exploration established an **Austrian Airlines Embraer E195** in the photograph. EXIF and GPS metadata were absent, so the flight and coordinate identification had to use historical schedules, route tracking and ground landmarks rather than a metadata shortcut.
+The task was to connect the aircraft photo to an actual 2024 flight and express the marketed flight, its radio callsign and the approximate location in the prescribed two-decimal format.
 
-The 2024 route had flight-number candidates **OS572**, **OS574**, **OS576**; potential Swiss codeshare marketing references included **LX3562**, **LX3564**, **LX3566**. Their ATC callsigns must be independently correlated with the specific dated flight and the airplane's position: a marketed number does not necessarily determine a callsign.
+## Aircraft and route investigation
 
-An early proposed approach incorrectly used **OS154** / **OS152**, numbers relevant to later changes around October 2025 rather than the photographed **2024** flight. One linked aircraft-history page was also found to display different routes/dates than its apparent title. These were discarded, demonstrating the importance of checking the actual displayed flight tables.
+The historical investigation identified an **Austrian Airlines Embraer E195**, with no useful EXIF/GPS coordinates. It compared 2024 Geneva–Vienna schedules and photographs of Alpine terrain. Contenders included Austrian flight numbers **OS572, OS574, OS576**, possible codeshare listings **LX3562, LX3564, LX3566**, and different ATC callsign possibilities.
 
-A later hypothesis examined an Alpine view around **Wilder Kaiser / Achensee** and the OS572 route. A proposed but **not independently verified** trial candidate was `OS572/AUA57M` near **47.75°N 12.36°E**; another earlier candidate was AUA57C. The prior ChatGPT discussion explicitly had **no platform-confirmed match** for either of those candidate strings. The participant's later solved-task list establishes successful submission, but does not supply the final coordinates and callsign.
+An early OS15x hypothesis (**OS154/OS152**) was discarded because those numbers pertain to later scheduling changes in 2025, rather than a 2024 photo. One aircraft-tracking page was found to display a flight table for dates/routes different from its title, and was also discarded.
 
-## How to complete reproducibly from original evidence
+The later investigation narrowed the location to the **Wilder Kaiser / Aschau im Chiemgau** area and selected **OS572** with ATC callsign **AUA57M**. A historical location estimate in the conversation was approximately **47.7504° N, 12.3564° E**. This location was a research estimate, not a newly verified track in the current publication.
 
-To finish an exact historical write-up, correlate the organizer's original high-resolution 2024.JPG (terrain, camera orientation, wing/aircraft features) with time-matched 2024 ADS-B flight tracks GVA→VIE, record the observed flight identity, separate the marketing flight number from the ATC callsign, and verify the plane's coordinates at the photographed moment. Only report a literal `gctf{...}` string when the accepted submitted value is retrieved; none of the partial guesses above are presented as the actual accepted flag.
+## Two submissions: the decisive correction
 
-**Provenance:** this research was recovered from earlier user/assistant conversations; the original full-resolution photograph, accepted flag and final track log were not available in the current working attachments. No fresh flight-map identity was invented for publication.
+The two proposed strings differed only in longitude:
+
+| Attempt | Candidate | Platform result |
+| --- | --- | --- |
+| First | `gctf{OS572_AUA57M_47.75_12.36}` | **Rejected** |
+| Second | `gctf{OS572_AUA57M_47.75_12.35}` | **Accepted** |
+
+**Accepted flag:**
+
+```text
+gctf{OS572_AUA57M_47.75_12.35}
+```
+
+The first candidate used `12.36` as a rounded value from approximately `12.3564`. The second used `12.35`, the two-decimal truncation of the same estimate. The participant explicitly confirms that **the second proposed flag was accepted**; this should not be reversed or described as two successful alternatives.
+
+The flag's latitude and longitude are **the accepted submission values**, not a claim to centimetre-accurate physical coordinates.
+
+## Reliability and provenance
+
+The submitted flag and which attempt succeeded are grounded in the participant's follow-up identifying the **second** string. Historical assumptions about aircraft type, terrain and a possible flight date arise from the prior research discussion; we do **not** claim to have independently replayed ADS-B records or the platform grader while updating this write-up.
+
+The original high-resolution photograph and the full historical tracking log are not embedded in this public repository. Those omissions limit independent reconstruction of every OSINT lookup, but **do not make the accepted flag unknown**.
