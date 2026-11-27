@@ -9,6 +9,7 @@
 | Category | Challenge | Solution |
 | --- | --- | --- |
 | Reverse | [Flagchecker](reverse/flagchecker/README.md) | [Solving path](reverse/flagchecker/solve.md) |
+| Rev | [Frostgate License Manager](reverse/frostgate-license-manager/README.md) | [Solving path](reverse/frostgate-license-manager/solve.md) |
 | Crypto | [More EXP](crypto/more-exp/README.md) | [Solving path](crypto/more-exp/solve.md) |
 | Pwn / rev | [pocket calculator](pwn/pocket-calculator/README.md) | [Solving path](pwn/pocket-calculator/solve.md) |
 | OSINT | [Flag on the flag](osint/flag-on-the-flag/README.md) | [Solving path](osint/flag-on-the-flag/solve.md) |
