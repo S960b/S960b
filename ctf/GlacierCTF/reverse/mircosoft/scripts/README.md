@@ -1,46 +1,38 @@
-# mircosoft — scripts and reproduction
+# mircosoft — fully reproducible scripts
 
-[English write-up](../solve.md) · [Русский райтап](../solve.ru.md)
+[English technical write-up](../solve.md) · [Русский райтап](../solve.ru.md)
 
-## 1. Extract MiniDump memory regions
+**All stages have now been reproduced from the original organizer archive.** The earlier missing `unpacked_pe.bin` is no longer a prerequisite: [`unpack.py`](unpack.py) regenerates it from `mircosoft.exe`.
+
+## Simplest method
 
 ```sh
-tar -xzf 'mircosoft (1).tar.gz'
+python3 scripts/reproduce.py 'mircosoft (1).tar.gz'
+```
+
+The one-shot runner uses a temporary work directory and standard Python only. It:
+
+1. extracts the official tarball;
+2. calls `unpack.py` to recover the inner PE from the loader;
+3. checks `SHA256(unpacked_pe.bin)=9d5df8e2717f29b5ee8af7a0b2c423de754aac7676e65c4429bc74361f191d80`;
+4. calls `extract_minidump.py` to extract seven regions;
+5. invokes `solve.py` with `MIRCOSOFT_WORKDIR`, checks computed MAC equals the 16-byte license header, and prints the flag.
+
+## Run the individual stages
+
+```sh
+tar -xzf mircosoft.tar.gz
+mkdir -p ./work/mircosoft
+cp mircosoft/license.bin ./work/mircosoft/
+python3 scripts/unpack.py mircosoft/mircosoft.exe -o ./work/unpacked_pe.bin
 python3 scripts/extract_minidump.py mircosoft/admin_machine.dmp --out-dir ./work
+MIRCOSOFT_WORKDIR="$(pwd)/work" python3 scripts/solve.py
 ```
 
-The **new** `extract_minidump.py` uses only the standard library. It reads the MiniDump `MemoryListStream`, writes `region0.bin`–`region6.bin`, verifies file boundaries and computes the hardware fingerprint SHA-256. The expected result for the original archive is
+The historical `solve.py` retains its complete original XTEA/MAC/key-derivation logic, with only an optional environment-based workdir added; absent that environment variable, its prior path `/mnt/data/mircosoft_work` remains the default.
 
-```text
-Fingerprint length: 110
-Fingerprint SHA256: 9887f856a75c76842491cd7fff0ee47410c3dc97cebeb71c8cc6db624b24c238
-```
+## Source provenance
 
-## 2. Historical final decryption
+The `unpack.py` code and a detailed bilingual `mircosoft_WRITEUP_RU_EN.md` were retrieved from the original solved conversation's Library materials. The extracted inner PE has exactly 18,432 bytes and the expected hash. The original final solver's printed MAC exactly matched `license.bin`, and the plaintext contained the accepted flag. These results were independently rerun with the original current-conversation tarball.
 
-`solve.py` is the **original retained solver** from the successful November 20, 2026 solve session. It expects a hardcoded `B=Path('/mnt/data/mircosoft_work')`, and accesses:
-
-```text
-/mnt/data/mircosoft_work/unpacked_pe.bin
-/mnt/data/mircosoft_work/mircosoft/license.bin
-/mnt/data/mircosoft_work/region0.bin
-/mnt/data/mircosoft_work/region1.bin
-/mnt/data/mircosoft_work/region2.bin
-/mnt/data/mircosoft_work/region3.bin
-/mnt/data/mircosoft_work/region4.bin
-```
-
-To use an arbitrary working directory, change the `B` assignment at the top of `solve.py`. The previous solve generated `unpacked_pe.bin` by unpacking the protected launcher, but that intermediate and the unpacking helper were **not provided in the organizer's tarball**, so the currently published two scripts **are not an independent end-to-end solver starting from only the supplied archive**.
-
-The stages implemented by `solve.py` are:
-
-```text
-unpacked PE .data keys → fingerprint MAC matches license header
-→ three successive MAC groups → 16-byte derived key
-→ 8 × custom TEA(counter, key) → XOR with license ciphertext
-→ plaintext/accepted flag
-```
-
-Historical MAC match and flag acceptance are documented in the write-up; this publication independently re-extracted the MiniDump but did not rerun the missing PE-unpacking stage.
-
-The script keeps its historical algorithm unchanged for auditability.
+**Do not mistake** `unpacked_pe.bin` for organizer-provided data. It is computed by `unpack.py`. The 16-byte DRM keys reside in the resulting `.data` segment at file offset `0x3e00`.
