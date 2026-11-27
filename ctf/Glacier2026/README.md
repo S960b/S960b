@@ -1,5 +1,7 @@
 # GlacierCTF 2026
 
+[Русская версия](README.ru.md)
+
 - Dates: November 20–21, 2026.
 - Competition: [GlacierCTF](https://glacierctf.com/).
 - Flag format: `gctf{...}`.
@@ -34,5 +36,3 @@
 | Crypto | [Decipher Stage 1](crypto/decipher-stage-1/README.md) | [Solving path](crypto/decipher-stage-1/solve.md) |
 
 Each challenge has an English and a Russian version, with scripts and original assets where available. Full flags and instance credentials are not published. Reconstructed material is explicitly distinguished from original evidence.
-
-[Русская версия](README.ru.md)
