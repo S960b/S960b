@@ -23,12 +23,18 @@ def main():
     original = pathlib.Path(sys.argv[1]).resolve()
     with tempfile.TemporaryDirectory(prefix="mircosoft_ctf_") as temporary:
         work = pathlib.Path(temporary)
-        with tarfile.open(original, "r:gz") as tar:
-            tar.extractall(work, filter="data")
         source = work / "mircosoft"
-        for p in ("mircosoft.exe", "license.bin", "admin_machine.dmp"):
-            if not (source / p).is_file():
-                raise SystemExit("Missing organizer file: " + p)
+        source.mkdir()
+        # Extract only known challenge filenames; never follow symlinks.
+        with tarfile.open(original, "r:gz") as tar:
+            for filename in ("mircosoft.exe", "license.bin", "admin_machine.dmp"):
+                member = tar.getmember("mircosoft/" + filename)
+                if not member.isfile():
+                    raise SystemExit("Not a regular file: " + filename)
+                payload = tar.extractfile(member)
+                if payload is None:
+                    raise SystemExit("Cannot read " + filename)
+                (source / filename).write_bytes(payload.read())
         unpacked = work / "unpacked_pe.bin"
         subprocess.run([sys.executable, str(HERE/"unpack.py"),
                         str(source/"mircosoft.exe"), "-o", str(unpacked)], check=True)
