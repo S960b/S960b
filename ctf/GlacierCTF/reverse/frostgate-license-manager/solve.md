@@ -1,45 +1,168 @@
-# Frostgate License Manager — Windows license-check virtualization
+# Frostgate License Manager — virtualized Windows license check (GlacierCTF 2026)
 
-[Русская версия](solve.ru.md)
+[Русская версия](solve.ru.md) · [C solver](scripts/solve_virt.c) · [Verification](evidence/README.md)
 
-## Challenge and supplied program
+**Author:** xer0 · **Category:** rev · **Points:** 50 · **Status:** solved, independently reproduced on the original organizer PE.
 
-The goal is to find a license accepted by `virt.exe`, a Windows x86-64 PE console application. The official handout `virt.tar.gz` includes `virt/virt.exe` (154,624 bytes) and `virt/sha256sum`. The built-in SHA-256 check for the executable passes.
+# English version
 
-Static examination identifies eight PE sections: `.text`, `.data`, `.rdata`, `.pdata`, `.bss`, `.CRT`, `.idata`, and a custom `.frost0` section (raw size `0x38e4`, file offset `0x22200`). The program contains the prompts:
+## Overview
 
-```text
-Frostgate License Manager  v3.1
-Enter license key:
-Checking license, please wait...
+The challenge shipped a 64-bit Windows PE, `virt.exe`, posing as **Frostgate License Manager v3.1**. It asked for a license key and stated that a correct key was the flag. The binary contained a custom executable `.frost0` section and two validation paths. The initial apparent key was a deliberate decoy; the actual solution required running the virtualized checker.
+
+## Recon and decoy
+
+The PE was linked at **ImageBase `0x100000000`**. The relevant sections were `.text`, `.data`, and `.frost0` (RVA `0x29000`). A check at **RVA `0x125c0`** accepted 39-byte inputs and compared the bytes against data decoded with:
+
+```python
+candidate[i] = decoy_table[i] ^ ((0x2f * i + 0xa7) & 0xff)
 ```
 
-The file is PE32+ / x86-64, with entry-point RVA `0x16a0`, image base `0x100000000`, and was distributed as a **Delphi-compiled** Windows challenge. It was designed to run under both Wine and Windows.
+That produced:
 
-## The actual historical solution
+```text
+wrong{f1n4l1z3r_d3c0y_n0t_th3_r34l_0n3}
+```
 
-The November 20, 2026 solve conversation records the following independently relevant observations:
+Since it is a 39-character `wrong{...}` string and not the proper flag format, we did not stop there.
 
-1. The valid license has **exactly 40 characters**, starts `gctf{` and ends with `}`.
-2. License checking runs through **virtualized functions**; the protection should not be understood as a simple plaintext string comparison.
-3. The reverse-engineering process checked possible **printable values by position**, arriving at **exactly one matching character for every position**.
-4. A distinct decoy branch decrypted to `wrong{f1n4l1z3r_d3c0y_n0t_th3_r34l_0n3}`. It is explicitly *not* the accepted flag.
-5. The successful result was a 40-character `gctf{...}` license, and the participant later confirmed platform acceptance.
+## Recovering the real validation loop
 
-The raw accepted value is deliberately not republished in the text, as for the other solved challenges in this repository.
+The real checker at **RVA `0x12490`** expects **40 bytes**. It initializes a 32-bit state as `length ^ 0xDEADBEEF`, and for every index performs two virtualized calls:
 
-## Why the misleading string matters
+```text
+vm_check(character, state, index) at RVA 0x12340
+vm_next (character, state, index) at RVA 0x12410
+```
 
-A common reversing error is to stop at the first string looking like a flag. Here the `wrong{` marker and the word `d3c0y` are an explicit warning: a recovered decryptor or finalizer may process a **false path**. A valid solution must follow the actual successful license-verification path, not merely find decryptable data.
+The first return value is compared with the expected byte in a **40-byte lookup table at RVA `0x19860`**. The second return value becomes the state for the next position. A mismatch is accumulated with bitwise OR, so every position must match.
 
-The earlier analysis was based on per-character matching through the VM-protected logic. A direct execution test of the original binary under Windows/Wine would be a suitable independent verification where those tools are available. This write-up does **not** claim such a re-run in the present authoring environment.
+The `.frost0` dispatcher at **RVA `0x29000`** contains self-modifying x86-64 instructions. Static inspection found **413 RIP-relative patch sites**: 339 four-byte, 43 two-byte, and 31 one-byte writes. Those sites can be applied to an extracted copy of `.frost0` for inspection, but reconstructing every VM opcode was unnecessary.
 
-## Inspecting the handout
+## Exploit-free solution: use the VM itself
 
-The included [scripts/inspect_handout.py](scripts/inspect_handout.py) verifies the archive's SHA-256 file and extracts section names/offsets directly from PE headers, without importing or executing Windows code. This is a **static structural check only**, not a license-cracking tool.
+We mapped the PE sections into anonymous executable+writable memory at the original ImageBase and invoked the original two functions with GCC's **Microsoft x64 ABI** (`ms_abi`). This avoided running the Windows program's entry point or implementing the full VM interpreter.
 
-For a fuller opcode-level reproduction, one would need the earlier trace of the virtualized routines, exact acceptance predicates and the per-position search script. Those artifacts were **not included in the handout and are not available in the retrieved historical context**. Consequently, precise VM opcodes, offsets of every predicate, and a working automatic key generator are *not claimed* here.
+For each of the 40 positions, we tried all printable ASCII characters `0x20..0x7e`, retaining the unique one for which `vm_check(candidate, state, index) == expected[index]`. Only after choosing the correct byte did we advance `state = vm_next(...)`.
 
-## Lessons
+Because the state depends only on the already recovered prefix, the search needs **3,800 candidate checks**, not a brute-force search over 40-character strings. All 40 positions had exactly one printable candidate.
 
-Virtualization and deceptive decryptable strings increase the cost of analysis but do not establish cryptographic key security. Keep candidate strings, decoy code paths and validated license acceptance separate in a reversing report. When the original solver is missing, describe the recorded result faithfully instead of inventing implementation details.
+The first character was `g`, with initial state `0xdeadbec7`; the next state was `0x6d7267f3`. The final state after `}` was `0x14792a50`. The fully recovered flag is:
+
+```text
+gctf{...}
+```
+
+The next section contains everything needed to reproduce the result from your own unmodified challenge executable on **Linux x86-64**. A full executable hash and exact commands are included. No copy of the original binary is provided.
+
+---
+
+
+
+# Воспроизведение / Reproduction
+
+## Требования / Prerequisites
+
+- Linux on **x86-64** (или Linux VM/WSL2 с доступным отображением памяти по `0x100000000`).
+- `gcc` и стандартные заголовки Linux; `python3` — только для дополнительных статических проверок.
+- Своя копия исходного `virt.tar.gz` — **не приложена к этому райтапу**.
+
+Начальные команды / Initial commands:
+
+```bash
+mkdir -p virt-repro && cd virt-repro
+# Скопируйте сюда свой virt.tar.gz / Place your own archive here.
+tar -xzf virt.tar.gz
+sha256sum virt/virt.exe
+# expected:
+# ec5620b986ee7102054e676998dedcea7e25f101b0def8d7366f83010bf16ce2
+```
+
+## A. Проверка ложной ветки / Verify the decoy
+
+Команда читает таблицу по RVA из PE и расшифровывает её без сторонних библиотек / The command extracts and decodes the decoy table from the PE without external libraries:
+
+```bash
+python3 - <<'PY'
+from pathlib import Path
+import struct
+b = Path('virt/virt.exe').read_bytes()
+pe = struct.unpack_from('<I', b, 0x3c)[0]
+s = pe + 24 + struct.unpack_from('<H', b, pe + 20)[0]
+for i in range(struct.unpack_from('<H', b, pe + 6)[0]):
+    h = s + i * 40
+    name = b[h:h+8].rstrip(b'\0')
+    if name == b'.data':
+        rva = struct.unpack_from('<I', b, h + 12)[0]
+        file_offset = struct.unpack_from('<I', b, h + 20)[0]
+        start = file_offset + (0x19890 - rva)
+        encoded = b[start:start + 39]
+        decoded = bytes(x ^ ((i * 0x2f + 0xa7) & 255)
+                        for i, x in enumerate(encoded))
+        print(decoded.decode('ascii'))
+        break
+PY
+# wrong{f1n4l1z3r_d3c0y_n0t_th3_r34l_0n3}
+```
+
+## B. Самоперезапись `.frost0` / Inspect `.frost0` self-modification (optional)
+
+Следующий вспомогательный скрипт можно сохранить как `deob_virt.py`. Он **не изменяет исходный EXE**, а создаёт `frost_patched.bin` для изучения в дизассемблере. Скрипт не требуется для работы решателя.
+
+The optional static deobfuscation program is preserved as [`scripts/deob_virt.py`](scripts/deob_virt.py).
+
+Запуск / Run:
+
+```bash
+python3 deob_virt.py virt/virt.exe
+# section RVA: 0x29000
+# counts by patch width: {1: 31, 2: 43, 4: 339}
+# total patches: 413
+# saved: frost_patched.bin (inspection only)
+```
+
+Это копия изменённых байтов для офлайн-анализа, не готовая самостоятельная PE-программа. Результат можно отдельно дизассемблировать: / The patch output is an inspection copy, not a runnable PE:
+
+```bash
+objdump -D -b binary -m i386:x86-64 -Mintel \
+  --adjust-vma=0x100029000 frost_patched.bin | less
+```
+
+## C. Полный решатель / Complete native solver (`solve_virt.c`)
+
+Сохраните приведённый ниже исходный код как `solve_virt.c`. Он сам читает секции PE, таблицу ожидаемых значений и вызывает настоящую VM в памяти. **Флаг в программе не захардкожен.** / Save the following as `solve_virt.c`. It reads the original PE, maps its sections, extracts the real target table and invokes the VM in memory. **The flag is not hardcoded.**
+
+The complete original, flag-independent C solver is preserved as [`scripts/solve_virt.c`](scripts/solve_virt.c).
+
+## D. Сборка и результат / Build and verify
+
+```bash
+gcc -O2 -Wall -Wextra -o solve_virt solve_virt.c
+./solve_virt virt/virt.exe
+```
+
+Для короткой проверки вывода / For a short output check:
+
+```bash
+./solve_virt virt/virt.exe | tail -3
+```
+
+Ожидаемый вывод / Expected output:
+
+```text
+39  }  state=14792a50
+FLAG: gctf{...}
+final state: 14792a50
+```
+
+При успехе решатель завершается с кодом `0`. Если на какой-либо позиции число подходящих ASCII-символов не равно единице, он останавливается и выводит состояние и ожидаемый байт. Если фиксированная база `0x100000000` недоступна, `mmap` сообщит об ошибке; используйте изолированную x86-64 Linux-среду с доступной памятью по этому адресу. На ARM или Windows этот Linux-харнесс напрямую не рассчитан.
+
+Воспроизведение проверено на оригинальном файле с указанным SHA-256: все 40 позиций восстановлены единственным образом, начальное состояние `0xdeadbec7`, конечное — `0x14792a50`. В результате не использовались заранее известные символы флага, кроме проверки формата `gctf{...}` **после** полного восстановления.
+
+---
+
+## Итог / Takeaway
+
+В задаче сочетались **ложная проверка**, **виртуализация контрольных функций** и **самомодифицирующийся диспетчер**. Главное решение — отделить внешний алгоритм сверки от скрытой реализации операций, затем использовать доступные бинарные функции как точный оракул. Это позволило восстановить все 40 символов без полной ручной деобфускации VM.
+
+The key insight was to separate the visible validation loop from the virtualized primitives. Once the comparison table and state dependency were known, **the original VM could serve as its own oracle**. A short native harness recovered all 40 characters exactly, without reproducing the entire VM interpreter.
