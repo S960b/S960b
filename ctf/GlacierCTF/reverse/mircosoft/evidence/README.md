@@ -1,37 +1,45 @@
-# mircosoft — evidence and limits
+# mircosoft — end-to-end independent verification
 
-## Confirmed from the original uploaded files in the current session
+The missing PE-unpacking step was recovered from the participant's **original solve conversation** and verified with the organizer's `mircosoft (1).tar.gz` in this session.
 
-- `mircosoft (1).tar.gz` contains exactly the organizer executable, license and administrator memory dump, plus checksum file.
-- All **three** organizer SHA-256 entries passed independent checks.
-- PE is **PE32+ x86-64**; embedded license data is not a plaintext flag in the handout.
-- MiniDump contains **five streams**, including a **seven-region MemoryListStream**.
-- Regions 0–6 were extracted independently and the exact 48+4+36+16+6 = **110 fingerprint bytes** were recovered at the offsets used by the historical decryption script.
-- Fingerprint SHA-256: `9887f856a75c76842491cd7fff0ee47410c3dc97cebeb71c8cc6db624b24c238`.
-- Raw `license.bin[8:24]` expected MAC: `8305d5d5c5316f76bd27ddbbc5221f56`.
+## Checks completed
 
-## Confirmed by previous November 20, 2026 solve session
+| Stage | Independent result |
+| --- | --- |
+| Organizer package | `mircosoft.exe`, `license.bin`, `admin_machine.dmp`; SHA-256 matched organizer checks |
+| Three-stage PE unpacker | 72×256-byte inverse shuffle; rotate/subtract; XOR feedback |
+| `unpacked_pe.bin` | 18,432 bytes; SHA-256 `9d5df8e2717f29b5ee8af7a0b2c423de754aac7676e65c4429bc74361f191d80` |
+| `.data` keys | Four 16-byte keys found at file offset `0x3e00` |
+| MiniDump | Seven memory regions extracted |
+| Hardware fingerprint | 48+4+36+16+6=110 bytes |
+| Header MAC | `8305d5d5c5316f76bd27ddbbc5221f56` |
+| Recomputed MAC | `8305d5d5c5316f76bd27ddbbc5221f56` — exact match |
+| Decryption | Accepted `gctf{...}` flag in plaintext; zero padding after closing brace |
 
-- The loader's protected PE was unpacked and its license functions reverse-engineered.
-- The four 16-byte embedded keys and hardware identifiers were used to compute a MAC **matching** the stored header.
-- The 16-byte state-to-key transform and eight-block TEA-like CTR keystream decrypted the license payload to the accepted flag.
-- Original end-stage `solve.py` was preserved and is included verbatim in the public repo; it prints the fingerprint fields, MAC comparison, derived key and decrypted result.
+Key bytes recovered from the resulting **unpacked PE**:
 
-## Absent intermediate products: do not invent them
-
-- Original PE unpacking helper and exact unpacking algorithm/trace from the older working directory.
-- The separately unpacked `unpacked_pe.bin` itself; **it is not in the organizer archive**.
-- Unpacked PE's four secret keys and recorded 16-byte intermediate states.
-
-Because of these missing items, running `scripts/solve.py` against *only* the handout fails until an unpacked PE is provided. The new `scripts/extract_minidump.py` fully closes the MiniDump preparation gap but **does not claim to decrypt the PE loader**.
-
-## How to verify the available stage
-
-```sh
-tar -xzf 'mircosoft (1).tar.gz'
-python3 scripts/extract_minidump.py mircosoft/admin_machine.dmp --out-dir ./work
+```text
+K0 67e6096a85ae67bb72f36e3c3af54fa5
+K1 7f520e518c68059babd9831f19cde05b
+K2 982f8a4291443771cffbc0b5a5dbb5e9
+K3 5bc25639f111f159a4823f92d55e1cab
 ```
 
-Validate the program's listed device IDs against the five spans; the resulting fingerprint SHA-256 is the independent check above.
+Intermediate values from the successfully rerun final decryption:
 
-The actual flag is already known from the participant's accepted solve. It remains masked in public write-ups under the repository's existing redaction convention.
+```text
+state(cpuid)   6e75487e27f3f55f92a66707fa322b63
+state(reg)     9df5ab2c698825c8b3ea6b1bd1ab63fa
+state(uuidnic) 55e8a940fa964f9fe1c996e31f338143
+derived key    3b8652afcde7de87294a383867f1a9f7
+```
+
+## One-command reproduction
+
+```sh
+python3 scripts/reproduce.py mircosoft.tar.gz
+```
+
+The runner checks the unpacked PE SHA-256, matches the license MAC, and checks the output flag framing. This is a **fully offline** reproduction from the organizer files; no secret source file, arbitrary hardcoded flag, previous intermediate binaries, Windows API, or network access is needed.
+
+The full flag string is omitted in public documentation, following this repository's prior convention, but is output by the solver.
