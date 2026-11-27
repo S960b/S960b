@@ -1,6 +1,8 @@
 import struct
+import os
 from pathlib import Path
-B=Path('/mnt/data/mircosoft_work')
+# Keep historical default; optional work directory for standalone reproduction.
+B=Path(os.environ.get('MIRCOSOFT_WORKDIR', '/mnt/data/mircosoft_work'))
 exe=(B/'unpacked_pe.bin').read_bytes()
 license=(B/'mircosoft/license.bin').read_bytes()
 # RVA .data 0x6000 at file pos 0x3e00
