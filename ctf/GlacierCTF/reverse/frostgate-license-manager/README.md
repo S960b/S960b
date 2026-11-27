@@ -1,21 +1,44 @@
 # Frostgate License Manager — GlacierCTF 2026
 
-[Русская версия](README.ru.md) · [Full technical notes](solve.md)
+[Русская версия](README.ru.md) · [Full English write-up](solve.md) · [Full Russian write-up](solve.ru.md)
 
-**Author:** xer0 · **Category:** rev / windows · **Points:** 50
+**Author:** xer0 · **Category:** rev / windows · **Points:** 50 · **Status:** Solved, independently reproduced on the original challenge executable.
 
 > Our new license manager is unbreakable. Find a valid license key. (Tested under Wine & Windows.)
 
-**Status: Solved — key accepted by the GlacierCTF platform (participant confirmation).**
+The organizer's `virt.tar.gz` contains a Windows x86-64 PE, `virt.exe`. A custom **virtualized, self-modifying** checker in section `.frost0` validates a **40-character** license (the flag). Another 39-character validation branch deliberately leads to a fake `wrong{...}` string.
 
-The supplied Windows executable `virt.exe` checks a 40-character license of the form `gctf{...}`. Its license validation employs a virtualized checker. The previous solve conversation recovered exactly **one printable character per position** and identified a **decoy** branch that decrypts to a misleading `wrong{...}` string; the real accepted flag follows the `gctf{...}` format.
+## Actual solution — recovered and tested
 
-The correct flag/license is masked in this public repository as `gctf{...}`, consistent with the other write-ups. The actual value has been recovered from the previous solve conversation and is confirmed accepted.
+Rather than implement the whole VM, a small Linux C harness loads the **original PE sections at ImageBase `0x100000000`** and invokes two VM-backed functions using the Microsoft x64 calling convention (`ms_abi`):
 
-- [solve.md](solve.md): what the binary and earlier solve history establish.
-- [solve.ru.md](solve.ru.md): Russian technical notes.
-- [scripts/inspect_handout.py](scripts/inspect_handout.py): dependency-free PE/ZIP section and digest checks.
-- [assets/README.md](assets/README.md): exact original handout, layout and checksums.
-- [evidence/README.md](evidence/README.md): provenance and the distinction between verified observations and unavailable per-opcode traces.
+- `vm_check(c,state,i)` at RVA `0x12340`, compared against the original 40-byte table at RVA `0x19860`.
+- `vm_next(c,state,i)` at RVA `0x12410`, advancing the state after the correct character is found.
 
-**Scope:** The earlier conversation retains the successful license and high-level virtualized-checker findings, but the original reversing script or opcode-by-opcode trace is no longer available. This is a documented *historical solved challenge*, with that reproducibility limit stated rather than a fabricated algorithm.
+For each of 40 positions, test all 95 printable ASCII bytes with the current state. Exactly **one match** exists per position. It takes **3,800 comparisons**, rather than trying all 40-character passwords.
+
+The original [`solve_virt.c`](scripts/solve_virt.c) was compiled and executed against the **unmodified organizer `virt.exe`**:
+
+```text
+39  }  state=14792a50
+FLAG: gctf{...}
+final state: 14792a50
+```
+
+The original SHA-256 is `ec5620b986ee7102054e676998dedcea7e25f101b0def8d7366f83010bf16ce2`, and all 40 character positions were recovered. The accepted key is masked here according to the repository's public flag-redaction convention; the solver prints the real key at runtime.
+
+## Reproduce
+
+On an **isolated Linux x86-64** machine with GCC and the organizer's archive:
+
+```sh
+tar -xzf virt.tar.gz
+gcc -O2 -Wall -Wextra -o solve_virt scripts/solve_virt.c
+./solve_virt virt/virt.exe
+```
+
+The harness runs untrusted machine code from the challenge in its own address space: prefer a disposable CTF VM/container. It does **not** run the PE entry point or require Wine.
+
+Files: [full technical write-up](solve.md), [Russian technical write-up](solve.ru.md), [optional `.frost0` deobfuscation](scripts/deob_virt.py), [organizer source/checksum](assets/README.md), and [evidence](evidence/README.md).
+
+**The previously missing solver/tracing gap is now closed.**
