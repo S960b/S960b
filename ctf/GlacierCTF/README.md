@@ -26,7 +26,7 @@
 | Crypto / web | [Cold Storage](crypto/cold-storage/README.md) | [Solving path](crypto/cold-storage/solve.md) |
 | Crypto | [CSI-HASH](crypto/csi-hash/README.md) | [Solving path](crypto/csi-hash/solve.md) |
 | Crypto | [Cold Echo](crypto/cold-echo/README.md) | [Solving path](crypto/cold-echo/solve.md) |
-| Web | [LosVault (partial research)](web/losvault/README.md) | [Solving path](web/losvault/solve.md) |
+| Web | [LosVault](web/losvault/README.md) | [Solving path](web/losvault/solve.md) |
 | Web | [Frozen Query](web/frozen-query/README.md) | [Solving path](web/frozen-query/solve.md) |
 | Rev | [mircosoft](reverse/mircosoft/README.md) | [Solving path](reverse/mircosoft/solve.md) |
 | Crypto | [Twisted Vigenere](crypto/twisted-vigenere/README.md) | [Solving path](crypto/twisted-vigenere/solve.md) |
