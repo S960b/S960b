@@ -1,0 +1,602 @@
+# Hermes PostgreSQL Bridge — восстановление с нуля (инструкция для AI-агента)
+
+Версия: 2026-11-28. Снимок источников: коммит 6d3af9d и новее (репозиторий S960b/S960b,
+каталог `hermes_pg_bridge/`). Документ самодостаточен: по нему мост поднимается «из пепла»
+на чистой машине Kali + отдельном сервере PostgreSQL.
+
+Ты — локальный агент (MultiTool / Hermes) с правами владельца `kali`. Работай по шагам,
+ничего не пропускай, после каждого шага проверяй результат указанной командой. Все секреты
+(пароли БД, ключи, tunnel-ключ) создаются локально и в Git не попадают.
+
+---
+
+## 0. Что такое этот мост и кто что делает
+
+Три участника:
+
+- **ChatGPT** — через MCP-коннектор подключается к шлюзу и вызывает инструменты
+  (`managed_create`, `managed_send_task`, `managed_read`, ...). Пишет задачи, читает отчёты.
+- **Агент (ты)** — локальный MultiTool. Приёмник (плагин) забирает сообщения из PostgreSQL,
+  создаёт сессию чата, агент выполняет задачу и пишет отчёт через CLI.
+- **Владелец** — смотрит Taskboard на loopback, может передать ход агенту кнопкой.
+
+Поток сообщений:
+
+```
+ChatGPT --MCP--> шлюз 127.0.0.1:18777 --SQL--> PostgreSQL (удалённый сервер)
+                                                   |
+                              приёмник (плагин MT) каждые 30 с
+                                                   v
+                                       сессия MultiTool -> CLI append
+                                                   |
+                              outbox -> шлюз -> ChatGPT читает отчёт
+```
+
+Ключевые инварианты:
+
+1. Один диалог = одна строка в `bridge.dialogs`; сообщения нумеруются `seq` подряд.
+2. Писать может только тот, чей ход (`next_actor`); успешная запись переворачивает ход.
+3. `expected_version` защищает от конкурентной записи.
+4. Доставленное сообщение не отзывается. `return_turn` отменяет только ещё не доставленное;
+   `hand_back_turn` передаёт ход агенту и требует, чтобы последний отчёт был **delivered**.
+5. Права на запись — файловая пара gate+permit, выпускаемая keeper'ом и проверяемая watchdog'ом.
+6. Изменение файла, чей SHA запинен в `stage39.py`, без обновления пина = fail-closed за минуту.
+
+---
+
+## 1. Предварительные требования
+
+**Машина агента (Kali, пользователь `kali`, без root-сервисов):**
+- Python 3.13 (системный) и venv `/home/kali/bridge-pg-v2/.venv`;
+- Node.js (для приёмника внутри MultiTool — поставляется приложением);
+- `ssh`, `openssl`, `psql` (клиент нужен только для проверок на DB-хосте);
+- MultiTool с поддержкой плагинов (`~/.config/gigatool/opencode.json`).
+
+**Сервер БД (Linux, PostgreSQL 17.x):**
+- PostgreSQL 17, доступ только по SSH (порт 5432 слушает 127.0.0.1);
+- отдельный пользователь SSH для форвардинга (ключ только для `-L`, без shell-задач);
+- база `bridge`, схема `bridge`.
+
+**Внешний транспорт для ChatGPT:**
+- защищённый туннель (в проде — клиент `hermes-secure-tunnel-canary`, бинарь и
+  control-plane ключ лежат вне Git: `~/.local/libexec/...` и `~/.config/hermes-secure-tunnel-canary/`);
+- либо собственный HTTPS-реверс-прокси к `127.0.0.1:18777`.
+
+---
+
+## 2. Сервер БД: каркас схемы
+
+### 2.1 Установка PostgreSQL
+
+```bash
+# на DB-хосте, от root
+apt-get update && apt-get install -y postgresql-17 postgresql-client-17
+# оставить только loopback
+grep -E '^listen_addresses' /etc/postgresql/17/main/postgresql.conf || \
+  echo "listen_addresses = '127.0.0.1'" >> /etc/postgresql/17/main/postgresql.conf
+systemctl restart postgresql
+```
+
+Firewall: порт 5432 наружу НЕ открывать. Доступ — только SSH-туннель.
+
+### 2.2 Роли и пустая база
+
+```bash
+su - postgres -c "psql -v ON_ERROR_STOP=1 -c \"CREATE ROLE bridge_owner NOLOGIN INHERIT;\""
+su - postgres -c "psql -v ON_ERROR_STOP=1 -c \"CREATE ROLE bridge_app LOGIN INHERIT;\""
+su - postgres -c "psql -v ON_ERROR_STOP=1 -c \"CREATE ROLE bridge_chatgpt LOGIN NOINHERIT;\""
+su - postgres -c "psql -v ON_ERROR_STOP=1 -c \"CREATE ROLE bridge_agent LOGIN NOINHERIT;\""
+su - postgres -c "createdb -O postgres bridge"
+```
+
+Пароли задаются позже (шаг 3.4), их значения в Git и в чат не попадают.
+
+### 2.3 Восстановление схемы из репозитория
+
+В публичном репозитории лежит полный каркас без данных:
+`hermes_pg_bridge/source/live/sql/010_schema_full.sql` — 58 функций, 7 таблиц,
+1 последовательность, владельцы (`bridge_owner`) и финальные GRANT.
+
+```bash
+# скачать и применить
+psql -v ON_ERROR_STOP=1 -d bridge -f 010_schema_full.sql
+```
+
+Файл идемпотентен по ролям (блок `DO $roles$` создаёт их при отсутствии) и создаёт схему
+`bridge`, таблицы `dialogs`, `messages`, `outbox`, `managed_dialogs` и служебные, а также
+функции `create_dialog`, `send_message`, `claim_message`, `return_turn`, `hand_back_turn`,
+`cg_*`, `ag_*`, `tb_*`.
+
+### 2.4 Проверка восстановления
+
+В репозитории: `hermes_pg_bridge/source/live/deploy/08_restore_check.sh`.
+Скрипт поднимает одноразовую БД, применяет каркас и сверяет состав.
+
+```bash
+sh 08_restore_check.sh bridge_restore_check /path/to/010_schema_full.sql
+# ожидаемо: missing_functions=none, functions=58, tables=7, rights=true, RESTORE_CHECK_OK
+```
+
+Файлы `001_init.sql`, `002_compat.sql`, `003_hand_back.sql`, `011_hand_back_delivery.sql` —
+историческая эволюция схемы. Для чистого восстановления используется **только 010**.
+
+> Важно: 010 — снимок, снятый с работающей БД 2026-11-28. Если схема менялась позже,
+> переснимите каркас: `pg_dump -d bridge -n bridge --schema-only --no-publications
+> --no-subscriptions > 010_schema_full.sql` (плюс блок ролей из начала файла).
+
+---
+
+## 3. Машина агента: раскладка файлов
+
+### 3.1 Что скачать из репозитория S960b/S960b
+
+Каталог `hermes_pg_bridge/source/` содержит ровно то, что работает. Соответствие путей:
+
+| В репозитории | Куда положить на Kali |
+|---|---|
+| `source/live/` (bridge_pg, sql, deploy, tests, tools, requirements*.txt) | `/home/kali/bridge-pg-v2/` |
+| `source/installed_stages/hermes-pg-stage33c-shadow-tunnel/` | `/home/kali/hermes-pg-stage33c-shadow-tunnel/` |
+| `.../hermes-pg-stage33e-shadow-clients/` | `/home/kali/hermes-pg-stage33e-shadow-clients/` |
+| `.../hermes-pg-stage34d-write-adapter/` | `/home/kali/hermes-pg-stage34d-write-adapter/` |
+| `.../hermes-pg-stage35c-static-guard/` | `/home/kali/hermes-pg-stage35c-static-guard/` |
+| `.../hermes-pg-stage35g-managed-runtime/` | `/home/kali/hermes-pg-stage35g-managed-runtime/` |
+| `.../hermes-pg-stage35jk-cutover/` | `/home/kali/hermes-pg-stage35jk-cutover/` |
+| `.../hermes-pg-stage35v/` (распакованный архив) | `/home/kali/hermes-pg-stage35v/` |
+| `.../hermes-pg-stage37a-permission-control/` | `/home/kali/hermes-pg-stage37a-permission-control/` |
+| `.../hermes-pg-stage37b2c-claim-intent/` | `/home/kali/hermes-pg-stage37b2c-claim-intent/` |
+| `.../hermes-pg-stage39-operator-session/` | `/home/kali/hermes-pg-stage39-operator-session/` |
+| `.../hermes-pg-stage57-owner-turn/` | `/home/kali/hermes-pg-stage57-owner-turn/` |
+| `.../hermes-pg-registration/` | `/home/kali/hermes-pg-registration/` |
+| `source/runtime_plugins/plugin_1.mjs` | `/home/kali/hermes-pg-stage37b2c-claim-intent/mt-pg-inbox-managed-stage37b2c-unregistered.mjs` |
+
+Права: каталоги 0700, файлы 0600 (кроме `.sh` — 0700). Владелец — `kali`.
+
+### 3.2 Восстановление `stage35v.zip`
+
+Живой шлюз (production) загружает `runtime35v` из архива. В репозитории архив опубликован
+распакованным: `runtime35v.py`, `policy35v.py`, `__main__.py`, `tests/`. Соберите архив:
+
+```bash
+cd /home/kali/hermes-pg-stage35v
+python3 - <<'PY'
+import zipfile
+files=['README_RU.md','__main__.py','policy35v.py','runtime35v.py',
+       'tests/guard35g.py','tests/test_35v.py','tests/test_http_sdk.py']
+with zipfile.ZipFile('stage35v.zip','w',zipfile.ZIP_DEFLATED) as z:
+    for f in files: z.write(f, f)
+PY
+chmod 600 stage35v.zip
+sha256sum stage35v.zip   # этот SHA понадобится как VPIN
+```
+
+### 3.3 Python-окружение
+
+```bash
+cd /home/kali/bridge-pg-v2
+/usr/bin/python3 -m venv .venv
+.venv/bin/pip install -U pip
+.venv/bin/pip install -r requirements.txt      # psycopg[binary]>=3.2,<4
+```
+
+Тесты (необязательно): `pytest` в отдельном venv, боевой venv не засорять.
+
+### 3.4 Ключи и пароли (в Git не попадают)
+
+Сгенерируйте пароли: `python3 -c "import secrets;print(secrets.token_urlsafe(48))"`.
+Для `bridge_agent` и `bridge_chatgpt` пароль должен быть **ровно 64 символа** из
+`[A-Za-z0-9_-]` (требование `actor_adapter._password_for`). Пример:
+`python3 -c "import secrets,string;a=string.ascii_letters+string.digits+'-_';print(''.join(secrets.choice(a) for _ in range(64)))"`.
+
+Задайте их на DB-хосте:
+
+```bash
+su - postgres -c "psql -c \"ALTER ROLE bridge_app PASSWORD '...';\""
+su - postgres -c "psql -c \"ALTER ROLE bridge_chatgpt PASSWORD '...';\""
+su - postgres -c "psql -c \"ALTER ROLE bridge_agent PASSWORD '...';\""
+```
+
+Файлы на Kali (все 0600, каталог 0700):
+
+```
+~/.config/bridge-pg-v2/conninfo
+~/.config/bridge-pg-v2/.pgpass
+~/.config/bridge-pg-v2/actor-credentials/bridge_agent.pgpass
+~/.config/bridge-pg-v2/actor-credentials/bridge_chatgpt.pgpass
+~/.config/bridge-pg-v2/ssh-shadow-target
+~/.config/bridge-pg-v2/managed-mcp-local-key35c
+~/.ssh/mt_tun_ed25519
+~/.ssh/known_hosts
+```
+
+Содержимое:
+
+```
+# conninfo (строка, без перевода строки)
+user=bridge_app passfile=/home/kali/.config/bridge-pg-v2/.pgpass connect_timeout=5 dbname=bridge host=127.0.0.1 port=15433 application_name=bridge_pg_v2
+
+# ~/.config/bridge-pg-v2/.pgpass
+127.0.0.1:15433:bridge:bridge_app:<ПАРОЛЬ>
+
+# actor-credentials/<role>.pgpass  (ВАЖНО: в строке порт 15432 — так проверяет actor_adapter,
+# хотя реальное соединение идёт на 15433)
+127.0.0.1:15432:bridge:bridge_agent:<64-символьный пароль>
+127.0.0.1:15432:bridge:bridge_chatgpt:<64-символьный пароль>
+
+# ssh-shadow-target
+<ssh-user>@<DB-HOST>
+
+# managed-mcp-local-key35c — 64 hex-символа без перевода строки
+```
+
+SSH-ключ создаётся так, а публичная часть ставится на DB-хост в `authorized_keys`
+с ограничением `restrict,port-forwarding`:
+
+```bash
+ssh-keygen -t ed25519 -f ~/.ssh/mt_tun_ed25519 -N '' -C bridge-tunnel
+ssh-keyscan -H <DB-HOST> >> ~/.ssh/known_hosts && chmod 600 ~/.ssh/known_hosts
+```
+
+### 3.5 Ключи подписи сообщений (Ed25519)
+
+```bash
+install -d -m 700 /home/kali/.config/bridge-task-sign56
+umask 077
+openssl genpkey -algorithm ED25519 -out ~/.config/bridge-task-sign56/task-private.pem
+openssl pkey -in ~/.config/bridge-task-sign56/task-private.pem -pubout \
+  -out ~/.config/bridge-task-sign56/task-public.pem
+chmod 600 ~/.config/bridge-task-sign56/task-*.pem
+```
+
+`reservations.sqlite` и каталог `first-turn-reservations/` создаются автоматически при
+первой отправке.
+
+### 3.6 Конфигурация MultiTool (opencode.json)
+
+Шесть плагинов; приёмник — строго последний (индекс 5). Опции фиксированы проверкой
+`stage39.check_config`:
+
+```json
+["/home/kali/hermes-pg-stage37b2c-claim-intent/mt-pg-inbox-managed-stage37b2c-unregistered.mjs",
+ {"dry_run": false, "tick_ms": 30000, "task_ids": ["task_b6c26aa18220412bafdbf32393f16568"]}]
+```
+
+`task_ids` должен совпадать с константой `TASK` в `stage39.py` (исторический якорный диалог;
+в create-режиме он допустим и без записей в БД). Остальные пять плагинов — по вкусу владельца.
+
+### 3.7 Каталоги состояния
+
+```bash
+install -d -m 700 /home/kali/.local/state/mt-pg-inbox-managed-stage34e
+install -d -m 700 /home/kali/.local/state/mt-pg-inbox-managed-stage34e/claim-intents37b2c
+install -d -m 700 /home/kali/.local/state/mt-pg-inbox-managed-stage34e/owner-turn57-revocations
+install -d -m 700 /home/kali/.local/state/mt-pg-inbox-managed-stage34e/owner-turn57-requests
+install -d -m 700 /home/kali/.config/bridge-pg-v2/first-turn-admission
+```
+
+Маркер допуска новых диалогов: создать пустой файл
+`/home/kali/.config/bridge-pg-v2/first-turn-admission/enabled` (0600) — без него приёмник
+не берёт новые диалоги.
+
+---
+
+## 4. Обновление пинов keeper'а (критический шаг)
+
+`stage39.py` сверяет SHA нескольких файлов и падает fail-closed при расхождении. После
+раскладки файлов пересчитайте пины **до первого запуска таймера**. Скрипт ниже сам найдёт
+и заменит литералы:
+
+```bash
+python3 - <<'PY'
+import hashlib, re
+from pathlib import Path
+K=Path('/home/kali/hermes-pg-stage39-operator-session/stage39.py')
+H=Path('/home/kali')
+files={
+ 'CANDIDATE_SHA256': H/'hermes-pg-stage37b2c-claim-intent/mt-pg-inbox-managed-stage37b2c-unregistered.mjs',
+ 'WATCHDOG_SHA': H/'hermes-pg-stage37a-permission-control/stage37a.py',
+}
+sha=lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+s=K.read_text()
+for name,p in files.items():
+    s=re.sub(rf"{name} = '[0-9a-f]{{64}}'", f"{name} = '{sha(p)}'", s, count=1)
+# пины вида require(digest(read_private(Path('...'),250000)) == '<sha>'
+for m in re.finditer(r"Path\('(/home/kali/[^']+)'\)\),250000\)\) == '([0-9a-f]{64})'", s):
+    path, _ = m.group(1), m.group(2)
+    new=sha(Path(path))
+    s=s[:m.start(2)]+new+s[m.end(2):]
+K.write_text(s)
+print('pins updated')
+PY
+```
+
+Проверка: `python3 -I -B .../stage39.py status` не должен печатать причину вида
+`FAIL_CLOSED_..._SOURCE_CHANGED`.
+
+> Правило на будущее: правка любого запиненного файла и обновление пина делаются в одном
+> шаге. Если keeper успел уйти в `fault`, сессия перезапускается (шаг 6.4).
+
+---
+
+## 5. Службы systemd (user)
+
+Создайте в `~/.config/systemd/user/` семь юнитов. Точные ExecStart (проверены на проде):
+
+**1) `bridge-pg-v2-ssh-shadow.service`**
+```ini
+[Unit]
+Description=PostgreSQL bridge: SSH tunnel to the database
+After=network-online.target
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /home/kali/hermes-pg-stage33c-shadow-tunnel/ssh_shadow_runner.py run
+Restart=on-failure
+RestartSec=5
+[Install]
+WantedBy=default.target
+```
+
+**2) `bridge-pg-v2-taskboard.service`**
+```ini
+[Service]
+WorkingDirectory=/home/kali/bridge-pg-v2
+Environment=PYTHONPATH=/home/kali/bridge-pg-v2
+ExecStart=/home/kali/bridge-pg-v2/.venv/bin/python -m bridge_pg.taskboard_v2 serve --port 8789
+Restart=on-failure
+```
+
+**3) `hermes-pg-stage35c-static-shadow.service`** (MCP-шлюз, 13 инструментов в проде).
+Production запускает release-pyz; при восстановлении допустим вариант из исходников
+`managed_mcp35c.py` (11 инструментов, покрывает весь обмен сообщениями):
+
+```ini
+[Service]
+WorkingDirectory=/home/kali/hermes-pg-stage35c-static-guard
+ExecStart=/usr/bin/env -u APPDIR -u APPIMAGE PYTHONDONTWRITEBYTECODE=1 \
+  /home/kali/bridge-pg-v2/.venv/bin/python /home/kali/hermes-pg-stage35c-static-guard/managed_mcp35c.py
+Restart=on-failure
+```
+
+> Если сохранился release-pyz (`gateway65r-r2.pyz`) — используйте его (13 инструментов,
+> включая регистрацию метаданных) с ExecStartPre-проверкой sha256. Сборка pyz из исходников
+> не входит в публичный снимок.
+
+**4) `hermes-pg-tunnel-stage35jk.service`** (публичный транспорт для ChatGPT)
+```ini
+[Service]
+ExecStart=/home/kali/hermes-pg-stage35jk-cutover/run_managed_tunnel.sh
+Restart=on-failure
+```
+Требует: бинарь tunnel-клиента, control-plane ключ, ID туннеля и локальный MCP-ключ
+(см. шапку `run_managed_tunnel.sh`). Без внешнего туннеля шаг можно пропустить, если
+ChatGPT подключается другим HTTPS-путём.
+
+**5) `hermes-pg-stage39-keeper.timer` / `.service`** — права записи
+```ini
+# service
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 -I -B /home/kali/hermes-pg-stage39-operator-session/stage39.py tick
+# timer
+[Timer]
+OnBootSec=30s
+OnUnitActiveSec=60s
+```
+
+**6) `hermes-pg-stage37a-permit-watchdog.timer` / `.service`**
+```ini
+ExecStart=/usr/bin/python3 -IB /home/kali/hermes-pg-stage37a-permission-control/stage37a.py watchdog
+# timer: OnUnitActiveSec=120s
+```
+
+**7) `hermes-pg-firstturn-admit.timer` / `.service`** — допуск новых диалогов
+```ini
+[Service]
+WorkingDirectory=/home/kali/hermes-pg-registration/firstturn-admission
+ExecStart=/usr/bin/env -u APPDIR -u APPIMAGE /home/kali/bridge-pg-v2/.venv/bin/python -B \
+  /home/kali/hermes-pg-registration/firstturn-admission/auto_admit.py
+# timer: OnUnitActiveSec=30s
+```
+
+Активация:
+```bash
+systemctl --user daemon-reload
+systemctl --user enable --now bridge-pg-v2-ssh-shadow.service bridge-pg-v2-taskboard.service \
+  hermes-pg-stage35c-static-shadow.service hermes-pg-stage39-keeper.timer \
+  hermes-pg-stage37a-permit-watchdog.timer hermes-pg-firstturn-admit.timer
+```
+
+---
+
+## 6. Первый запуск и выдача прав
+
+### 6.1 Туннель к БД
+`systemctl --user status bridge-pg-v2-ssh-shadow.service` → `active`.
+Проверка: `ss -ltn | grep 15433` (слушает localhost), затем
+`/home/kali/bridge-pg-v2/.venv/bin/python -c "import psycopg;print(psycopg.connect('...').execute('select 1').fetchone())"`
+или просто `psql -h 127.0.0.1 -p 15433 -U bridge_app -d bridge -c 'select 1'`
+(PGPASSFILE=~/.config/bridge-pg-v2/.pgpass).
+
+### 6.2 Таскборда
+`http://127.0.0.1:8789` — Basic-auth, логин `owner`. Первый вход: инициализация пароля
+(длина ≥14, дважды). Без авторизации ожидается HTTP 401 — это норма.
+
+### 6.3 Шлюз
+`ss -ltn | grep 18777`. Проверка инструментов — MCP `tools/list` с заголовком
+`X-Bridge-Local-Key: <содержимое файла>` и `MCP-Protocol-Version: 2026-07-28`:
+должно вернуться 11 (или 13) имён `managed_*`.
+
+### 6.4 Сессия keeper (выдаёт gate+permit)
+
+```bash
+python3 -I -B /home/kali/hermes-pg-stage39-operator-session/stage39.py start-continuous
+# ожидаемо: STAGE39_SESSION_STARTED_..., GATE_RENEWED..., PERMIT_RENEWED...
+python3 /home/kali/hermes-pg-stage39-operator-session/stage39.py status
+# ожидаемо: STATUS active, MCP_PERMIT_PRESENT True, AGENT_GATE_PRESENT True
+python3 -I -B /home/kali/hermes-pg-stage37a-permission-control/stage37a.py watchdog
+# ожидаемо: STAGE37A_WATCHDOG_RETAINED_VALID
+```
+
+Seamless-режим выдаёт permit с `task_ids: []` и `allow_create: true` — шлюз может создавать
+диалоги и писать в любой non-canary диалог; агентская запись дополнительно требует gate.
+
+### 6.5 Приёмник
+`systemctl --user restart` не нужен: плагин читается приложением при старте.
+Перезапустите MultiTool. В логе `~/.local/state/mt-pg-inbox-managed-stage34e/inbox.log`
+должны появиться `plugin loaded; ...` и затем `tick_ok`.
+
+---
+
+## 7. Сторона ChatGPT
+
+1. В ChatGPT создайте MCP-коннектор:
+   - URL: публичный адрес туннеля до `127.0.0.1:18777/mcp` (или ваш HTTPS-прокси);
+   - заголовок авторизации: `X-Bridge-Local-Key: <значение файла managed-mcp-local-key35c>`;
+   - протокол: MCP 2026-07-28.
+2. Доступные инструменты: `managed_health`, `managed_list`, `managed_status`, `managed_read`,
+   `managed_delivery_status`, `managed_create_status`, `managed_send_status`,
+   `managed_create`, `managed_set_dispatch`, `managed_send_task`, `managed_ack_report`
+   (в проде дополнительно `managed_register_metadata`, `managed_registration_status`).
+3. Типовой цикл задачи:
+
+```
+managed_create(request_id="req-<уникальный>", title="...")        -> task_id, version=0
+managed_set_dispatch(task_id, enabled=true, policy_version=0, dialog_version=0)
+managed_send_task(task_id, message_id="<уникальный>", body="...", expected_version=0)
+managed_status(task_id)                                            -> ждать next_actor/доставку
+managed_read(task_id, offset=0, limit=20)                          -> отчёт агента
+```
+
+Правила: `message_id` уникален в диалоге; при `version_conflict` перечитать `managed_status`
+и повторить с актуальной версией; не отзывать доставленное.
+
+---
+
+## 8. Сторона MT: CLI агента
+
+Путь: `/home/kali/hermes-pg-stage34d-write-adapter/managed_agent_cli34d.py`.
+Запускать интерпретатором venv напрямую (не через AppImage):
+
+```bash
+CLI=/home/kali/hermes-pg-stage34d-write-adapter/managed_agent_cli34d.py
+PY=/home/kali/bridge-pg-v2/.venv/bin/python
+
+$PY $CLI peek   --task-id <TASK>
+$PY $CLI read   --task-id <TASK> --seq <N> --message-id <MID>
+$PY $CLI append --task-id <TASK> --consumer mt-pg-managed --head <HEAD> \
+                --message-id <MID> --kind report --body-file <FILE_0600>
+$PY $CLI status --task-id <TASK> --message-id <MID>
+$PY $CLI delivery --task-id <TASK> --seq <N>
+```
+
+Требования к записи:
+
+- `head` — из свежего `peek` (устаревший → `stale_head`);
+- тело — из файла `chmod 600`, до 32 КиБ;
+- ход должен принадлежать агенту (`waiting_for=mt`);
+- для нового диалога допуск выдаёт `auto_admit` (см. 9.2), запись идёт через
+  `first_turn_scope`;
+- после `append` всегда проверить `status` до `phase=committed`.
+
+---
+
+## 9. Подсистемы, о которых легко забыть
+
+### 9.1 Права: gate, permit, watchdog, keeper
+
+- gate: `~/.config/bridge-pg-v2/managed-writes-stage34d-armed`, содержимое
+  `ALLOW_MANAGED_WRITES_AFTER_EXCLUSIVE_SDK_REVIEW` + `\n`, свежесть < 20 мин;
+- permit: `~/.config/bridge-pg-v2/managed-mcp-write-permit35c.json` — `version=1`,
+  `expires_unix` в пределах часа, `config_sha256` = SHA `~/.config/gigatool/opencode.json`,
+  `task_ids` (0 или 1 id), `allow_create`, `static_tunnel_verified=true`;
+- keeper продлевает пару каждую минуту и **не воссоздаёт** отозванные права;
+- watchdog каждые 2 минуты отзывает **и gate, и permit**, если пара невалидна или gate
+  отсутствует/просрочен;
+- ручной отзыв: удалить оба файла (или дождаться watchdog). Восстановление — только новая
+  сессия keeper (`start-continuous`).
+
+### 9.2 Допуск новых диалогов (first turn)
+
+- `auto_admit` каждые 30 с смотрит `managed_list` и выдаёт запись допуска на первый
+  входящий ход: `seq=1` (ChatGPT начал) или `seq=2` при `seq=1` от агента (MT начал);
+- запись: `~/.config/bridge-pg-v2/first-turn-admission/<task_id>.json` с привязкой к epoch;
+- `policy.json` привязан к `session_id` keeper; смена сессии обновляет policy;
+- отзыв: `revoke.py add <task_id>` / `revoke.py global on` / `clear`; читается на каждом тике
+  и приёмником, и auto_admit;
+- без маркера `enabled` новые диалоги не принимаются.
+
+### 9.3 Передача хода владельцем
+
+- кнопка «Передать ход агенту» доступна только после подтверждённой доставки отчёта
+  (`outbox.status='delivered'`);
+- SQL `hand_back_turn` не отзывает сообщение, только переворачивает ход;
+- повторное нажатие возвращает `changed=false` (UI пишет «ход уже у агента»).
+
+### 9.4 Приёмник (плагин MT)
+
+- файл: `hermes-pg-stage37b2c-claim-intent/mt-pg-inbox-managed-stage37b2c-unregistered.mjs`;
+- состояние: `~/.local/state/mt-pg-inbox-managed-stage34e/state.json` (sessions/seen/inflight);
+- intent-before-claim: `claim-intents37b2c/`;
+- тик 30 с, до 2 доставок за тик; неоднозначный исход → `manual_review`, без слепого повтора;
+- после правки плагина или его зависимостей (first_receive, wire56, signed_receive56,
+  intent37b2c, owner_turn57) обновите пины keeper'а (раздел 4) и перезапустите MultiTool.
+
+### 9.5 Ограничения, известные на 2026-11-28
+
+- `state.json` хранит все привязки в одном файле: keeper читает его с лимитом 64 КиБ,
+  CLI — 256 КиБ. При сотнях диалогов файл нужно выносить в хранилище по task_id.
+- подписной резерв пишется в SQLite до PostgreSQL: сорванная отправка может «заклинить»
+  один диалог (нужна ручная сверка по mid/seq).
+- permit в seamless-режиме открывает создание/запись для любого non-canary диалога —
+  это осознанное решение, а не ошибка.
+
+---
+
+## 10. Проверка «мост жив» (12 шагов)
+
+1. `systemctl --user is-active bridge-pg-v2-ssh-shadow bridge-pg-v2-taskboard hermes-pg-stage35c-static-shadow` → `active`.
+2. `ss -ltn` → 15433, 8789, 18777 слушают loopback.
+3. `python3 stage39.py status` → `active`, permit и gate `True`.
+4. `stage37a.py watchdog` → `RETAINED_VALID`.
+5. MCP `tools/list` → 11/13 инструментов.
+6. `inbox.log` → `plugin loaded` и `tick_ok`.
+7. `first-turn-admit.log` → `tick_ok`.
+8. ChatGPT: `managed_create` → `created:true`.
+9. `managed_set_dispatch` → `changed:true, dispatch_enabled:true`.
+10. `managed_send_task` → `seq=1, created:true`.
+11. В течение 30 с: `inbox.log` → маршрут/сессия, в MultiTool появился чат «Bridge: task_…»,
+    агент вызвал `append`, `delivery` → `delivered`.
+12. `revoke.py status` → `{"global": false, "tasks": []}` (или ожидаемый список).
+
+Если шаг 11 не прошёл: проверить `peek` (есть ли сообщение), `managed_status`
+(`dispatch_enabled`), `state.json` (inflight), `first-turn-admit.log` (допуск),
+и только затем — логи CLI.
+
+---
+
+## 11. Аварийные состояния и лечение
+
+| Симптом | Причина | Действие |
+|---|---|---|
+| `STAGE39_KEEPER_FAULT_REVOKED_BOTH` + `..._SOURCE_CHANGED` | правка запиненного файла без обновления пина | обновить пины (раздел 4), `start-continuous` |
+| `STAGE39_KEEPER_INACTIVE_NO_REARM` | сессия закрыта/в fault | `start-continuous` |
+| `managed_actor_unavailable` | исключение CLI (часто `bound_reservation_missing` или права) | смотреть `~/.local/state/bridge-pg-v2/diagnostics58.log` и `status` |
+| `stage34d_writes_not_armed` | нет gate/permit или истёк/невалиден | `stage39.py status`, при fault — `start-continuous` |
+| `hand_back_before_delivery` | отчёт ещё не прочитан ChatGPT | дождаться `delivered` |
+| `new_dialogue_missing_cursor` | первый входящий не seq=1/2 по правилам | проверить `first_receive.mjs`, `auto_admit`, маркер `enabled` |
+| `version_conflict` | конкурентная запись | перечитать `managed_status`, повторить с новой версией |
+| `stale_head` | устаревший `head` | новый `peek`, повторить |
+| `bound_state_untrusted` | `state.json` больше лимита или небезопасные права | проверить размер/права, см. 9.5 |
+
+---
+
+## 12. Что НЕ входит в публичный снимок (нужно иметь отдельно)
+
+- release-pyz шлюза (13 инструментов) — build-артефакт; исходники 11-инструментного шлюза
+  опубликованы, его достаточно для обмена сообщениями;
+- бинарь tunnel-клиента и control-plane ключ;
+- `opencode.json`, `conninfo`, pgpass, SSH-ключи, ключи подписи, permit/gate — создаются
+  локально по этому документу;
+- дампы БД и история диалогов.
+
+Всё перечисленное восстанавливается заново; потеря перечисленного не блокирует подъём моста
+с нуля.
