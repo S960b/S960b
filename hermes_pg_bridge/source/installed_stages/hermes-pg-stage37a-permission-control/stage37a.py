@@ -187,15 +187,30 @@ def status(home: Path, now: float | None = None) -> dict:
     finally:
         os.close(fd)
 
+def _revoke_both_independently(fd: int) -> dict:
+    """F08: never skip the second path when the first rename/fsync fails."""
+    outcomes={'gate_quarantined':False,'permit_quarantined':False}
+    failures=[]
+    for name,field in ((GATE_NAME,'gate_quarantined'),(PERMIT_NAME,'permit_quarantined')):
+        try:
+            outcomes[field]=quarantine(fd,name)
+        except (Stop,OSError,ValueError,TypeError):
+            failures.append(name)
+    for name in (GATE_NAME,PERMIT_NAME):
+        try:
+            if stat_entry(fd,name) is not None:failures.append(name)
+        except (Stop,OSError,ValueError,TypeError):
+            failures.append(name)
+    if failures:
+        # The other path has still been attempted. Caller must not announce full closure.
+        raise Stop('STAGE37A_STOP_PARTIAL_REVOKE_'+','.join(sorted(set(failures))))
+    return outcomes
+
 def revoke(home: Path) -> dict:
     fd=open_active_dir(home)
     try:
         with locked(fd):
-            gate=quarantine(fd,GATE_NAME)
-            permit=quarantine(fd,PERMIT_NAME)
-            need(stat_entry(fd,GATE_NAME) is None and stat_entry(fd,PERMIT_NAME) is None,
-                 'REVOKE_NOT_CONFIRMED')
-            return {'gate_quarantined':gate,'permit_quarantined':permit}
+            return _revoke_both_independently(fd)
     finally:
         os.close(fd)
 
@@ -209,10 +224,9 @@ def watchdog(home: Path,now: float | None = None) -> dict:
             gate=gs!='ABSENT'
             if not valid:
                 # Order matters: CLI gate first, then invalid/expired MCP permit.
-                a=quarantine(fd,GATE_NAME)
-                b=quarantine(fd,PERMIT_NAME)
-                return {'action':'REVOKED_INVALID','reason':code,'gate_quarantined':a,'permit_quarantined':b}
-            if gate and (code != 'VALID_SCOPED' or gs != 'VALID'):
+                result=_revoke_both_independently(fd)
+                return {'action':'REVOKED_INVALID','reason':code,**result}
+            if gate and (code not in ('VALID_SCOPED', 'VALID_CREATE') or gs != 'VALID'):
                 reason=code if code!='VALID_SCOPED' else gs
                 return {'action':'REVOKED_UNSAFE_GATE','reason':reason,
                         'gate_quarantined':quarantine(fd,GATE_NAME),'permit_quarantined':False}

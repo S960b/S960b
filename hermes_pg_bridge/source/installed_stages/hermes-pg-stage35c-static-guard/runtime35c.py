@@ -8,6 +8,7 @@ from __future__ import annotations
 import hashlib, json, os, re, stat, sys, time
 from pathlib import Path
 from static_guard35c import private_regular
+from signed_send56 import load_reservation, submit
 
 IMPORT='/home/kali/hermes-pg-stage33e-shadow-clients'
 PERMIT=Path('/home/kali/.config/bridge-pg-v2/managed-mcp-write-permit35c.json')
@@ -70,6 +71,7 @@ def permitted(kind,tid=None):
         if cfg.is_symlink() or not cfg.is_file():return False
         if hashlib.sha256(cfg.read_bytes()).hexdigest()!=p['config_sha256']:return False
         if kind=='create':return p['allow_create'] is True
+        if p['allow_create'] is True:return tid!=CANARY
         return tid in p['task_ids']
     except (ValueError,TypeError,OSError,KeyError): return False
 
@@ -95,11 +97,11 @@ def view(tid,offset=0,limit=20):
 def delivery(tid,seq):
     need(type(seq) is int and seq>=1,'invalid_seq')
     cg=cg_db();registered(cg,tid)
-    return cg.delivery_status(tid,seq)
+    return cg._one('SELECT bridge.cg_managed_delivery_status(%s,%s) AS result',(tid,seq))
 
 def create_status(request):
     need(isinstance(request,str) and REQ.fullmatch(request),'invalid_request_id')
-    cg=cg_db();s=cg.creation_status(request)
+    cg=cg_db();s=cg._one('SELECT bridge.cg_managed_creation_status(%s) AS result',(request,))
     if not s or not isinstance(s,dict) or not s.get('task_id'):
         return {'found':False}
     d=cg._one('SELECT bridge.cg_managed_detail(%s) AS result',(s['task_id'],))
@@ -108,7 +110,7 @@ def create_status(request):
 
 def send_status(tid,mid):
     message_id(mid);cg=cg_db();registered(cg,tid)
-    return cg.send_status(tid,mid)
+    return cg._one('SELECT bridge.cg_managed_send_status(%s,%s) AS result',(tid,mid))
 
 def create(request,title):
     need(isinstance(request,str) and REQ.fullmatch(request),'invalid_request_id')
@@ -133,9 +135,8 @@ def send(tid,mid,body,expected_version):
     need(isinstance(body,str) and 1<=len(body.encode('utf8'))<=32768,'invalid_task_body')
     need(permitted('send',tid),'managed_send_not_armed')
     cg=cg_db();registered(cg,tid)
-    # DB independently enforces enabled policy, correct turn, expected version.
-    return cg._one('SELECT bridge.cg_send_managed_task(%s,%s,%s,%s) AS result',
-                   (tid,mid,body,expected_version))
+    # Existing permit + registered checks are preserved. Sign only caller input.
+    return submit(cg,tid,mid,body,expected_version,load_reservation(tid))
 
 def ack_report(tid,seq,mid,expected_sha256):
     """Read exact report; claim+ack within one transaction, no lease token exposed.
@@ -170,7 +171,7 @@ def ack_report(tid,seq,mid,expected_sha256):
                  isinstance(m.get('body'),str),'report_identity_mismatch')
             need(hashlib.sha256(m['body'].encode('utf8')).hexdigest()==expected_sha256,
                  'report_body_hash_mismatch')
-            cur.execute('SELECT bridge.delivery_status(%s,%s) AS result',(tid,seq))
+            cur.execute('SELECT bridge.cg_managed_delivery_status(%s,%s) AS result',(tid,seq))
             before=cur.fetchone()['result']
             need(isinstance(before,dict),'report_receipt_missing')
             if before.get('status')=='delivered':return {'acked':True,'already_delivered':True}
@@ -183,7 +184,7 @@ def ack_report(tid,seq,mid,expected_sha256):
             cur.execute('SELECT bridge.cg_ack_managed_report(%s,%s,%s,%s::uuid,%s) AS result',
                         (tid,seq,claimed['delivery_id'],claimed['lease_token'],CONSUMER))
             need(cur.fetchone()['result'] is True,'report_ack_failed')
-            cur.execute('SELECT bridge.delivery_status(%s,%s) AS result',(tid,seq))
+            cur.execute('SELECT bridge.cg_managed_delivery_status(%s,%s) AS result',(tid,seq))
             after=cur.fetchone()['result']
             need(isinstance(after,dict) and after.get('status')=='delivered','report_ack_unconfirmed')
     return {'acked':True,'already_delivered':False,'task_id':tid,'seq':seq}

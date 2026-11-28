@@ -55,7 +55,7 @@ export function stage37b2cWriteIntent(taskId,seq,messageId,directory=DEFAULT_INT
   syncDir(directory);
   return true;
 }
-export function stage37b2cClearAfterAck(taskId,seq,messageId,directory=DEFAULT_INTENT_DIR) {
+function removeMatchedIntent(taskId,seq,messageId,directory) {
   valid(taskId,seq,messageId);
   dirStat(directory);
   const filename=nameFor(taskId,directory);
@@ -90,4 +90,17 @@ export function stage37b2cFinalizeAfterConfirmedAck(state,taskId,seq,messageId,
   }
   // Caller must only invoke this after the existing pinned ACK success path.
   return stage37b2cClearAfterAck(taskId,seq,messageId,directory);
+}
+
+// The dispatcher calls this only for a successful CLI response containing
+// exactly claimed:false, after creating this invocation's exclusive intent.
+export function stage37b2cClearAfterDefiniteNoClaim(state,taskId,seq,messageId,receipt,directory=DEFAULT_INTENT_DIR) {
+  valid(taskId,seq,messageId);
+  if (!receipt || typeof receipt !== 'object' || Array.isArray(receipt) ||
+      Object.keys(receipt).length !== 1 || receipt.claimed !== false ||
+      state?.inflight?.[taskId]) throw new Error('stage37b2c_no_claim_not_proven');
+  return removeMatchedIntent(taskId,seq,messageId,directory);
+}
+export function stage37b2cClearAfterAck(taskId,seq,messageId,directory=DEFAULT_INTENT_DIR) {
+  return removeMatchedIntent(taskId,seq,messageId,directory);
 }

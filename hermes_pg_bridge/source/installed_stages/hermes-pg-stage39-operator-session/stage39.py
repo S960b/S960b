@@ -37,9 +37,9 @@ CANDIDATE = HOME / 'hermes-pg-stage37b2c-claim-intent/mt-pg-inbox-managed-stage3
 LOCAL_STATE = HOME / '.local/state/mt-pg-inbox-managed-stage34e/state.json'
 INTENTS = HOME / '.local/state/mt-pg-inbox-managed-stage34e/claim-intents37b2c'
 TASK = 'task_b6c26aa18220412bafdbf32393f16568'
-CFG_SHA = 'f46c3d4c2a46bd28d545ecd8a4c435e9cb6f0938723cdd106cbb58e6aa4d0bf5'
-CANDIDATE_SHA_PREFIX = '06be5ea765f0'
-WATCHDOG_SHA = '66cdc42d30cacf4f6ac8f038a11001a2fbac722bdd9c4848f89dbe4424625f07'
+CFG_SHA = '9e98eeca933c447831e214212267219440392ce4e6a7ec8e3b8ffa3e26c0796b'
+CANDIDATE_SHA256 = 'aae583255db7cca72b4090bb23fb65a91354d486287fe8cfa4291c611680d10f'
+WATCHDOG_SHA = '3c08be36ce5dc7fc615429a9ce43840a85d863cef0516f39e134caf04e0304c2'
 GATE_BYTES = b'ALLOW_MANAGED_WRITES_AFTER_EXCLUSIVE_SDK_REVIEW\n'
 MAX_SESSION_SECONDS = 6 * 3600
 PERMIT_LIFETIME_SECONDS = 3600
@@ -51,6 +51,12 @@ PERMIT_KEYS = {'version', 'expires_unix', 'config_sha256', 'task_ids', 'allow_cr
 
 class Stop(Exception):
     pass
+
+class WatchdogBusy(Stop):
+    pass
+
+def mono_us():
+    return time.monotonic_ns() // 1000
 
 def require(ok, reason):
     if not ok:
@@ -117,12 +123,17 @@ def boot_id():
 
 def parse_session(blob):
     obj = json.loads(blob)
-    require(isinstance(obj, dict) and set(obj) == SESSION_KEYS and type(obj['version']) is int and obj['version'] == 1, 'SESSION_SCHEMA')
+    require(isinstance(obj, dict) and type(obj.get('version')) is int and obj['version'] in (1, 2), 'SESSION_SCHEMA')
+    require(set(obj) == (SESSION_KEYS if obj['version']==1 else SESSION_KEYS | {'last_renew_mono_us'}), 'SESSION_SCHEMA')
     require(isinstance(obj['session_id'], str) and len(obj['session_id']) == 32 and all(c in '0123456789abcdef' for c in obj['session_id']), 'SESSION_ID')
     require(obj['task_id'] == TASK and obj['config_sha256'] == CFG_SHA, 'SESSION_SCOPE')
     require(isinstance(obj['boot_id'], str) and len(obj['boot_id']) == 36, 'SESSION_BOOT')
-    require(all(type(obj[k]) is int and obj[k] > 0 for k in ('created_unix', 'deadline_unix', 'last_renew_unix')), 'SESSION_TIMES')
-    require(0 < obj['deadline_unix'] - obj['created_unix'] <= MAX_SESSION_SECONDS, 'SESSION_HORIZON')
+    require(all(type(obj[k]) is int and obj[k] > 0 for k in ('created_unix', 'last_renew_unix')), 'SESSION_TIMES')
+    require(obj['last_renew_unix'] >= obj['created_unix'], 'SESSION_TIMES_ORDER')
+    if obj['version']==1:
+        require(type(obj['deadline_unix']) is int and 0 < obj['deadline_unix'] - obj['created_unix'] <= MAX_SESSION_SECONDS, 'SESSION_HORIZON')
+    else:
+        require(obj['deadline_unix'] is None and type(obj['last_renew_mono_us']) is int and obj['last_renew_mono_us']>0, 'CONTINUOUS_SCHEMA')
     require(obj['status'] in ('arming', 'active', 'closed', 'fault'), 'SESSION_STATUS')
     require(isinstance(obj['reason'], str) and len(obj['reason']) < 120, 'SESSION_REASON')
     return obj
@@ -136,9 +147,9 @@ def session_write(doc):
     atomic_private(SESSION, (json.dumps(doc, sort_keys=True, separators=(',', ':')) + '\n').encode(), exclusive=False)
 
 def make_permit(now, deadline):
-    expiry = min(now + PERMIT_LIFETIME_SECONDS, deadline)
+    expiry = now + PERMIT_LIFETIME_SECONDS if deadline is None else min(now + PERMIT_LIFETIME_SECONDS, deadline)
     require(expiry > now, 'PERMIT_DEADLINE')
-    return {'version': 1, 'expires_unix': expiry, 'config_sha256': CFG_SHA, 'task_ids': [TASK], 'allow_create': False, 'static_tunnel_verified': True}
+    return {'version': 1, 'expires_unix': expiry, 'config_sha256': CFG_SHA, 'task_ids': [], 'allow_create': True, 'static_tunnel_verified': True}
 
 def permit_blob(doc):
     return (json.dumps(doc, sort_keys=True, separators=(',', ':')) + '\n').encode()
@@ -147,8 +158,10 @@ def validate_permit(now, deadline):
     obj = json.loads(read_private(PERMIT, 4096, private=True))
     require(isinstance(obj, dict) and set(obj) == PERMIT_KEYS, 'PERMIT_SCHEMA')
     require(type(obj['version']) is int and obj['version'] == 1 and type(obj['expires_unix']) is int, 'PERMIT_TYPES')
-    require(obj['config_sha256'] == CFG_SHA and obj['task_ids'] == [TASK] and obj['allow_create'] is False and obj['static_tunnel_verified'] is True, 'PERMIT_SCOPE')
-    require(now < obj['expires_unix'] <= min(now + PERMIT_LIFETIME_SECONDS + 60, deadline), 'PERMIT_EXPIRED_OR_EXCESSIVE')
+    require(obj['config_sha256'] == CFG_SHA and obj['task_ids'] == [] and obj['allow_create'] is True and obj['static_tunnel_verified'] is True, 'PERMIT_SCOPE')
+    limit = now + PERMIT_LIFETIME_SECONDS + 60
+    if deadline is not None: limit = min(limit, deadline)
+    require(now < obj['expires_unix'] <= limit, 'PERMIT_EXPIRED_OR_EXCESSIVE')
     return obj
 
 def validate_gate(now):
@@ -162,17 +175,51 @@ def check_config():
     raw = read_private(CFG, 2097152)
     require(digest(raw) == CFG_SHA, 'CONFIG_SHA_CHANGED')
     config = json.loads(raw)
-    require(isinstance(config, dict) and isinstance(config.get('plugin'), list) and len(config['plugin']) == 8, 'CONFIG_PLUGINS')
+    require(isinstance(config, dict) and isinstance(config.get('plugin'), list) and len(config['plugin']) == 6, 'CONFIG_PLUGINS')
     entries = config['plugin']
     names = [e if isinstance(e, str) else e[0] if isinstance(e, list) and len(e) == 2 and isinstance(e[0], str) and isinstance(e[1], dict) else None for e in entries]
-    require(len(set(names)) == 8 and names.count(str(CANARY)) == 1 and names.count(str(CANDIDATE)) == 1 and names.index(str(CANDIDATE)) == 7, 'CONFIG_PATHS')
-    require(entries[7][1] == {'dry_run': False, 'tick_ms': 30000, 'task_ids': [TASK]}, 'CONFIG_SCOPE')
-    require(digest(read_private(CANDIDATE, 250000)).startswith(CANDIDATE_SHA_PREFIX), 'PLUGIN_SOURCE_CHANGED')
+    require(len(set(names)) == 6 and names.count(str(CANARY)) == 0 and names.count(str(HOME / '.config/gigatool/plugins/mt-test-plugin.mjs')) == 0 and names.count(str(CANDIDATE)) == 1 and names.index(str(CANDIDATE)) == 5, 'CONFIG_PATHS')
+    require(entries[5][1] == {'dry_run': False, 'tick_ms': 30000, 'task_ids': [TASK]}, 'CONFIG_SCOPE')
+    require(digest(read_private(CANDIDATE, 250000)) == CANDIDATE_SHA256, 'PLUGIN_SOURCE_CHANGED')
+    require(digest(read_private(Path('/home/kali/hermes-pg-stage57-owner-turn/owner_turn57.py'),250000)) == '5e472145458ee51ee08287cc907df24a1cc45b5a99d3b665d0edf87e50ba8678', "OWNER_TURN57_SOURCE_CHANGED")
+    require(digest(read_private(Path('/home/kali/hermes-pg-stage57-owner-turn/coordinator57.py'),250000)) == '02bd3879d596bf66be5e0e35ba06d3210056eaf8fd9cd9b31f27681ae4180eea', "OWNER_TURN57_SOURCE_CHANGED")
+    require(digest(read_private(Path('/home/kali/hermes-pg-stage57-owner-turn/idle57.py'),250000)) == 'd2ba07a343d140f50295cd266e01bcb2a3fceababd2d65947363d420ddacfb84', "OWNER_TURN57_SOURCE_CHANGED")
+    require(digest(read_private(Path('/home/kali/hermes-pg-stage57-owner-turn/adapter57.py'),250000)) == '1d4285acb71113244b6a8417d92785634ed59b0893880342f8c87b4257e1b494', "OWNER_TURN57_SOURCE_CHANGED")
+    require(digest(read_private(Path('/home/kali/hermes-pg-stage57-owner-turn/worker57.py'),250000)) == '76633e83912ae1bdfd096f2a849451b07e317ee8e088c1ab7b8db6f9e713e1ba', "OWNER_TURN57_SOURCE_CHANGED")
+    require(digest(read_private(Path('/home/kali/bridge-pg-v2/bridge_pg/owner_http57.py'),250000)) == 'ea25b42fcf5c6ed9eae39334314a3c9dbf9c5a3f42dcfae1121c9f4efd43a637', "OWNER_TURN57_SOURCE_CHANGED")
+    require(digest(read_private(Path('/home/kali/bridge-pg-v2/bridge_pg/taskboard_v2.py'),250000)) == 'b81d5306941e32c0c4d2a3faa8f82f1cbc39981ea5d024d1cd24d4c624a3681d', "OWNER_TURN57_SOURCE_CHANGED")
+    require(digest(read_private(Path('/home/kali/bridge-pg-v2/bridge_pg/static/taskboard.js'),250000)) == '9175c98f40a1aa16be594929aaf707d172a512bc6429373a55623e9a8c9f3dbc', "OWNER_TURN57_SOURCE_CHANGED")
+    require(digest(read_private(Path('/home/kali/bridge-pg-v2/bridge_pg/adapter64.py'),250000)) == '78e59f75d98952352ee4d4079ded26d4ef83ce6358817d5528904e795316547d', "OWNER_TURN57_SOURCE_CHANGED")
+    require(digest(read_private(Path('/home/kali/hermes-pg-stage37b2c-claim-intent/owner_turn57.mjs'),250000)) == '8e6ed3a4c82a18dc68387b8ca663c418061b7bbcdadde4a0fee5d8d4593f47ae', "OWNER_TURN57_SOURCE_CHANGED")
+    _owner57_dir = Path('/home/kali/.local/state/mt-pg-inbox-managed-stage34e/owner-turn57-revocations').lstat()
+    require(stat.S_ISDIR(_owner57_dir.st_mode) and _owner57_dir.st_uid==os.geteuid() and stat.S_IMODE(_owner57_dir.st_mode)==0o700, "OWNER_TURN57_STATE_UNSAFE")
+    _owner57_dir = Path('/home/kali/.local/state/mt-pg-inbox-managed-stage34e/owner-turn57-requests').lstat()
+    require(stat.S_ISDIR(_owner57_dir.st_mode) and _owner57_dir.st_uid==os.geteuid() and stat.S_IMODE(_owner57_dir.st_mode)==0o700, "OWNER_TURN57_STATE_UNSAFE")
+    require(digest(read_private(CANDIDATE.parent / 'signed_receive56.mjs', 250000)) == '85265a1e20ca0efad43ad8a7c827df178d058905e7561c086b50af67bc9644f9', 'SIGNED_HELPER_SOURCE_CHANGED')
+    require(digest(read_private(CANDIDATE.parent / 'wire56.mjs', 250000)) == '8382681c811efd38efa9ac5fa4e9f51544f837e7ce7e57592ac640112f22dfbe', 'SIGNED_HELPER_SOURCE_CHANGED')
+    require(digest(read_private(CANDIDATE.parent / 'intent37b2c.mjs', 250000)) == '338a92a6f6d94c4e062230db48b449610f2dedc2a969866783908aa2da5ece7f', 'SIGNED_HELPER_SOURCE_CHANGED')
     require(digest(read_private(WATCHDOG, 250000)) == WATCHDOG_SHA, 'WATCHDOG_CODE_CHANGED')
 
 def watchdog_running():
-    r = subprocess.run(['systemctl', '--user', 'is-active', '--quiet', 'hermes-pg-stage37a-permit-watchdog.timer'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=8)
-    require(r.returncode == 0, 'WATCHDOG_INACTIVE')
+    # F09: timer activity is insufficient. Inspect successful completed service.
+    def props(unit, fields):
+        p=subprocess.run(['systemctl','--user','show',unit,'--property='+fields,'--no-pager'],capture_output=True,text=True,timeout=8)
+        require(p.returncode==0,'WATCHDOG_SHOW')
+        d=dict(line.split('=',1) for line in p.stdout.splitlines() if '=' in line)
+        require(all(k in d for k in fields.split(',')),'WATCHDOG_PROPERTY_MISSING')
+        return d
+    t=props('hermes-pg-stage37a-permit-watchdog.timer','LoadState,ActiveState,SubState,Result')
+    require(t['LoadState']=='loaded' and t['ActiveState']=='active' and t['SubState'] in ('waiting','running') and t['Result']=='success','WATCHDOG_INACTIVE')
+    p=props('hermes-pg-stage37a-permit-watchdog.service','LoadState,ActiveState,SubState,Result,ExecMainCode,ExecMainStatus,ExecMainStartTimestampMonotonic,ExecMainExitTimestampMonotonic')
+    require(p['LoadState']=='loaded','WATCHDOG_SERVICE_MISSING')
+    now=mono_us()
+    start=int(p['ExecMainStartTimestampMonotonic']); end=int(p['ExecMainExitTimestampMonotonic'])
+    # The watchdog shares the revoke lock: never wait under that lock.
+    # A bounded in-progress oneshot can defer, but cannot renew authority.
+    if p['ActiveState']=='activating' and p['SubState']=='start' and 0<start<=now and now-start<=20_000_000:
+        raise WatchdogBusy('STAGE39_WATCHDOG_BUSY_DEFER_NO_RENEW')
+    require(p['ActiveState']=='inactive' and p['SubState']=='dead' and p['Result']=='success' and p['ExecMainCode']=='1' and p['ExecMainStatus']=='0','WATCHDOG_LAST_RUN_FAILED')
+    require(0<start<=end<=now and now-end<=180_000_000,'WATCHDOG_STALE')
 
 def health():
     opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
@@ -221,11 +268,23 @@ def quarantine_one(path):
     return True
 
 def revoke_locked():
-    # Same order as Stage37A; no config/DB dependency.
-    a = quarantine_one(GATE)
-    b = quarantine_one(PERMIT)
-    require(not exists(GATE) and not exists(PERMIT), 'REVOKE_UNCONFIRMED')
-    return a, b
+    # F08: never let an error on one path prevent attempting the other.
+    results=[]
+    errors=[]
+    for label,path in (('GATE',GATE),('PERMIT',PERMIT)):
+        try:
+            results.append(quarantine_one(path))
+        except (Stop,OSError,ValueError,TypeError):
+            results.append(False)
+            errors.append(label)
+    for label,path in (('GATE',GATE),('PERMIT',PERMIT)):
+        try:
+            if exists(path):errors.append(label)
+        except (Stop,OSError,ValueError,TypeError):
+            errors.append(label)
+    if errors:
+        raise Stop('STAGE39_STOP_PARTIAL_REVOKE_'+','.join(sorted(set(errors))))
+    return tuple(results)
 
 def closed(doc, reason):
     doc = dict(doc)
@@ -234,7 +293,7 @@ def closed(doc, reason):
     session_write(doc)
     return doc
 
-def start(now=None):
+def start(now=None, *, continuous=False):
     now = int(time.time()) if now is None else int(now)
     preflight_start()
     with guard_lock():
@@ -244,6 +303,8 @@ def start(now=None):
         current = {'version': 1, 'session_id': uuid.uuid4().hex, 'task_id': TASK, 'config_sha256': CFG_SHA,
                    'boot_id': boot_id(), 'created_unix': now, 'deadline_unix': now + MAX_SESSION_SECONDS,
                    'status': 'arming', 'reason': '', 'last_renew_unix': now}
+        if continuous:
+            current.update(version=2, deadline_unix=None, last_renew_mono_us=mono_us())
         session_write(current)
         try:
             atomic_private(GATE, GATE_BYTES, exclusive=True)
@@ -259,7 +320,7 @@ def start(now=None):
     print('STAGE39_SESSION_STARTED_ONE_SCOPED_DIALOGUE')
     print('STAGE39_TASK_ID', TASK)
     print('STAGE39_SESSION_ID', current['session_id'])
-    print('STAGE39_ABSOLUTE_DEADLINE_UNIX', current['deadline_unix'])
+    print('STAGE39_ABSOLUTE_DEADLINE_UNIX', current['deadline_unix'] if current['deadline_unix'] is not None else 'NONE_OPERATOR_CONTINUOUS')
     print('STAGE39_GATE_RENEWED_BY_TIMER_BEFORE_20_MINUTES')
     print('STAGE39_PERMIT_RENEWED_BY_TIMER_BEFORE_60_MINUTES')
     print('STAGE39_NO_CREATE_NO_CONFIG_OR_DATABASE_CHANGE')
@@ -286,18 +347,24 @@ def tick(now=None):
             closed(doc, 'INCOMPLETE_START')
             print('STAGE39_KEEPER_CLOSED_INCOMPLETE_SESSION')
             return
-        if now >= doc['deadline_unix'] or doc['boot_id'] != boot_id():
+        expired = doc['deadline_unix'] is not None and now >= doc['deadline_unix']
+        if expired or doc['boot_id'] != boot_id():
             revoke_locked()
-            closed(doc, 'HARD_DEADLINE' if now >= doc['deadline_unix'] else 'BOOT_CHANGED')
+            closed(doc, 'HARD_DEADLINE' if expired else 'BOOT_CHANGED')
             print('STAGE39_KEEPER_CLOSED_AT_BOUNDARY')
             return
         try:
             owner()
             for p in (HOME, HOME / '.config', CAP, CFG.parent, ROOT): trusted_dir(p)
             check_config()
-            watchdog_running()
+            if doc['version']==2:
+                delta_us=mono_us()-doc['last_renew_mono_us']
+                wall_delta=now-doc['last_renew_unix']
+                require(0<=delta_us<=180_000_000 and 0<=wall_delta<=180 and abs(wall_delta-delta_us/1_000_000)<=30,'CONTINUOUS_CLOCK_OR_KEEPER_STALE')
             validate_gate(now)
             perm = validate_permit(now, doc['deadline_unix'])
+            watchdog_running()
+            health()
             # Never recreate a missing or revoked capability.
             age = now - GATE.stat().st_mtime
             if age >= GATE_RENEW_AFTER_SECONDS:
@@ -309,8 +376,11 @@ def tick(now=None):
             if perm['expires_unix'] - now <= PERMIT_RENEW_IF_LEFT_SECONDS:
                 atomic_private(PERMIT, permit_blob(make_permit(now, doc['deadline_unix'])))
             doc['last_renew_unix'] = now
+            if doc['version']==2: doc['last_renew_mono_us']=mono_us()
             session_write(doc)
             print('STAGE39_KEEPER_RETAINED_VALID_SESSION')
+        except WatchdogBusy:
+            print('STAGE39_WATCHDOG_BUSY_DEFER_NO_RENEW')
         except (Stop, OSError, ValueError, TypeError, subprocess.TimeoutExpired) as exc:
             reason = str(exc) if isinstance(exc, Stop) else type(exc).__name__
             revoke_locked()
@@ -321,12 +391,17 @@ def tick(now=None):
 def stop():
     owner()
     with guard_lock():
-        doc = session_read()
-        a, b = revoke_locked()
-        if doc is not None and doc['status'] not in ('closed', 'fault'):
-            closed(doc, 'OPERATOR_CLOSED')
-    print('STAGE39_OPERATOR_STOP_REVOKED_GATE', a)
-    print('STAGE39_OPERATOR_STOP_REVOKED_PERMIT', b)
+        # F08: revoke both active capabilities FIRST, even if session.json is corrupt.
+        a,b=revoke_locked()
+        try:
+            doc=session_read()
+        except (Stop,OSError,ValueError,TypeError):
+            print('STAGE39_OPERATOR_STOP_CAPABILITIES_REVOKED_SESSION_UNREADABLE')
+            raise Stop('STAGE39_STOP_SESSION_UNREADABLE_CAPABILITIES_REVOKED')
+        if doc is not None and doc['status'] not in ('closed','fault'):
+            closed(doc,'OPERATOR_CLOSED')
+    print('STAGE39_OPERATOR_STOP_REVOKED_GATE',a)
+    print('STAGE39_OPERATOR_STOP_REVOKED_PERMIT',b)
     print('STAGE39_ACTIVE_CAPABILITIES_ABSENT')
 
 def status():
@@ -336,7 +411,7 @@ def status():
     if doc:
         print('STAGE39_SESSION_ID', doc['session_id'])
         print('STAGE39_SESSION_DEADLINE_UNIX', doc['deadline_unix'])
-        print('STAGE39_SESSION_SECONDS_LEFT', max(0, doc['deadline_unix'] - int(time.time())))
+        print('STAGE39_SESSION_SECONDS_LEFT', 'CONTINUOUS' if doc['deadline_unix'] is None else max(0, doc['deadline_unix'] - int(time.time())))
         print('STAGE39_SESSION_REASON', doc['reason'] or 'NONE')
     print('STAGE39_MCP_PERMIT_PRESENT', exists(PERMIT))
     print('STAGE39_AGENT_GATE_PRESENT', exists(GATE))
@@ -349,8 +424,8 @@ def status():
 
 def main():
     try:
-        require(len(sys.argv) == 2 and sys.argv[1] in ('start', 'tick', 'stop', 'status'), 'USAGE')
-        {'start': start, 'tick': tick, 'stop': stop, 'status': status}[sys.argv[1]]()
+        require(len(sys.argv) == 2 and sys.argv[1] in ('start', 'start-continuous', 'tick', 'stop', 'status'), 'USAGE')
+        {'start': start, 'start-continuous': lambda: start(continuous=True), 'tick': tick, 'stop': stop, 'status': status}[sys.argv[1]]()
     except Stop as exc:
         print(str(exc), file=sys.stderr, flush=True)
         raise SystemExit(2)

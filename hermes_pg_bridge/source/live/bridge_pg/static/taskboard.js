@@ -1,6 +1,6 @@
 'use strict';
 const $ = id => document.getElementById(id);
-let csrf = '', shown = [], offset = 0, nextList = null;
+let csrf = '', shown = [], offset = 0, nextList = null, deliveries = {};
 let selectedTask = null, showArchived = false, listGeneration = 0, historyGeneration = 0;
 let refreshRunning = false;
 const firstPages = new Map();
@@ -12,6 +12,19 @@ function elem(tag, text, cls) {
   if (text !== undefined) e.textContent = String(text);
   if (cls) e.className = cls;
   return e;
+}
+// Enrollment metadata is not an ordinary message or execution request.
+function renderEnrollmentEvent(event, task) {
+  if (!event || typeof event !== 'object' || Array.isArray(event) ||
+      Object.keys(event).sort().join(',') !== 'kind,note,task_id' ||
+      event.kind !== 'agent_opening_note' || event.task_id !== task ||
+      typeof event.note !== 'string' || !event.note.trim() ||
+      new TextEncoder().encode(event.note).length > 4096 ||
+      !/^task_[0-9a-f]{32}$/.test(task)) return null;
+  const card = elem('div', undefined, 'message enrollment-event');
+  card.append(elem('strong', 'Начальное сообщение MultiTool · регистрация'),
+              elem('pre', event.note));
+  return card;
 }
 function button(label, fn, cls) {
   const b = elem('button', label, cls);
@@ -43,6 +56,24 @@ function sinceGit(iso) {
   const hours = Math.floor(minutes / 60);
   if (hours < 24) return hours + ' ч назад';
   return Math.floor(hours / 24) + ' дн назад';
+}
+function canReturn(last, receipt, detailStatus) {
+  // A return is possible only while the latest message delivery is still pending.
+  if (!last) return false;
+  if (last.kind === 'return' || last.kind === 'close' || last.returned) return false;
+  if (detailStatus === 'done' || detailStatus === 'closing') return false;
+  if (receipt && receipt.source === 'ok' &&
+      (receipt.seen_seq != null || receipt.inflight_seq != null)) return false;
+  return true;
+}
+function canHandBack(last, receipt, detailStatus) {
+  // Hand back the turn after delivery without retracting the delivered message.
+  if (!last) return false;
+  if (last.kind === 'return' || last.kind === 'close' || last.returned) return false;
+  if (detailStatus === 'done' || detailStatus === 'closing') return false;
+  if (last.from !== 'mt') return false;
+  return Boolean(receipt && receipt.source === 'ok' &&
+    (receipt.seen_seq != null || receipt.inflight_seq != null));
 }
 function lastAction(last, receipt) {
   if (!last) return {label: 'Пока нет сообщений', time: '', hint: 'В PostgreSQL нет сообщений'};
@@ -145,6 +176,7 @@ async function load(next = offset) {
     nextList = result.next_offset;
     shown = result.dialogs;
     const delivery = result.mt_delivery || {};
+    deliveries = delivery;
     const rowDetails = result.row_details || {};
     const tbody = $('rows');
     tbody.replaceChildren();
@@ -165,6 +197,11 @@ async function load(next = offset) {
         item._returnButton = button('Вернуть ход', () => returnTurn(item), 'history-btn');
         item._returnButton.disabled = true;
         actions.append(item._returnButton);
+        if (item.task_id === ownerScope57) {
+          item._returnButton.hidden = true;
+          actions.append(button('Вернуть ChatGPT', () => ownerTurn57(item, 'chatgpt'), 'history-btn'));
+          actions.append(button('Вернуть MT', () => ownerTurn57(item, 'agent'), 'history-btn'));
+        }
       }
       if (item.lifecycle === 'active' || item.lifecycle === 'cancelled') {
         actions.append(button('Удалить задачу', () => archive(item), 'danger'));
@@ -203,9 +240,16 @@ async function load(next = offset) {
         const action = lastAction(last, delivery[item.task_id]);
         item._lastAct.textContent = action.label;
         item._lastAct.title = action.hint;
-        if (item._returnButton) item._returnButton.disabled =
-          !last || last.kind === 'return' || last.kind === 'close' || last.returned ||
-          d.status === 'done' || d.status === 'closing';
+        if (item._returnButton) {
+          const retract = canReturn(last, delivery[item.task_id], d.status);
+          const handback = !retract && canHandBack(last, delivery[item.task_id], d.status);
+          item._returnButton.disabled = !(retract || handback);
+          item._returnButton.textContent = handback ? 'Передать ход агенту' : 'Вернуть ход';
+          item._returnButton.title = retract ? '' :
+            (handback
+              ? 'Сообщение уже доставлено и останется в PostgreSQL. Кнопка вернёт ход агенту, чтобы он дописал новое сообщение.'
+              : '');
+        }
         if (last) {
           item._job.append(elem('code', last.message_id),
                            button('⧉', () => copy(last.message_id), 'copy'));
@@ -251,6 +295,10 @@ async function history(task, ofs = 0) {
     meta.append(elem('div', 'Сообщений: ' + d.total_messages + ' · состояние: ' + d.status, 'muted'));
     meta.append(elem('code', 'VERSION: ' + d.head));
     $('messages').replaceChildren();
+    if (ofs === 0) {
+      const enrollment = renderEnrollmentEvent(d.enrollment_event, task);
+      if (enrollment) $('messages').append(enrollment);
+    }
     for (const m of d.history) {
       const card = elem('div', undefined, 'message');
       const line = elem('div', undefined, 'message-meta');
@@ -285,15 +333,90 @@ async function history(task, ofs = 0) {
     $('error').textContent = 'История: ' + error.message;
   }
 }
+const ownerScope57 = 'task_b6c26aa18220412bafdbf32393f16568';
+const ownerStorage57 = 'pg-owner-turn57';
+let ownerBusy57 = false;
+async function ownerTurn57(item, target) {
+  if (ownerBusy57) return;
+  ownerBusy57 = true;
+  try {
+    let req = JSON.parse(localStorage.getItem(ownerStorage57) || 'null');
+    if (req && (req.task_id !== item.task_id || req.target !== target)) {
+      throw new Error('Сначала подтвердите результат предыдущего запроса передачи хода');
+    }
+    if (!req) {
+      const d = await api('/api/history?task_id=' + encodeURIComponent(item.task_id) + '&offset=0&limit=1');
+      if (!window.confirm('Передать ход ' + (target === 'agent' ? 'MT' : 'ChatGPT') +
+          '? История сохранится. Выполняющееся задание не будет принудительно остановлено.')) return;
+      req = {task_id:item.task_id, head:d.head, target,
+             request_id:crypto.randomUUID().replaceAll('-','')};
+      localStorage.setItem(ownerStorage57,JSON.stringify(req));
+    }
+    for (let i=0;i<300;i++) {
+      let r;
+      try {
+        r = await api('/api/owner_turn', {method:'POST',
+          headers:{'Content-Type':'application/json','X-CSRF-Token':csrf},
+          body:JSON.stringify(req)});
+      } catch(e) {
+        $('notice').textContent='Ответ передачи хода не подтверждён. Повторяем тот же запрос.';
+        await new Promise(resolve=>setTimeout(resolve,3000));continue;
+      }
+      if (r.status==='applied' || r.status==='already_actor') {
+        localStorage.removeItem(ownerStorage57);
+        clearCache();
+        $('notice').textContent='Ход у ' + (target==='agent'?'MT':'ChatGPT');
+        await load(offset);return;
+      }
+      if (r.status==='stale') {
+        localStorage.removeItem(ownerStorage57);
+        clearCache();
+        $('error').textContent='Диалог изменился. Обновите историю; новое задание не отменялось.';
+        await load(offset);return;
+      }
+      if (r.status!=='waiting' && r.status!=='uncertain') throw Error('Неизвестный результат передачи хода');
+      $('notice').textContent='Запрос сохранён. Ожидаем безопасную границу исполнения или подтверждение.';
+      await new Promise(resolve=>setTimeout(resolve,3000));
+    }
+    $('notice').textContent='Запрос сохранён. Нажмите ту же кнопку для продолжения проверки.';
+  } catch(e) {
+    $('error').textContent='Передача хода: ' + e.message;
+  } finally {ownerBusy57=false;}
+}
+
 async function returnTurn(item) {
+  if (item.task_id === ownerScope57) return;
   // Never use a cached HEAD for a destructive or turn-changing action.
   try {
     const d = await api('/api/history?task_id=' + encodeURIComponent(item.task_id) +
                         '&offset=0&limit=1');
     const last = d.history[0];
-    if (!last || last.returned || last.kind === 'return' || last.kind === 'close' || last.returned ||
-        d.status === 'done' || d.status === 'closing') {
-      throw new Error('Последнее сообщение уже отозвано или диалог завершён');
+    const retract = canReturn(last, deliveries[item.task_id], d.status);
+    const handback = !retract && canHandBack(last, deliveries[item.task_id], d.status);
+    if (!retract && !handback) {
+      const r = deliveries[item.task_id];
+      throw new Error(r && (r.seen_seq != null || r.inflight_seq != null)
+        ? 'сообщение уже доставлено (' + (r.inflight_seq != null ? 'доставка идёт' : 'delivered') +
+          ', seq=' + (r.inflight_seq != null ? r.inflight_seq : r.seen_seq) +
+          ') — передать ход агенту можно только после его сообщения'
+        : 'последнее сообщение уже отозвано или диалог завершён');
+    }
+    if (handback) {
+      if (!window.confirm('Передать ход агенту?\n\nСообщение #' + last.seq +
+            ' (' + last.message_id + ') останется в PostgreSQL. ' +
+            'Агент сможет дописать новое сообщение, ChatGPT прочитает его позже.')) return;
+      const handed = await api('/api/hand_back', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
+        body: JSON.stringify({task_id: item.task_id, head: d.head})
+      });
+      if (handed.next_actor !== 'mt' || handed.created !== true)
+        throw new Error('Передача хода не подтверждена');
+      clearCache();
+      $('notice').textContent = 'Ход передан агенту';
+      await load(offset);
+      if (selectedTask === item.task_id) history(item.task_id, 0);
+      return;
     }
     if (!window.confirm('Вернуть ход ' + (last.from === 'mt' ? 'MT' : 'ChatGPT') +
           '?\n\nСообщение #' + last.seq + ' (' + last.message_id + ')' +

@@ -103,6 +103,31 @@ class Catalog:
         return {'dialogs':data,'next_offset':offset+limit if len(entries)>limit else None,
                 'order':'newest'}
 
+    def taskboard_rows(self,offset:int=0,limit:int=30) -> dict:
+        _page(offset,limit,'newest')
+        rows=self._one('SELECT bridge.tb_list_rows(%s,%s) AS result',(offset,limit))
+        if not isinstance(rows,list) or len(rows)>limit+1:raise BridgeError('database_unavailable')
+        result={'dialogs':[],'next_offset':offset+limit if len(rows)>limit else None,
+                'order':'newest','mt_delivery':{},'row_details':{}}
+        for row in rows[:limit]:
+            tid=row['task_id']
+            result['dialogs'].append({'task_id':tid,'branch':None,'lifecycle':'active',
+                 'title':row['title'],'initiator':_actor_external(row['initiator'])})
+            latest=row['latest'];receipt=row['delivery']
+            m=None
+            if latest is not None:
+                m={'message_id':latest['message_id'],'seq':latest['seq'],'kind':latest['kind'],
+                   'from':_actor_external(latest['sender']),'to':_actor_external(latest['recipient']),
+                   'returned':latest['returned'],'created_at_utc':_tstamp(latest['created_at'])}
+            if (row['last_seq']>0 and m is None) or (m is not None and receipt not in ('pending','leased','delivered','cancelled')):
+                raise BridgeError('database_unavailable')
+            result['mt_delivery'][tid]={'source':'ok',
+                'seen_seq':m['seq'] if m and receipt=='delivered' else None,
+                'inflight_seq':m['seq'] if m and receipt=='leased' else None}
+            result['row_details'][tid]={'title':row['title'],'status':'working' if row['last_seq'] else 'waiting',
+                'waiting_for':_actor_external(row['next_actor']),'history':[m] if m is not None else []}
+        return result
+
     def metadata(self, task_id: str) -> dict:
         row = self._one('SELECT bridge.dialog_metadata(%s) AS result', (_checked_id(task_id),))
         if row is None: raise BridgeError('dialog_not_found')
@@ -111,15 +136,15 @@ class Catalog:
     def view(self, task_id: str, offset: int=0, limit: int=20, order: str='newest') -> dict:
         _page(offset,limit,order)
         tid=_checked_id(task_id)
-        d=self.metadata(tid)
-        if d['state'] != 'active':
-            raise BridgeError('dialog_not_found')
         # Underlying function provides bounded newest-first pagination.
         # Oldest is supported by reversing a bounded full page for small dialogs.
         if order=='oldest':
             # More efficient oldest pagination needs a dedicated SQL function.
             raise BridgeError('invalid_dialog_page')
         page=self.store.view_dialog(tid,offset,limit)
+        if page.get('task_id') != tid or page.get('state') != 'active':
+            raise BridgeError('dialog_not_found')
+        d=page
         msg=[]
         page_bytes=0
         for x in page['messages']:
@@ -190,11 +215,26 @@ class Catalog:
         latest=current['history'][0] if current['history'] else None
         if latest is None or latest['message_id']!=last_message_id or latest['returned']:
             raise BridgeError('return_not_allowed')
+        d=self.metadata(task_id)
+        if version_token(task_id,d['version']) != head:
+            raise BridgeError('version_conflict')
         result=self.store.return_turn(task_id,last_message_id,_actor_internal(latest['from']),
-                                      self.metadata(task_id)['version'])
+                                      d['version'])
         return {'task_id':task_id,'head':head,'returned_message_id':last_message_id,
                 'returned':True,'next_actor':_actor_external(result['next_actor']),
                 'new_head':version_token(task_id,result['version'])}
+
+    def hand_back(self,task_id:str,head:str) -> dict:
+        _checked_id(task_id)
+        current=self.view(task_id,0,1)
+        if head!=current['head']: raise BridgeError('version_conflict')
+        d=self.metadata(task_id)
+        if version_token(task_id,d['version']) != head:
+            raise BridgeError('version_conflict')
+        result=self.store.hand_back_turn(task_id,d['version'])
+        new_head=version_token(task_id,result['version'])
+        return {'task_id':task_id,'head':new_head,'next_actor':_actor_external(result['next_actor']),
+                'changed':result['changed'],'new_head':new_head}
 
     def delivery_status(self,task_id:str,seq:int) -> dict|None:
         return self._one('SELECT bridge.delivery_status(%s,%s) AS result',(task_id,seq))

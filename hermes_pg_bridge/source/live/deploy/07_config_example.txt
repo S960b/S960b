@@ -1,0 +1,19 @@
+NO SECRETS ARE TO BE POSTED IN CHAT OR STORED IN GIT.
+
+Topology: Kali's SSH port forward 127.0.0.1:15432 -> DB host 127.0.0.1:5432.
+Provision a dedicated SSH key restricted to forwarding, pin the server's SSH
+host key via known_hosts. Example only, DO NOT execute until account details
+and approved access are configured:
+
+ssh -N -T -o BatchMode=yes -o ExitOnForwardFailure=yes \
+  -o ServerAliveInterval=20 -o ServerAliveCountMax=3 \
+  -L 127.0.0.1:15432:127.0.0.1:5432 YOUR_PINNED_DB_SSH_ALIAS
+
+On Kali, ~/.config/bridge-pg-v2/conninfo (chmod 600, owned by kali):
+host=127.0.0.1 port=15432 dbname=bridge user=bridge_app connect_timeout=5 application_name=bridge_pg_v2 passfile=/home/kali/.config/bridge-pg-v2/.pgpass
+
+~/.config/bridge-pg-v2/.pgpass (chmod 600, owned by kali):
+127.0.0.1:15432:bridge:bridge_app:<ENTER_SECRET_LOCALLY_NOT_IN_CHAT>
+
+The PostgreSQL DB itself remains bound to remote localhost only.
+Do not export credentials in shell command history, environment dumps or logs.

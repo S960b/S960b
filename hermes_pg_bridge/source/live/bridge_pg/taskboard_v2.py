@@ -125,43 +125,20 @@ class App:
                 if path=='/api/dialogs':
                     if set(q)-{'offset','limit'}:raise BridgeError('request_rejected')
                     off=int(q.get('offset','0'));limit=int(q.get('limit','30'))
-                    # A single connection for the entire list. Catalog and the
-                    # authenticated SQL functions retain all existing validation.
-                    # A test catalog may be injected without a Store; the real
-                    # Catalog uses the scoped connection, while such unit-test
-                    # fakes retain their previous behavior.
-                    batch=getattr(getattr(self.cat,'store',None),'taskboard_read_batch',None)
-                    with batch() if batch is not None else nullcontext():
-                        result=self.cat.list(off,limit)
-                        result['csrf']=self.csrf
-                        result['mt_delivery']={}
-                        result['row_details']={}
-                        for d in result['dialogs']:
-                            tid=d['task_id']
-                            try:
-                                v=self.cat.view(tid,0,1)
-                                m=v['history'][0] if v['history'] else None
-                                receipt=self.cat.delivery_status(tid,m['seq']) if m else None
-                                result['mt_delivery'][tid]={
-                                  'source':'ok',
-                                  'seen_seq':m['seq'] if receipt and receipt['status']=='delivered' else None,
-                                  'inflight_seq':m['seq'] if receipt and receipt['status']=='leased' else None}
-                                # Only fields required to draw table rows: no
-                                # message body and no extra /api/history calls.
-                                compact={k:m[k] for k in ('message_id','seq','kind','from','to',
-                                  'returned','created_at_utc') if k in m} if m else None
-                                result['row_details'][tid]={
-                                  'title':v['title'], 'status':v['status'],
-                                  'waiting_for':v['waiting_for'],
-                                  'history':[compact] if compact is not None else []}
-                            except BridgeError:
-                                result['mt_delivery'][tid]={
-                                  'source':'unavailable','seen_seq':None,'inflight_seq':None}
+                    result=self.cat.taskboard_rows(off,limit)
+                    result['csrf']=self.csrf
                 else:
                     if set(q)-{'task_id','offset','limit'}:raise BridgeError('request_rejected')
                     result=self.cat.view(q['task_id'],int(q.get('offset','0')),int(q.get('limit','20')))
+                    from .adapter64 import enrollment_history
+                    result=enrollment_history(result,q['task_id'],int(q.get('offset','0')),
+                       lambda tid:self.cat._one('SELECT bridge.tb_enrollment_event_v64(%s) AS result',(tid,)))
                 data=_json(result);code=200;ctype='application/json; charset=utf-8'
-            elif method=='POST' and path in ('/api/delete_prepare','/api/delete_confirm','/api/return_turn'):
+            elif method=='POST' and path=='/api/owner_turn':
+                from .owner_http57 import handle_owner_turn
+                result=handle_owner_turn(self.cat,self._read_json(env))
+                data=_json(result);code=200;ctype='application/json; charset=utf-8'
+            elif method=='POST' and path in ('/api/delete_prepare','/api/delete_confirm','/api/return_turn','/api/hand_back'):
                 obj=self._read_json(env)
                 if path=='/api/delete_prepare':
                     if set(obj)!={'task_id','head'}:raise BridgeError('request_rejected')
@@ -184,14 +161,24 @@ class App:
                     if obj['head']!=version_token(obj['task_id'],d['version']):raise BridgeError('version_conflict')
                     result=self.cat._one('SELECT bridge.tombstone_dialog(%s,%s) AS result',(obj['task_id'],d['version']))
                     result.update(head=obj['head'],remote_absent=True)
-                else:
+                elif path=='/api/return_turn':
                     if set(obj)!={'task_id','head','last_message_id'}:raise BridgeError('request_rejected')
+                    if obj['task_id']=='task_b6c26aa18220412bafdbf32393f16568':raise BridgeError('return_not_allowed')
                     result=self.cat.return_turn(obj['task_id'],obj['head'],obj['last_message_id'])
+                    result['created']=True
+                else:
+                    if set(obj)!={'task_id','head'}:raise BridgeError('request_rejected')
+                    result=self.cat.hand_back(obj['task_id'],obj['head'])
                     result['created']=True
                 data=_json(result);code=200;ctype='application/json; charset=utf-8'
             else:
                 code,data=404,b'Not found'
-        except (BridgeError,ValueError,TypeError,KeyError,json.JSONDecodeError):
+        except BridgeError as e:
+            if e.code=='database_unavailable':
+                code,ctype,data=503,'application/json; charset=utf-8',_json({'ok':False,'error':'database_unavailable'})
+            else:
+                code,ctype,data=409,'application/json; charset=utf-8',_json({'ok':False,'error':e.code})
+        except (ValueError,TypeError,KeyError,json.JSONDecodeError):
             code,ctype,data=409,'application/json; charset=utf-8',_json({'ok':False,'error':'request_rejected_or_unconfirmed'})
         except Exception:
             code,ctype,data=503,'application/json; charset=utf-8',_json({'ok':False,'error':'database_unavailable'})
