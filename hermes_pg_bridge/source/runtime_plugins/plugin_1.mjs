@@ -1,3 +1,6 @@
+import {verifyFirstTurnScope} from "./first_receive.mjs";
+import { isRevoked as isOwnerRevoked57 } from "./owner_turn57.mjs";
+import { stage37b2cClearAfterDefiniteNoClaim, stage37b2cIntentPresent, stage37b2cWriteIntent, stage37b2cClearAfterAck, stage37b2cFinalizeAfterConfirmedAck } from "/home/kali/hermes-pg-stage37b2c-claim-intent/intent37b2c.mjs";
 // MT Git Inbox — serialized, crash-conservative receiver (P32.4 review).
 // No Git writes. One active Git dialogue -> one persistent MT agent session.
 // A shared exclusive file lock serializes ALL instances; a durable in-flight
@@ -6,21 +9,22 @@ import { appendFileSync, closeSync, existsSync, fsyncSync, lstatSync, watch,
          mkdirSync, openSync, readFileSync, renameSync, unlinkSync,
          writeFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
+import { checkScope, loadPublic, verifiedMessage } from "./signed_receive56.mjs";
 import { dirname, join } from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 
 const HOME = "/home/kali";
 const CODE = "/home/kali/bridge-pg-v2";
 const PYTHON = join(CODE, ".venv/bin/python");
-const STATE_DIR = join(HOME, ".local/state/mt-pg-inbox-agent-stage33f");
+const STATE_DIR = join(HOME, ".local/state/mt-pg-inbox-managed-stage34e");
 const TICK_MS = 30_000; // P36.1: slow backup poll; metadata-only fs.watch is primary
 const CLI_TIMEOUT_MS = 60_000;
 // Upper bound for one session.prompt. The prompt runs while the exclusive tick
 // lock is held, so an unsettled prompt would otherwise stall every dialogue.
 // Generous: a real agent turn can legitimately run for many minutes.
 const PROMPT_TIMEOUT_MS = 30 * 60_000;
-// At most one read-only reconciliation check per held task every 5 minutes.
-const INFLIGHT_RECONCILE_MS = 5 * 60_000;
+// At most one read-only reconciliation check per held task every 30 seconds.
+const INFLIGHT_RECONCILE_MS = 30_000;
 const MAX_DISPATCH_PER_TICK = 2;
 // A malformed/0-byte lock is only reaped if it is older than this grace
 // period: a brand-new unparseable file is presumed to be a holder that is
@@ -271,75 +275,110 @@ function releaseLock(paths, holder) {
 
 function cli(request, timeoutMs = CLI_TIMEOUT_MS) {
   const op = request?.op;
+  const taskId = request?.task_id;
   let args;
   if (op === "list_dialogs") {
-    args = ["list", "--offset", String(request.offset || 0),
-            "--limit", String(request.limit || 50)];
+    args = ["list", "--offset", String(request.offset ?? 0),
+            "--limit", String(request.limit ?? 50)];
   } else if (op === "view") {
-    args = ["peek", "--task-id", request.task_id,
-            "--offset", String(request.offset || 0),
-            "--limit", String(request.limit || 1)];
+    args = ["peek", "--task-id", taskId,
+            "--offset", String(request.offset ?? 0),
+            "--limit", String(request.limit ?? 1)];
   } else if (op === "read") {
-    args = ["read", "--task-id", request.task_id,
+    args = ["read", "--task-id", taskId,
             "--seq", String(request.seq), "--message-id", request.message_id];
+  } else if (op === "authorize") {
+    args = ["authorize", "--task-id", taskId];
   } else if (op === "claim") {
-    args = ["claim", "--task-id", request.task_id,
+    args = ["claim", "--task-id", taskId,
             "--seq", String(request.seq), "--message-id", request.message_id,
-            "--consumer", "mt-pg-inbox"];
+            "--consumer", "mt-pg-managed"];
   } else if (op === "ack") {
-    args = ["ack", "--delivery-id", String(request.delivery_id),
-            "--lease-token", request.lease_token,
-            "--consumer", "mt-pg-inbox"];
+    // Stage34D managed CLI requires BOTH task ID and seq for identity-bound ACK.
+    args = ["ack", "--task-id", taskId, "--seq", String(request.seq),
+            "--delivery-id", String(request.delivery_id),
+            "--lease-token", request.lease_token, "--consumer", "mt-pg-managed"];
   } else {
-    return Promise.reject(new Error("pg_unsupported_operation"));
+    return Promise.reject(new Error("managed_operation_denied"));
+  }
+  if (args.some((arg) => typeof arg !== "string" || !arg || arg.length > 512)) {
+    return Promise.reject(new Error("managed_cli_args_invalid"));
   }
   return new Promise((resolve, reject) => {
     const env = { ...process.env, PYTHONPATH: CODE };
     delete env.APPDIR;
     delete env.APPIMAGE;
-    const child = spawn(PYTHON, ["/home/kali/hermes-pg-stage33i-ackfix/stage33i_agent_cli.py", ...args], {
-      cwd: CODE, env, stdio: ["ignore", "pipe", "pipe"],
-    });
-    let out = "";
-    const killTimer = setTimeout(() => { try { child.kill("SIGKILL"); } catch {} }, timeoutMs);
-    child.stdout.on("data", (d) => {
-      out += d.toString("utf8");
-      if (out.length > 250_000) { try { child.kill("SIGKILL"); } catch {} }
+    const child = spawn(PYTHON, [
+      "/home/kali/hermes-pg-stage34d-write-adapter/managed_agent_cli34d.py", ...args
+    ], { cwd: CODE, env, stdio: ["ignore", "pipe", "pipe"] });
+    const chunks = [];
+    let outBytes = 0;
+    let timedOut = false;
+    const killer = setTimeout(() => {
+      timedOut = true;
+      try { child.kill("SIGKILL"); } catch {}
+    }, timeoutMs);
+    child.stdout.on("data", (b) => {
+      if (timedOut) return;
+      outBytes += b.length;
+      if (outBytes > 250_000) {
+        timedOut = true;
+        chunks.length = 0;
+        try { child.kill("SIGKILL"); } catch {}
+        return;
+      }
+      chunks.push(Buffer.from(b));
     });
     child.stderr.on("data", () => {});
-    child.on("error", () => { clearTimeout(killTimer); reject(new Error("pg_spawn_failed")); });
+    child.on("error", () => { clearTimeout(killer); reject(new Error("managed_cli_spawn_failed")); });
     child.on("close", (code) => {
-      clearTimeout(killTimer);
-      const last = out.trim().split("\n").filter(Boolean).pop() || "";
-      if (code !== 0 || !last) return reject(new Error("pg_request_failed"));
+      clearTimeout(killer);
+      if (timedOut || code !== 0) return reject(new Error("managed_cli_unconfirmed"));
+      let out;
+      try { out = new TextDecoder("utf-8", {fatal:true, ignoreBOM:true}).decode(Buffer.concat(chunks, outBytes)); }
+      catch { return reject(new Error("managed_cli_bad_utf8")); }
+      const line = out.trim().split("\n").filter(Boolean).pop() || "";
       let parsed;
-      try { parsed = JSON.parse(last); } catch { return reject(new Error("pg_invalid_response")); }
-      if (parsed?.ok === false || parsed?.error) return reject(new Error("pg_rejected"));
-      if (op === "view") {
-        if (!Array.isArray(parsed.messages)) return reject(new Error("pg_invalid_index"));
-        return resolve({ ...parsed, history: parsed.messages });
-      }
+      try { parsed = JSON.parse(line); } catch { return reject(new Error("managed_cli_bad_json")); }
+      if (!parsed || parsed.ok === false || parsed.error) return reject(new Error("managed_cli_rejected"));
+      if (op === "view" && !Array.isArray(parsed.history))
+        return reject(new Error("managed_cli_bad_view"));
       resolve(parsed);
     });
   });
 }
+
+function managedReportId(taskId, seq) {
+  if (!/^task_[0-9a-f]{32}$/.test(taskId) ||
+      !Number.isSafeInteger(seq) || seq < 1) throw new Error("managed_report_id_invalid");
+  return "pgv2-mg-" + taskId.slice(5) + "-" + seq.toString(36) + "-report";
+}
 function buildPrompt(dialog, message) {
+  const reportId = managedReportId(dialog.task_id, message.seq);
   return [
-    "PostgreSQL Bridge v2. Диалог " + dialog.task_id + " («" + (dialog.title || "без названия") + "»).",
-    "Адресовано MT, seq " + message.seq + ", message_id " + message.message_id + ".",
-    "", "Текст:", String(message.body || ""), "",
-    "Ответ публикуется в PostgreSQL, а НЕ в Git.",
-    "В этом тесте тело отчёта должно быть строго: PGV2_ROLE_BOUND_MT_SDK_ACK_20261122. Не выполняй другие задания.",
-    "Для ответа используй только локальный инструмент:",
-    "/home/kali/bridge-pg-v2/.venv/bin/python /home/kali/hermes-pg-stage33i-ackfix/stage33i_agent_cli.py",
-    "peek --task-id " + dialog.task_id + " для получения актуального VERSION-токена (поле head).",
-    "Сохрани тело ответа в локальном UTF-8 файле и выполни:",
-    "append --task-id " + dialog.task_id +
-       " --head <ACTUAL_HEAD> --message-id pgv2-stage33f-sdk-report-v1 --kind report --body-file <PATH>.",
-    "Если исход неизвестен, вызови status с тем же message-id; не создавай другой ID для повтора.",
-    "Git-операции из старого моста больше не используются для этого task_id.",
+    "PostgreSQL Managed Bridge. Диалог " + dialog.task_id + ".",
+    "Входящее задание seq=" + message.seq + ", message_id=" + message.message_id + ".",
+    "", "Задание:", String(message.body || ""), "",
+    "Работай только над этим заданием. Выполняй только разрешённые владельцем действия.",
+    "Ответ отправь ТОЛЬКО в PostgreSQL, никаких Git-операций.",
+    "Используй локальный CLI под ролью bridge_agent:",
+    "/home/kali/bridge-pg-v2/.venv/bin/python /home/kali/hermes-pg-stage34d-write-adapter/managed_agent_cli34d.py",
+    "Сначала: peek --task-id " + dialog.task_id + " (получить актуальный head).",
+    "Создай приватный UTF-8 файл с ответом в /home/kali/ и chmod 600; размер до 32 KiB.",
+    "Однократная отправка отчёта:",
+    "append --task-id " + dialog.task_id + " --consumer mt-pg-managed --head <ACTUAL_HEAD>" +
+      " --message-id " + reportId + " --kind report --body-file <PRIVATE_0600_FILE>",
+    "Если отправка завершилась неопределённо, проверяй:",
+    "status --task-id " + dialog.task_id + " --message-id " + reportId,
+    "Не создавай другой message_id и не отправляй отчёт повторно без проверки статуса.",
+    "4. После отправки отчёта (даже если append завершился успешно) обязательно однократно проверь status для того же task-id и message-id, указанных выше.",
+    "Только если status вернул phase=committed, тот же task_id и message_id и confirmed_seq=" + (message.seq + 1) + ", последним действием хода выполни ровно одну команду:",
+    "/usr/bin/python3 /home/kali/bin/poke_chatgpt.py",
+    "Это уведомление ChatGPT о том, что отчёт сохранён в мосте. Не добавляй --force, не меняй текст, не запускай повторно и в цикле.",
+    "Если status не подтвердил committed и ожидаемый confirmed_seq, пинг не запускать. Код 0 — скрипт сообщил об отправке пинга; ненулевой — POKE_SKIPPED, отчёт уже сохранён, повторов не делать. После этой команды не отправляй новых отчётов и не выполняй других действий.",
   ].join("\n");
 }
+
 function latestPending(snapshot, seenSeq) {
   if (snapshot?.waiting_for !== "mt" || !Array.isArray(snapshot.history)) return null;
   // A turn-based dialogue has ONE currently actionable MT-directed message.
@@ -471,13 +510,27 @@ async function dispatch(ctx, dialog, message, state) {
   // An ambiguous create/prompt failure is NEVER automatically retried.
   // PostgreSQL outbox claim is atomic with cancel/return-turn checks.
   // Never dispatch an already returned message.
+  stage37b2cWriteIntent(key, message.seq, message.message_id);
   const lease = await ctx.cliCall({op:"claim", task_id:key, seq:message.seq,
                                    message_id:message.message_id});
-  if (!lease?.claimed || !lease?.lease_token || !lease?.delivery_id) return false;
+  if (lease && typeof lease === "object" && !Array.isArray(lease) &&
+      Object.keys(lease).length === 1 && lease.claimed === false) {
+    stage37b2cClearAfterDefiniteNoClaim(state,key,message.seq,message.message_id,lease);
+    ctx.log("managed_claim_definitively_not_acquired " + key + " seq=" + message.seq);
+    return false;
+  }
+  if (lease?.claimed !== true || typeof lease.lease_token !== "string" ||
+      !lease.lease_token || !Number.isSafeInteger(lease.delivery_id) || lease.delivery_id <= 0)
+    throw new Error("managed_claim_receipt_uncertain");
   state.inflight[key] = { seq: message.seq, message_id: message.message_id,
                          phase: "reserved", delivery_id: lease.delivery_id,
                          lease_token: lease.lease_token };
   saveState(ctx.paths, state);
+  // F03: authorize this specific task before ANY SDK side effect.
+  // On expiry/stop, leave the durable lease+intent for operator reconciliation.
+  const authBeforeSdk = await ctx.cliCall({op:"authorize", task_id:key});
+  if (authBeforeSdk?.authorized !== true)
+    throw new Error("managed_pre_sdk_authorization_denied");
   // Routing is deterministic: a durable binding for this dialogue always wins,
   // so the destination cannot drift when the owner switches chats or when the
   // app restarts and loads the plugin again. The live-chat lookup is only a
@@ -498,10 +551,10 @@ async function dispatch(ctx, dialog, message, state) {
     delete state.sessions[key];
     state.inflight[key].phase = "create_attempted";
     saveState(ctx.paths, state);
-    const created = await ctx.client.session.create({
+    const created = await boundedManagedCreate(() => ctx.client.session.create({
       body: { title: "Bridge: " + (dialog.title || key.slice(0, 12)) },
       query: { directory: ctx.bridgeDirectory },
-    });
+    }));
     sessionID = created?.data?.id ?? created?.id;
     if (typeof sessionID !== "string" || !sessionID)
       throw new Error("sdk_session_create_unconfirmed");
@@ -529,6 +582,10 @@ async function dispatch(ctx, dialog, message, state) {
     if (ctx.log && boundDirectory !== ctx.directory)
       ctx.log("route_session_directory " + key + " using=" + boundDirectory);
   }
+  // F03: recheck scope and deadline immediately before a possible tool execution.
+  const authAtPrompt = await ctx.cliCall({op:"authorize", task_id:key});
+  if (authAtPrompt?.authorized !== true)
+    throw new Error("managed_pre_prompt_authorization_denied");
   state.inflight[key].phase = "prompt_attempted";
   saveState(ctx.paths, state);
   // The directory is a parameter, never captured: a recovery recreates the
@@ -553,209 +610,213 @@ async function dispatch(ctx, dialog, message, state) {
   try {
     await send(promptDirectory);
   } catch (e) {
-    // The SDK has no reliable session.get in the plugin client, so recovery is
-    // driven by the write itself: a CONFIRMED "not found" is deterministic and
-    // safe to repair exactly once by creating a fresh session.
-    if (!looksLikeMissingSession(e)) throw e;
-    const probe = ctx.sessionExists ? ctx.sessionExists(sessionID) : sessionExistsInDb(sessionID);
-    if (probe !== false) {
-      // Not confirmed as deleted (or unknown): stay fail-closed, keep inflight.
-      ctx.log("session_recovery_unconfirmed " + key + " exists=" + String(probe));
-      throw e;
-    }
-    delete state.sessions[key];
-    saveState(ctx.paths, state);
-    ctx.log("session_missing_recreated " + key);
-    state.inflight[key].phase = "create_attempted";
-    saveState(ctx.paths, state);
-    // A replacement session is created in the plugin's own directory, so the
-    // prompt that follows must use exactly that directory too. Anything else
-    // would resolve the request workspace to a directory the session does not
-    // live in — the failure mode this gate exists to prevent.
-    const recoveryDirectory = ctx.bridgeDirectory;
-    const created = await ctx.client.session.create({
-      body: { title: "Bridge: " + (dialog.title || key.slice(0, 12)) },
-      query: { directory: recoveryDirectory },
-    });
-    sessionID = created?.data?.id ?? created?.id;
-    if (typeof sessionID !== "string" || !sessionID)
-      throw new Error("sdk_session_create_unconfirmed");
-    state.sessions[key] = sessionID;
-    state.inflight[key].phase = "session_created";
-    saveState(ctx.paths, state);
-    state.inflight[key].phase = "prompt_attempted";
-    saveState(ctx.paths, state);
-    await send(recoveryDirectory);
+    // F04: a transport/JSON/404 error after invoking prompt is not proof
+    // that the first request or any of its effects were rejected. Session
+    // absence checked later cannot make that operation safe to replay.
+    // Keep the already durable inflight/lease for report/ACK reconciliation.
+    ctx.log("sdk_prompt_outcome_unknown_hold " + key + " seq=" + message.seq);
+    throw e;
   }
   // No 'seen' receipt until PostgreSQL confirms this specific lease.
-  const acked = await ctx.cliCall({op:"ack",delivery_id:lease.delivery_id,
+  const ackProofStart59 = Date.now();
+  const managedCompletion = await ctx.cliCall({op:"view", task_id:key, offset:0, limit:2});
+  const reserved59 = {seq:message.seq, message_id:message.message_id};
+  if (!confirmedMtResponseAfter(managedCompletion, key, reserved59) &&
+      !await readBoundReport59(ctx, key, reserved59))
+    throw new Error("managed_report_not_confirmed");
+  const ackStart59 = Date.now();
+  const acked = await ctx.cliCall({op:"ack", task_id:key, seq:message.seq,
+                                  delivery_id:lease.delivery_id,
                                   lease_token:lease.lease_token});
-  if (!acked?.acked) throw new Error("pg_ack_unconfirmed");
-  state.seen[key] = message.seq;
-  delete state.inflight[key];
-  saveState(ctx.paths, state);
+  if (acked?.acked !== true) throw new Error("pg_ack_unconfirmed");
+  commitConfirmedDelivery(ctx, state, key, message.seq, message.message_id);
+  ctx.log("ack59 direct proof_ms=" + Math.max(0, ackStart59 - ackProofStart59) + " ack_commit_ms=" + Math.max(0, Date.now() - ackStart59));
   ctx.log("delivered " + key + " seq=" + message.seq + " to one MT session");
   return true;
 }
 
-function confirmedMtResponseAfter(snapshot, taskId, reserved) {
-  // The local direct_git CLI validates the Git history; it returns last N
-  // messages in ascending order, regardless of the unused "order" hint.
-  if (snapshot?.task_id !== taskId || !/^[0-9a-f]{40}$/.test(snapshot?.head) ||
-      !Number.isSafeInteger(snapshot?.seq) || snapshot.seq <= reserved.seq ||
-      !Array.isArray(snapshot?.history) || snapshot.history.length > 100) return false;
+async function readBoundReport59(ctx, taskId, reserved) {
+  // This is a read-only proof lookup. Any inconsistent/missing page is not proof.
+  const first = await ctx.cliCall({op:"view", task_id:taskId, offset:0, limit:1});
+  if (first?.task_id !== taskId ||
+      !Number.isSafeInteger(first?.seq) || first.seq < reserved.seq + 1) return false;
+  const offset = first.seq - (reserved.seq + 1);
+  if (!Number.isSafeInteger(offset) || offset < 0 || offset > 100000) return false;
+  const proof = await ctx.cliCall({op:"view", task_id:taskId, offset, limit:2});
+  return proof?.seq === first.seq && confirmedMtResponseAfter(proof, taskId, reserved);
+}
 
+function confirmedMtResponseAfter(snapshot, taskId, reserved) {
+  if (snapshot?.task_id !== taskId ||
+      !Number.isSafeInteger(snapshot?.seq) || snapshot.seq < reserved.seq + 1 ||
+      !Array.isArray(snapshot.history) || snapshot.history.length !== 2) return false;
   const sent = snapshot.history.find((m) =>
     m?.seq === reserved.seq && m.message_id === reserved.message_id &&
-    m.from === "chatgpt" && m.to === "mt");
+    m.from === "chatgpt" && m.to === "mt" && m.kind === "task" && m.returned === false);
   const answered = snapshot.history.find((m) =>
     m?.seq === reserved.seq + 1 && m.from === "mt" && m.to === "chatgpt" &&
-    ["report", "ack", "task", "close"].includes(m.kind));
-  // No inference based on elapsed time, SDK status, a newer head alone, or
-  // another unrelated MT answer. The exact immutable Git turn must be visible.
+    m.kind === "report" && m.message_id === managedReportId(taskId, reserved.seq) && m.returned === false);
   return Boolean(sent && answered);
 }
 
+// An uncertain create is never retried or adopted after its deadline.
+async function boundedManagedCreate(create, timeoutMs = 60_000) {
+  let timer;
+  try {
+    return await Promise.race([
+      Promise.resolve().then(create),
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error("sdk_session_create_timeout_uncertain")), timeoutMs);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function commitConfirmedDelivery(ctx, state, taskId, seq, messageId) {
+  const reserved = state.inflight[taskId];
+  if (!reserved || reserved.seq !== seq || reserved.message_id !== messageId)
+    throw new Error("managed_ack_reservation_mismatch");
+  // Caller has confirmed the exact report pair and ACK of the reserved lease.
+  // Keep the durable inflight reservation until intent removal is durable.
+  // A crash here leaves the original reservation for idempotent reconciliation.
+  if (stage37b2cIntentPresent(taskId))
+    stage37b2cClearAfterAck(taskId, seq, messageId);
+  state.seen[taskId] = Math.max(state.seen[taskId] || 0, seq);
+  delete state.inflight[taskId];
+  saveState(ctx.paths, state);
+}
+
 async function reconcileAnsweredInflight(ctx, state, dialog) {
-  const taskId = dialog.task_id, reserved = state.inflight[taskId];
+  const taskId = dialog.task_id;
+  const reserved = state.inflight[taskId];
   if (!reserved) return false;
+  // Reconciliation is independent of the dispatch list. A dialogue leaves that
+  // list when the agent writes its report; the reservation MUST remain visible.
+  if (!/^task_[0-9a-f]{32}$/.test(taskId) ||
+      !Number.isSafeInteger(reserved.seq) || reserved.seq < 1 ||
+      typeof reserved.message_id !== "string" || !reserved.message_id) return false;
   const now = Date.now();
   if (Number.isSafeInteger(reserved.reconcile_checked_ms) &&
       reserved.reconcile_checked_ms <= now &&
       reserved.reconcile_checked_ms > now - INFLIGHT_RECONCILE_MS) return false;
-
-  // The cross-process lock in runTick protects this durable state update.
-  // Throttling bounds GitHub API consumption while SDK outcome is unknown.
   reserved.reconcile_checked_ms = now;
   saveState(ctx.paths, state);
-  let snapshot;
+  let first;
   try {
-    snapshot = await ctx.cliCall({ op: "view", task_id: taskId,
-                                  offset: 0, limit: 100, order: "newest" });
+    first = await ctx.cliCall({op:"view", task_id:taskId, offset:0, limit:1});
   } catch {
-    ctx.log("inflight_reconcile_read_unavailable " + taskId);
+    ctx.log("managed_inflight_view_unavailable " + taskId);
     return false;
   }
-  if (!confirmedMtResponseAfter(snapshot, taskId, reserved)) return false;
-
-  // A confirmed response proves SDK completion, NOT outbox acknowledgement.
-  // Keep the durable reservation until PostgreSQL has confirmed this lease.
-  // Missing lease information is an ambiguous delivery: NEVER replay SDK.
+  if (!Number.isSafeInteger(first?.seq) || first.seq < reserved.seq+1) return false;
+  // bridge.view_dialog is newest-first: offset points at expected answer seq+1.
+  const offset = first.seq - (reserved.seq + 1);
+  if (!Number.isSafeInteger(offset) || offset < 0 || offset > 100000) return false;
+  let proof;
+  try {
+    proof = await ctx.cliCall({op:"view", task_id:taskId, offset, limit:2});
+  } catch {
+    ctx.log("managed_inflight_proof_unavailable " + taskId);
+    return false;
+  }
+  // Detect racing new messages; never ACK on inconsistent pagination.
+  if (proof?.seq !== first.seq ||
+      !confirmedMtResponseAfter(proof, taskId, reserved)) return false;
   if (!Number.isSafeInteger(reserved.delivery_id) || reserved.delivery_id <= 0 ||
       typeof reserved.lease_token !== "string" ||
       !/^[0-9a-fA-F-]{36}$/.test(reserved.lease_token)) {
-    ctx.log("inflight_reconcile_missing_lease_receipt " + taskId);
+    ctx.log("managed_inflight_missing_lease " + taskId);
     return false;
   }
-  let acked;
+  let ack;
   try {
-    acked = await ctx.cliCall({op:"ack", delivery_id:reserved.delivery_id,
-                               lease_token:reserved.lease_token});
+    ack = await ctx.cliCall({op:"ack", task_id:taskId, seq:reserved.seq,
+                             delivery_id:reserved.delivery_id,
+                             lease_token:reserved.lease_token});
   } catch {
-    // Including a lost response after a DB-committed ACK: the actor CLI
-    // treats already-delivered status for the SAME delivery_id as success.
-    ctx.log("inflight_reconcile_ack_outcome_unconfirmed " + taskId);
+    ctx.log("managed_inflight_ack_unconfirmed " + taskId);
     return false;
   }
-  if (acked?.acked !== true) {
-    ctx.log("inflight_reconcile_ack_not_confirmed " + taskId);
-    return false;
-  }
-  // Only after positive, identity-bound DB receipt may the SDK reservation
-  // be cleared. This path NEVER invokes session.prompt or dispatch.
-  state.seen[taskId] = Math.max(state.seen[taskId] || 0, reserved.seq);
-  delete state.inflight[taskId];
-  saveState(ctx.paths, state);
-  ctx.log("inflight_reconciled_ack_confirmed " + taskId +
-          " seq=" + reserved.seq);
+  if (ack?.acked !== true) return false;
+  commitConfirmedDelivery(ctx, state, taskId, reserved.seq, reserved.message_id);
+  ctx.log("managed_inflight_ack_confirmed " + taskId + " seq=" + reserved.seq);
   return true;
 }
 
 export async function runTick(ctx) {
   const holder = acquireLock(ctx.paths, ctx.log);
-  if (!holder) return { status: "locked" };
+  if (!holder) return {status:"locked"};
   try {
-    // IMPORTANT: read state ONLY AFTER acquiring exclusive cross-instance lock.
     const state = loadState(ctx.paths);
-    const dialogs = await listAll(ctx.cliCall);
-    // Auto-clear reservations whose dialogue the owner deleted: a tombstoned
-    // or vanished dialogue can never be dispatched again, so its inflight
-    // record is stale by definition and must not block future ticks.
-    const lifecycle = new Map();
-    for (const d of dialogs) if (d && d.task_id) lifecycle.set(d.task_id, d.lifecycle || "active");
-    let cleared = 0;
-    for (const taskId of Object.keys(state.inflight)) {
-      // A dry-run may inspect and log, but must not acknowledge or clear
-      // durable delivery records, including tombstoned reservations.
-      if (ctx.dryRun) continue;
-      const name = lifecycle.get(taskId);
-      if (name === "active") continue;
-      delete state.inflight[taskId];
-      cleared++;
-      ctx.log("inflight_cleared_deleted " + taskId + (name ? " (" + name + ")" : " (missing)"));
+    checkScope(ctx,state);
+    const signedPublic = loadPublic();
+    let cleared = 0, held = 0, dispatched = 0;
+    // CRITICAL: inspect ALL durable reservations BEFORE querying eligible work.
+    // NEVER clear inflight merely because a dialogue is absent from the list.
+    for (const taskId of Object.keys(state.inflight).sort()) {
+      if (!/^task_[0-9a-f]{32}$/.test(taskId)) {
+        held++; ctx.log("managed_inflight_invalid_task_id"); continue;
+      }
+      if (ctx.dryRun) { held++; continue; }
+      try {
+        if (await reconcileAnsweredInflight(ctx, state, {task_id:taskId})) cleared++;
+        else { held++; ctx.log("managed_inflight_awaits_receipt " + taskId); }
+      } catch {
+        held++; ctx.log("managed_inflight_reconcile_error " + taskId);
+      }
     }
-    if (cleared) saveState(ctx.paths, state);
-    let dispatched = 0, held = 0;
+    const dialogs = await listAll(ctx.cliCall);  // SQL ag_dispatch_list only
     for (const dialog of dialogs) {
+      const legacy = ctx.taskIds.includes(dialog?.task_id);
+      if (!legacy && ctx.firstTurnEnabled !== true) continue;
       if (dispatched >= MAX_DISPATCH_PER_TICK) break;
-      if (!dialog?.task_id || (dialog.lifecycle && dialog.lifecycle !== "active")) continue;
-      // Allowlist gate: an excluded dialogue is not viewed, not reconciled and
-      // not counted as held, so it costs no GitHub calls at all.
-      if (ctx.taskIds && !ctx.taskIds.includes(dialog.task_id)) continue;
-      if (state.inflight[dialog.task_id]) {
-        if (!ctx.dryRun && await reconcileAnsweredInflight(ctx, state, dialog)) cleared++;
-        else {
-          held++;
-          ctx.log("inflight_manual_reconciliation_required " + dialog.task_id);
-          continue;
-        }
+      if (!dialog?.task_id || !/^task_[0-9a-f]{32}$/.test(dialog.task_id) ||
+          (dialog.lifecycle && dialog.lifecycle !== "active")) continue;
+      // Even if reconciliation just succeeded, never dispatch the same task twice
+      // during the same tick. The server-side claim checks policy and turn again.
+      if (state.inflight[dialog.task_id]) continue;
+      if (stage37b2cIntentPresent(dialog.task_id)) {
+        ctx.log("stage37b2c_uncertain_claim_hold " + dialog.task_id);
+        continue;
       }
       let snapshot;
       try {
-        snapshot = await ctx.cliCall({ op: "view", task_id: dialog.task_id,
-                                      offset: 0, limit: 1, order: "newest" });
-      } catch {
-        ctx.log("dialog_view_failed " + dialog.task_id);
-        continue;
-      }
+        snapshot = await ctx.cliCall({op:"view", task_id:dialog.task_id,
+                                     offset:0, limit:1});
+      } catch { ctx.log("managed_dialog_view_failed " + dialog.task_id); continue; }
       const msg = latestPending(snapshot, state.seen[dialog.task_id] || 0);
       if (!msg) continue;
       let full;
       try {
-        full = await ctx.cliCall({ op: "read", task_id: dialog.task_id,
-                                   seq: msg.seq, message_id: msg.message_id });
+        full = await ctx.cliCall({op:"read", task_id:dialog.task_id,
+                                  seq:msg.seq, message_id:msg.message_id});
         if (!full || full.seq !== msg.seq || full.message_id !== msg.message_id ||
-            full.to !== "mt" || typeof full.body !== "string") {
-          throw new Error("direct_git_message_mismatch");
-        }
-      } catch {
-        ctx.log("direct_git_read_failed " + dialog.task_id);
-        continue;
-      }
-      if (ctx.dryRun) {
-        ctx.log("dry_run " + dialog.task_id + " seq=" + msg.seq);
-        continue; // never acknowledge a message in dry-run
-      }
+            full.from !== "chatgpt" || full.to !== "mt" ||
+            full.kind !== "task" || typeof full.body !== "string")
+          throw new Error("managed_message_mismatch");
+      } catch { ctx.log("managed_task_read_failed " + dialog.task_id); continue; }
+      if (ctx.dryRun) { ctx.log("managed_dry_run " + dialog.task_id + " seq=" + msg.seq); continue; }
       try {
-        if (await dispatch(ctx, dialog, full, state)) dispatched++;
-      } catch (e) {
-        // Durable in-flight state stays written; no automatic replay.
-        const kind = isSessionNotFound(e) ? "session_not_found" : "transient";
-        let shape = "";
-        try {
-          // Static categories only: exception text may echo session ids,
-          // request bodies or provider replies, so it never reaches the log.
-          shape = JSON.stringify({
-            name: String(e?.name || "").slice(0, 40),
-            code: String(e?.code || "").slice(0, 40),
-            status: e?.status ?? null,
-          });
-        } catch (_) { shape = "unserializable"; }
-        ctx.log("dispatch_uncertain_manual_review " + dialog.task_id
-                + " seq=" + msg.seq + " (" + kind + ") " + shape);
+        const verified = legacy
+          ? verifiedMessage(signedPublic,dialog,full,state)
+          : verifyFirstTurnScope(signedPublic,dialog.task_id,full,state);
+        if (!legacy) {
+          const admission = await ctx.cliCall({op:"authorize", task_id:dialog.task_id});
+          if (admission?.authorized !== true) continue;
+        }
+        if (legacy && isOwnerRevoked57(join(ctx.paths.dir, "owner-turn57-revocations"), dialog.task_id, verified.seq, verified.message_id)) {
+          ctx.log("owner_turn57_revoked_hold " + dialog.task_id + " seq=" + verified.seq);
+          continue;
+        }
+        if (await dispatch(ctx, legacy ? dialog : {task_id: dialog.task_id}, verified, state)) {
+          dispatched++;
+        }
       }
+      catch { ctx.log("managed_dispatch_uncertain_manual_review " + dialog.task_id + " seq=" + msg.seq); }
     }
-    return { status: "ok", dispatched, held, cleared };
+    return {status:"ok", dispatched, held, cleared};
   } finally {
     releaseLock(ctx.paths, holder);
   }
@@ -787,14 +848,79 @@ export const server = async (input = {}, options = {}) => {
   }
 };
 
+// Stage62D: one scheduler per realm; host initialization never waits for SDK drain.
+const schedulerSlot62 = (() => {
+  const key = Symbol.for("hermes.pg.managed.receiver.scheduler.v2");
+  if (!Object.prototype.hasOwnProperty.call(globalThis,key)) {
+    Object.defineProperty(globalThis,key,{
+      value:{tail:Promise.resolve(),current:null,desired:null},
+      writable:false,configurable:false,enumerable:false
+    });
+  }
+  return globalThis[key];
+})();
+function schedulerLog62(category) {
+  try { logger(pathsFor(STATE_DIR).log)(category); } catch {}
+}
+function scheduleOwnership62(fn) {
+  const next=schedulerSlot62.tail.then(fn);
+  schedulerSlot62.tail=next.catch(()=>schedulerLog62("scheduler62_transition_failed"));
+  return next;
+}
+async function reconcileScheduler62() {
+  const slot=schedulerSlot62;
+  if (slot.current && slot.current.request!==slot.desired) {
+    // Raw dispose clears timer/watch before awaiting any active SDK work.
+    // This await is on the background queue, never on host startup.
+    await slot.current.raw.dispose();
+    slot.current=null;
+  }
+  const request=slot.desired;
+  if (!request || slot.current) return;
+  const raw=await createServer62(request.input,request.options);
+  slot.current={request,raw};
+  // A newer request may have arrived while createServer62 was pending.
+  // Its queued reconcile retires this generation before activating another.
+}
 const startServer = async (input = {}, options = {}) => {
-  const dryRun = false; // STAGE33F PROSPECTIVE ONLY: NOT REGISTERED
+  if (options===null || typeof options!=="object" || Array.isArray(options))
+    throw new Error("managed_options_invalid");
+  if (options.dry_run!==undefined && typeof options.dry_run!=="boolean")
+    throw new Error("managed_dry_run_invalid");
+  const request={input,options};
+  schedulerSlot62.desired=request;
+  // The catch attached inside scheduleOwnership62 observes any rejection.
+  // Do NOT await: host may need Plugin.state to finish the active SDK prompt.
+  scheduleOwnership62(reconcileScheduler62);
+  return {dispose:async()=>{
+    if (schedulerSlot62.desired!==request) return;
+    schedulerSlot62.desired=null;
+    await scheduleOwnership62(reconcileScheduler62);
+  }};
+};
+
+const createServer62 = async (input = {}, options = {}) => {
+  if (options === null || typeof options !== "object" || Array.isArray(options))
+    throw new Error("managed_options_invalid");
+  if (options.dry_run !== undefined && typeof options.dry_run !== "boolean")
+    throw new Error("managed_dry_run_invalid");
+  const dryRun = options.dry_run !== false;
   const tickMs = Number(options.tick_ms) > 0 ? Number(options.tick_ms) : TICK_MS;
   // Optional allowlist: when task_ids is given, only those dialogues are polled.
   // An empty or malformed list is treated as "no filter" so a typo can never
   // silently stop every delivery, and unknown ids are dropped rather than
   // accepted as free-form text.
-  const taskIds = Object.freeze(["task_f2c64cfdf7894537b35a19a6def977c6"]);
+  function stage34ebPilotTaskIds(options) {
+  const ids = options && options.task_ids;
+  // Fail closed unless EXACTLY ONE explicit managed ID is supplied.
+  if (!Array.isArray(ids) || ids.length !== 1 ||
+      typeof ids[0] !== "string" ||
+      !/^task_[0-9a-f]{32}$/.test(ids[0]) ||
+      ids[0] === "task_f2c64cfdf7894537b35a19a6def977c6")
+    return Object.freeze([]);
+  return Object.freeze([ids[0]]);
+}
+const taskIds = stage34ebPilotTaskIds(options);
   const paths = pathsFor(STATE_DIR);
   const log = logger(typeof options.log_file === "string"
     ? options.log_file : paths.log);
@@ -807,6 +933,13 @@ const startServer = async (input = {}, options = {}) => {
                       input?.directory || join(HOME, "Documents/MultiTool/HomeChats")),
                     sessionDirectory: sessionDirectoryInDb,
                     taskIds: taskIds && taskIds.length ? taskIds : null,
+                    firstTurnEnabled: (() => {
+                      try {
+                        const m = join(HOME, ".config/bridge-pg-v2/first-turn-admission/enabled");
+                        const s = lstatSync(m);
+                        return s.isFile() && s.uid === process.getuid() && (s.mode & 0o777) === 0o600;
+                      } catch { return false; }
+                    })(),
                     dryRun, log };
   let busy = false;
   let active = null;

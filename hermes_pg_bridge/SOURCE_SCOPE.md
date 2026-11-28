@@ -11,4 +11,5 @@ may be one-shot and **must not be run on a live environment**.
 - Secret indicators cause publication to STOP. The only two exception types are path-and-syntax-pinned examples (dynamic password call in stage33c and user:pass or x:y at login.example.org negative-test URL in stage35b). The audit exporter test fixture archive (Stage41) is excluded. All other findings block. Files omitted for security are identified without exposing content.
 - Live systemd unit configuration is excluded; unit NAMES are included as inventory only.
 - Snapshot refreshed on 2026-11-28: live and installed sources updated; historical archives were not rebuilt.
+- Legacy `dist/mt-pg-inbox*.mjs` builds are excluded: the live runtime loads the managed receiver published as `source/runtime_plugins/plugin_1.mjs`.
 - This publication is an audit aid, not a proof of running version or deployment instructions.

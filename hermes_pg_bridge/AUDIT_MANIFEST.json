@@ -28,22 +28,6 @@
   ],
   "files": [
     {
-      "path": "source/distributed_plugins/mt-pg-inbox-canary.mjs",
-      "source": "bridge-pg-v2/dist/mt-pg-inbox-canary.mjs",
-      "source_sha256": "b96b34a307b0c8d3fe8b9f7ec843d596a8dcb6f1454aa70dd48d331568ce04ae",
-      "published_sha256": "b96b34a307b0c8d3fe8b9f7ec843d596a8dcb6f1454aa70dd48d331568ce04ae",
-      "size": 38403,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/distributed_plugins/mt-pg-inbox.mjs",
-      "source": "bridge-pg-v2/dist/mt-pg-inbox.mjs",
-      "source_sha256": "ef3b996563601043f7a21aa8e24ed4c827b323f1d307098a87ef35750d4103ca",
-      "published_sha256": "ef3b996563601043f7a21aa8e24ed4c827b323f1d307098a87ef35750d4103ca",
-      "size": 38419,
-      "ipv4_replacements": 0
-    },
-    {
       "path": "source/historical_stages/bridge-pg-v2-public-https-stage23/bridge-pg-v2-public-https/23_launch_public_https.sh",
       "source": "Downloads/bridge-pg-v2-public-https-stage23.zip:bridge-pg-v2-public-https/23_launch_public_https.sh",
       "source_sha256": "e8ea11962b5d4ef8947f47e4e0a00429701d3807a431f29fca11f7820edd298c",
@@ -8669,18 +8653,10 @@
     },
     {
       "path": "source/runtime_plugins/plugin_1.mjs",
-      "source": "hermes-pg-stage33i-ackfix/mt-pg-inbox-agent-stage33i.mjs",
-      "source_sha256": "220da977562f9c0763d6b5d5640f686f54f041d357ed397c8482c0d4363f525c",
-      "published_sha256": "220da977562f9c0763d6b5d5640f686f54f041d357ed397c8482c0d4363f525c",
-      "size": 39832,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/runtime_plugins/plugin_2.mjs",
       "source": "hermes-pg-stage37b2c-claim-intent/mt-pg-inbox-managed-stage37b2c-unregistered.mjs",
-      "source_sha256": "06be5ea765f0a47204fd2d039a0ea7fb03283148102b35c66cb4dab64f1b2660",
-      "published_sha256": "06be5ea765f0a47204fd2d039a0ea7fb03283148102b35c66cb4dab64f1b2660",
-      "size": 40856,
+      "source_sha256": "aae583255db7cca72b4090bb23fb65a91354d486287fe8cfa4291c611680d10f",
+      "published_sha256": "aae583255db7cca72b4090bb23fb65a91354d486287fe8cfa4291c611680d10f",
+      "size": 47715,
       "ipv4_replacements": 0
     }
   ],
@@ -8858,5 +8834,5 @@
   ],
   "publication_blockers": [],
   "stage41c_reconciliation": "two identical Stage35B negative-test fixtures restored after source-and-archive byte equality and all previous manifest SHA validations",
-  "updated_utc": "2026-11-28T12:46:11Z"
+  "updated_utc": "2026-11-28T12:56:28Z"
 }
