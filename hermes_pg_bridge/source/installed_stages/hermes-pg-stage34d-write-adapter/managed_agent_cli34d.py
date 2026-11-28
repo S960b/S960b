@@ -381,6 +381,15 @@ def dispatch(a,agent,*,write_allowed=False):
             except Exception:
                 raise Denied('report_commit_unconfirmed') from None
             created=False
+        if bound_reservation is not None:
+            # Close the inbound delivery together with the report so the consumer
+            # never sees a stale "leased" after the answer already exists. The
+            # receiver's periodic reconciliation stays as the fallback.
+            try:
+                one(agent,'SELECT bridge.ag_ack_managed_message(%s,%s,%s,%s::uuid,%s) AS result',
+                    (tid,bound_reservation[0],bound_reservation[1],bound_reservation[2],'mt-pg-managed'))
+            except Exception:
+                pass
         return {'task_id':tid,'message_id':mid,'seq':expected_seq,
                 'created':created,'version':expected_version,
                 'head':read.version_token(tid,expected_version)}

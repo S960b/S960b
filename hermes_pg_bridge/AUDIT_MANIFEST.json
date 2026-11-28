@@ -310,9 +310,9 @@
     {
       "path": "source/installed_stages/hermes-pg-stage34d-write-adapter/managed_agent_cli34d.py",
       "source": "hermes-pg-stage34d-write-adapter/managed_agent_cli34d.py",
-      "source_sha256": "039764a71871536117653118d72238253db79b9acb4a2346a4a03b533564267c",
-      "published_sha256": "039764a71871536117653118d72238253db79b9acb4a2346a4a03b533564267c",
-      "size": 21662,
+      "source_sha256": "bbc9f54074a696950e6851162540325da266337273942c3c7799715683bac776",
+      "published_sha256": "bbc9f54074a696950e6851162540325da266337273942c3c7799715683bac776",
+      "size": 22209,
       "ipv4_replacements": 0
     },
     {
@@ -1386,5 +1386,5 @@
   ],
   "publication_blockers": [],
   "stage41c_reconciliation": "two identical Stage35B negative-test fixtures restored after source-and-archive byte equality and all previous manifest SHA validations",
-  "updated_utc": "2026-11-28T14:24:29Z"
+  "updated_utc": "2026-11-28T16:32:38Z"
 }

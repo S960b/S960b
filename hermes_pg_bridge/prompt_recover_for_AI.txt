@@ -466,6 +466,14 @@ managed_status(task_id)                                            -> ждать
 managed_read(task_id, offset=0, limit=20)                          -> отчёт агента
 ```
 
+4. Прочитав отчёт, подтвердите доставку — иначе он останется `pending` и передача хода
+   владельцем будет заблокирована:
+
+```
+managed_ack_report(task_id, seq=<seq>, message_id=<mid>, body_sha256=<sha256 от body>)
+# -> {"acked": true}, delivery_status(seq) -> delivered
+```
+
 Правила: `message_id` уникален в диалоге; при `version_conflict` перечитать `managed_status`
 и повторить с актуальной версией; не отзывать доставленное.
 
@@ -489,6 +497,9 @@ $PY $CLI delivery --task-id <TASK> --seq <N>
 ```
 
 Требования к записи:
+
+- CLI сам подтверждает входящую доставку сразу после успешной записи отчёта (окно
+  `leased` — доли секунды); приёмник страхует это на следующем тике;
 
 - `head` — из свежего `peek` (устаревший → `stale_head`);
 - тело — из файла `chmod 600`, до 32 КиБ;
