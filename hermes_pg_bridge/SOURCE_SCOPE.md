@@ -12,4 +12,5 @@ Historical stage archives are excluded from this publication by the owner's deci
 - Live systemd unit configuration is excluded; unit NAMES are included as inventory only.
 - Snapshot refreshed on 2026-11-28: historical stage archives were removed from this publication; live and installed sources are current.
 - Legacy `dist/mt-pg-inbox*.mjs` builds are excluded: the live runtime loads the managed receiver published as `source/runtime_plugins/plugin_1.mjs`.
+- `source/installed_stages` publishes only the twelve directories that run the current bridge. `hermes-pg-stage35v` is the extracted content of its pinned archive; `hermes-pg-registration` is published without release binaries, trial state and runtime journals.
 - This publication is an audit aid, not a proof of running version or deployment instructions.

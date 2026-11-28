@@ -28,163 +28,59 @@
   ],
   "files": [
     {
-      "path": "source/installed_stages/hermes-pg-stage32-audit-v2/32_run_readonly_audit.sh",
-      "source": "hermes-pg-stage32-audit-v2/32_run_readonly_audit.sh",
-      "source_sha256": "180892be7087301e7bd7d0af83147507df4b9b166b78d71fd52b93618b9cd0fe",
-      "published_sha256": "180892be7087301e7bd7d0af83147507df4b9b166b78d71fd52b93618b9cd0fe",
-      "size": 1049,
+      "path": "source/installed_stages/hermes-pg-registration/firstturn-admission/agent_admission.py",
+      "source": "hermes-pg-registration/firstturn-admission/agent_admission.py",
+      "source_sha256": "e1642e39fb461b4989939bbde10d98c5b73749b7e9e3d57f748e088a9a2713c5",
+      "published_sha256": "e1642e39fb461b4989939bbde10d98c5b73749b7e9e3d57f748e088a9a2713c5",
+      "size": 1512,
       "ipv4_replacements": 0
     },
     {
-      "path": "source/installed_stages/hermes-pg-stage32-audit-v2/README.md",
-      "source": "hermes-pg-stage32-audit-v2/README.md",
-      "source_sha256": "9a94a4484121e45f1ce5c1ba874ea53ce913d5b500c1a1983435d63e83f33c61",
-      "published_sha256": "9a94a4484121e45f1ce5c1ba874ea53ce913d5b500c1a1983435d63e83f33c61",
-      "size": 1114,
+      "path": "source/installed_stages/hermes-pg-registration/firstturn-admission/auto_admit.py",
+      "source": "hermes-pg-registration/firstturn-admission/auto_admit.py",
+      "source_sha256": "f17e06b4a57181c716fc3d33da07f772cf2ff5f87f2d14c22017a37c0dab1525",
+      "published_sha256": "f17e06b4a57181c716fc3d33da07f772cf2ff5f87f2d14c22017a37c0dab1525",
+      "size": 9067,
       "ipv4_replacements": 0
     },
     {
-      "path": "source/installed_stages/hermes-pg-stage32-audit-v2/audit32.py",
-      "source": "hermes-pg-stage32-audit-v2/audit32.py",
-      "source_sha256": "0adf6f163413f4d6a72773978aa2bea3ca12a3b26d02058ebd70dbc08e94b281",
-      "published_sha256": "0adf6f163413f4d6a72773978aa2bea3ca12a3b26d02058ebd70dbc08e94b281",
-      "size": 9009,
+      "path": "source/installed_stages/hermes-pg-registration/firstturn-admission/first_turn_scope.py",
+      "source": "hermes-pg-registration/firstturn-admission/first_turn_scope.py",
+      "source_sha256": "2de81650895c22f6b923c83684e7df86e28c0094fa11123b2d39bef252a50519",
+      "published_sha256": "2de81650895c22f6b923c83684e7df86e28c0094fa11123b2d39bef252a50519",
+      "size": 4698,
       "ipv4_replacements": 0
     },
     {
-      "path": "source/installed_stages/hermes-pg-stage32-audit-v2/test_audit32.py",
-      "source": "hermes-pg-stage32-audit-v2/test_audit32.py",
-      "source_sha256": "9a49cf6afaa938e5146a08e225b7d513c3533bbd903b74d0edd4394f72fe2b8f",
-      "published_sha256": "9a49cf6afaa938e5146a08e225b7d513c3533bbd903b74d0edd4394f72fe2b8f",
-      "size": 2325,
+      "path": "source/installed_stages/hermes-pg-registration/firstturn-admission/reserve56.py",
+      "source": "hermes-pg-registration/firstturn-admission/reserve56.py",
+      "source_sha256": "f893e11b4bd7ccd188c1706604cf2ca4cf7e6858ed9e4dc6d0a31f65f00c16c6",
+      "published_sha256": "f893e11b4bd7ccd188c1706604cf2ca4cf7e6858ed9e4dc6d0a31f65f00c16c6",
+      "size": 3153,
       "ipv4_replacements": 0
     },
     {
-      "path": "source/installed_stages/hermes-pg-stage32-audit/32_run_readonly_audit.sh",
-      "source": "hermes-pg-stage32-audit/32_run_readonly_audit.sh",
-      "source_sha256": "180892be7087301e7bd7d0af83147507df4b9b166b78d71fd52b93618b9cd0fe",
-      "published_sha256": "180892be7087301e7bd7d0af83147507df4b9b166b78d71fd52b93618b9cd0fe",
-      "size": 1049,
+      "path": "source/installed_stages/hermes-pg-registration/firstturn-admission/wire56.py",
+      "source": "hermes-pg-registration/firstturn-admission/wire56.py",
+      "source_sha256": "f907ec9797e40b56997648453574ed6a82c37c6d7c43204cce793131f3e097a9",
+      "published_sha256": "f907ec9797e40b56997648453574ed6a82c37c6d7c43204cce793131f3e097a9",
+      "size": 1006,
       "ipv4_replacements": 0
     },
     {
-      "path": "source/installed_stages/hermes-pg-stage32-audit/README.md",
-      "source": "hermes-pg-stage32-audit/README.md",
-      "source_sha256": "64943d6328dbcfbb2bc0e4823c74216bc3c484d870c41c0918f8b087700585b2",
-      "published_sha256": "64943d6328dbcfbb2bc0e4823c74216bc3c484d870c41c0918f8b087700585b2",
-      "size": 1408,
+      "path": "source/installed_stages/hermes-pg-registration/gateway-maintenance-65r/commit65r.py",
+      "source": "hermes-pg-registration/gateway-maintenance-65r/commit65r.py",
+      "source_sha256": "32c3613218c270fcd7acabfe7e7e8908582d6ba4ee573679a7dd251644bdba47",
+      "published_sha256": "32c3613218c270fcd7acabfe7e7e8908582d6ba4ee573679a7dd251644bdba47",
+      "size": 8460,
       "ipv4_replacements": 0
     },
     {
-      "path": "source/installed_stages/hermes-pg-stage32-audit/audit32.py",
-      "source": "hermes-pg-stage32-audit/audit32.py",
-      "source_sha256": "d91d50dcfd60e0831d8b768114d2dc4b478986d847dc4b3d6c78b4548b7d2d44",
-      "published_sha256": "d91d50dcfd60e0831d8b768114d2dc4b478986d847dc4b3d6c78b4548b7d2d44",
-      "size": 8187,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage32-audit/test_audit32.py",
-      "source": "hermes-pg-stage32-audit/test_audit32.py",
-      "source_sha256": "eb8964677be9abeb6dbd8cb0a6f262fb5fc25bcea07cd1c0f3657b02346fc2fb",
-      "published_sha256": "eb8964677be9abeb6dbd8cb0a6f262fb5fc25bcea07cd1c0f3657b02346fc2fb",
-      "size": 955,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33-shadow/33_install_shadow_roles.sh",
-      "source": "hermes-pg-stage33-shadow/33_install_shadow_roles.sh",
-      "source_sha256": "a676307ab1f6c4b27f5c8fd5578f9ea73754386469899ce53bb21d565b5bc425",
-      "published_sha256": "a676307ab1f6c4b27f5c8fd5578f9ea73754386469899ce53bb21d565b5bc425",
-      "size": 1792,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33-shadow/33_verify_only.sh",
-      "source": "hermes-pg-stage33-shadow/33_verify_only.sh",
-      "source_sha256": "98e4ab8dd70a002fda500ebab7abe3d95c0a34731cb1670042bd7c7b87d12dd3",
-      "published_sha256": "98e4ab8dd70a002fda500ebab7abe3d95c0a34731cb1670042bd7c7b87d12dd3",
-      "size": 597,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33-shadow/README.md",
-      "source": "hermes-pg-stage33-shadow/README.md",
-      "source_sha256": "4662042897470f6602a1c206d1a140aaef007b9122416c63781eb168dfd95d79",
-      "published_sha256": "4662042897470f6602a1c206d1a140aaef007b9122416c63781eb168dfd95d79",
-      "size": 2366,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33-shadow/sql/004_shadow_roles.sql",
-      "source": "hermes-pg-stage33-shadow/sql/004_shadow_roles.sql",
-      "source_sha256": "0ba20204c45f79e74dfa5b3285537f75bf436074309cbc2b5bd37056f789b24a",
-      "published_sha256": "0ba20204c45f79e74dfa5b3285537f75bf436074309cbc2b5bd37056f789b24a",
-      "size": 9730,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33-shadow/sql/005_verify_shadow.sql",
-      "source": "hermes-pg-stage33-shadow/sql/005_verify_shadow.sql",
-      "source_sha256": "5cfa1b57696a6514f38f9aff04fbbb1fc3bb7fc7c7fc16955f8d4682a25127ad",
-      "published_sha256": "5cfa1b57696a6514f38f9aff04fbbb1fc3bb7fc7c7fc16955f8d4682a25127ad",
-      "size": 3149,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33-shadow/test_stage33.py",
-      "source": "hermes-pg-stage33-shadow/test_stage33.py",
-      "source_sha256": "48295830d8a03997e42dfe742c1b4a4327360d260cf383383a2500bfdac9b7e5",
-      "published_sha256": "48295830d8a03997e42dfe742c1b4a4327360d260cf383383a2500bfdac9b7e5",
-      "size": 3414,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33-shadow/verify33.py",
-      "source": "hermes-pg-stage33-shadow/verify33.py",
-      "source_sha256": "98c32c55dc5cd411e8caf65da0986ef2a86b6698a599d2eaa74ea374953e76db",
-      "published_sha256": "98c32c55dc5cd411e8caf65da0986ef2a86b6698a599d2eaa74ea374953e76db",
-      "size": 2026,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33b-logins/34_provision.sh",
-      "source": "hermes-pg-stage33b-logins/34_provision.sh",
-      "source_sha256": "586fde53b70fea5a8f71cd18ea52760ce425d9428abf3d170131332f77a8c6bf",
-      "published_sha256": "586fde53b70fea5a8f71cd18ea52760ce425d9428abf3d170131332f77a8c6bf",
-      "size": 633,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33b-logins/34_verify_only.sh",
-      "source": "hermes-pg-stage33b-logins/34_verify_only.sh",
-      "source_sha256": "b336437b421cc1876123cc439ebd869a6d86405b6cf6a23ca2eb29df1b59169a",
-      "published_sha256": "b336437b421cc1876123cc439ebd869a6d86405b6cf6a23ca2eb29df1b59169a",
-      "size": 446,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33b-logins/README.md",
-      "source": "hermes-pg-stage33b-logins/README.md",
-      "source_sha256": "89bb7fac11c0ebd649a498a927c215528d01691ceb4b7ea260d096a90683f7a8",
-      "published_sha256": "89bb7fac11c0ebd649a498a927c215528d01691ceb4b7ea260d096a90683f7a8",
-      "size": 3321,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33b-logins/stage33b.py",
-      "source": "hermes-pg-stage33b-logins/stage33b.py",
-      "source_sha256": "2d4596c62ed024938d51d4e07263f6b03a296e192352b589bf4a055a272537c8",
-      "published_sha256": "2d4596c62ed024938d51d4e07263f6b03a296e192352b589bf4a055a272537c8",
-      "size": 12763,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33b-logins/test_stage33b.py",
-      "source": "hermes-pg-stage33b-logins/test_stage33b.py",
-      "source_sha256": "dd39aa115deec88bb4c5cdb69120fbc61341cc70ebf9c4d5fed1bfee481e9091",
-      "published_sha256": "dd39aa115deec88bb4c5cdb69120fbc61341cc70ebf9c4d5fed1bfee481e9091",
-      "size": 3375,
+      "path": "source/installed_stages/hermes-pg-registration/gateway-maintenance-65r/gateway.sha256",
+      "source": "hermes-pg-registration/gateway-maintenance-65r/gateway.sha256",
+      "source_sha256": "14f6d56bb2a36ca6b3ee42c4faf9f946c9133c7f21013ee6652e127569ea0f9c",
+      "published_sha256": "14f6d56bb2a36ca6b3ee42c4faf9f946c9133c7f21013ee6652e127569ea0f9c",
+      "size": 149,
       "ipv4_replacements": 0
     },
     {
@@ -249,54 +145,6 @@
       "source_sha256": "30668e1d9a66909719d2eb8f8b38d24ef8a0afcb37a54bbb8bc20d56984ae171",
       "published_sha256": "30668e1d9a66909719d2eb8f8b38d24ef8a0afcb37a54bbb8bc20d56984ae171",
       "size": 1069,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33d-shadow-roundtrip/36_preflight.sh",
-      "source": "hermes-pg-stage33d-shadow-roundtrip/36_preflight.sh",
-      "source_sha256": "5a211031d2fc6c8f5cf2251a300ff82136e1395bd8a41c2b3febe2f44542bb69",
-      "published_sha256": "5a211031d2fc6c8f5cf2251a300ff82136e1395bd8a41c2b3febe2f44542bb69",
-      "size": 1006,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33d-shadow-roundtrip/36_run_once.sh",
-      "source": "hermes-pg-stage33d-shadow-roundtrip/36_run_once.sh",
-      "source_sha256": "56aadfe43e38a63b240df3917c1b6e20814152972722521bc59f5c412c308d24",
-      "published_sha256": "56aadfe43e38a63b240df3917c1b6e20814152972722521bc59f5c412c308d24",
-      "size": 618,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33d-shadow-roundtrip/36_verify_only.sh",
-      "source": "hermes-pg-stage33d-shadow-roundtrip/36_verify_only.sh",
-      "source_sha256": "5de09ab4e5c3e5321581b45dd505022f01b31f14c966ddfffd028a770fd4bccd",
-      "published_sha256": "5de09ab4e5c3e5321581b45dd505022f01b31f14c966ddfffd028a770fd4bccd",
-      "size": 375,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33d-shadow-roundtrip/README.md",
-      "source": "hermes-pg-stage33d-shadow-roundtrip/README.md",
-      "source_sha256": "ac777360bc94d5d0b108164f59f9e1ca5ba9bc36aa12b174f2831d3c0a74b11b",
-      "published_sha256": "ac777360bc94d5d0b108164f59f9e1ca5ba9bc36aa12b174f2831d3c0a74b11b",
-      "size": 1532,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33d-shadow-roundtrip/shadow33d.py",
-      "source": "hermes-pg-stage33d-shadow-roundtrip/shadow33d.py",
-      "source_sha256": "5ba01ed90bd2879a289bd050909a2769e376458c5d3b2bbad2d7c2c2733c481c",
-      "published_sha256": "5ba01ed90bd2879a289bd050909a2769e376458c5d3b2bbad2d7c2c2733c481c",
-      "size": 9188,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33d-shadow-roundtrip/test_stage33d.py",
-      "source": "hermes-pg-stage33d-shadow-roundtrip/test_stage33d.py",
-      "source_sha256": "1918b62432525d8569705e2c74456f26a486d6df94209276a1ed69a9af5a0648",
-      "published_sha256": "1918b62432525d8569705e2c74456f26a486d6df94209276a1ed69a9af5a0648",
-      "size": 5079,
       "ipv4_replacements": 0
     },
     {
@@ -396,958 +244,6 @@
       "ipv4_replacements": 0
     },
     {
-      "path": "source/installed_stages/hermes-pg-stage33f-sdk-preflight/38_prepare_sdk_candidate.sh",
-      "source": "hermes-pg-stage33f-sdk-preflight/38_prepare_sdk_candidate.sh",
-      "source_sha256": "5f1c8bc4c6bcec1ea1a78ccd871a245bc4421da169aaeaf2314681cad6475d94",
-      "published_sha256": "5f1c8bc4c6bcec1ea1a78ccd871a245bc4421da169aaeaf2314681cad6475d94",
-      "size": 1097,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33f-sdk-preflight/38_verify_only.sh",
-      "source": "hermes-pg-stage33f-sdk-preflight/38_verify_only.sh",
-      "source_sha256": "60825f75c41fde7c33fd12a0a8fcebc369126867aa2275f3cc3745f11714795b",
-      "published_sha256": "60825f75c41fde7c33fd12a0a8fcebc369126867aa2275f3cc3745f11714795b",
-      "size": 399,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33f-sdk-preflight/README.md",
-      "source": "hermes-pg-stage33f-sdk-preflight/README.md",
-      "source_sha256": "3f0022c4abec8e9c61c0eba163a85c31ba7e959a11ca66b3b4a3ec6cd2979259",
-      "published_sha256": "3f0022c4abec8e9c61c0eba163a85c31ba7e959a11ca66b3b4a3ec6cd2979259",
-      "size": 2549,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33f-sdk-preflight/inventory33f.py",
-      "source": "hermes-pg-stage33f-sdk-preflight/inventory33f.py",
-      "source_sha256": "7ae8b623a5780e4108d86e389dba9383a94c501cbd94d56464ef27291ab6f011",
-      "published_sha256": "7ae8b623a5780e4108d86e389dba9383a94c501cbd94d56464ef27291ab6f011",
-      "size": 7093,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33f-sdk-preflight/mt-pg-inbox-agent-stage33f.mjs",
-      "source": "hermes-pg-stage33f-sdk-preflight/mt-pg-inbox-agent-stage33f.mjs",
-      "source_sha256": "3535ae7bd5bb0da3e8574afcab299118dac744bc851c4bcb90b8656acd8b3ea7",
-      "published_sha256": "3535ae7bd5bb0da3e8574afcab299118dac744bc851c4bcb90b8656acd8b3ea7",
-      "size": 38667,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33f-sdk-preflight/render_candidate33f.py",
-      "source": "hermes-pg-stage33f-sdk-preflight/render_candidate33f.py",
-      "source_sha256": "a9742ef3e0797290a65db2fa480e0d1f83953d9b74a5e0804ee8a5b7fda178f5",
-      "published_sha256": "a9742ef3e0797290a65db2fa480e0d1f83953d9b74a5e0804ee8a5b7fda178f5",
-      "size": 2962,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33f-sdk-preflight/stage33f_agent_cli.py",
-      "source": "hermes-pg-stage33f-sdk-preflight/stage33f_agent_cli.py",
-      "source_sha256": "13f098ecd5367345880c9616feaa2d36ca3f6a9d1f4b93ec03dd7529200ed4cc",
-      "published_sha256": "13f098ecd5367345880c9616feaa2d36ca3f6a9d1f4b93ec03dd7529200ed4cc",
-      "size": 7466,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33f-sdk-preflight/test_stage33f.py",
-      "source": "hermes-pg-stage33f-sdk-preflight/test_stage33f.py",
-      "source_sha256": "796b59235e53805fef0b3a1b30cd49778a9a0da78d8f451a91e61ff177b36d32",
-      "published_sha256": "796b59235e53805fef0b3a1b30cd49778a9a0da78d8f451a91e61ff177b36d32",
-      "size": 5352,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33fb-mcp-ready/39_disable_mcp_only.sh",
-      "source": "hermes-pg-stage33fb-mcp-ready/39_disable_mcp_only.sh",
-      "source_sha256": "ecd1157bc986f8d849d92b47a2277273fa307ea64c39861044952c39b7bb5a94",
-      "published_sha256": "ecd1157bc986f8d849d92b47a2277273fa307ea64c39861044952c39b7bb5a94",
-      "size": 473,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33fb-mcp-ready/39_install_mcp_only.sh",
-      "source": "hermes-pg-stage33fb-mcp-ready/39_install_mcp_only.sh",
-      "source_sha256": "879c1badd601adceaa09a9b5d97f5a5c80d8dbe6f4fdfb60167252c258cbd64e",
-      "published_sha256": "879c1badd601adceaa09a9b5d97f5a5c80d8dbe6f4fdfb60167252c258cbd64e",
-      "size": 2130,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33fb-mcp-ready/39_preflight.sh",
-      "source": "hermes-pg-stage33fb-mcp-ready/39_preflight.sh",
-      "source_sha256": "cca1e5e8e6fa39c41c51046d457f219e2db16ea542aa7f1497585b5e0a37db1c",
-      "published_sha256": "cca1e5e8e6fa39c41c51046d457f219e2db16ea542aa7f1497585b5e0a37db1c",
-      "size": 1076,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33fb-mcp-ready/39_verify_only.sh",
-      "source": "hermes-pg-stage33fb-mcp-ready/39_verify_only.sh",
-      "source_sha256": "d2041c0135a454f91c659e7ce616705ce16976a2dbca38258eb8b0842faf3ee9",
-      "published_sha256": "d2041c0135a454f91c659e7ce616705ce16976a2dbca38258eb8b0842faf3ee9",
-      "size": 730,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33fb-mcp-ready/README.md",
-      "source": "hermes-pg-stage33fb-mcp-ready/README.md",
-      "source_sha256": "055062163a1c16166b6a13439c612111ae4077bd3cec15b2f5bda93c6340a07f",
-      "published_sha256": "055062163a1c16166b6a13439c612111ae4077bd3cec15b2f5bda93c6340a07f",
-      "size": 2739,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33fb-mcp-ready/cg_mcp33fb.py",
-      "source": "hermes-pg-stage33fb-mcp-ready/cg_mcp33fb.py",
-      "source_sha256": "9ba3a584d60b08f0e61c5e24ab2d757c56dbc71c416c8186d818692b2102d24f",
-      "published_sha256": "9ba3a584d60b08f0e61c5e24ab2d757c56dbc71c416c8186d818692b2102d24f",
-      "size": 3402,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33fb-mcp-ready/inventory33fb.py",
-      "source": "hermes-pg-stage33fb-mcp-ready/inventory33fb.py",
-      "source_sha256": "1c33b73b40d89441626c5a047930f515e5fb7166299b9cee6bf96b954fda4422",
-      "published_sha256": "1c33b73b40d89441626c5a047930f515e5fb7166299b9cee6bf96b954fda4422",
-      "size": 4724,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33fb-mcp-ready/logic33fb.py",
-      "source": "hermes-pg-stage33fb-mcp-ready/logic33fb.py",
-      "source_sha256": "7bd588ef646ece1b7c47332692a937b669dce5ea4f98c1efddafc170116f5212",
-      "published_sha256": "7bd588ef646ece1b7c47332692a937b669dce5ea4f98c1efddafc170116f5212",
-      "size": 5695,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33fb-mcp-ready/prepare_cutover33fb.py",
-      "source": "hermes-pg-stage33fb-mcp-ready/prepare_cutover33fb.py",
-      "source_sha256": "62ab9dea1375d6e63580b322b7c6fd1e304c58c1193c2094325f9632b58f96c6",
-      "published_sha256": "62ab9dea1375d6e63580b322b7c6fd1e304c58c1193c2094325f9632b58f96c6",
-      "size": 3630,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33fb-mcp-ready/test_stage33fb.py",
-      "source": "hermes-pg-stage33fb-mcp-ready/test_stage33fb.py",
-      "source_sha256": "5ce39128b2b54f300041ae6566aec57273e6641a5e94d048aaac98ec30156511",
-      "published_sha256": "5ce39128b2b54f300041ae6566aec57273e6641a5e94d048aaac98ec30156511",
-      "size": 6538,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33fc-handoff/40_arm_handoff.sh",
-      "source": "hermes-pg-stage33fc-handoff/40_arm_handoff.sh",
-      "source_sha256": "2da4e896ed45e25a626aeb56b58f5d43f9fffa0994a151a283541ee7b84d52a3",
-      "published_sha256": "2da4e896ed45e25a626aeb56b58f5d43f9fffa0994a151a283541ee7b84d52a3",
-      "size": 1647,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33fc-handoff/40_install_handoff.sh",
-      "source": "hermes-pg-stage33fc-handoff/40_install_handoff.sh",
-      "source_sha256": "ae11d80bd14941261b7bcf8e471581152734344b88de2432e050d617cd5ae7fb",
-      "published_sha256": "ae11d80bd14941261b7bcf8e471581152734344b88de2432e050d617cd5ae7fb",
-      "size": 1683,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33fc-handoff/40_rollback_before_seq5.sh",
-      "source": "hermes-pg-stage33fc-handoff/40_rollback_before_seq5.sh",
-      "source_sha256": "47ecfc2cfe1717b9490a111463f55fbb5aa3d71095c888f87a4ca222e826ec67",
-      "published_sha256": "47ecfc2cfe1717b9490a111463f55fbb5aa3d71095c888f87a4ca222e826ec67",
-      "size": 322,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33fc-handoff/40_status.sh",
-      "source": "hermes-pg-stage33fc-handoff/40_status.sh",
-      "source_sha256": "377e011f7e174c36e8ee9918f5ff8592f21decedf0c3a235996974bd078a67de",
-      "published_sha256": "377e011f7e174c36e8ee9918f5ff8592f21decedf0c3a235996974bd078a67de",
-      "size": 581,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33fc-handoff/40_verify_after_handoff.sh",
-      "source": "hermes-pg-stage33fc-handoff/40_verify_after_handoff.sh",
-      "source_sha256": "0fe376cf1908f87140f93641895604157b0fe48d6317f75330b31a76c2082a58",
-      "published_sha256": "0fe376cf1908f87140f93641895604157b0fe48d6317f75330b31a76c2082a58",
-      "size": 306,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33fc-handoff/README.md",
-      "source": "hermes-pg-stage33fc-handoff/README.md",
-      "source_sha256": "7bb5d4e91a66b0ab5a1ee54d70a3bafc9ebd1ceb3b6b4cba4e56da47902b6de7",
-      "published_sha256": "7bb5d4e91a66b0ab5a1ee54d70a3bafc9ebd1ceb3b6b4cba4e56da47902b6de7",
-      "size": 5286,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33fc-handoff/cutover33fc.py",
-      "source": "hermes-pg-stage33fc-handoff/cutover33fc.py",
-      "source_sha256": "60490308baf9258bd99acffc94d860d5dbf25c678380d4d71df1c1e84971f106",
-      "published_sha256": "60490308baf9258bd99acffc94d860d5dbf25c678380d4d71df1c1e84971f106",
-      "size": 14002,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33fc-handoff/test_stage33fc.py",
-      "source": "hermes-pg-stage33fc-handoff/test_stage33fc.py",
-      "source_sha256": "fa24aba22881efdce011e2946cc119b0f5ae18b805b396e72650b979333e5c7b",
-      "published_sha256": "fa24aba22881efdce011e2946cc119b0f5ae18b805b396e72650b979333e5c7b",
-      "size": 6232,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33fd-tunnel-cutover/41_install_and_switch.sh",
-      "source": "hermes-pg-stage33fd-tunnel-cutover/41_install_and_switch.sh",
-      "source_sha256": "959c3504a4bcc6d3c5796c429300d5f4da951518c2b471c02108538d6360c962",
-      "published_sha256": "959c3504a4bcc6d3c5796c429300d5f4da951518c2b471c02108538d6360c962",
-      "size": 2991,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33fd-tunnel-cutover/41_verify_only.sh",
-      "source": "hermes-pg-stage33fd-tunnel-cutover/41_verify_only.sh",
-      "source_sha256": "be19f847bf429df6ea8d6edb2d78c4136e5e566981a313aada665828707a157d",
-      "published_sha256": "be19f847bf429df6ea8d6edb2d78c4136e5e566981a313aada665828707a157d",
-      "size": 539,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33fd-tunnel-cutover/42_arm_after_plugin_check.sh",
-      "source": "hermes-pg-stage33fd-tunnel-cutover/42_arm_after_plugin_check.sh",
-      "source_sha256": "8b1798da262801f97969de92f1dde713715283a5d046335fe75c4b2152d770e6",
-      "published_sha256": "8b1798da262801f97969de92f1dde713715283a5d046335fe75c4b2152d770e6",
-      "size": 1080,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33fd-tunnel-cutover/43_rollback_before_arm.sh",
-      "source": "hermes-pg-stage33fd-tunnel-cutover/43_rollback_before_arm.sh",
-      "source_sha256": "e943d83617ffdcc4dc784556172468026364ce7677f9696070f825ce87ca1aa4",
-      "published_sha256": "e943d83617ffdcc4dc784556172468026364ce7677f9696070f825ce87ca1aa4",
-      "size": 856,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33fd-tunnel-cutover/44_readonly_status.sh",
-      "source": "hermes-pg-stage33fd-tunnel-cutover/44_readonly_status.sh",
-      "source_sha256": "d0ff3ce3a6d8e6e011dd48d9aa138a2b58d3eb688a6242263b20ec56002a7960",
-      "published_sha256": "d0ff3ce3a6d8e6e011dd48d9aa138a2b58d3eb688a6242263b20ec56002a7960",
-      "size": 868,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33fd-tunnel-cutover/README.md",
-      "source": "hermes-pg-stage33fd-tunnel-cutover/README.md",
-      "source_sha256": "b0e52297f8098657884c3ba60af6aad9dc698bf405cd12ea7f6726b939b11095",
-      "published_sha256": "b0e52297f8098657884c3ba60af6aad9dc698bf405cd12ea7f6726b939b11095",
-      "size": 4175,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33fd-tunnel-cutover/run_stage33fd_tunnel.sh",
-      "source": "hermes-pg-stage33fd-tunnel-cutover/run_stage33fd_tunnel.sh",
-      "source_sha256": "8dc8c432edc5cd01bd57117c1c2abc0b3f53bb7a9c8695e21fe31435df91c029",
-      "published_sha256": "8dc8c432edc5cd01bd57117c1c2abc0b3f53bb7a9c8695e21fe31435df91c029",
-      "size": 750,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33fd-tunnel-cutover/test_stage33fd.py",
-      "source": "hermes-pg-stage33fd-tunnel-cutover/test_stage33fd.py",
-      "source_sha256": "43de3b52621af999bce8e7d43455bcad65fb6a2ecceec1e559e415887b507d63",
-      "published_sha256": "43de3b52621af999bce8e7d43455bcad65fb6a2ecceec1e559e415887b507d63",
-      "size": 4207,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33fd-tunnel-cutover/verify33fd.py",
-      "source": "hermes-pg-stage33fd-tunnel-cutover/verify33fd.py",
-      "source_sha256": "40dd4e267a51d82dbd5ea02fb2d9a50356ad7f56a4b8c7cb9ca3b30123ff5516",
-      "published_sha256": "40dd4e267a51d82dbd5ea02fb2d9a50356ad7f56a4b8c7cb9ca3b30123ff5516",
-      "size": 5634,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33g-receipt-repair/45_readonly_preflight.sh",
-      "source": "hermes-pg-stage33g-receipt-repair/45_readonly_preflight.sh",
-      "source_sha256": "82b71d4a3915446c3b34167c5cd21337a9568d39c69f57a96f5fd5f62aa5be14",
-      "published_sha256": "82b71d4a3915446c3b34167c5cd21337a9568d39c69f57a96f5fd5f62aa5be14",
-      "size": 789,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33g-receipt-repair/46_ack_exact_once.sh",
-      "source": "hermes-pg-stage33g-receipt-repair/46_ack_exact_once.sh",
-      "source_sha256": "a4de7ab9dd64ad1ddce48f4593e8de39f468b37d612e3ff8a580a460b04c925b",
-      "published_sha256": "a4de7ab9dd64ad1ddce48f4593e8de39f468b37d612e3ff8a580a460b04c925b",
-      "size": 876,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33g-receipt-repair/47_verify_only.sh",
-      "source": "hermes-pg-stage33g-receipt-repair/47_verify_only.sh",
-      "source_sha256": "8c79fda4fb2aa9dbba8cb29e64f20be2d6d13bdbcfa6ed8cc5b7176f8ccf6920",
-      "published_sha256": "8c79fda4fb2aa9dbba8cb29e64f20be2d6d13bdbcfa6ed8cc5b7176f8ccf6920",
-      "size": 719,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33g-receipt-repair/README.md",
-      "source": "hermes-pg-stage33g-receipt-repair/README.md",
-      "source_sha256": "c0c7e0657c344c586c483462e54b5d29fa6628ee494ef439c50a5d43ae0eab87",
-      "published_sha256": "c0c7e0657c344c586c483462e54b5d29fa6628ee494ef439c50a5d43ae0eab87",
-      "size": 2136,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33g-receipt-repair/sql/01_preflight_readonly.sql",
-      "source": "hermes-pg-stage33g-receipt-repair/sql/01_preflight_readonly.sql",
-      "source_sha256": "92351ec7eb2dd8ab379521f08c24a100ae9b15d6ad1ce431b45c4e616faeb12a",
-      "published_sha256": "92351ec7eb2dd8ab379521f08c24a100ae9b15d6ad1ce431b45c4e616faeb12a",
-      "size": 2888,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33g-receipt-repair/sql/02_ack_verified_seq5_once.sql",
-      "source": "hermes-pg-stage33g-receipt-repair/sql/02_ack_verified_seq5_once.sql",
-      "source_sha256": "6e8da7fa34d9211dd5f3e2ffedb9ac9c562e871f3bbf8592e836fecdce593618",
-      "published_sha256": "6e8da7fa34d9211dd5f3e2ffedb9ac9c562e871f3bbf8592e836fecdce593618",
-      "size": 4209,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33g-receipt-repair/test_stage33g.py",
-      "source": "hermes-pg-stage33g-receipt-repair/test_stage33g.py",
-      "source_sha256": "6134518d9c1c65700b407aa31ca96176c4af8eb0b980b20fd448ca267ed84c9d",
-      "published_sha256": "6134518d9c1c65700b407aa31ca96176c4af8eb0b980b20fd448ca267ed84c9d",
-      "size": 5002,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33g-receipt-repair/verify33g.py",
-      "source": "hermes-pg-stage33g-receipt-repair/verify33g.py",
-      "source_sha256": "96d8a31ef3711e71f82f6449ad43c1644dd36d7b7e10d737063473972b55df32",
-      "published_sha256": "96d8a31ef3711e71f82f6449ad43c1644dd36d7b7e10d737063473972b55df32",
-      "size": 1606,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33h-cg-receipt/50_preflight_readonly.sh",
-      "source": "hermes-pg-stage33h-cg-receipt/50_preflight_readonly.sh",
-      "source_sha256": "681a31b4ceb7fa7f9bad442bb31ed67d1db563f7380d16a47a3b5955620d3e0a",
-      "published_sha256": "681a31b4ceb7fa7f9bad442bb31ed67d1db563f7380d16a47a3b5955620d3e0a",
-      "size": 1087,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33h-cg-receipt/51_accept_seq6_once.sh",
-      "source": "hermes-pg-stage33h-cg-receipt/51_accept_seq6_once.sh",
-      "source_sha256": "002c24aa7a0518e0fdfcdfef57ff900da2efd92f46c1282d1b80ca95d11c1be1",
-      "published_sha256": "002c24aa7a0518e0fdfcdfef57ff900da2efd92f46c1282d1b80ca95d11c1be1",
-      "size": 798,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33h-cg-receipt/52_verify_only.sh",
-      "source": "hermes-pg-stage33h-cg-receipt/52_verify_only.sh",
-      "source_sha256": "33a0c34f9c5bacfa83ef8e647ee43ccc70f1d434d5409a7853c401a905cc9120",
-      "published_sha256": "33a0c34f9c5bacfa83ef8e647ee43ccc70f1d434d5409a7853c401a905cc9120",
-      "size": 730,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33h-cg-receipt/53_inventory_plugin.sh",
-      "source": "hermes-pg-stage33h-cg-receipt/53_inventory_plugin.sh",
-      "source_sha256": "a294943a6c96db8161fc1b011df4d598c8edde85817fa574f4460a24929364c8",
-      "published_sha256": "a294943a6c96db8161fc1b011df4d598c8edde85817fa574f4460a24929364c8",
-      "size": 288,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33h-cg-receipt/README.md",
-      "source": "hermes-pg-stage33h-cg-receipt/README.md",
-      "source_sha256": "ac1f70c8e5bb457bb604df92a2a7d182f725a3a9dd8192f461f8c745e0f45ca1",
-      "published_sha256": "ac1f70c8e5bb457bb604df92a2a7d182f725a3a9dd8192f461f8c745e0f45ca1",
-      "size": 2874,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33h-cg-receipt/source_inventory33h.py",
-      "source": "hermes-pg-stage33h-cg-receipt/source_inventory33h.py",
-      "source_sha256": "7e32ac19cf908bd7b39c0f078bd8cd68e9de8489bc3668f21e98bec88c70c843",
-      "published_sha256": "7e32ac19cf908bd7b39c0f078bd8cd68e9de8489bc3668f21e98bec88c70c843",
-      "size": 3277,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33h-cg-receipt/sql/02_accept_exact_seq6_once.sql",
-      "source": "hermes-pg-stage33h-cg-receipt/sql/02_accept_exact_seq6_once.sql",
-      "source_sha256": "e68677f27400c6ae4c09a497ba717c6dc0472605287d8f287558c9fa75d6291f",
-      "published_sha256": "e68677f27400c6ae4c09a497ba717c6dc0472605287d8f287558c9fa75d6291f",
-      "size": 4819,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33h-cg-receipt/test_stage33h.py",
-      "source": "hermes-pg-stage33h-cg-receipt/test_stage33h.py",
-      "source_sha256": "17ec86c13756b1d973ea0c46c9ddde2a70c7a789c4ce682013d21760b4cfe4ec",
-      "published_sha256": "17ec86c13756b1d973ea0c46c9ddde2a70c7a789c4ce682013d21760b4cfe4ec",
-      "size": 4714,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33h-cg-receipt/verify33h.py",
-      "source": "hermes-pg-stage33h-cg-receipt/verify33h.py",
-      "source_sha256": "faaa7386a5be91ed3cf2cb4fce6fa611e3482adc5b8fb7d4c13324d5ca967ddf",
-      "published_sha256": "faaa7386a5be91ed3cf2cb4fce6fa611e3482adc5b8fb7d4c13324d5ca967ddf",
-      "size": 1671,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33i-ackfix/54_prepare_unregistered_ack_fix.sh",
-      "source": "hermes-pg-stage33i-ackfix/54_prepare_unregistered_ack_fix.sh",
-      "source_sha256": "63a9f2437a37f7f73984326ec00a5b873163ee099893f399467069b4dfd06b5b",
-      "published_sha256": "63a9f2437a37f7f73984326ec00a5b873163ee099893f399467069b4dfd06b5b",
-      "size": 847,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33i-ackfix/55_verify_only.sh",
-      "source": "hermes-pg-stage33i-ackfix/55_verify_only.sh",
-      "source_sha256": "5ebef0de4a384765c5bb647123ebbc55ae196614b79a27eb5bb4a053bfcda1a5",
-      "published_sha256": "5ebef0de4a384765c5bb647123ebbc55ae196614b79a27eb5bb4a053bfcda1a5",
-      "size": 370,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33i-ackfix/README.md",
-      "source": "hermes-pg-stage33i-ackfix/README.md",
-      "source_sha256": "959c71e24b19e80a72f55008c014fd2421a5597b7f7a3082d4ffe56388e71de3",
-      "published_sha256": "959c71e24b19e80a72f55008c014fd2421a5597b7f7a3082d4ffe56388e71de3",
-      "size": 4127,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33i-ackfix/build33i.py",
-      "source": "hermes-pg-stage33i-ackfix/build33i.py",
-      "source_sha256": "da8a9a8919acaab3d318bdb88e89471d7414d617936f438a67298524057debc7",
-      "published_sha256": "da8a9a8919acaab3d318bdb88e89471d7414d617936f438a67298524057debc7",
-      "size": 9658,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33i-ackfix/mt-pg-inbox-agent-stage33i.mjs",
-      "source": "hermes-pg-stage33i-ackfix/mt-pg-inbox-agent-stage33i.mjs",
-      "source_sha256": "220da977562f9c0763d6b5d5640f686f54f041d357ed397c8482c0d4363f525c",
-      "published_sha256": "220da977562f9c0763d6b5d5640f686f54f041d357ed397c8482c0d4363f525c",
-      "size": 39832,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33i-ackfix/preflight33i.py",
-      "source": "hermes-pg-stage33i-ackfix/preflight33i.py",
-      "source_sha256": "6d452055d0b17da5cabae4afead4bc89fed024d29daccb8064af98488aeb1232",
-      "published_sha256": "6d452055d0b17da5cabae4afead4bc89fed024d29daccb8064af98488aeb1232",
-      "size": 1248,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33i-ackfix/stage33f_cli_reference.py",
-      "source": "hermes-pg-stage33i-ackfix/stage33f_cli_reference.py",
-      "source_sha256": "13f098ecd5367345880c9616feaa2d36ca3f6a9d1f4b93ec03dd7529200ed4cc",
-      "published_sha256": "13f098ecd5367345880c9616feaa2d36ca3f6a9d1f4b93ec03dd7529200ed4cc",
-      "size": 7466,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33i-ackfix/stage33i_agent_cli.py",
-      "source": "hermes-pg-stage33i-ackfix/stage33i_agent_cli.py",
-      "source_sha256": "4f0d2431342a389543e33789066b01e3166187b95848604c5a6c5c6a99e5095e",
-      "published_sha256": "4f0d2431342a389543e33789066b01e3166187b95848604c5a6c5c6a99e5095e",
-      "size": 8230,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33i-ackfix/test_reconcile33i.cjs",
-      "source": "hermes-pg-stage33i-ackfix/test_reconcile33i.cjs",
-      "source_sha256": "31be795a0fff58bd23394774af7bd0d26d861607227208286684a462ca653016",
-      "published_sha256": "31be795a0fff58bd23394774af7bd0d26d861607227208286684a462ca653016",
-      "size": 3229,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33i-ackfix/test_stage33i.py",
-      "source": "hermes-pg-stage33i-ackfix/test_stage33i.py",
-      "source_sha256": "d4325abc649cedd0d9ecf92314112482cf94148ab83d64eb9a861e31e545e5ea",
-      "published_sha256": "d4325abc649cedd0d9ecf92314112482cf94148ab83d64eb9a861e31e545e5ea",
-      "size": 4287,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33i-ackfix/test_stage33i_cli.py",
-      "source": "hermes-pg-stage33i-ackfix/test_stage33i_cli.py",
-      "source_sha256": "18f00d22b90884ff8c73ef9c0982e02dc4c09c414fbc37b6c2bf0c59af4c1ea4",
-      "published_sha256": "18f00d22b90884ff8c73ef9c0982e02dc4c09c414fbc37b6c2bf0c59af4c1ea4",
-      "size": 2995,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33i-ackfix/verify33i.py",
-      "source": "hermes-pg-stage33i-ackfix/verify33i.py",
-      "source_sha256": "60e15e77fbaa5bb58bd341fd974bd1c5051bb381e4259a3f9a1e838ed7e9991a",
-      "published_sha256": "60e15e77fbaa5bb58bd341fd974bd1c5051bb381e4259a3f9a1e838ed7e9991a",
-      "size": 3139,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33ib-ackfix-handoff/56_install_inactive_handoff.sh",
-      "source": "hermes-pg-stage33ib-ackfix-handoff/56_install_inactive_handoff.sh",
-      "source_sha256": "a2a191d4ee3233c6b143f73f816efbbd60e42bc5caa8982dd264899d74e3bf68",
-      "published_sha256": "a2a191d4ee3233c6b143f73f816efbbd60e42bc5caa8982dd264899d74e3bf68",
-      "size": 1912,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33ib-ackfix-handoff/57_arm_handoff_when_owner_ready.sh",
-      "source": "hermes-pg-stage33ib-ackfix-handoff/57_arm_handoff_when_owner_ready.sh",
-      "source_sha256": "533db207e6d7586c492bb6813b17282681370fd196174c59f9419cc1b429e22d",
-      "published_sha256": "533db207e6d7586c492bb6813b17282681370fd196174c59f9419cc1b429e22d",
-      "size": 1074,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33ib-ackfix-handoff/58_status.sh",
-      "source": "hermes-pg-stage33ib-ackfix-handoff/58_status.sh",
-      "source_sha256": "fd3d0d506eee2857e4575c72a5959f5d6c401af27f091dde3af382d84ff3b2b6",
-      "published_sha256": "fd3d0d506eee2857e4575c72a5959f5d6c401af27f091dde3af382d84ff3b2b6",
-      "size": 444,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33ib-ackfix-handoff/59_verify_after_handoff.sh",
-      "source": "hermes-pg-stage33ib-ackfix-handoff/59_verify_after_handoff.sh",
-      "source_sha256": "cbb62ddaa3b830f0565008f7b0607f6a8d94ceea83953d38ac8b500c6ae673b1",
-      "published_sha256": "cbb62ddaa3b830f0565008f7b0607f6a8d94ceea83953d38ac8b500c6ae673b1",
-      "size": 292,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33ib-ackfix-handoff/60_rollback_when_all_mt_closed.sh",
-      "source": "hermes-pg-stage33ib-ackfix-handoff/60_rollback_when_all_mt_closed.sh",
-      "source_sha256": "29006f10988fd6006396b52a19ccfc9371b295a4f7871323e7d6cd3f29fb357a",
-      "published_sha256": "29006f10988fd6006396b52a19ccfc9371b295a4f7871323e7d6cd3f29fb357a",
-      "size": 338,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33ib-ackfix-handoff/README.md",
-      "source": "hermes-pg-stage33ib-ackfix-handoff/README.md",
-      "source_sha256": "1092fd68d4ebb0bcac5c0a6e0f07f7736ddaf5020459108f68abe57946b6a135",
-      "published_sha256": "1092fd68d4ebb0bcac5c0a6e0f07f7736ddaf5020459108f68abe57946b6a135",
-      "size": 5227,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33ib-ackfix-handoff/handoff33ib.py",
-      "source": "hermes-pg-stage33ib-ackfix-handoff/handoff33ib.py",
-      "source_sha256": "40728c598c31ae32a60ff1c8a507d0717df8e0f7ef672069e1be299ebc47711f",
-      "published_sha256": "40728c598c31ae32a60ff1c8a507d0717df8e0f7ef672069e1be299ebc47711f",
-      "size": 14072,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33ib-ackfix-handoff/test_stage33ib.py",
-      "source": "hermes-pg-stage33ib-ackfix-handoff/test_stage33ib.py",
-      "source_sha256": "e10f5bf543a0a34ed845edd420337d01dc8304c35db049c978ac56fd9113f0ca",
-      "published_sha256": "e10f5bf543a0a34ed845edd420337d01dc8304c35db049c978ac56fd9113f0ca",
-      "size": 5103,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33j-ack-recovery/61_preflight.sh",
-      "source": "hermes-pg-stage33j-ack-recovery/61_preflight.sh",
-      "source_sha256": "4e183021b311d25aab6774272404a59b97d9d82802ab9994313e10fdb9314b37",
-      "published_sha256": "4e183021b311d25aab6774272404a59b97d9d82802ab9994313e10fdb9314b37",
-      "size": 1135,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33j-ack-recovery/62_run_once.sh",
-      "source": "hermes-pg-stage33j-ack-recovery/62_run_once.sh",
-      "source_sha256": "7d51965f56ba25ce314b87a4435459792fcd1cd274a8607199adcf1f22b48fea",
-      "published_sha256": "7d51965f56ba25ce314b87a4435459792fcd1cd274a8607199adcf1f22b48fea",
-      "size": 547,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33j-ack-recovery/63_verify_only.sh",
-      "source": "hermes-pg-stage33j-ack-recovery/63_verify_only.sh",
-      "source_sha256": "38da37e1f437208ff7e5f80c39b08523901ef36df278eba0a88b8d736f689536",
-      "published_sha256": "38da37e1f437208ff7e5f80c39b08523901ef36df278eba0a88b8d736f689536",
-      "size": 323,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33j-ack-recovery/README.md",
-      "source": "hermes-pg-stage33j-ack-recovery/README.md",
-      "source_sha256": "1158c2226e1b7b66d52805423a2b4fac69d17a448f47babecec456c671c43879",
-      "published_sha256": "1158c2226e1b7b66d52805423a2b4fac69d17a448f47babecec456c671c43879",
-      "size": 4610,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33j-ack-recovery/reconcile33j.cjs",
-      "source": "hermes-pg-stage33j-ack-recovery/reconcile33j.cjs",
-      "source_sha256": "ff499a9e328eff66c1e7ee6faa641822768307523c1a7c9d2ac9f7d41e4e986f",
-      "published_sha256": "ff499a9e328eff66c1e7ee6faa641822768307523c1a7c9d2ac9f7d41e4e986f",
-      "size": 7308,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33j-ack-recovery/stage33j.py",
-      "source": "hermes-pg-stage33j-ack-recovery/stage33j.py",
-      "source_sha256": "6e9c17c67401e5cb8a1580360ac1eac9cb49364314fdaea808338047439fb434",
-      "published_sha256": "6e9c17c67401e5cb8a1580360ac1eac9cb49364314fdaea808338047439fb434",
-      "size": 14822,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage33j-ack-recovery/test_stage33j.py",
-      "source": "hermes-pg-stage33j-ack-recovery/test_stage33j.py",
-      "source_sha256": "c5f5577ff0fbd5ad7c3423761ba1bd26cde24a82215e0cf4582a28d3bfdb76e0",
-      "published_sha256": "c5f5577ff0fbd5ad7c3423761ba1bd26cde24a82215e0cf4582a28d3bfdb76e0",
-      "size": 6147,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34a-managed-registry/64_readonly_preflight.sh",
-      "source": "hermes-pg-stage34a-managed-registry/64_readonly_preflight.sh",
-      "source_sha256": "8b8c9e00a98d2d2816798dbdde2d144bf2002707e3f5c41a2cbd751df531bd57",
-      "published_sha256": "8b8c9e00a98d2d2816798dbdde2d144bf2002707e3f5c41a2cbd751df531bd57",
-      "size": 883,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34a-managed-registry/65_install_once.sh",
-      "source": "hermes-pg-stage34a-managed-registry/65_install_once.sh",
-      "source_sha256": "58910d7213ad816506b5274795edfda26fb1121488bfb6532bafb5a0d277a509",
-      "published_sha256": "58910d7213ad816506b5274795edfda26fb1121488bfb6532bafb5a0d277a509",
-      "size": 1523,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34a-managed-registry/66_verify_only.sh",
-      "source": "hermes-pg-stage34a-managed-registry/66_verify_only.sh",
-      "source_sha256": "2cab509e04bad7afde6fd9c3a1b34078db9d1589cbdf760f83609a410b2b5f28",
-      "published_sha256": "2cab509e04bad7afde6fd9c3a1b34078db9d1589cbdf760f83609a410b2b5f28",
-      "size": 823,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34a-managed-registry/README.md",
-      "source": "hermes-pg-stage34a-managed-registry/README.md",
-      "source_sha256": "79f01131a90ac5a46895b6f957257a0f8c92d098192a0489877d3b4d9b678ab4",
-      "published_sha256": "79f01131a90ac5a46895b6f957257a0f8c92d098192a0489877d3b4d9b678ab4",
-      "size": 4696,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34a-managed-registry/registry34a.py",
-      "source": "hermes-pg-stage34a-managed-registry/registry34a.py",
-      "source_sha256": "65fe52cb0d325283a21589cd8748c1fec0c479a192c0db553f105b9b3693142a",
-      "published_sha256": "65fe52cb0d325283a21589cd8748c1fec0c479a192c0db553f105b9b3693142a",
-      "size": 8236,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34a-managed-registry/sql/006_managed_registry.sql",
-      "source": "hermes-pg-stage34a-managed-registry/sql/006_managed_registry.sql",
-      "source_sha256": "aa4f005d3019e45876f08df507ec0b37a0a8e9a8a2fbeefbec9a562e992232f5",
-      "published_sha256": "aa4f005d3019e45876f08df507ec0b37a0a8e9a8a2fbeefbec9a562e992232f5",
-      "size": 9440,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34a-managed-registry/sql/007_rollback_if_empty.sql",
-      "source": "hermes-pg-stage34a-managed-registry/sql/007_rollback_if_empty.sql",
-      "source_sha256": "96b77428a0a8f3b124d2332d9f5ddeeda6e567aa7215794ef0de7bbc1351427a",
-      "published_sha256": "96b77428a0a8f3b124d2332d9f5ddeeda6e567aa7215794ef0de7bbc1351427a",
-      "size": 997,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34a-managed-registry/test_stage34a.py",
-      "source": "hermes-pg-stage34a-managed-registry/test_stage34a.py",
-      "source_sha256": "86ae083077d9d7fc1420b02b7ecd949a89b17bdc46a52ba0b1a1a3d3ac785309",
-      "published_sha256": "86ae083077d9d7fc1420b02b7ecd949a89b17bdc46a52ba0b1a1a3d3ac785309",
-      "size": 5933,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34b-managed-api/67_readonly_preflight.sh",
-      "source": "hermes-pg-stage34b-managed-api/67_readonly_preflight.sh",
-      "source_sha256": "fe6154ecf36478b58af62b4ee1716c7d97e5afb7199d87a5d1baf5f647b1c99f",
-      "published_sha256": "fe6154ecf36478b58af62b4ee1716c7d97e5afb7199d87a5d1baf5f647b1c99f",
-      "size": 668,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34b-managed-api/68_apply_sql_once.sh",
-      "source": "hermes-pg-stage34b-managed-api/68_apply_sql_once.sh",
-      "source_sha256": "2c18941fbd810833863e3f8cfa8bcf6102d8d98e2fb1bc6d64a671f7f06f9570",
-      "published_sha256": "2c18941fbd810833863e3f8cfa8bcf6102d8d98e2fb1bc6d64a671f7f06f9570",
-      "size": 1274,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34b-managed-api/69_verify_only.sh",
-      "source": "hermes-pg-stage34b-managed-api/69_verify_only.sh",
-      "source_sha256": "0650f19a1237c9f90ffc0dd307b28fce4558361c6a9241f0c64d1ae76bac4060",
-      "published_sha256": "0650f19a1237c9f90ffc0dd307b28fce4558361c6a9241f0c64d1ae76bac4060",
-      "size": 589,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34b-managed-api/70_install_readonly_shadow.sh",
-      "source": "hermes-pg-stage34b-managed-api/70_install_readonly_shadow.sh",
-      "source_sha256": "00eda598a02e25ab30acb6642d469332f59c6e79939dc48c2f190b9c45c6bfb9",
-      "published_sha256": "00eda598a02e25ab30acb6642d469332f59c6e79939dc48c2f190b9c45c6bfb9",
-      "size": 1970,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34b-managed-api/README.md",
-      "source": "hermes-pg-stage34b-managed-api/README.md",
-      "source_sha256": "1125f7e69ea6d717c0f3128f976b2f8e64c97aa2d1b5066629d2b2e5b092305b",
-      "published_sha256": "1125f7e69ea6d717c0f3128f976b2f8e64c97aa2d1b5066629d2b2e5b092305b",
-      "size": 3479,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34b-managed-api/shadow_mcp34b.py",
-      "source": "hermes-pg-stage34b-managed-api/shadow_mcp34b.py",
-      "source_sha256": "82b4381af78cfe159a8f86d0f7f42730c7db0072c44fe4b27712598bada32c6e",
-      "published_sha256": "82b4381af78cfe159a8f86d0f7f42730c7db0072c44fe4b27712598bada32c6e",
-      "size": 2449,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34b-managed-api/sql/008_managed_api.sql",
-      "source": "hermes-pg-stage34b-managed-api/sql/008_managed_api.sql",
-      "source_sha256": "ad76d55d0ae43929322117332af78e7b51c45a509950f8663028281a4507d5de",
-      "published_sha256": "ad76d55d0ae43929322117332af78e7b51c45a509950f8663028281a4507d5de",
-      "size": 13372,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34b-managed-api/stage34b.py",
-      "source": "hermes-pg-stage34b-managed-api/stage34b.py",
-      "source_sha256": "8db04ada7eef2df47c442786063c700559d7eb3b6de447dcbaa61ea419519502",
-      "published_sha256": "8db04ada7eef2df47c442786063c700559d7eb3b6de447dcbaa61ea419519502",
-      "size": 8633,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34b-managed-api/test_stage34b.py",
-      "source": "hermes-pg-stage34b-managed-api/test_stage34b.py",
-      "source_sha256": "cbe2c1b19e5306325f777efe20a30d664676045590ca606da5430f4a464f0410",
-      "published_sha256": "cbe2c1b19e5306325f777efe20a30d664676045590ca606da5430f4a464f0410",
-      "size": 5286,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34c-managed-inbox-v2/71_readonly_preflight.sh",
-      "source": "hermes-pg-stage34c-managed-inbox-v2/71_readonly_preflight.sh",
-      "source_sha256": "f0182197539aea7295c75f5a111e7688e5ae60dc9ded2b370ed164401bbe6da3",
-      "published_sha256": "f0182197539aea7295c75f5a111e7688e5ae60dc9ded2b370ed164401bbe6da3",
-      "size": 821,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34c-managed-inbox-v2/72_sql_apply_once.sh",
-      "source": "hermes-pg-stage34c-managed-inbox-v2/72_sql_apply_once.sh",
-      "source_sha256": "d5dd06680aa0809cb606d0a39fb31275b96f48f0293c1cda7bdc0d2cb8da477f",
-      "published_sha256": "d5dd06680aa0809cb606d0a39fb31275b96f48f0293c1cda7bdc0d2cb8da477f",
-      "size": 1093,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34c-managed-inbox-v2/73_prepare_unregistered.sh",
-      "source": "hermes-pg-stage34c-managed-inbox-v2/73_prepare_unregistered.sh",
-      "source_sha256": "e7e578fc91c20f83fea920194d52e8f1dc61e2379902f3fe0feb29ab7501e7f3",
-      "published_sha256": "e7e578fc91c20f83fea920194d52e8f1dc61e2379902f3fe0feb29ab7501e7f3",
-      "size": 592,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34c-managed-inbox-v2/74_sql_only_verify.sh",
-      "source": "hermes-pg-stage34c-managed-inbox-v2/74_sql_only_verify.sh",
-      "source_sha256": "9621ddf24c39c6ea40c5d906b185bfb5014095cb90b8ba66df8c6fa45c60936e",
-      "published_sha256": "9621ddf24c39c6ea40c5d906b185bfb5014095cb90b8ba66df8c6fa45c60936e",
-      "size": 453,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34c-managed-inbox-v2/75_verify_only.sh",
-      "source": "hermes-pg-stage34c-managed-inbox-v2/75_verify_only.sh",
-      "source_sha256": "f249714f841663082b8b2c00d8d1b3203a62a64b138c954cc314a32e3ad71857",
-      "published_sha256": "f249714f841663082b8b2c00d8d1b3203a62a64b138c954cc314a32e3ad71857",
-      "size": 766,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34c-managed-inbox-v2/README.md",
-      "source": "hermes-pg-stage34c-managed-inbox-v2/README.md",
-      "source_sha256": "805367e2291fc5b2986e0ae502c35a4aa08438a6da7db9e4444ed0f45906eabe",
-      "published_sha256": "805367e2291fc5b2986e0ae502c35a4aa08438a6da7db9e4444ed0f45906eabe",
-      "size": 5367,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34c-managed-inbox-v2/managed_agent_cli34c.py",
-      "source": "hermes-pg-stage34c-managed-inbox-v2/managed_agent_cli34c.py",
-      "source_sha256": "443967becd000dbbedb3cbcac7291b2c3ddbfb3718318976b984ca9130046fac",
-      "published_sha256": "443967becd000dbbedb3cbcac7291b2c3ddbfb3718318976b984ca9130046fac",
-      "size": 7408,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34c-managed-inbox-v2/mt-pg-inbox-managed-stage34c.mjs",
-      "source": "hermes-pg-stage34c-managed-inbox-v2/mt-pg-inbox-managed-stage34c.mjs",
-      "source_sha256": "85cdc1102746537e5d315b053a17bd8de011d9d4241bf4c136095ca5f5e1f007",
-      "published_sha256": "85cdc1102746537e5d315b053a17bd8de011d9d4241bf4c136095ca5f5e1f007",
-      "size": 39855,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34c-managed-inbox-v2/render34c.py",
-      "source": "hermes-pg-stage34c-managed-inbox-v2/render34c.py",
-      "source_sha256": "830c6b97bd1d3749dca25076de1742bfca0c8a32b8a4a7e89922f0c394b58f46",
-      "published_sha256": "830c6b97bd1d3749dca25076de1742bfca0c8a32b8a4a7e89922f0c394b58f46",
-      "size": 4164,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34c-managed-inbox-v2/sql/009_managed_agent_read.sql",
-      "source": "hermes-pg-stage34c-managed-inbox-v2/sql/009_managed_agent_read.sql",
-      "source_sha256": "6cd56e451ecd1b7c4960596ebf666f155a191a386396437bf62c7725d86510fa",
-      "published_sha256": "6cd56e451ecd1b7c4960596ebf666f155a191a386396437bf62c7725d86510fa",
-      "size": 5583,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34c-managed-inbox-v2/test_stage34c.py",
-      "source": "hermes-pg-stage34c-managed-inbox-v2/test_stage34c.py",
-      "source_sha256": "2b6f1540cea12c4b5090b668a27a9e5ff9343fd1ebd2c2beef12433602f1192d",
-      "published_sha256": "2b6f1540cea12c4b5090b668a27a9e5ff9343fd1ebd2c2beef12433602f1192d",
-      "size": 8377,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34c-managed-inbox-v2/verify34c.py",
-      "source": "hermes-pg-stage34c-managed-inbox-v2/verify34c.py",
-      "source_sha256": "5445cebcc4d8f83f5aa575714e77815b410d29e776ec3b9233e76888ef945f1f",
-      "published_sha256": "5445cebcc4d8f83f5aa575714e77815b410d29e776ec3b9233e76888ef945f1f",
-      "size": 6388,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34c-managed-inbox/71_readonly_preflight.sh",
-      "source": "hermes-pg-stage34c-managed-inbox/71_readonly_preflight.sh",
-      "source_sha256": "7db69f56929d977fabcb0032cb4c0d2bca583fcd8297ad2e152d3d18b8d18541",
-      "published_sha256": "7db69f56929d977fabcb0032cb4c0d2bca583fcd8297ad2e152d3d18b8d18541",
-      "size": 818,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34c-managed-inbox/72_sql_apply_once.sh",
-      "source": "hermes-pg-stage34c-managed-inbox/72_sql_apply_once.sh",
-      "source_sha256": "693a7f477d4cf807bec0bab3fce508bb40c85b48c7984e0b25c74d263776ee9c",
-      "published_sha256": "693a7f477d4cf807bec0bab3fce508bb40c85b48c7984e0b25c74d263776ee9c",
-      "size": 1090,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34c-managed-inbox/73_prepare_unregistered.sh",
-      "source": "hermes-pg-stage34c-managed-inbox/73_prepare_unregistered.sh",
-      "source_sha256": "4cdcfbe642647d22292406e82ecb48c0484f99d37a484f8f19c84e6b2eeb637e",
-      "published_sha256": "4cdcfbe642647d22292406e82ecb48c0484f99d37a484f8f19c84e6b2eeb637e",
-      "size": 589,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34c-managed-inbox/74_sql_only_verify.sh",
-      "source": "hermes-pg-stage34c-managed-inbox/74_sql_only_verify.sh",
-      "source_sha256": "1d9408717be57ef5bfec1b71eaefedb2daeee91d5237845bc319426b3ecc21cd",
-      "published_sha256": "1d9408717be57ef5bfec1b71eaefedb2daeee91d5237845bc319426b3ecc21cd",
-      "size": 450,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34c-managed-inbox/75_verify_only.sh",
-      "source": "hermes-pg-stage34c-managed-inbox/75_verify_only.sh",
-      "source_sha256": "d46d616850448308738d307cf562c97da3c02a55a8748641915a6f0e3b891d44",
-      "published_sha256": "d46d616850448308738d307cf562c97da3c02a55a8748641915a6f0e3b891d44",
-      "size": 763,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34c-managed-inbox/README.md",
-      "source": "hermes-pg-stage34c-managed-inbox/README.md",
-      "source_sha256": "3f8d4e068dc9e035e4ab98422ce7f3eddde53a38e92733f4adfc1fd11b736588",
-      "published_sha256": "3f8d4e068dc9e035e4ab98422ce7f3eddde53a38e92733f4adfc1fd11b736588",
-      "size": 4209,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34c-managed-inbox/managed_agent_cli34c.py",
-      "source": "hermes-pg-stage34c-managed-inbox/managed_agent_cli34c.py",
-      "source_sha256": "443967becd000dbbedb3cbcac7291b2c3ddbfb3718318976b984ca9130046fac",
-      "published_sha256": "443967becd000dbbedb3cbcac7291b2c3ddbfb3718318976b984ca9130046fac",
-      "size": 7408,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34c-managed-inbox/render34c.py",
-      "source": "hermes-pg-stage34c-managed-inbox/render34c.py",
-      "source_sha256": "96052a5e5261745ad74a075a0bdb51bb7bc2d9115f66ffa3086b1d7f57ce44dd",
-      "published_sha256": "96052a5e5261745ad74a075a0bdb51bb7bc2d9115f66ffa3086b1d7f57ce44dd",
-      "size": 4161,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34c-managed-inbox/sql/009_managed_agent_read.sql",
-      "source": "hermes-pg-stage34c-managed-inbox/sql/009_managed_agent_read.sql",
-      "source_sha256": "f767101eeec3b66e81d798029394e1428fc2b9990b54e845d0a82180dfe01e0f",
-      "published_sha256": "f767101eeec3b66e81d798029394e1428fc2b9990b54e845d0a82180dfe01e0f",
-      "size": 5045,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34c-managed-inbox/test_stage34c.py",
-      "source": "hermes-pg-stage34c-managed-inbox/test_stage34c.py",
-      "source_sha256": "65b783110e223bb802ee02d5d02ecd36ccf942e33c90ecd7240bb063dca09b59",
-      "published_sha256": "65b783110e223bb802ee02d5d02ecd36ccf942e33c90ecd7240bb063dca09b59",
-      "size": 7332,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34c-managed-inbox/verify34c.py",
-      "source": "hermes-pg-stage34c-managed-inbox/verify34c.py",
-      "source_sha256": "5445cebcc4d8f83f5aa575714e77815b410d29e776ec3b9233e76888ef945f1f",
-      "published_sha256": "5445cebcc4d8f83f5aa575714e77815b410d29e776ec3b9233e76888ef945f1f",
-      "size": 6388,
-      "ipv4_replacements": 0
-    },
-    {
       "path": "source/installed_stages/hermes-pg-stage34d-write-adapter/76_preflight.sh",
       "source": "hermes-pg-stage34d-write-adapter/76_preflight.sh",
       "source_sha256": "bf4fd2d394c1eb4875c16eea6cc1ff996c5b8f624e1f80bf7fa3de22ebde17a8",
@@ -1388,6 +284,22 @@
       "ipv4_replacements": 0
     },
     {
+      "path": "source/installed_stages/hermes-pg-stage34d-write-adapter/agent_admission.py",
+      "source": "hermes-pg-stage34d-write-adapter/agent_admission.py",
+      "source_sha256": "e1642e39fb461b4989939bbde10d98c5b73749b7e9e3d57f748e088a9a2713c5",
+      "published_sha256": "e1642e39fb461b4989939bbde10d98c5b73749b7e9e3d57f748e088a9a2713c5",
+      "size": 1512,
+      "ipv4_replacements": 0
+    },
+    {
+      "path": "source/installed_stages/hermes-pg-stage34d-write-adapter/first_turn_scope.py",
+      "source": "hermes-pg-stage34d-write-adapter/first_turn_scope.py",
+      "source_sha256": "2de81650895c22f6b923c83684e7df86e28c0094fa11123b2d39bef252a50519",
+      "published_sha256": "2de81650895c22f6b923c83684e7df86e28c0094fa11123b2d39bef252a50519",
+      "size": 4698,
+      "ipv4_replacements": 0
+    },
+    {
       "path": "source/installed_stages/hermes-pg-stage34d-write-adapter/managed_agent_cli34d.py",
       "source": "hermes-pg-stage34d-write-adapter/managed_agent_cli34d.py",
       "source_sha256": "039764a71871536117653118d72238253db79b9acb4a2346a4a03b533564267c",
@@ -1409,6 +321,14 @@
       "source_sha256": "ea06a7fb0fc7c3aa26abb5678de380776e634706a6146fe5b9340a33be956c2d",
       "published_sha256": "ea06a7fb0fc7c3aa26abb5678de380776e634706a6146fe5b9340a33be956c2d",
       "size": 39860,
+      "ipv4_replacements": 0
+    },
+    {
+      "path": "source/installed_stages/hermes-pg-stage34d-write-adapter/plugin_contract34d.json",
+      "source": "hermes-pg-stage34d-write-adapter/plugin_contract34d.json",
+      "source_sha256": "0899001844785b8498fb25b71d0c8ed820ff729bfb5a405a4b96e75456ed6fe0",
+      "published_sha256": "0899001844785b8498fb25b71d0c8ed820ff729bfb5a405a4b96e75456ed6fe0",
+      "size": 19095,
       "ipv4_replacements": 0
     },
     {
@@ -1434,582 +354,6 @@
       "published_sha256": "03a99b862abd844b53866a45c3c83b9c273cea6c774fc73342b4f846e038b0ff",
       "size": 9529,
       "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34e-managed-runtime/80_preflight.sh",
-      "source": "hermes-pg-stage34e-managed-runtime/80_preflight.sh",
-      "source_sha256": "68b6b522846e0b3cfac9c0a5eacdbf75f6e7c93b66e46466f3ad7b30baf88e57",
-      "published_sha256": "68b6b522846e0b3cfac9c0a5eacdbf75f6e7c93b66e46466f3ad7b30baf88e57",
-      "size": 851,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34e-managed-runtime/81_prepare_unregistered.sh",
-      "source": "hermes-pg-stage34e-managed-runtime/81_prepare_unregistered.sh",
-      "source_sha256": "442d48fac7505c8d2f4d4f4e8c7dc025f728f2bca86aa8da06895cf98175352b",
-      "published_sha256": "442d48fac7505c8d2f4d4f4e8c7dc025f728f2bca86aa8da06895cf98175352b",
-      "size": 613,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34e-managed-runtime/82_verify_only.sh",
-      "source": "hermes-pg-stage34e-managed-runtime/82_verify_only.sh",
-      "source_sha256": "82faf74da1203940b988097f79492fa56fd2bb61c8a97d8125424a26a27363ec",
-      "published_sha256": "82faf74da1203940b988097f79492fa56fd2bb61c8a97d8125424a26a27363ec",
-      "size": 473,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34e-managed-runtime/README.md",
-      "source": "hermes-pg-stage34e-managed-runtime/README.md",
-      "source_sha256": "4d527b26c020f4b1847dea28c63409af8da57c1a3cae321ce002092b8b9eb026",
-      "published_sha256": "4d527b26c020f4b1847dea28c63409af8da57c1a3cae321ce002092b8b9eb026",
-      "size": 4231,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34e-managed-runtime/mt-pg-inbox-managed-stage34e-shadow.mjs",
-      "source": "hermes-pg-stage34e-managed-runtime/mt-pg-inbox-managed-stage34e-shadow.mjs",
-      "source_sha256": "1580178d508174af1edff784b87acd11d339b1d306a057f6112786ffb36122e8",
-      "published_sha256": "1580178d508174af1edff784b87acd11d339b1d306a057f6112786ffb36122e8",
-      "size": 39642,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34e-managed-runtime/parts34e.js",
-      "source": "hermes-pg-stage34e-managed-runtime/parts34e.js",
-      "source_sha256": "0350597d25b6f5d76e8ff82419b109791043674a338d01b613d82b7bf9ca59f3",
-      "published_sha256": "0350597d25b6f5d76e8ff82419b109791043674a338d01b613d82b7bf9ca59f3",
-      "size": 11057,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34e-managed-runtime/render34e.py",
-      "source": "hermes-pg-stage34e-managed-runtime/render34e.py",
-      "source_sha256": "0621eca1ae8546b427fb1f8fa5c3516d7b2753645487e38f06110f76436164ea",
-      "published_sha256": "0621eca1ae8546b427fb1f8fa5c3516d7b2753645487e38f06110f76436164ea",
-      "size": 8582,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34e-managed-runtime/test_runtime34e.cjs",
-      "source": "hermes-pg-stage34e-managed-runtime/test_runtime34e.cjs",
-      "source_sha256": "23b1c41ff5f31c88b7f8210f0c62845ea3411f40aab85c83fcd80612b1e5cc1e",
-      "published_sha256": "23b1c41ff5f31c88b7f8210f0c62845ea3411f40aab85c83fcd80612b1e5cc1e",
-      "size": 8179,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34e-managed-runtime/test_stage34e.py",
-      "source": "hermes-pg-stage34e-managed-runtime/test_stage34e.py",
-      "source_sha256": "5f392b01d39b0be73e69b9318efc6157fb10a70b7d7dd63ea6be24789b582fa0",
-      "published_sha256": "5f392b01d39b0be73e69b9318efc6157fb10a70b7d7dd63ea6be24789b582fa0",
-      "size": 7498,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34e-managed-runtime/verify34e.py",
-      "source": "hermes-pg-stage34e-managed-runtime/verify34e.py",
-      "source_sha256": "e716959cd7efac502d6a40090d2b0e58d6be9d8e27c0b94f2bee69a8fc7717af",
-      "published_sha256": "e716959cd7efac502d6a40090d2b0e58d6be9d8e27c0b94f2bee69a8fc7717af",
-      "size": 3410,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34eb-pilot-candidate/83_readonly_preflight.sh",
-      "source": "hermes-pg-stage34eb-pilot-candidate/83_readonly_preflight.sh",
-      "source_sha256": "bd2f86d79897c4d06f634e8b483a9ae6cf3b6d963931d5167208894392838aca",
-      "published_sha256": "bd2f86d79897c4d06f634e8b483a9ae6cf3b6d963931d5167208894392838aca",
-      "size": 772,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34eb-pilot-candidate/84_prepare_once.sh",
-      "source": "hermes-pg-stage34eb-pilot-candidate/84_prepare_once.sh",
-      "source_sha256": "44560425a2fc342bce825464dc3ea9649dce218e5275e58f8fec91d0904aeb80",
-      "published_sha256": "44560425a2fc342bce825464dc3ea9649dce218e5275e58f8fec91d0904aeb80",
-      "size": 717,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34eb-pilot-candidate/85_verify_only.sh",
-      "source": "hermes-pg-stage34eb-pilot-candidate/85_verify_only.sh",
-      "source_sha256": "b44ac5d1ee8aecfbcec3c843186a48d33a3f7302b2417bdea1ff801e802453b9",
-      "published_sha256": "b44ac5d1ee8aecfbcec3c843186a48d33a3f7302b2417bdea1ff801e802453b9",
-      "size": 643,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34eb-pilot-candidate/README.md",
-      "source": "hermes-pg-stage34eb-pilot-candidate/README.md",
-      "source_sha256": "09afbe77278fe7df0244721b913bd3f7d3b8551493944707869b2b2b15500575",
-      "published_sha256": "09afbe77278fe7df0244721b913bd3f7d3b8551493944707869b2b2b15500575",
-      "size": 4399,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34eb-pilot-candidate/mt-pg-inbox-managed-stage34eb-pilot-unregistered.mjs",
-      "source": "hermes-pg-stage34eb-pilot-candidate/mt-pg-inbox-managed-stage34eb-pilot-unregistered.mjs",
-      "source_sha256": "b3679086583d77c96b6ed1c3dc7b1ed1656707dabba4d3ac74843fe64177d730",
-      "published_sha256": "b3679086583d77c96b6ed1c3dc7b1ed1656707dabba4d3ac74843fe64177d730",
-      "size": 40098,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34eb-pilot-candidate/pilot34eb.py",
-      "source": "hermes-pg-stage34eb-pilot-candidate/pilot34eb.py",
-      "source_sha256": "8a18ce2cde617e3a25e61eb07491eb352e8270586da02ed8c7adc830afcfb7da",
-      "published_sha256": "8a18ce2cde617e3a25e61eb07491eb352e8270586da02ed8c7adc830afcfb7da",
-      "size": 6909,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34eb-pilot-candidate/pilot_gate34eb.js",
-      "source": "hermes-pg-stage34eb-pilot-candidate/pilot_gate34eb.js",
-      "source_sha256": "b0be1f91628e077f44fb336abc6760597cd76bfff952034407c02fe641e8e3c6",
-      "published_sha256": "b0be1f91628e077f44fb336abc6760597cd76bfff952034407c02fe641e8e3c6",
-      "size": 408,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34eb-pilot-candidate/test_gate34eb.cjs",
-      "source": "hermes-pg-stage34eb-pilot-candidate/test_gate34eb.cjs",
-      "source_sha256": "218796bd8bee77175d8b7418369187e09083bdb61aacb10dad439f3eddcb2081",
-      "published_sha256": "218796bd8bee77175d8b7418369187e09083bdb61aacb10dad439f3eddcb2081",
-      "size": 1558,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34eb-pilot-candidate/test_stage34eb.py",
-      "source": "hermes-pg-stage34eb-pilot-candidate/test_stage34eb.py",
-      "source_sha256": "a66fc5f8f986c95fa4ece5f60cf424b78f2f0f19664f7f40eb364d052418b2ea",
-      "published_sha256": "a66fc5f8f986c95fa4ece5f60cf424b78f2f0f19664f7f40eb364d052418b2ea",
-      "size": 5322,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34f-pilot-enroll/86_readonly_preflight.sh",
-      "source": "hermes-pg-stage34f-pilot-enroll/86_readonly_preflight.sh",
-      "source_sha256": "9c8f3852aabe3656a8bc006a8251f095c99a5bb171b147eec430c17432862178",
-      "published_sha256": "9c8f3852aabe3656a8bc006a8251f095c99a5bb171b147eec430c17432862178",
-      "size": 196,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34f-pilot-enroll/87_create_pilot_once.sh",
-      "source": "hermes-pg-stage34f-pilot-enroll/87_create_pilot_once.sh",
-      "source_sha256": "b715fc046e8957c229912eb440f13c3558c9be271af79d24f872345110019ff8",
-      "published_sha256": "b715fc046e8957c229912eb440f13c3558c9be271af79d24f872345110019ff8",
-      "size": 198,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34f-pilot-enroll/88_verify_only.sh",
-      "source": "hermes-pg-stage34f-pilot-enroll/88_verify_only.sh",
-      "source_sha256": "b35c87866791d401cee97722e8e2946bc051a2818e1be862b91ec6445f9a4520",
-      "published_sha256": "b35c87866791d401cee97722e8e2946bc051a2818e1be862b91ec6445f9a4520",
-      "size": 198,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34f-pilot-enroll/README.md",
-      "source": "hermes-pg-stage34f-pilot-enroll/README.md",
-      "source_sha256": "8249122c49bdf7f380e613d16c4373029a6e25f4f77a8a94f999e8c64e80db7a",
-      "published_sha256": "8249122c49bdf7f380e613d16c4373029a6e25f4f77a8a94f999e8c64e80db7a",
-      "size": 2842,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34f-pilot-enroll/pilot34f.py",
-      "source": "hermes-pg-stage34f-pilot-enroll/pilot34f.py",
-      "source_sha256": "ce92b1b43c566669cec7c09fbd5b3a1240ac80b20e446f0fd733459da034e668",
-      "published_sha256": "ce92b1b43c566669cec7c09fbd5b3a1240ac80b20e446f0fd733459da034e668",
-      "size": 12775,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34f-pilot-enroll/test_stage34f.py",
-      "source": "hermes-pg-stage34f-pilot-enroll/test_stage34f.py",
-      "source_sha256": "1441afea280a19d701da0b6897dfb419f74a8de188d74d420ad496551583568b",
-      "published_sha256": "1441afea280a19d701da0b6897dfb419f74a8de188d74d420ad496551583568b",
-      "size": 3979,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34fb-register-pilot/89_install_inactive_handoff.sh",
-      "source": "hermes-pg-stage34fb-register-pilot/89_install_inactive_handoff.sh",
-      "source_sha256": "8bc879b2cda51ab53d47de3cd6a122d68d197fe15f935f08f664a69c9e45b75a",
-      "published_sha256": "8bc879b2cda51ab53d47de3cd6a122d68d197fe15f935f08f664a69c9e45b75a",
-      "size": 1765,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34fb-register-pilot/90_arm_when_owner_ready.sh",
-      "source": "hermes-pg-stage34fb-register-pilot/90_arm_when_owner_ready.sh",
-      "source_sha256": "52b8881227976d2c2e3b5436e4fc7f5b754484116c384b0861cbee6b4ba878c1",
-      "published_sha256": "52b8881227976d2c2e3b5436e4fc7f5b754484116c384b0861cbee6b4ba878c1",
-      "size": 1153,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34fb-register-pilot/91_status.sh",
-      "source": "hermes-pg-stage34fb-register-pilot/91_status.sh",
-      "source_sha256": "ac0b96056404b1a9c95ba4082134c3571811b916f5d073db89c15d151aa1330e",
-      "published_sha256": "ac0b96056404b1a9c95ba4082134c3571811b916f5d073db89c15d151aa1330e",
-      "size": 330,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34fb-register-pilot/92_verify_after_handoff.sh",
-      "source": "hermes-pg-stage34fb-register-pilot/92_verify_after_handoff.sh",
-      "source_sha256": "1f5249258f1e340306f1e783d3226e63b25f16c1d6d182a3c66bf79e37fe7598",
-      "published_sha256": "1f5249258f1e340306f1e783d3226e63b25f16c1d6d182a3c66bf79e37fe7598",
-      "size": 392,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34fb-register-pilot/93_rollback_before_dispatch.sh",
-      "source": "hermes-pg-stage34fb-register-pilot/93_rollback_before_dispatch.sh",
-      "source_sha256": "2d75e8cce223472e1b2142fb01fb811ec9d69f49f5278c00b7c8287da95b98e3",
-      "published_sha256": "2d75e8cce223472e1b2142fb01fb811ec9d69f49f5278c00b7c8287da95b98e3",
-      "size": 314,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34fb-register-pilot/94_verify_after_multitool_launch.sh",
-      "source": "hermes-pg-stage34fb-register-pilot/94_verify_after_multitool_launch.sh",
-      "source_sha256": "f399f37eb25cfe1cbd2c7c4b66c03bb7240af12264d0c0348d44ad9af35a390b",
-      "published_sha256": "f399f37eb25cfe1cbd2c7c4b66c03bb7240af12264d0c0348d44ad9af35a390b",
-      "size": 985,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34fb-register-pilot/README.md",
-      "source": "hermes-pg-stage34fb-register-pilot/README.md",
-      "source_sha256": "717075f64d2446b19c68f9dbdf364c5b5e413e21cfed28c9b66519ccc2a3826b",
-      "published_sha256": "717075f64d2446b19c68f9dbdf364c5b5e413e21cfed28c9b66519ccc2a3826b",
-      "size": 5281,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34fb-register-pilot/handoff34fb.py",
-      "source": "hermes-pg-stage34fb-register-pilot/handoff34fb.py",
-      "source_sha256": "578439188b2bac60d45bc5d3b5d0a5a9ec0fc38f74b1bd8bfa597d0efe904df9",
-      "published_sha256": "578439188b2bac60d45bc5d3b5d0a5a9ec0fc38f74b1bd8bfa597d0efe904df9",
-      "size": 17728,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34fb-register-pilot/test_stage34fb.py",
-      "source": "hermes-pg-stage34fb-register-pilot/test_stage34fb.py",
-      "source_sha256": "404e6203b7a29a0e2766cee17a19dab7150701b521378dc5858f40567a956637",
-      "published_sha256": "404e6203b7a29a0e2766cee17a19dab7150701b521378dc5858f40567a956637",
-      "size": 6107,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34fc-first-managed-roundtrip/95_readonly_preflight.sh",
-      "source": "hermes-pg-stage34fc-first-managed-roundtrip/95_readonly_preflight.sh",
-      "source_sha256": "be0e64ee4f974057e55960d046f2c10f0670c7d61073186f96582c4867619a7b",
-      "published_sha256": "be0e64ee4f974057e55960d046f2c10f0670c7d61073186f96582c4867619a7b",
-      "size": 257,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34fc-first-managed-roundtrip/96_activate_and_send_once.sh",
-      "source": "hermes-pg-stage34fc-first-managed-roundtrip/96_activate_and_send_once.sh",
-      "source_sha256": "d310d457bf56086c8aed65862ab6e3bca6e9cf8a0a429bd695520c270c643a32",
-      "published_sha256": "d310d457bf56086c8aed65862ab6e3bca6e9cf8a0a429bd695520c270c643a32",
-      "size": 416,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34fc-first-managed-roundtrip/97_verify_only.sh",
-      "source": "hermes-pg-stage34fc-first-managed-roundtrip/97_verify_only.sh",
-      "source_sha256": "220c3b33142ee138c99552fdc3f0752ed1ff001cbdd60bfebf725223829a24bc",
-      "published_sha256": "220c3b33142ee138c99552fdc3f0752ed1ff001cbdd60bfebf725223829a24bc",
-      "size": 331,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34fc-first-managed-roundtrip/98_ack_report_once.sh",
-      "source": "hermes-pg-stage34fc-first-managed-roundtrip/98_ack_report_once.sh",
-      "source_sha256": "a5117b93930a4e4a3b9ff5e5ea527616f355d3a7b0068a67924dc2433182436a",
-      "published_sha256": "a5117b93930a4e4a3b9ff5e5ea527616f355d3a7b0068a67924dc2433182436a",
-      "size": 431,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34fc-first-managed-roundtrip/README.md",
-      "source": "hermes-pg-stage34fc-first-managed-roundtrip/README.md",
-      "source_sha256": "19bb6e6f820d9250e1f8bd8e3a71d309dfd230f081e248a5af26c6be75992603",
-      "published_sha256": "19bb6e6f820d9250e1f8bd8e3a71d309dfd230f081e248a5af26c6be75992603",
-      "size": 4151,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34fc-first-managed-roundtrip/stage34fc.py",
-      "source": "hermes-pg-stage34fc-first-managed-roundtrip/stage34fc.py",
-      "source_sha256": "be5638700d4f48d9930cd98142e3fc10924eecca0faa0bf892880086c4e9b098",
-      "published_sha256": "be5638700d4f48d9930cd98142e3fc10924eecca0faa0bf892880086c4e9b098",
-      "size": 22550,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34fc-first-managed-roundtrip/test_stage34fc.py",
-      "source": "hermes-pg-stage34fc-first-managed-roundtrip/test_stage34fc.py",
-      "source_sha256": "ad97f9195ec6af9043ea39f50a0060e6d27ba74705145e2d7fe72024686634a9",
-      "published_sha256": "ad97f9195ec6af9043ea39f50a0060e6d27ba74705145e2d7fe72024686634a9",
-      "size": 10707,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34g-quiesce-and-retire/100_disable_policy_and_revoke_gate_once.sh",
-      "source": "hermes-pg-stage34g-quiesce-and-retire/100_disable_policy_and_revoke_gate_once.sh",
-      "source_sha256": "9f30122dedc7085a678d993063d50ce319ef26645f367524e5b94536be2dbb5e",
-      "published_sha256": "9f30122dedc7085a678d993063d50ce319ef26645f367524e5b94536be2dbb5e",
-      "size": 491,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34g-quiesce-and-retire/101_verify_quiesced.sh",
-      "source": "hermes-pg-stage34g-quiesce-and-retire/101_verify_quiesced.sh",
-      "source_sha256": "80fff856ebd7e109caa4a34bee0f136ff529a4377eb1c34ae9b6b7c672490c09",
-      "published_sha256": "80fff856ebd7e109caa4a34bee0f136ff529a4377eb1c34ae9b6b7c672490c09",
-      "size": 257,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34g-quiesce-and-retire/102_prepare_inactive_retirement.sh",
-      "source": "hermes-pg-stage34g-quiesce-and-retire/102_prepare_inactive_retirement.sh",
-      "source_sha256": "375850bfaaf73b52524c65acc59ea57024eae0b25ab12ae214d33c28fe6a35cc",
-      "published_sha256": "375850bfaaf73b52524c65acc59ea57024eae0b25ab12ae214d33c28fe6a35cc",
-      "size": 596,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34g-quiesce-and-retire/103_arm_after_owner_ready.sh",
-      "source": "hermes-pg-stage34g-quiesce-and-retire/103_arm_after_owner_ready.sh",
-      "source_sha256": "5fa271afd92ce7db3da8de2d65a8edca3dc73765fe5b76811fdd32c31fac5b78",
-      "published_sha256": "5fa271afd92ce7db3da8de2d65a8edca3dc73765fe5b76811fdd32c31fac5b78",
-      "size": 368,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34g-quiesce-and-retire/104_status_readonly.sh",
-      "source": "hermes-pg-stage34g-quiesce-and-retire/104_status_readonly.sh",
-      "source_sha256": "494be2cd3a63959932df4f5cc7216652ce61b3b0c4c71ac64f9e95586c438e5d",
-      "published_sha256": "494be2cd3a63959932df4f5cc7216652ce61b3b0c4c71ac64f9e95586c438e5d",
-      "size": 319,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34g-quiesce-and-retire/105_verify_after_handoff.sh",
-      "source": "hermes-pg-stage34g-quiesce-and-retire/105_verify_after_handoff.sh",
-      "source_sha256": "31c998cbb616d62cfa3e2408b3980af6bac9c7a3514ace3483aa939fe3dc243f",
-      "published_sha256": "31c998cbb616d62cfa3e2408b3980af6bac9c7a3514ace3483aa939fe3dc243f",
-      "size": 256,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34g-quiesce-and-retire/106_revoke_gate_after_confirmed_db_only.sh",
-      "source": "hermes-pg-stage34g-quiesce-and-retire/106_revoke_gate_after_confirmed_db_only.sh",
-      "source_sha256": "118c9b4d25a5780e7c61c0d7dbe3f78df43572453651c34f61321d3780c0bef5",
-      "published_sha256": "118c9b4d25a5780e7c61c0d7dbe3f78df43572453651c34f61321d3780c0bef5",
-      "size": 370,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34g-quiesce-and-retire/107_inspect_policy_readonly.sh",
-      "source": "hermes-pg-stage34g-quiesce-and-retire/107_inspect_policy_readonly.sh",
-      "source_sha256": "c4641c4bd16c5d52bd5f875f9f22974faa3e58b487bb025337ddd386f6d11c23",
-      "published_sha256": "c4641c4bd16c5d52bd5f875f9f22974faa3e58b487bb025337ddd386f6d11c23",
-      "size": 279,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34g-quiesce-and-retire/99_readonly_preflight.sh",
-      "source": "hermes-pg-stage34g-quiesce-and-retire/99_readonly_preflight.sh",
-      "source_sha256": "7fed663c316dacab7d0f689c9f5171037dd4be69eaddfd5535f48a11f1f92c09",
-      "published_sha256": "7fed663c316dacab7d0f689c9f5171037dd4be69eaddfd5535f48a11f1f92c09",
-      "size": 362,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34g-quiesce-and-retire/README.md",
-      "source": "hermes-pg-stage34g-quiesce-and-retire/README.md",
-      "source_sha256": "069fef621ad8832087f1111271bde3c36737774b6cca4d66b2b5c91779955072",
-      "published_sha256": "069fef621ad8832087f1111271bde3c36737774b6cca4d66b2b5c91779955072",
-      "size": 4990,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34g-quiesce-and-retire/stage34g.py",
-      "source": "hermes-pg-stage34g-quiesce-and-retire/stage34g.py",
-      "source_sha256": "ca534cc0198035011712a069ade1d5bf5185a82b1a80f3118faa7844d20b7a72",
-      "published_sha256": "ca534cc0198035011712a069ade1d5bf5185a82b1a80f3118faa7844d20b7a72",
-      "size": 23500,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage34g-quiesce-and-retire/test_stage34g.py",
-      "source": "hermes-pg-stage34g-quiesce-and-retire/test_stage34g.py",
-      "source_sha256": "1c3b9c4c9d77155134f222cf416a7fc8871129ebf168812ed8abc334a7e78103",
-      "published_sha256": "1c3b9c4c9d77155134f222cf416a7fc8871129ebf168812ed8abc334a7e78103",
-      "size": 14692,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35a-oauth-managed-shadow/108_readonly_preflight.sh",
-      "source": "hermes-pg-stage35a-oauth-managed-shadow/108_readonly_preflight.sh",
-      "source_sha256": "219d8d688b5b33bc3774b42b74d0d8a63cfa02770560e478c6f21a8d0781a232",
-      "published_sha256": "219d8d688b5b33bc3774b42b74d0d8a63cfa02770560e478c6f21a8d0781a232",
-      "size": 646,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35a-oauth-managed-shadow/109_install_inactive_once.sh",
-      "source": "hermes-pg-stage35a-oauth-managed-shadow/109_install_inactive_once.sh",
-      "source_sha256": "62de4f0d1f902d5bacb7291fe50b73c20b2befb072c93a8da180824306fec997",
-      "published_sha256": "62de4f0d1f902d5bacb7291fe50b73c20b2befb072c93a8da180824306fec997",
-      "size": 1376,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35a-oauth-managed-shadow/110_verify_only.sh",
-      "source": "hermes-pg-stage35a-oauth-managed-shadow/110_verify_only.sh",
-      "source_sha256": "40c9ef13f14df978082fdfc49726402e5e129303fe06273c008fb5eb4cdae898",
-      "published_sha256": "40c9ef13f14df978082fdfc49726402e5e129303fe06273c008fb5eb4cdae898",
-      "size": 639,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35a-oauth-managed-shadow/111_auth_inventory_readonly.sh",
-      "source": "hermes-pg-stage35a-oauth-managed-shadow/111_auth_inventory_readonly.sh",
-      "source_sha256": "6f4424e54ce13bb7c291c4cdae0940f32e325d7811b6787299d6db546d4b8955",
-      "published_sha256": "6f4424e54ce13bb7c291c4cdae0940f32e325d7811b6787299d6db546d4b8955",
-      "size": 863,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35a-oauth-managed-shadow/README.md",
-      "source": "hermes-pg-stage35a-oauth-managed-shadow/README.md",
-      "source_sha256": "eb181d13952bd4b97bcd84debe64bedf614a28217bce05cd91fffcadb2b250ab",
-      "published_sha256": "eb181d13952bd4b97bcd84debe64bedf614a28217bce05cd91fffcadb2b250ab",
-      "size": 8329,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35a-oauth-managed-shadow/managed_mcp35a.py",
-      "source": "hermes-pg-stage35a-oauth-managed-shadow/managed_mcp35a.py",
-      "source_sha256": "ff7d34a160ed355397abcabb2f8e84e7fd586a75042f2f74b10ffe6052d52056",
-      "published_sha256": "ff7d34a160ed355397abcabb2f8e84e7fd586a75042f2f74b10ffe6052d52056",
-      "size": 4587,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35a-oauth-managed-shadow/oauth_guard35a.py",
-      "source": "hermes-pg-stage35a-oauth-managed-shadow/oauth_guard35a.py",
-      "source_sha256": "4bea83fa5bcc9dc64a3b5cd131733a523afced0635c85d14adf878440a2db271",
-      "published_sha256": "4bea83fa5bcc9dc64a3b5cd131733a523afced0635c85d14adf878440a2db271",
-      "size": 10221,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35a-oauth-managed-shadow/runtime35a.py",
-      "source": "hermes-pg-stage35a-oauth-managed-shadow/runtime35a.py",
-      "source_sha256": "35b4d6cf34ceb19d5fb055756ec68717369ca20305c2747fead3e2da41b03ede",
-      "published_sha256": "35b4d6cf34ceb19d5fb055756ec68717369ca20305c2747fead3e2da41b03ede",
-      "size": 9048,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35a-oauth-managed-shadow/stage35a.py",
-      "source": "hermes-pg-stage35a-oauth-managed-shadow/stage35a.py",
-      "source_sha256": "bf27de7ed79d973229f444eba7087c375da968ee4d42bd879523bd3582f6e137",
-      "published_sha256": "bf27de7ed79d973229f444eba7087c375da968ee4d42bd879523bd3582f6e137",
-      "size": 7690,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35a-oauth-managed-shadow/test_stage35a.py",
-      "source": "hermes-pg-stage35a-oauth-managed-shadow/test_stage35a.py",
-      "source_sha256": "70c4897b8982db6ea1671e47a43dc4d79702342313db75784dca55ecdd651980",
-      "published_sha256": "70c4897b8982db6ea1671e47a43dc4d79702342313db75784dca55ecdd651980",
-      "size": 15088,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35b-issuer-readiness/112_readonly_preflight.sh",
-      "source": "hermes-pg-stage35b-issuer-readiness/112_readonly_preflight.sh",
-      "source_sha256": "ed3a3cd6ba9e27732b24ab8bc476b655bf2e5545b9b57d9f40fe2fb8f232ffec",
-      "published_sha256": "ed3a3cd6ba9e27732b24ab8bc476b655bf2e5545b9b57d9f40fe2fb8f232ffec",
-      "size": 320,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35b-issuer-readiness/113_legacy_oauth_static_audit.sh",
-      "source": "hermes-pg-stage35b-issuer-readiness/113_legacy_oauth_static_audit.sh",
-      "source_sha256": "ebc48110185c5a833e25e107fe05cceb3cadbaf356aa05dab365b9fa2c9d5a63",
-      "published_sha256": "ebc48110185c5a833e25e107fe05cceb3cadbaf356aa05dab365b9fa2c9d5a63",
-      "size": 234,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35b-issuer-readiness/114_vps_readiness_readonly.sh",
-      "source": "hermes-pg-stage35b-issuer-readiness/114_vps_readiness_readonly.sh",
-      "source_sha256": "4ec10c49ee8c7bbe82d5d2b0ecd83b27139118d4c6142276c1b8eb59da215692",
-      "published_sha256": "4ec10c49ee8c7bbe82d5d2b0ecd83b27139118d4c6142276c1b8eb59da215692",
-      "size": 2081,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35b-issuer-readiness/115_auth_gate_offline.sh",
-      "source": "hermes-pg-stage35b-issuer-readiness/115_auth_gate_offline.sh",
-      "source_sha256": "74f390c2b10c94a1dab801985cbb1c7985fd076f3991e7ae778898939aa70853",
-      "published_sha256": "74f390c2b10c94a1dab801985cbb1c7985fd076f3991e7ae778898939aa70853",
-      "size": 1240,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35b-issuer-readiness/116_verify_readonly.sh",
-      "source": "hermes-pg-stage35b-issuer-readiness/116_verify_readonly.sh",
-      "source_sha256": "f05e6a3622b1deebff25c84fdd910864d434e5d15194fe168d1cd624e6b2d07e",
-      "published_sha256": "f05e6a3622b1deebff25c84fdd910864d434e5d15194fe168d1cd624e6b2d07e",
-      "size": 271,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35b-issuer-readiness/README.md",
-      "source": "hermes-pg-stage35b-issuer-readiness/README.md",
-      "source_sha256": "65b433f95b32921497019f22c3f3d2b0dcaea745ef189e7cab57a3cee4ae506d",
-      "published_sha256": "65b433f95b32921497019f22c3f3d2b0dcaea745ef189e7cab57a3cee4ae506d",
-      "size": 6756,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35b-issuer-readiness/metadata35b.py",
-      "source": "hermes-pg-stage35b-issuer-readiness/metadata35b.py",
-      "source_sha256": "7a9771fc8d0dc894eea7e7cd78a952c4ace3040ad4364a7d747a33fe905f11d1",
-      "published_sha256": "7a9771fc8d0dc894eea7e7cd78a952c4ace3040ad4364a7d747a33fe905f11d1",
-      "size": 4724,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35b-issuer-readiness/readiness35b.py",
-      "source": "hermes-pg-stage35b-issuer-readiness/readiness35b.py",
-      "source_sha256": "ad8bd1736ebacd49fa9dde75a792acf62af47922d86b2b4565b051465c262936",
-      "published_sha256": "ad8bd1736ebacd49fa9dde75a792acf62af47922d86b2b4565b051465c262936",
-      "size": 5338,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35b-issuer-readiness/test_stage35b.py",
-      "source": "hermes-pg-stage35b-issuer-readiness/test_stage35b.py",
-      "source_sha256": "3b47729273e24c8bfb8584482e151923b2f689e181adec23e38f1d8202a159c7",
-      "published_sha256": "bbdb608690f3cd1bdcf844c33d60b9db195fea14993f57670a549710f31f3527",
-      "size": 5083,
-      "ipv4_replacements": 2
     },
     {
       "path": "source/installed_stages/hermes-pg-stage35c-static-guard/117_readonly_preflight.sh",
@@ -2052,11 +396,27 @@
       "ipv4_replacements": 0
     },
     {
+      "path": "source/installed_stages/hermes-pg-stage35c-static-guard/reserve56.py",
+      "source": "hermes-pg-stage35c-static-guard/reserve56.py",
+      "source_sha256": "f893e11b4bd7ccd188c1706604cf2ca4cf7e6858ed9e4dc6d0a31f65f00c16c6",
+      "published_sha256": "f893e11b4bd7ccd188c1706604cf2ca4cf7e6858ed9e4dc6d0a31f65f00c16c6",
+      "size": 3153,
+      "ipv4_replacements": 0
+    },
+    {
       "path": "source/installed_stages/hermes-pg-stage35c-static-guard/runtime35c.py",
       "source": "hermes-pg-stage35c-static-guard/runtime35c.py",
       "source_sha256": "3fa4fa70875335f960fbad0ca4c4d87ff30cfca99a796462ec154f36fba355eb",
       "published_sha256": "3fa4fa70875335f960fbad0ca4c4d87ff30cfca99a796462ec154f36fba355eb",
       "size": 9324,
+      "ipv4_replacements": 0
+    },
+    {
+      "path": "source/installed_stages/hermes-pg-stage35c-static-guard/signed_send56.py",
+      "source": "hermes-pg-stage35c-static-guard/signed_send56.py",
+      "source_sha256": "da24ae13d35ea3bc63800d9664b3f565a9e8fca53697fc321aee08b17020b016",
+      "published_sha256": "da24ae13d35ea3bc63800d9664b3f565a9e8fca53697fc321aee08b17020b016",
+      "size": 2701,
       "ipv4_replacements": 0
     },
     {
@@ -2084,267 +444,11 @@
       "ipv4_replacements": 0
     },
     {
-      "path": "source/installed_stages/hermes-pg-stage35d-local-smoke.pre-pinfix-20261123/120_readonly_preflight.sh",
-      "source": "hermes-pg-stage35d-local-smoke.pre-pinfix-20261123/120_readonly_preflight.sh",
-      "source_sha256": "1a580113da8087af5b7808ef9f1e4884762e8c4cf938f048bc700c5793cc81bc",
-      "published_sha256": "1a580113da8087af5b7808ef9f1e4884762e8c4cf938f048bc700c5793cc81bc",
-      "size": 310,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35d-local-smoke.pre-pinfix-20261123/121_start_local_shadow_once.sh",
-      "source": "hermes-pg-stage35d-local-smoke.pre-pinfix-20261123/121_start_local_shadow_once.sh",
-      "source_sha256": "5d799be1efbf8510628f65baf7fa52a6f3d0c3380a8b3f0e79c3bbf3e05a95f4",
-      "published_sha256": "5d799be1efbf8510628f65baf7fa52a6f3d0c3380a8b3f0e79c3bbf3e05a95f4",
-      "size": 1326,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35d-local-smoke.pre-pinfix-20261123/122_verify_only.sh",
-      "source": "hermes-pg-stage35d-local-smoke.pre-pinfix-20261123/122_verify_only.sh",
-      "source_sha256": "01a6f53d66aa9c172d2699e7509a3d7084e3ba5a8bff1ff8ece7e3898f9c186e",
-      "published_sha256": "01a6f53d66aa9c172d2699e7509a3d7084e3ba5a8bff1ff8ece7e3898f9c186e",
-      "size": 279,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35d-local-smoke.pre-pinfix-20261123/123_stop_local_shadow.sh",
-      "source": "hermes-pg-stage35d-local-smoke.pre-pinfix-20261123/123_stop_local_shadow.sh",
-      "source_sha256": "d1a27b6a768f2d633690f89ae1a7ffe43b0cee54e2fa1457a475f99c8057b623",
-      "published_sha256": "d1a27b6a768f2d633690f89ae1a7ffe43b0cee54e2fa1457a475f99c8057b623",
-      "size": 465,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35d-local-smoke.pre-pinfix-20261123/README.md",
-      "source": "hermes-pg-stage35d-local-smoke.pre-pinfix-20261123/README.md",
-      "source_sha256": "6235ea228ee6a11b3c56af9e5e90640d63f7cf61090a3a75fce025d6ac3b8568",
-      "published_sha256": "6235ea228ee6a11b3c56af9e5e90640d63f7cf61090a3a75fce025d6ac3b8568",
-      "size": 3609,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35d-local-smoke.pre-pinfix-20261123/smoke35d.py",
-      "source": "hermes-pg-stage35d-local-smoke.pre-pinfix-20261123/smoke35d.py",
-      "source_sha256": "92fd21c2099194345e3ce5947435f5c379ee6d499be606b1de942fb9f83410bc",
-      "published_sha256": "92fd21c2099194345e3ce5947435f5c379ee6d499be606b1de942fb9f83410bc",
-      "size": 6294,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35d-local-smoke.pre-pinfix-20261123/stage35d.py",
-      "source": "hermes-pg-stage35d-local-smoke.pre-pinfix-20261123/stage35d.py",
-      "source_sha256": "cba1c6e82b41b981f4ef7815c0038c9a1fadec1d9260efef98b29aff2c0e76e4",
-      "published_sha256": "cba1c6e82b41b981f4ef7815c0038c9a1fadec1d9260efef98b29aff2c0e76e4",
-      "size": 5414,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35d-local-smoke.pre-pinfix-20261123/test_stage35d.py",
-      "source": "hermes-pg-stage35d-local-smoke.pre-pinfix-20261123/test_stage35d.py",
-      "source_sha256": "7ecf49af91b8756bc9d21a484ab7a1baebf8dd6c7f564fb82c33640e7a0183e3",
-      "published_sha256": "7ecf49af91b8756bc9d21a484ab7a1baebf8dd6c7f564fb82c33640e7a0183e3",
-      "size": 7673,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35d-local-smoke/120_readonly_preflight.sh",
-      "source": "hermes-pg-stage35d-local-smoke/120_readonly_preflight.sh",
-      "source_sha256": "1a580113da8087af5b7808ef9f1e4884762e8c4cf938f048bc700c5793cc81bc",
-      "published_sha256": "1a580113da8087af5b7808ef9f1e4884762e8c4cf938f048bc700c5793cc81bc",
-      "size": 310,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35d-local-smoke/121_start_local_shadow_once.sh",
-      "source": "hermes-pg-stage35d-local-smoke/121_start_local_shadow_once.sh",
-      "source_sha256": "5d799be1efbf8510628f65baf7fa52a6f3d0c3380a8b3f0e79c3bbf3e05a95f4",
-      "published_sha256": "5d799be1efbf8510628f65baf7fa52a6f3d0c3380a8b3f0e79c3bbf3e05a95f4",
-      "size": 1326,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35d-local-smoke/122_verify_only.sh",
-      "source": "hermes-pg-stage35d-local-smoke/122_verify_only.sh",
-      "source_sha256": "01a6f53d66aa9c172d2699e7509a3d7084e3ba5a8bff1ff8ece7e3898f9c186e",
-      "published_sha256": "01a6f53d66aa9c172d2699e7509a3d7084e3ba5a8bff1ff8ece7e3898f9c186e",
-      "size": 279,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35d-local-smoke/123_stop_local_shadow.sh",
-      "source": "hermes-pg-stage35d-local-smoke/123_stop_local_shadow.sh",
-      "source_sha256": "d1a27b6a768f2d633690f89ae1a7ffe43b0cee54e2fa1457a475f99c8057b623",
-      "published_sha256": "d1a27b6a768f2d633690f89ae1a7ffe43b0cee54e2fa1457a475f99c8057b623",
-      "size": 465,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35d-local-smoke/README.md",
-      "source": "hermes-pg-stage35d-local-smoke/README.md",
-      "source_sha256": "f50357892f957d9f767256a3edd48bc1b55dbb3abbce3fa46171803c675f5177",
-      "published_sha256": "f50357892f957d9f767256a3edd48bc1b55dbb3abbce3fa46171803c675f5177",
-      "size": 4726,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35d-local-smoke/smoke35d.py",
-      "source": "hermes-pg-stage35d-local-smoke/smoke35d.py",
-      "source_sha256": "92fd21c2099194345e3ce5947435f5c379ee6d499be606b1de942fb9f83410bc",
-      "published_sha256": "92fd21c2099194345e3ce5947435f5c379ee6d499be606b1de942fb9f83410bc",
-      "size": 6294,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35d-local-smoke/stage35d.py",
-      "source": "hermes-pg-stage35d-local-smoke/stage35d.py",
-      "source_sha256": "bbed81ef18b508dedf08aa90ca6cb55ceced797242ad80f1c8c567d1c7a0ccfb",
-      "published_sha256": "bbed81ef18b508dedf08aa90ca6cb55ceced797242ad80f1c8c567d1c7a0ccfb",
-      "size": 5938,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35d-local-smoke/test_stage35d.py",
-      "source": "hermes-pg-stage35d-local-smoke/test_stage35d.py",
-      "source_sha256": "de6b016ff1999e83298c34dd65fa72b56675fe60902a2781d12d261c8a7e24c7",
-      "published_sha256": "de6b016ff1999e83298c34dd65fa72b56675fe60902a2781d12d261c8a7e24c7",
-      "size": 8990,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35e-diag/130_readonly_preflight.sh",
-      "source": "hermes-pg-stage35e-diag/130_readonly_preflight.sh",
-      "source_sha256": "3a17d5b063e22f4f56e8b6bb308ff0e4b76a05d98c09a1b91447a548a3a75121",
-      "published_sha256": "3a17d5b063e22f4f56e8b6bb308ff0e4b76a05d98c09a1b91447a548a3a75121",
-      "size": 524,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35e-diag/131_run_diag_once.sh",
-      "source": "hermes-pg-stage35e-diag/131_run_diag_once.sh",
-      "source_sha256": "16323868bfa415b801766ca4aa6aeba2848de5aaf59d71d0002b67e9f66e9154",
-      "published_sha256": "16323868bfa415b801766ca4aa6aeba2848de5aaf59d71d0002b67e9f66e9154",
-      "size": 555,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35e-diag/132_postcheck.sh",
-      "source": "hermes-pg-stage35e-diag/132_postcheck.sh",
-      "source_sha256": "3abf1fd212930bf9ea087334dcfbc3d7e4d00d47cbf6890acd8e5592c5550b89",
-      "published_sha256": "3abf1fd212930bf9ea087334dcfbc3d7e4d00d47cbf6890acd8e5592c5550b89",
-      "size": 451,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35e-diag/README.md",
-      "source": "hermes-pg-stage35e-diag/README.md",
-      "source_sha256": "1fe2f6fb0a73416efec334e57327b54ff0c50f54e7112ea4f4491df54e992333",
-      "published_sha256": "1fe2f6fb0a73416efec334e57327b54ff0c50f54e7112ea4f4491df54e992333",
-      "size": 3001,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35e-diag/diag_server35e.py",
-      "source": "hermes-pg-stage35e-diag/diag_server35e.py",
-      "source_sha256": "963c4c86cdc1b8c9a876949271366e3a4fd6a36df19a5399359bb8e987ddd2fb",
-      "published_sha256": "963c4c86cdc1b8c9a876949271366e3a4fd6a36df19a5399359bb8e987ddd2fb",
-      "size": 716,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35e-diag/log_audit35e.py",
-      "source": "hermes-pg-stage35e-diag/log_audit35e.py",
-      "source_sha256": "004495eb6e699f8ead103845c11aecef5bfd2520d9855f106a5ac595a10efbef",
-      "published_sha256": "004495eb6e699f8ead103845c11aecef5bfd2520d9855f106a5ac595a10efbef",
-      "size": 1741,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35e-diag/stage35e.py",
-      "source": "hermes-pg-stage35e-diag/stage35e.py",
-      "source_sha256": "feaf5be12fe8df3766f123dc51be25a78127c0544937e96cd1bae2564c357e4c",
-      "published_sha256": "feaf5be12fe8df3766f123dc51be25a78127c0544937e96cd1bae2564c357e4c",
-      "size": 11174,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35e-diag/stream35e.py",
-      "source": "hermes-pg-stage35e-diag/stream35e.py",
-      "source_sha256": "247b6b99830612495d07aec9425402813116c6896d3b8b03e9e2c43ffe6060e7",
-      "published_sha256": "247b6b99830612495d07aec9425402813116c6896d3b8b03e9e2c43ffe6060e7",
-      "size": 4783,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35e-diag/test_stage35e.py",
-      "source": "hermes-pg-stage35e-diag/test_stage35e.py",
-      "source_sha256": "2ea5d601a9a03cad3cf1978ac1d454e476ec9b8e009dde18ae108a2cb8f1d683",
-      "published_sha256": "2ea5d601a9a03cad3cf1978ac1d454e476ec9b8e009dde18ae108a2cb8f1d683",
-      "size": 6377,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35f-guard-probe/140_install_and_diag_once.sh",
-      "source": "hermes-pg-stage35f-guard-probe/140_install_and_diag_once.sh",
-      "source_sha256": "c0c41b448816ab486c3c37f280f450ef423112ea1c521cdb73d69f168c806bdb",
-      "published_sha256": "c0c41b448816ab486c3c37f280f450ef423112ea1c521cdb73d69f168c806bdb",
-      "size": 2180,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35f-guard-probe/README.md",
-      "source": "hermes-pg-stage35f-guard-probe/README.md",
-      "source_sha256": "ec928cedbe6b661c80fe7f5591a930c4822557b8cb1e81dd0bafb53efa5efe59",
-      "published_sha256": "ec928cedbe6b661c80fe7f5591a930c4822557b8cb1e81dd0bafb53efa5efe59",
-      "size": 3045,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35f-guard-probe/diag_server35f.py",
-      "source": "hermes-pg-stage35f-guard-probe/diag_server35f.py",
-      "source_sha256": "d02c390731d6b2393b80f693340cde1334f2d556802753e63132cc9890494470",
-      "published_sha256": "d02c390731d6b2393b80f693340cde1334f2d556802753e63132cc9890494470",
-      "size": 1207,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35f-guard-probe/guard35f.py",
-      "source": "hermes-pg-stage35f-guard-probe/guard35f.py",
-      "source_sha256": "695622407566b316482f676da0bf3c5a63a12b3f4b6e6d706c92130a760aaa88",
-      "published_sha256": "695622407566b316482f676da0bf3c5a63a12b3f4b6e6d706c92130a760aaa88",
-      "size": 5042,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35f-guard-probe/log_audit35f.py",
-      "source": "hermes-pg-stage35f-guard-probe/log_audit35f.py",
-      "source_sha256": "69b265732f1657a395a62d82e17d4efc282e31a671a843ceb62a67dc49209f9a",
-      "published_sha256": "69b265732f1657a395a62d82e17d4efc282e31a671a843ceb62a67dc49209f9a",
-      "size": 1033,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35f-guard-probe/stage35f.py",
-      "source": "hermes-pg-stage35f-guard-probe/stage35f.py",
-      "source_sha256": "c6271a43cc1668655445c58c5737111aa6ca4d4d0c86a1314f4382c2aac92e54",
-      "published_sha256": "c6271a43cc1668655445c58c5737111aa6ca4d4d0c86a1314f4382c2aac92e54",
-      "size": 11564,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35f-guard-probe/stream35f.py",
-      "source": "hermes-pg-stage35f-guard-probe/stream35f.py",
-      "source_sha256": "4370cda1be72d4dfc10cae7399487e8de4a5c6c9c97f23535a1f7d97186b1a6d",
-      "published_sha256": "4370cda1be72d4dfc10cae7399487e8de4a5c6c9c97f23535a1f7d97186b1a6d",
-      "size": 6705,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35f-guard-probe/test_stage35f.py",
-      "source": "hermes-pg-stage35f-guard-probe/test_stage35f.py",
-      "source_sha256": "443643c56ff5a226f83ab24bcabe30e140658a7d69ff0ee41e04be44710aa0df",
-      "published_sha256": "443643c56ff5a226f83ab24bcabe30e140658a7d69ff0ee41e04be44710aa0df",
-      "size": 7548,
+      "path": "source/installed_stages/hermes-pg-stage35c-static-guard/wire56.py",
+      "source": "hermes-pg-stage35c-static-guard/wire56.py",
+      "source_sha256": "f907ec9797e40b56997648453574ed6a82c37c6d7c43204cce793131f3e097a9",
+      "published_sha256": "f907ec9797e40b56997648453574ed6a82c37c6d7c43204cce793131f3e097a9",
+      "size": 1006,
       "ipv4_replacements": 0
     },
     {
@@ -2404,46 +508,6 @@
       "ipv4_replacements": 0
     },
     {
-      "path": "source/installed_stages/hermes-pg-stage35hi-local-e2e/170_install_and_run_once.sh",
-      "source": "hermes-pg-stage35hi-local-e2e/170_install_and_run_once.sh",
-      "source_sha256": "9124f9d57c7c8b5901e87f54f97666abcaae865c310037a83c31d4e14d077372",
-      "published_sha256": "9124f9d57c7c8b5901e87f54f97666abcaae865c310037a83c31d4e14d077372",
-      "size": 2138,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35hi-local-e2e/README.md",
-      "source": "hermes-pg-stage35hi-local-e2e/README.md",
-      "source_sha256": "2f9334dc9c240e341b37d7d60072dc797c8b9a0ee2e71b2b372692ed4b27d56a",
-      "published_sha256": "2f9334dc9c240e341b37d7d60072dc797c8b9a0ee2e71b2b372692ed4b27d56a",
-      "size": 2994,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35hi-local-e2e/proxy35hi.py",
-      "source": "hermes-pg-stage35hi-local-e2e/proxy35hi.py",
-      "source_sha256": "e40767750e7090be152bbb04374008175624ea2aec0cceb2986ede9e4e7d22a5",
-      "published_sha256": "e40767750e7090be152bbb04374008175624ea2aec0cceb2986ede9e4e7d22a5",
-      "size": 15421,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35hi-local-e2e/run_stage35hi_candidate_NOT_ACTIVATED.sh",
-      "source": "hermes-pg-stage35hi-local-e2e/run_stage35hi_candidate_NOT_ACTIVATED.sh",
-      "source_sha256": "7441a500c5425d9c374fa9802ffa56a05cae24b79526c4bc0164c0c10ac264fb",
-      "published_sha256": "7441a500c5425d9c374fa9802ffa56a05cae24b79526c4bc0164c0c10ac264fb",
-      "size": 1332,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35hi-local-e2e/test_stage35hi.py",
-      "source": "hermes-pg-stage35hi-local-e2e/test_stage35hi.py",
-      "source_sha256": "8a5aacaa806b38b4550de070961049a2eff5bb31f60284dfcd41f8497ef6975c",
-      "published_sha256": "8a5aacaa806b38b4550de070961049a2eff5bb31f60284dfcd41f8497ef6975c",
-      "size": 8544,
-      "ipv4_replacements": 0
-    },
-    {
       "path": "source/installed_stages/hermes-pg-stage35jk-cutover/180_install_verify_and_cutover_once.sh",
       "source": "hermes-pg-stage35jk-cutover/180_install_verify_and_cutover_once.sh",
       "source_sha256": "f8689e3a4e0033beef063ee5e60d4b02c04707778efa29b790127e0862f835e6",
@@ -2500,491 +564,59 @@
       "ipv4_replacements": 0
     },
     {
-      "path": "source/installed_stages/hermes-pg-stage35l-recovery-cutover/190_install_and_resume_cutover_once.sh",
-      "source": "hermes-pg-stage35l-recovery-cutover/190_install_and_resume_cutover_once.sh",
-      "source_sha256": "7cdc7065f65010347f030438263fb30215346b0c71bf349f477382213c8e1ed0",
-      "published_sha256": "7cdc7065f65010347f030438263fb30215346b0c71bf349f477382213c8e1ed0",
-      "size": 1975,
+      "path": "source/installed_stages/hermes-pg-stage35v/README_RU.md",
+      "source": "hermes-pg-stage35v/stage35v.zip:README_RU.md",
+      "source_sha256": "4c4b5ddcff4cb2d070a16af160a0c79c18b421c170e0734ac97d5d3f4f2ca77d",
+      "published_sha256": "4c4b5ddcff4cb2d070a16af160a0c79c18b421c170e0734ac97d5d3f4f2ca77d",
+      "size": 10789,
       "ipv4_replacements": 0
     },
     {
-      "path": "source/installed_stages/hermes-pg-stage35l-recovery-cutover/191_verify_only.sh",
-      "source": "hermes-pg-stage35l-recovery-cutover/191_verify_only.sh",
-      "source_sha256": "030de682869b4ebe8433e3283ea0c9069a3d967400333203b4ab901583a8c998",
-      "published_sha256": "030de682869b4ebe8433e3283ea0c9069a3d967400333203b4ab901583a8c998",
-      "size": 295,
+      "path": "source/installed_stages/hermes-pg-stage35v/__main__.py",
+      "source": "hermes-pg-stage35v/stage35v.zip:__main__.py",
+      "source_sha256": "69b7e069312d5e085fa53151d2688dcb203ed7e97955fc1d28aa4177d9dcd9e0",
+      "published_sha256": "69b7e069312d5e085fa53151d2688dcb203ed7e97955fc1d28aa4177d9dcd9e0",
+      "size": 11360,
       "ipv4_replacements": 0
     },
     {
-      "path": "source/installed_stages/hermes-pg-stage35l-recovery-cutover/192_owner_rollback.sh",
-      "source": "hermes-pg-stage35l-recovery-cutover/192_owner_rollback.sh",
-      "source_sha256": "100aec012eda2f54dd789a4f2f2a9d5f7fc0147bcd54f81a3691842a88faade5",
-      "published_sha256": "100aec012eda2f54dd789a4f2f2a9d5f7fc0147bcd54f81a3691842a88faade5",
-      "size": 322,
+      "path": "source/installed_stages/hermes-pg-stage35v/policy35v.py",
+      "source": "hermes-pg-stage35v/stage35v.zip:policy35v.py",
+      "source_sha256": "df77c295d4c04f3c2721c4583abc707435d2a4ef8dc0abae7d09ecf9f04c279f",
+      "published_sha256": "df77c295d4c04f3c2721c4583abc707435d2a4ef8dc0abae7d09ecf9f04c279f",
+      "size": 3941,
       "ipv4_replacements": 0
     },
     {
-      "path": "source/installed_stages/hermes-pg-stage35l-recovery-cutover/README.md",
-      "source": "hermes-pg-stage35l-recovery-cutover/README.md",
-      "source_sha256": "6fe2acef8f7eb79303ec55e8ca238968b9fcb2284bf009a9ae0d29ff7e7a2c4b",
-      "published_sha256": "6fe2acef8f7eb79303ec55e8ca238968b9fcb2284bf009a9ae0d29ff7e7a2c4b",
-      "size": 3337,
+      "path": "source/installed_stages/hermes-pg-stage35v/runtime35v.py",
+      "source": "hermes-pg-stage35v/stage35v.zip:runtime35v.py",
+      "source_sha256": "3bfcccedb2a3b6a8964c867badb5cd4370d719f7a079e8456446a65307b96d6a",
+      "published_sha256": "3bfcccedb2a3b6a8964c867badb5cd4370d719f7a079e8456446a65307b96d6a",
+      "size": 4781,
       "ipv4_replacements": 0
     },
     {
-      "path": "source/installed_stages/hermes-pg-stage35l-recovery-cutover/stage35l.py",
-      "source": "hermes-pg-stage35l-recovery-cutover/stage35l.py",
-      "source_sha256": "feb6f372f4cea00d0928cf55d26bb0dccb79b78d2f695d4a1c5d6c9b490d1efd",
-      "published_sha256": "feb6f372f4cea00d0928cf55d26bb0dccb79b78d2f695d4a1c5d6c9b490d1efd",
-      "size": 14537,
+      "path": "source/installed_stages/hermes-pg-stage35v/tests/guard35g.py",
+      "source": "hermes-pg-stage35v/stage35v.zip:tests/guard35g.py",
+      "source_sha256": "695622407566b316482f676da0bf3c5a63a12b3f4b6e6d706c92130a760aaa88",
+      "published_sha256": "695622407566b316482f676da0bf3c5a63a12b3f4b6e6d706c92130a760aaa88",
+      "size": 5042,
       "ipv4_replacements": 0
     },
     {
-      "path": "source/installed_stages/hermes-pg-stage35l-recovery-cutover/test_stage35l.py",
-      "source": "hermes-pg-stage35l-recovery-cutover/test_stage35l.py",
-      "source_sha256": "d3b53ea9adc53afb7b077718f5c5b31f7e72d88299b2dbe8ecd4b0ce76c17391",
-      "published_sha256": "d3b53ea9adc53afb7b077718f5c5b31f7e72d88299b2dbe8ecd4b0ce76c17391",
-      "size": 13771,
+      "path": "source/installed_stages/hermes-pg-stage35v/tests/test_35v.py",
+      "source": "hermes-pg-stage35v/stage35v.zip:tests/test_35v.py",
+      "source_sha256": "1c8f3a81840da20031d76c5e8feeb75c49e5dcde0e28126e80b3153b7c650d7b",
+      "published_sha256": "1c8f3a81840da20031d76c5e8feeb75c49e5dcde0e28126e80b3153b7c650d7b",
+      "size": 9542,
       "ipv4_replacements": 0
     },
     {
-      "path": "source/installed_stages/hermes-pg-stage35n-key-canonical/200_install_and_apply_once.sh",
-      "source": "hermes-pg-stage35n-key-canonical/200_install_and_apply_once.sh",
-      "source_sha256": "1587b51bb618bae679209972d825ff465c796f3f3618b279bb8ff2283f327949",
-      "published_sha256": "1587b51bb618bae679209972d825ff465c796f3f3618b279bb8ff2283f327949",
-      "size": 1572,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35n-key-canonical/201_verify_only.sh",
-      "source": "hermes-pg-stage35n-key-canonical/201_verify_only.sh",
-      "source_sha256": "e2ac7ef3d78d0594f2e76275e6e542a375cd343e5c902b8af2b3a57b34a2c214",
-      "published_sha256": "e2ac7ef3d78d0594f2e76275e6e542a375cd343e5c902b8af2b3a57b34a2c214",
-      "size": 135,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35n-key-canonical/README.md",
-      "source": "hermes-pg-stage35n-key-canonical/README.md",
-      "source_sha256": "0acb4136ba21e7c86f9a9c3057e2337288a793ce1f70f8509272c219b3e538ae",
-      "published_sha256": "0acb4136ba21e7c86f9a9c3057e2337288a793ce1f70f8509272c219b3e538ae",
-      "size": 1827,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35n-key-canonical/stage35n.py",
-      "source": "hermes-pg-stage35n-key-canonical/stage35n.py",
-      "source_sha256": "5bd576cb799573193fc0776091bf4c8c5783da3ee40df1a9ab25d278725e8563",
-      "published_sha256": "5bd576cb799573193fc0776091bf4c8c5783da3ee40df1a9ab25d278725e8563",
-      "size": 10925,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35n-key-canonical/test_stage35n.py",
-      "source": "hermes-pg-stage35n-key-canonical/test_stage35n.py",
-      "source_sha256": "367c47c2e984e66729a3da8df3a38dfdbace41e4d75af5e7a58fdd07e6ecc3e8",
-      "published_sha256": "367c47c2e984e66729a3da8df3a38dfdbace41e4d75af5e7a58fdd07e6ecc3e8",
-      "size": 4011,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35r-connector-observer/230_install_and_activate_once.sh",
-      "source": "hermes-pg-stage35r-connector-observer/230_install_and_activate_once.sh",
-      "source_sha256": "069be4aff485059449a69d69ee98e1f956b7ef0a6f498ba3523ab1049629ba08",
-      "published_sha256": "069be4aff485059449a69d69ee98e1f956b7ef0a6f498ba3523ab1049629ba08",
-      "size": 1344,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35r-connector-observer/231_collect_restore.sh",
-      "source": "hermes-pg-stage35r-connector-observer/231_collect_restore.sh",
-      "source_sha256": "682d423f9186917b498595024953035a7d376ccc1d146b489632765e719b9155",
-      "published_sha256": "682d423f9186917b498595024953035a7d376ccc1d146b489632765e719b9155",
-      "size": 290,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35r-connector-observer/232_emergency_restore.sh",
-      "source": "hermes-pg-stage35r-connector-observer/232_emergency_restore.sh",
-      "source_sha256": "6973496a7f109ea4c05b003d4a359d097f2e64cb7d2fb0806366d3eb6874845b",
-      "published_sha256": "6973496a7f109ea4c05b003d4a359d097f2e64cb7d2fb0806366d3eb6874845b",
-      "size": 295,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35r-connector-observer/README.md",
-      "source": "hermes-pg-stage35r-connector-observer/README.md",
-      "source_sha256": "b4efb6d72ee6372c6545ebd909413ba16ceeeb841618e8f8514995eb585b6bf3",
-      "published_sha256": "b4efb6d72ee6372c6545ebd909413ba16ceeeb841618e8f8514995eb585b6bf3",
-      "size": 2744,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35r-connector-observer/proxy35r.py",
-      "source": "hermes-pg-stage35r-connector-observer/proxy35r.py",
-      "source_sha256": "2c793b1631642f8488b6ac98a84325de5ace6efc8fe2615d788c162e35028dbf",
-      "published_sha256": "2c793b1631642f8488b6ac98a84325de5ace6efc8fe2615d788c162e35028dbf",
-      "size": 6252,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35r-connector-observer/run_stage35r_instrumented.sh",
-      "source": "hermes-pg-stage35r-connector-observer/run_stage35r_instrumented.sh",
-      "source_sha256": "e3efe12e5f802600ec0f3547db212f88623ff372cedc19877226147d9b06895a",
-      "published_sha256": "e3efe12e5f802600ec0f3547db212f88623ff372cedc19877226147d9b06895a",
-      "size": 1312,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35r-connector-observer/stage35r.py",
-      "source": "hermes-pg-stage35r-connector-observer/stage35r.py",
-      "source_sha256": "67bdc076601b2805b3fba9a34e16c330a09329deb0ed1647a6e924d9cfc117ac",
-      "published_sha256": "67bdc076601b2805b3fba9a34e16c330a09329deb0ed1647a6e924d9cfc117ac",
-      "size": 14037,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35r-connector-observer/test_stage35r.py",
-      "source": "hermes-pg-stage35r-connector-observer/test_stage35r.py",
-      "source_sha256": "e7767310995d36a741b46cb74537f8de8265aca4ed7933d34dd18d5193b678b9",
-      "published_sha256": "e7767310995d36a741b46cb74537f8de8265aca4ed7933d34dd18d5193b678b9",
-      "size": 6182,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35s-connector-observer/240_install_and_activate_once.sh",
-      "source": "hermes-pg-stage35s-connector-observer/240_install_and_activate_once.sh",
-      "source_sha256": "ae406c3c1693a43f15f260e7a6a151974bbff735b2888d121656329100b9ede3",
-      "published_sha256": "ae406c3c1693a43f15f260e7a6a151974bbff735b2888d121656329100b9ede3",
-      "size": 1276,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35s-connector-observer/241_collect_restore.sh",
-      "source": "hermes-pg-stage35s-connector-observer/241_collect_restore.sh",
-      "source_sha256": "dd9beb16c237e8ff384946ec5bd1ad0c8f41ca5ffd8b490e9c32c51dc53a78bc",
-      "published_sha256": "dd9beb16c237e8ff384946ec5bd1ad0c8f41ca5ffd8b490e9c32c51dc53a78bc",
-      "size": 212,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35s-connector-observer/242_emergency_restore.sh",
-      "source": "hermes-pg-stage35s-connector-observer/242_emergency_restore.sh",
-      "source_sha256": "30aab521c1e94773f31085c8f8cbb6285d92e2bee94f4f396b990798268a2689",
-      "published_sha256": "30aab521c1e94773f31085c8f8cbb6285d92e2bee94f4f396b990798268a2689",
-      "size": 212,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35s-connector-observer/README.md",
-      "source": "hermes-pg-stage35s-connector-observer/README.md",
-      "source_sha256": "84d459d07d5fd5c80460f9a701e7e99f5c3ed6449cae93b863fd88455e59debe",
-      "published_sha256": "84d459d07d5fd5c80460f9a701e7e99f5c3ed6449cae93b863fd88455e59debe",
-      "size": 3216,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35s-connector-observer/mcp_probe35s.py",
-      "source": "hermes-pg-stage35s-connector-observer/mcp_probe35s.py",
-      "source_sha256": "1f557e0038cfabb9d4fb1f12b4eda6c88bc9f9dcf97139ec30eee0a7d7a295e4",
-      "published_sha256": "1f557e0038cfabb9d4fb1f12b4eda6c88bc9f9dcf97139ec30eee0a7d7a295e4",
-      "size": 1968,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35s-connector-observer/proxy35s.py",
-      "source": "hermes-pg-stage35s-connector-observer/proxy35s.py",
-      "source_sha256": "059d2f21e2015a118690c0b3aa506249af271baf50c17d4d35c1dc6d707ebfc4",
-      "published_sha256": "059d2f21e2015a118690c0b3aa506249af271baf50c17d4d35c1dc6d707ebfc4",
-      "size": 6252,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35s-connector-observer/run_stage35s_instrumented.sh",
-      "source": "hermes-pg-stage35s-connector-observer/run_stage35s_instrumented.sh",
-      "source_sha256": "e3efe12e5f802600ec0f3547db212f88623ff372cedc19877226147d9b06895a",
-      "published_sha256": "e3efe12e5f802600ec0f3547db212f88623ff372cedc19877226147d9b06895a",
-      "size": 1312,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35s-connector-observer/stage35s.py",
-      "source": "hermes-pg-stage35s-connector-observer/stage35s.py",
-      "source_sha256": "c394e48e0c2ab369a46e0a145d6250629385548dc83fe93f7e142b72090e8e53",
-      "published_sha256": "c394e48e0c2ab369a46e0a145d6250629385548dc83fe93f7e142b72090e8e53",
-      "size": 18014,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35s-connector-observer/stream35s.py",
-      "source": "hermes-pg-stage35s-connector-observer/stream35s.py",
-      "source_sha256": "be96ecb6a7e3c2669ea333ab6a35ea3357868f7a6d2d43c8e4239941f4789b27",
-      "published_sha256": "be96ecb6a7e3c2669ea333ab6a35ea3357868f7a6d2d43c8e4239941f4789b27",
-      "size": 6705,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35s-connector-observer/test_stage35s.py",
-      "source": "hermes-pg-stage35s-connector-observer/test_stage35s.py",
-      "source_sha256": "be4b969e140d72fea4cf8adb5f5afceda533366016b7af821c05a9896e8de07b",
-      "published_sha256": "be4b969e140d72fea4cf8adb5f5afceda533366016b7af821c05a9896e8de07b",
-      "size": 9848,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35t-connector-observer/250_install_and_activate_once.sh",
-      "source": "hermes-pg-stage35t-connector-observer/250_install_and_activate_once.sh",
-      "source_sha256": "f4a851eac664e37db6f5a143fcf2c069d507487de7928b579050181371ec5da8",
-      "published_sha256": "f4a851eac664e37db6f5a143fcf2c069d507487de7928b579050181371ec5da8",
-      "size": 1279,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35t-connector-observer/251_collect_restore.sh",
-      "source": "hermes-pg-stage35t-connector-observer/251_collect_restore.sh",
-      "source_sha256": "6387cbf14d4b7491e91a0c66aab130b56302e4e56991bd12b8ef6fb125373ecd",
-      "published_sha256": "6387cbf14d4b7491e91a0c66aab130b56302e4e56991bd12b8ef6fb125373ecd",
-      "size": 212,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35t-connector-observer/252_emergency_restore.sh",
-      "source": "hermes-pg-stage35t-connector-observer/252_emergency_restore.sh",
-      "source_sha256": "ac3e360638605c545c8ba51848e52f5e842e19f7e6663ae2ea92f1aa58a8f282",
-      "published_sha256": "ac3e360638605c545c8ba51848e52f5e842e19f7e6663ae2ea92f1aa58a8f282",
-      "size": 212,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35t-connector-observer/README.md",
-      "source": "hermes-pg-stage35t-connector-observer/README.md",
-      "source_sha256": "ccf85742c9993246439270d07546404cb472eb7b7cd3b41df4d45f22833cd8a5",
-      "published_sha256": "ccf85742c9993246439270d07546404cb472eb7b7cd3b41df4d45f22833cd8a5",
-      "size": 2775,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35t-connector-observer/mcp_probe35t.py",
-      "source": "hermes-pg-stage35t-connector-observer/mcp_probe35t.py",
-      "source_sha256": "3226e552298d6af3bcc7fd6487cc689ba6e491e60e94ec36c079929c7186a77f",
-      "published_sha256": "3226e552298d6af3bcc7fd6487cc689ba6e491e60e94ec36c079929c7186a77f",
-      "size": 1968,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35t-connector-observer/proxy35t.py",
-      "source": "hermes-pg-stage35t-connector-observer/proxy35t.py",
-      "source_sha256": "1b850d7807367bc8c27056d7f4066ee6c2f61be213cef6b2dce81d61f952da4c",
-      "published_sha256": "1b850d7807367bc8c27056d7f4066ee6c2f61be213cef6b2dce81d61f952da4c",
-      "size": 8004,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35t-connector-observer/run_stage35t_instrumented.sh",
-      "source": "hermes-pg-stage35t-connector-observer/run_stage35t_instrumented.sh",
-      "source_sha256": "e3efe12e5f802600ec0f3547db212f88623ff372cedc19877226147d9b06895a",
-      "published_sha256": "e3efe12e5f802600ec0f3547db212f88623ff372cedc19877226147d9b06895a",
-      "size": 1312,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35t-connector-observer/stage35t.py",
-      "source": "hermes-pg-stage35t-connector-observer/stage35t.py",
-      "source_sha256": "a45758f024c01e68cf8ca0ec3c062e8041f59f5867f32c319bea755b5d13bb08",
-      "published_sha256": "a45758f024c01e68cf8ca0ec3c062e8041f59f5867f32c319bea755b5d13bb08",
-      "size": 18155,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35t-connector-observer/stream35t.py",
-      "source": "hermes-pg-stage35t-connector-observer/stream35t.py",
-      "source_sha256": "665cb6a9da569e146b5b37c4ac3d25cddb358e0bb887b158e082e9dcd4fd5834",
-      "published_sha256": "665cb6a9da569e146b5b37c4ac3d25cddb358e0bb887b158e082e9dcd4fd5834",
-      "size": 6705,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35t-connector-observer/test_stage35t.py",
-      "source": "hermes-pg-stage35t-connector-observer/test_stage35t.py",
-      "source_sha256": "009e1bc1824353eb9d6975847935d4e1ff9e41981ba61912737213c643e74f9c",
-      "published_sha256": "009e1bc1824353eb9d6975847935d4e1ff9e41981ba61912737213c643e74f9c",
-      "size": 11762,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35u-connector-observer/260_install_and_activate_once.sh",
-      "source": "hermes-pg-stage35u-connector-observer/260_install_and_activate_once.sh",
-      "source_sha256": "ee1921c98c97267fd909ac25e5ab9b9eb6c30564ade43342cae83979343e77cf",
-      "published_sha256": "ee1921c98c97267fd909ac25e5ab9b9eb6c30564ade43342cae83979343e77cf",
-      "size": 1279,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35u-connector-observer/261_collect_restore.sh",
-      "source": "hermes-pg-stage35u-connector-observer/261_collect_restore.sh",
-      "source_sha256": "f7712ae437ce33116eae7dbaeb06df5294699a3c41d3b6590a27af1189b2627c",
-      "published_sha256": "f7712ae437ce33116eae7dbaeb06df5294699a3c41d3b6590a27af1189b2627c",
-      "size": 212,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35u-connector-observer/262_emergency_restore.sh",
-      "source": "hermes-pg-stage35u-connector-observer/262_emergency_restore.sh",
-      "source_sha256": "12a497e06214fed982a434378dd0c919260921508a2d3cc7377412c9ac48cb75",
-      "published_sha256": "12a497e06214fed982a434378dd0c919260921508a2d3cc7377412c9ac48cb75",
-      "size": 212,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35u-connector-observer/README.md",
-      "source": "hermes-pg-stage35u-connector-observer/README.md",
-      "source_sha256": "e28288b2c39b0682ebbad9e3be0cff17b45ec9f160af01b70ad25145fc9eb9fc",
-      "published_sha256": "e28288b2c39b0682ebbad9e3be0cff17b45ec9f160af01b70ad25145fc9eb9fc",
-      "size": 2044,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35u-connector-observer/mcp_probe35u.py",
-      "source": "hermes-pg-stage35u-connector-observer/mcp_probe35u.py",
-      "source_sha256": "d20ca08987dba0ddc6e48bec007703a04fd2f12facfb5c2bc85af0e566bb43aa",
-      "published_sha256": "d20ca08987dba0ddc6e48bec007703a04fd2f12facfb5c2bc85af0e566bb43aa",
-      "size": 1968,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35u-connector-observer/proxy35u.py",
-      "source": "hermes-pg-stage35u-connector-observer/proxy35u.py",
-      "source_sha256": "65636742b51bd72dc7b45676d3e188f6737fddc166c42941a8c245ee4634c60a",
-      "published_sha256": "65636742b51bd72dc7b45676d3e188f6737fddc166c42941a8c245ee4634c60a",
-      "size": 10735,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35u-connector-observer/run_stage35u_instrumented.sh",
-      "source": "hermes-pg-stage35u-connector-observer/run_stage35u_instrumented.sh",
-      "source_sha256": "e3efe12e5f802600ec0f3547db212f88623ff372cedc19877226147d9b06895a",
-      "published_sha256": "e3efe12e5f802600ec0f3547db212f88623ff372cedc19877226147d9b06895a",
-      "size": 1312,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35u-connector-observer/stage35u.py",
-      "source": "hermes-pg-stage35u-connector-observer/stage35u.py",
-      "source_sha256": "54cd5ff91c6526c0ae628c3a6180548866bb33734bdec410953f2503a70a8edc",
-      "published_sha256": "54cd5ff91c6526c0ae628c3a6180548866bb33734bdec410953f2503a70a8edc",
-      "size": 18986,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35u-connector-observer/stream35u.py",
-      "source": "hermes-pg-stage35u-connector-observer/stream35u.py",
-      "source_sha256": "20bb18a74481ef9e823c6816be7801df348a6e32a2f84b001b682853bc90584b",
-      "published_sha256": "20bb18a74481ef9e823c6816be7801df348a6e32a2f84b001b682853bc90584b",
-      "size": 6705,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage35u-connector-observer/test_stage35u.py",
-      "source": "hermes-pg-stage35u-connector-observer/test_stage35u.py",
-      "source_sha256": "4ec4f5c39a533ce2fd5e19548d3c1053432788f5740020d678e98c95a8cb693e",
-      "published_sha256": "4ec4f5c39a533ce2fd5e19548d3c1053432788f5740020d678e98c95a8cb693e",
-      "size": 14121,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage36-controlled-e2e/301_scope_to_created_task.sh",
-      "source": "hermes-pg-stage36-controlled-e2e/301_scope_to_created_task.sh",
-      "source_sha256": "6675b066f10bdeff8f6033d91092ba23202a2a9fb51d1bd320030b6ae97c6997",
-      "published_sha256": "6675b066f10bdeff8f6033d91092ba23202a2a9fb51d1bd320030b6ae97c6997",
-      "size": 273,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage36-controlled-e2e/302_revoke_permit.sh",
-      "source": "hermes-pg-stage36-controlled-e2e/302_revoke_permit.sh",
-      "source_sha256": "b49ed1f3fbd8ed02546743982c21a82f62e59f975b7fd6d5310ba6422015b049",
-      "published_sha256": "b49ed1f3fbd8ed02546743982c21a82f62e59f975b7fd6d5310ba6422015b049",
-      "size": 269,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage36-controlled-e2e/README.md",
-      "source": "hermes-pg-stage36-controlled-e2e/README.md",
-      "source_sha256": "511c13b299fc08990da23a86d4d0a6a7de9905854060946c99a598810d5244d2",
-      "published_sha256": "511c13b299fc08990da23a86d4d0a6a7de9905854060946c99a598810d5244d2",
-      "size": 2428,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage36-controlled-e2e/stage36.py",
-      "source": "hermes-pg-stage36-controlled-e2e/stage36.py",
-      "source_sha256": "7d488d187acdedc47dc4fc0f0faf8ab392acdbddd74a6b08c8909744787ef3a2",
-      "published_sha256": "7d488d187acdedc47dc4fc0f0faf8ab392acdbddd74a6b08c8909744787ef3a2",
-      "size": 10639,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage36-controlled-e2e/test_stage36.py",
-      "source": "hermes-pg-stage36-controlled-e2e/test_stage36.py",
-      "source_sha256": "e14aa8f4b4bbd36936e01555b50a24fb03f2dededc4b15027db682d6d83d7cee",
-      "published_sha256": "e14aa8f4b4bbd36936e01555b50a24fb03f2dededc4b15027db682d6d83d7cee",
-      "size": 4079,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage36b-managed-inbox-handoff/311_commit_when_multitool_closed.sh",
-      "source": "hermes-pg-stage36b-managed-inbox-handoff/311_commit_when_multitool_closed.sh",
-      "source_sha256": "8b5bec52f0a783e41330af94f45e358840d8d890eb071dd10e0531ea606b822b",
-      "published_sha256": "8b5bec52f0a783e41330af94f45e358840d8d890eb071dd10e0531ea606b822b",
-      "size": 239,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage36b-managed-inbox-handoff/312_status_readonly.sh",
-      "source": "hermes-pg-stage36b-managed-inbox-handoff/312_status_readonly.sh",
-      "source_sha256": "710bf497a7f4b3c99ab3a2f0c4b3d3cdd4ad720e7dd652a2d172eae7470942e2",
-      "published_sha256": "710bf497a7f4b3c99ab3a2f0c4b3d3cdd4ad720e7dd652a2d172eae7470942e2",
-      "size": 142,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage36b-managed-inbox-handoff/313_emergency_revoke_gate.sh",
-      "source": "hermes-pg-stage36b-managed-inbox-handoff/313_emergency_revoke_gate.sh",
-      "source_sha256": "b0a29cc4b3d5d440d48f4115cad2ae54990dcfcc72cb6ccf718ba8afd0599ff0",
-      "published_sha256": "b0a29cc4b3d5d440d48f4115cad2ae54990dcfcc72cb6ccf718ba8afd0599ff0",
-      "size": 147,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage36b-managed-inbox-handoff/314_rollback_before_claim.sh",
-      "source": "hermes-pg-stage36b-managed-inbox-handoff/314_rollback_before_claim.sh",
-      "source_sha256": "83e986058e9d3942ebecaff61c247f53a57cbd96fab27f44747bdf1b4cb2a062",
-      "published_sha256": "83e986058e9d3942ebecaff61c247f53a57cbd96fab27f44747bdf1b4cb2a062",
-      "size": 160,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage36b-managed-inbox-handoff/315_progress_readonly.sh",
-      "source": "hermes-pg-stage36b-managed-inbox-handoff/315_progress_readonly.sh",
-      "source_sha256": "09a8d0a64ef8e62441a0f3bb51054925c3ac8bbefabe88af3f72cff538b378f1",
-      "published_sha256": "09a8d0a64ef8e62441a0f3bb51054925c3ac8bbefabe88af3f72cff538b378f1",
-      "size": 175,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage36b-managed-inbox-handoff/README.md",
-      "source": "hermes-pg-stage36b-managed-inbox-handoff/README.md",
-      "source_sha256": "d791702ba3c2aa48a3071f15a7262d323b75331d615c0a93b610836a5b04f1b7",
-      "published_sha256": "d791702ba3c2aa48a3071f15a7262d323b75331d615c0a93b610836a5b04f1b7",
-      "size": 6046,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage36b-managed-inbox-handoff/stage36b.py",
-      "source": "hermes-pg-stage36b-managed-inbox-handoff/stage36b.py",
-      "source_sha256": "ad84b6d05121f20b7c73c9a8974b7c9b269ab84414f38acbe62e1e623496941c",
-      "published_sha256": "ad84b6d05121f20b7c73c9a8974b7c9b269ab84414f38acbe62e1e623496941c",
-      "size": 24611,
+      "path": "source/installed_stages/hermes-pg-stage35v/tests/test_http_sdk.py",
+      "source": "hermes-pg-stage35v/stage35v.zip:tests/test_http_sdk.py",
+      "source_sha256": "77542d524bac3252624f65ec812a38a4805719ec71f02d9675610590a205059a",
+      "published_sha256": "77542d524bac3252624f65ec812a38a4805719ec71f02d9675610590a205059a",
+      "size": 4111,
       "ipv4_replacements": 0
     },
     {
@@ -3028,179 +660,27 @@
       "ipv4_replacements": 0
     },
     {
-      "path": "source/installed_stages/hermes-pg-stage37b-readonly-restart/380_install_readonly_restart.sh",
-      "source": "hermes-pg-stage37b-readonly-restart/380_install_readonly_restart.sh",
-      "source_sha256": "1acb7aca1bbccc89856deb7722c1a65e4dc18dca7fd96fd75bbd293d99f3841b",
-      "published_sha256": "1acb7aca1bbccc89856deb7722c1a65e4dc18dca7fd96fd75bbd293d99f3841b",
-      "size": 1441,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage37b-readonly-restart/381_before_restart.sh",
-      "source": "hermes-pg-stage37b-readonly-restart/381_before_restart.sh",
-      "source_sha256": "c87204a554dec55acd211e4d1c35fa0f200d6f90604b892831bc35a1f115ccc7",
-      "published_sha256": "c87204a554dec55acd211e4d1c35fa0f200d6f90604b892831bc35a1f115ccc7",
-      "size": 249,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage37b-readonly-restart/382_confirm_quiesced.sh",
-      "source": "hermes-pg-stage37b-readonly-restart/382_confirm_quiesced.sh",
-      "source_sha256": "b8f637cd7b4c2c448d6179218b82d0df7dd7839f030d6c13f6c1f90cc9e15983",
-      "published_sha256": "b8f637cd7b4c2c448d6179218b82d0df7dd7839f030d6c13f6c1f90cc9e15983",
-      "size": 248,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage37b-readonly-restart/383_verify_reopened.sh",
-      "source": "hermes-pg-stage37b-readonly-restart/383_verify_reopened.sh",
-      "source_sha256": "8dbf42bcea138d56a14d4ea2bee513b81807b2821a2a131bea492ee6782947fc",
-      "published_sha256": "8dbf42bcea138d56a14d4ea2bee513b81807b2821a2a131bea492ee6782947fc",
-      "size": 248,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage37b-readonly-restart/384_status_readonly.sh",
-      "source": "hermes-pg-stage37b-readonly-restart/384_status_readonly.sh",
-      "source_sha256": "b926dd3a4735cac0f7eb6ab69f993a90efc1be0ea87e86f06970bc8194b98208",
-      "published_sha256": "b926dd3a4735cac0f7eb6ab69f993a90efc1be0ea87e86f06970bc8194b98208",
-      "size": 249,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage37b-readonly-restart/PLAN_37B.md",
-      "source": "hermes-pg-stage37b-readonly-restart/PLAN_37B.md",
-      "source_sha256": "b69c43434b4161f92d67d33e919ad362599cdb3c0685efcc8dfbcfd5c408e532",
-      "published_sha256": "b69c43434b4161f92d67d33e919ad362599cdb3c0685efcc8dfbcfd5c408e532",
-      "size": 1080,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage37b-readonly-restart/README.md",
-      "source": "hermes-pg-stage37b-readonly-restart/README.md",
-      "source_sha256": "2e1f16fd8fa07411f6bf5d424c02852f66432f68b7ba996c9c900f2cc7515cc5",
-      "published_sha256": "2e1f16fd8fa07411f6bf5d424c02852f66432f68b7ba996c9c900f2cc7515cc5",
-      "size": 2507,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage37b-readonly-restart/stage37b.py",
-      "source": "hermes-pg-stage37b-readonly-restart/stage37b.py",
-      "source_sha256": "2737b7f104a6ccf52d9439bb6e4aae0fef86941546d09ed7fffac6c6667b5562",
-      "published_sha256": "2737b7f104a6ccf52d9439bb6e4aae0fef86941546d09ed7fffac6c6667b5562",
-      "size": 14742,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage37b-readonly-restart/test_stage37b.py",
-      "source": "hermes-pg-stage37b-readonly-restart/test_stage37b.py",
-      "source_sha256": "8071ef6ee486be19d9a26faf60cb63c88859f064f0e81a479f1dfa9cfb2241db",
-      "published_sha256": "8071ef6ee486be19d9a26faf60cb63c88859f064f0e81a479f1dfa9cfb2241db",
-      "size": 9427,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage37b2-fault-injection/390_install_and_test_offline.sh",
-      "source": "hermes-pg-stage37b2-fault-injection/390_install_and_test_offline.sh",
-      "source_sha256": "89fe143f573ed334bf65d7f3fc1e75bcd1838ee8780b5d42a96818a698279971",
-      "published_sha256": "89fe143f573ed334bf65d7f3fc1e75bcd1838ee8780b5d42a96818a698279971",
-      "size": 862,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage37b2-fault-injection/391_recheck_readonly.sh",
-      "source": "hermes-pg-stage37b2-fault-injection/391_recheck_readonly.sh",
-      "source_sha256": "c4142595d254c1ba881a82bcec9bcb3af18278e47787d1635a509aa2cd663a04",
-      "published_sha256": "c4142595d254c1ba881a82bcec9bcb3af18278e47787d1635a509aa2cd663a04",
-      "size": 327,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage37b2-fault-injection/README.md",
-      "source": "hermes-pg-stage37b2-fault-injection/README.md",
-      "source_sha256": "dde99490d13cf12a2c1922c39a3b310968477f63352b17c8bd48d1e0946b8faa",
-      "published_sha256": "dde99490d13cf12a2c1922c39a3b310968477f63352b17c8bd48d1e0946b8faa",
-      "size": 2298,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage37b2-fault-injection/fault_reconciliation37b2.cjs",
-      "source": "hermes-pg-stage37b2-fault-injection/fault_reconciliation37b2.cjs",
-      "source_sha256": "99425c03cadded13b9a0885f3ed16483b2876fd3207200be586fa15d662ede7a",
-      "published_sha256": "99425c03cadded13b9a0885f3ed16483b2876fd3207200be586fa15d662ede7a",
-      "size": 10533,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage37b2-fault-injection/stage37b2.py",
-      "source": "hermes-pg-stage37b2-fault-injection/stage37b2.py",
-      "source_sha256": "43313fafd6c766f2c04058fc741969db5077aaf99fdfea63ecc860ae9c0ad660",
-      "published_sha256": "43313fafd6c766f2c04058fc741969db5077aaf99fdfea63ecc860ae9c0ad660",
-      "size": 5228,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage37b2-fault-injection/test_stage37b2.py",
-      "source": "hermes-pg-stage37b2-fault-injection/test_stage37b2.py",
-      "source_sha256": "d19b51c6e665611154103171a254b79443e48c50fb80d8d41f1afd70bf9b4285",
-      "published_sha256": "d19b51c6e665611154103171a254b79443e48c50fb80d8d41f1afd70bf9b4285",
-      "size": 2837,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage37b2b-crash-intent-audit/400_install_and_audit_readonly.sh",
-      "source": "hermes-pg-stage37b2b-crash-intent-audit/400_install_and_audit_readonly.sh",
-      "source_sha256": "ff4fb4981a41c019b85078ce63a9d7c5148da4028cd38182ec94668e03eb801c",
-      "published_sha256": "ff4fb4981a41c019b85078ce63a9d7c5148da4028cd38182ec94668e03eb801c",
-      "size": 1012,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage37b2b-crash-intent-audit/401_recheck_readonly.sh",
-      "source": "hermes-pg-stage37b2b-crash-intent-audit/401_recheck_readonly.sh",
-      "source_sha256": "2d0d1fab63d2fb6ad7a34ee97170327c25374187d6533d84dd9d0b0a36132579",
-      "published_sha256": "2d0d1fab63d2fb6ad7a34ee97170327c25374187d6533d84dd9d0b0a36132579",
-      "size": 251,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage37b2b-crash-intent-audit/README.md",
-      "source": "hermes-pg-stage37b2b-crash-intent-audit/README.md",
-      "source_sha256": "3749cb05e9cd817f73a7c74fc6948e66293f589817f682e7a50e71677ef8bb51",
-      "published_sha256": "3749cb05e9cd817f73a7c74fc6948e66293f589817f682e7a50e71677ef8bb51",
-      "size": 2567,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage37b2b-crash-intent-audit/audit37b2b.py",
-      "source": "hermes-pg-stage37b2b-crash-intent-audit/audit37b2b.py",
-      "source_sha256": "7dee6a996e856220126f28719ae07388430568c7dcb55697d64c58232c5a1321",
-      "published_sha256": "7dee6a996e856220126f28719ae07388430568c7dcb55697d64c58232c5a1321",
-      "size": 6576,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage37b2b-crash-intent-audit/crash_intent_model37b2b.cjs",
-      "source": "hermes-pg-stage37b2b-crash-intent-audit/crash_intent_model37b2b.cjs",
-      "source_sha256": "8be8c51ef837a860767d7d8ba3aed2a92efeeea334148b40033e6469c3de1a40",
-      "published_sha256": "8be8c51ef837a860767d7d8ba3aed2a92efeeea334148b40033e6469c3de1a40",
-      "size": 4096,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage37b2b-crash-intent-audit/test_audit37b2b.py",
-      "source": "hermes-pg-stage37b2b-crash-intent-audit/test_audit37b2b.py",
-      "source_sha256": "f5f49fd22b9fe2f3888e774cd9f7bf589f259bc58f13c86865a8610d4c6d1053",
-      "published_sha256": "f5f49fd22b9fe2f3888e774cd9f7bf589f259bc58f13c86865a8610d4c6d1053",
-      "size": 3097,
-      "ipv4_replacements": 0
-    },
-    {
       "path": "source/installed_stages/hermes-pg-stage37b2c-claim-intent/README.md",
       "source": "hermes-pg-stage37b2c-claim-intent/README.md",
       "source_sha256": "9bf967aa88bec7dacc8144e489d23abef201ee5a1a204901c0e56dfd002968f2",
       "published_sha256": "9bf967aa88bec7dacc8144e489d23abef201ee5a1a204901c0e56dfd002968f2",
       "size": 3682,
+      "ipv4_replacements": 0
+    },
+    {
+      "path": "source/installed_stages/hermes-pg-stage37b2c-claim-intent/first_receive.mjs",
+      "source": "hermes-pg-stage37b2c-claim-intent/first_receive.mjs",
+      "source_sha256": "8c80519b10d16ac1896bd68a4ad00a5e54c2d2026850e27cff865bc59c228026",
+      "published_sha256": "8c80519b10d16ac1896bd68a4ad00a5e54c2d2026850e27cff865bc59c228026",
+      "size": 1043,
+      "ipv4_replacements": 0
+    },
+    {
+      "path": "source/installed_stages/hermes-pg-stage37b2c-claim-intent/helper.sha256",
+      "source": "hermes-pg-stage37b2c-claim-intent/helper.sha256",
+      "source_sha256": "8f5b68599263b66bd084dc262c05e6896559e7ecdba815a43633bf873f736732",
+      "published_sha256": "8f5b68599263b66bd084dc262c05e6896559e7ecdba815a43633bf873f736732",
+      "size": 65,
       "ipv4_replacements": 0
     },
     {
@@ -3220,11 +700,27 @@
       "ipv4_replacements": 0
     },
     {
+      "path": "source/installed_stages/hermes-pg-stage37b2c-claim-intent/owner_turn57.mjs",
+      "source": "hermes-pg-stage37b2c-claim-intent/owner_turn57.mjs",
+      "source_sha256": "8e6ed3a4c82a18dc68387b8ca663c418061b7bbcdadde4a0fee5d8d4593f47ae",
+      "published_sha256": "8e6ed3a4c82a18dc68387b8ca663c418061b7bbcdadde4a0fee5d8d4593f47ae",
+      "size": 1429,
+      "ipv4_replacements": 0
+    },
+    {
       "path": "source/installed_stages/hermes-pg-stage37b2c-claim-intent/render37b2c.py",
       "source": "hermes-pg-stage37b2c-claim-intent/render37b2c.py",
       "source_sha256": "ff1a7aa51920b1157a57124debb0a3f11b28313e3a245f7b603aaf6353aa2946",
       "published_sha256": "ff1a7aa51920b1157a57124debb0a3f11b28313e3a245f7b603aaf6353aa2946",
       "size": 9078,
+      "ipv4_replacements": 0
+    },
+    {
+      "path": "source/installed_stages/hermes-pg-stage37b2c-claim-intent/signed_receive56.mjs",
+      "source": "hermes-pg-stage37b2c-claim-intent/signed_receive56.mjs",
+      "source_sha256": "85265a1e20ca0efad43ad8a7c827df178d058905e7561c086b50af67bc9644f9",
+      "published_sha256": "85265a1e20ca0efad43ad8a7c827df178d058905e7561c086b50af67bc9644f9",
+      "size": 1935,
       "ipv4_replacements": 0
     },
     {
@@ -3252,91 +748,11 @@
       "ipv4_replacements": 0
     },
     {
-      "path": "source/installed_stages/hermes-pg-stage37b2c1-revalidate/README.md",
-      "source": "hermes-pg-stage37b2c1-revalidate/README.md",
-      "source_sha256": "5e250ca6c50290cbb14322b4e4af590ef7aa3acd3986657e490c99d1f6cf6f73",
-      "published_sha256": "5e250ca6c50290cbb14322b4e4af590ef7aa3acd3986657e490c99d1f6cf6f73",
-      "size": 1746,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage37b2c1-revalidate/check_old_harness37b2c1.py",
-      "source": "hermes-pg-stage37b2c1-revalidate/check_old_harness37b2c1.py",
-      "source_sha256": "60591806b432849fe18a2aad11bf8c791d71964041c2dda355befb46606dcc0d",
-      "published_sha256": "60591806b432849fe18a2aad11bf8c791d71964041c2dda355befb46606dcc0d",
-      "size": 1795,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage37b2c1-revalidate/test_candidate37b2c1.cjs",
-      "source": "hermes-pg-stage37b2c1-revalidate/test_candidate37b2c1.cjs",
-      "source_sha256": "8c8f5daa4309716a9e00f668519c3c7c4af165c85a5fbd4130c5e2d7599cdfe6",
-      "published_sha256": "8c8f5daa4309716a9e00f668519c3c7c4af165c85a5fbd4130c5e2d7599cdfe6",
-      "size": 5238,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage37b2d-safe-cutover/431_commit_when_multitool_closed.sh",
-      "source": "hermes-pg-stage37b2d-safe-cutover/431_commit_when_multitool_closed.sh",
-      "source_sha256": "ae83590f5111e9b21fb9b1298e16e6d92e2095e45e60b0090b95a4dca81a3f10",
-      "published_sha256": "ae83590f5111e9b21fb9b1298e16e6d92e2095e45e60b0090b95a4dca81a3f10",
-      "size": 219,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage37b2d-safe-cutover/432_verify_after_restart.sh",
-      "source": "hermes-pg-stage37b2d-safe-cutover/432_verify_after_restart.sh",
-      "source_sha256": "438b77efc9ad683d3afd2adb9e0d5efb35c77ee2964a90531c270ceefae58e67",
-      "published_sha256": "438b77efc9ad683d3afd2adb9e0d5efb35c77ee2964a90531c270ceefae58e67",
-      "size": 219,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage37b2d-safe-cutover/433_rollback_when_multitool_closed.sh",
-      "source": "hermes-pg-stage37b2d-safe-cutover/433_rollback_when_multitool_closed.sh",
-      "source_sha256": "864bd97d89884f5074129173abd63a0f874771bdc235b0bc05fe3d933b062724",
-      "published_sha256": "864bd97d89884f5074129173abd63a0f874771bdc235b0bc05fe3d933b062724",
-      "size": 221,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage37b2d-safe-cutover/434_status_readonly.sh",
-      "source": "hermes-pg-stage37b2d-safe-cutover/434_status_readonly.sh",
-      "source_sha256": "79ab5039ecf50e0c7c4afae3b70f32549fc02868788e70b2974a3d7bf78572f9",
-      "published_sha256": "79ab5039ecf50e0c7c4afae3b70f32549fc02868788e70b2974a3d7bf78572f9",
-      "size": 219,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage37b2d-safe-cutover/README.md",
-      "source": "hermes-pg-stage37b2d-safe-cutover/README.md",
-      "source_sha256": "254cab711b021ec3069b5545d68d21bcf1f09151ab85c58b12702ae18de7da5c",
-      "published_sha256": "254cab711b021ec3069b5545d68d21bcf1f09151ab85c58b12702ae18de7da5c",
-      "size": 4900,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage37b2d-safe-cutover/stage37b2d.py",
-      "source": "hermes-pg-stage37b2d-safe-cutover/stage37b2d.py",
-      "source_sha256": "4d433c4596025b6ebe572c38096658e70dc7d8139b0b4d0eb438d2953f4c861e",
-      "published_sha256": "4d433c4596025b6ebe572c38096658e70dc7d8139b0b4d0eb438d2953f4c861e",
-      "size": 17245,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage37b2f-runtime-import-proof/mt-pg-managed-runtime-import-proof37b2f.mjs",
-      "source": "hermes-pg-stage37b2f-runtime-import-proof/mt-pg-managed-runtime-import-proof37b2f.mjs",
-      "source_sha256": "c752e5e4f9f75cae60d5c78717d167b80f0dc2c9df84a6a751dda754c1b3122e",
-      "published_sha256": "c752e5e4f9f75cae60d5c78717d167b80f0dc2c9df84a6a751dda754c1b3122e",
-      "size": 1582,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-stage37b2f-runtime-import-proof/stage37b2f.py",
-      "source": "hermes-pg-stage37b2f-runtime-import-proof/stage37b2f.py",
-      "source_sha256": "57687e228640b25323f9f578721ceffd2c92ad117c8bd724f112313414efeb90",
-      "published_sha256": "57687e228640b25323f9f578721ceffd2c92ad117c8bd724f112313414efeb90",
-      "size": 13893,
+      "path": "source/installed_stages/hermes-pg-stage37b2c-claim-intent/wire56.mjs",
+      "source": "hermes-pg-stage37b2c-claim-intent/wire56.mjs",
+      "source_sha256": "8382681c811efd38efa9ac5fa4e9f51544f837e7ce7e57592ac640112f22dfbe",
+      "published_sha256": "8382681c811efd38efa9ac5fa4e9f51544f837e7ce7e57592ac640112f22dfbe",
+      "size": 1542,
       "ipv4_replacements": 0
     },
     {
@@ -3412,179 +828,51 @@
       "ipv4_replacements": 0
     },
     {
-      "path": "source/installed_stages/hermes-pg-tunnel-one-shot-canary/canary_server.py",
-      "source": "hermes-pg-tunnel-one-shot-canary/canary_server.py",
-      "source_sha256": "50835110617ce1fdc69402d0618c184c9827b4d94133281336d86c1da8a293b2",
-      "published_sha256": "50835110617ce1fdc69402d0618c184c9827b4d94133281336d86c1da8a293b2",
-      "size": 5134,
+      "path": "source/installed_stages/hermes-pg-stage57-owner-turn/DEFERRED-OWNER-TURN.md",
+      "source": "hermes-pg-stage57-owner-turn/DEFERRED-OWNER-TURN.md",
+      "source_sha256": "88e7b773b121ae68bc85bd04abb1588447f2641b5f3e9899828fc24a1157ca18",
+      "published_sha256": "88e7b773b121ae68bc85bd04abb1588447f2641b5f3e9899828fc24a1157ca18",
+      "size": 557,
       "ipv4_replacements": 0
     },
     {
-      "path": "source/installed_stages/hermes-pg-tunnel-one-shot-canary/logic31.py",
-      "source": "hermes-pg-tunnel-one-shot-canary/logic31.py",
-      "source_sha256": "3036e009c1ed3462dd0f5ee708b15b6f3c000c3ca4d15c6f536a69e77f1eb7ed",
-      "published_sha256": "3036e009c1ed3462dd0f5ee708b15b6f3c000c3ca4d15c6f536a69e77f1eb7ed",
-      "size": 2572,
+      "path": "source/installed_stages/hermes-pg-stage57-owner-turn/adapter57.py",
+      "source": "hermes-pg-stage57-owner-turn/adapter57.py",
+      "source_sha256": "1d4285acb71113244b6a8417d92785634ed59b0893880342f8c87b4257e1b494",
+      "published_sha256": "1d4285acb71113244b6a8417d92785634ed59b0893880342f8c87b4257e1b494",
+      "size": 5780,
       "ipv4_replacements": 0
     },
     {
-      "path": "source/installed_stages/hermes-pg-tunnel-one-shot-canary/run_pg_tunnel.sh",
-      "source": "hermes-pg-tunnel-one-shot-canary/run_pg_tunnel.sh",
-      "source_sha256": "56b6a0ff8c5b282518ae6b9e85a7608b2096d0ef388b1b434924ea0376e1ba80",
-      "published_sha256": "56b6a0ff8c5b282518ae6b9e85a7608b2096d0ef388b1b434924ea0376e1ba80",
-      "size": 694,
+      "path": "source/installed_stages/hermes-pg-stage57-owner-turn/coordinator57.py",
+      "source": "hermes-pg-stage57-owner-turn/coordinator57.py",
+      "source_sha256": "02bd3879d596bf66be5e0e35ba06d3210056eaf8fd9cd9b31f27681ae4180eea",
+      "published_sha256": "02bd3879d596bf66be5e0e35ba06d3210056eaf8fd9cd9b31f27681ae4180eea",
+      "size": 6025,
       "ipv4_replacements": 0
     },
     {
-      "path": "source/installed_stages/hermes-pg-tunnel-readonly-probe/probe_logic.py",
-      "source": "hermes-pg-tunnel-readonly-probe/probe_logic.py",
-      "source_sha256": "95f8dbe30e5100db005d02b58206a1201662a0f1ad8c6c2fc272821e07d0d759",
-      "published_sha256": "95f8dbe30e5100db005d02b58206a1201662a0f1ad8c6c2fc272821e07d0d759",
-      "size": 1155,
+      "path": "source/installed_stages/hermes-pg-stage57-owner-turn/idle57.py",
+      "source": "hermes-pg-stage57-owner-turn/idle57.py",
+      "source_sha256": "d2ba07a343d140f50295cd266e01bcb2a3fceababd2d65947363d420ddacfb84",
+      "published_sha256": "d2ba07a343d140f50295cd266e01bcb2a3fceababd2d65947363d420ddacfb84",
+      "size": 2228,
       "ipv4_replacements": 0
     },
     {
-      "path": "source/installed_stages/hermes-pg-tunnel-readonly-probe/probe_server.py",
-      "source": "hermes-pg-tunnel-readonly-probe/probe_server.py",
-      "source_sha256": "857817e9dbcdee76283b638ce0e5cbd3138bcbe81d7dfeeb426f60f78467a1bc",
-      "published_sha256": "857817e9dbcdee76283b638ce0e5cbd3138bcbe81d7dfeeb426f60f78467a1bc",
-      "size": 2976,
+      "path": "source/installed_stages/hermes-pg-stage57-owner-turn/owner_turn57.py",
+      "source": "hermes-pg-stage57-owner-turn/owner_turn57.py",
+      "source_sha256": "5e472145458ee51ee08287cc907df24a1cc45b5a99d3b665d0edf87e50ba8678",
+      "published_sha256": "5e472145458ee51ee08287cc907df24a1cc45b5a99d3b665d0edf87e50ba8678",
+      "size": 4214,
       "ipv4_replacements": 0
     },
     {
-      "path": "source/installed_stages/hermes-pg-tunnel-readonly-probe/run_pg_tunnel.sh",
-      "source": "hermes-pg-tunnel-readonly-probe/run_pg_tunnel.sh",
-      "source_sha256": "3dbf894198ed9921c0ed92c4e6a931f072e383ccd4f0414b220cada551eaa03d",
-      "published_sha256": "3dbf894198ed9921c0ed92c4e6a931f072e383ccd4f0414b220cada551eaa03d",
-      "size": 694,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-tunnel-stage30/30_activate_pg_probe.sh",
-      "source": "hermes-pg-tunnel-stage30/30_activate_pg_probe.sh",
-      "source_sha256": "7a34d9ddec48fbe000d59505397f98b7b0a2cfa7a4f2666f525f4e746f6d8781",
-      "published_sha256": "7a34d9ddec48fbe000d59505397f98b7b0a2cfa7a4f2666f525f4e746f6d8781",
-      "size": 4459,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-tunnel-stage30/31_rollback.sh",
-      "source": "hermes-pg-tunnel-stage30/31_rollback.sh",
-      "source_sha256": "8a9c06e53790223529913f4d6bacc8c40399cac3337ce5eddfb876890433f676",
-      "published_sha256": "8a9c06e53790223529913f4d6bacc8c40399cac3337ce5eddfb876890433f676",
-      "size": 849,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-tunnel-stage30/32_status.sh",
-      "source": "hermes-pg-tunnel-stage30/32_status.sh",
-      "source_sha256": "6dd1f1904dd0cd76ab08f6613b1bef0b389c8bccaca905957f2d89d0f1b5ade6",
-      "published_sha256": "6dd1f1904dd0cd76ab08f6613b1bef0b389c8bccaca905957f2d89d0f1b5ade6",
-      "size": 665,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-tunnel-stage30/README.md",
-      "source": "hermes-pg-tunnel-stage30/README.md",
-      "source_sha256": "017c35a9b1595106ccaed6dfb233f52fda68100f2538b8a4cc1d9bfc1db37f2e",
-      "published_sha256": "017c35a9b1595106ccaed6dfb233f52fda68100f2538b8a4cc1d9bfc1db37f2e",
-      "size": 1711,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-tunnel-stage30/probe_logic.py",
-      "source": "hermes-pg-tunnel-stage30/probe_logic.py",
-      "source_sha256": "95f8dbe30e5100db005d02b58206a1201662a0f1ad8c6c2fc272821e07d0d759",
-      "published_sha256": "95f8dbe30e5100db005d02b58206a1201662a0f1ad8c6c2fc272821e07d0d759",
-      "size": 1155,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-tunnel-stage30/probe_server.py",
-      "source": "hermes-pg-tunnel-stage30/probe_server.py",
-      "source_sha256": "857817e9dbcdee76283b638ce0e5cbd3138bcbe81d7dfeeb426f60f78467a1bc",
-      "published_sha256": "857817e9dbcdee76283b638ce0e5cbd3138bcbe81d7dfeeb426f60f78467a1bc",
-      "size": 2976,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-tunnel-stage30/run_pg_tunnel.sh",
-      "source": "hermes-pg-tunnel-stage30/run_pg_tunnel.sh",
-      "source_sha256": "3dbf894198ed9921c0ed92c4e6a931f072e383ccd4f0414b220cada551eaa03d",
-      "published_sha256": "3dbf894198ed9921c0ed92c4e6a931f072e383ccd4f0414b220cada551eaa03d",
-      "size": 694,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-tunnel-stage30/test_stage30.py",
-      "source": "hermes-pg-tunnel-stage30/test_stage30.py",
-      "source_sha256": "8c4a04c08827805521eb5ec8bb0bed8ea698c6cba5886f37c057b46262547bfd",
-      "published_sha256": "8c4a04c08827805521eb5ec8bb0bed8ea698c6cba5886f37c057b46262547bfd",
-      "size": 1422,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-tunnel-stage31/31_activate.sh",
-      "source": "hermes-pg-tunnel-stage31/31_activate.sh",
-      "source_sha256": "cc8cee59f5a9c8f76bf1350a423129793dfb102bd7c5c44ed8c324678b80add5",
-      "published_sha256": "cc8cee59f5a9c8f76bf1350a423129793dfb102bd7c5c44ed8c324678b80add5",
-      "size": 4155,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-tunnel-stage31/31_preflight.sh",
-      "source": "hermes-pg-tunnel-stage31/31_preflight.sh",
-      "source_sha256": "0b55fc9a8a56781da414c9a4d5af55976c5f2b8f5e51766f31c9ecc2eee78e73",
-      "published_sha256": "0b55fc9a8a56781da414c9a4d5af55976c5f2b8f5e51766f31c9ecc2eee78e73",
-      "size": 3140,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-tunnel-stage31/31_rollback.sh",
-      "source": "hermes-pg-tunnel-stage31/31_rollback.sh",
-      "source_sha256": "3ba59f692e90abded70834a852efce8f0bdfc19ac8469e7a27f2aa327402b904",
-      "published_sha256": "3ba59f692e90abded70834a852efce8f0bdfc19ac8469e7a27f2aa327402b904",
-      "size": 951,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-tunnel-stage31/31_status.sh",
-      "source": "hermes-pg-tunnel-stage31/31_status.sh",
-      "source_sha256": "efdae29d13b4ce270234061b55a94e94368039027fcd96d3452ffbfe0d9ef211",
-      "published_sha256": "efdae29d13b4ce270234061b55a94e94368039027fcd96d3452ffbfe0d9ef211",
-      "size": 567,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-tunnel-stage31/README.md",
-      "source": "hermes-pg-tunnel-stage31/README.md",
-      "source_sha256": "6cf2b641f758d3967ae8003d5af1c88b37332a7d2222db04d780ee97ad1f6424",
-      "published_sha256": "6cf2b641f758d3967ae8003d5af1c88b37332a7d2222db04d780ee97ad1f6424",
-      "size": 3780,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-tunnel-stage31/canary_server.py",
-      "source": "hermes-pg-tunnel-stage31/canary_server.py",
-      "source_sha256": "50835110617ce1fdc69402d0618c184c9827b4d94133281336d86c1da8a293b2",
-      "published_sha256": "50835110617ce1fdc69402d0618c184c9827b4d94133281336d86c1da8a293b2",
-      "size": 5134,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-tunnel-stage31/logic31.py",
-      "source": "hermes-pg-tunnel-stage31/logic31.py",
-      "source_sha256": "3036e009c1ed3462dd0f5ee708b15b6f3c000c3ca4d15c6f536a69e77f1eb7ed",
-      "published_sha256": "3036e009c1ed3462dd0f5ee708b15b6f3c000c3ca4d15c6f536a69e77f1eb7ed",
-      "size": 2572,
-      "ipv4_replacements": 0
-    },
-    {
-      "path": "source/installed_stages/hermes-pg-tunnel-stage31/test_stage31.py",
-      "source": "hermes-pg-tunnel-stage31/test_stage31.py",
-      "source_sha256": "1a6be98f653428865b580323dc4381487b5e467b17e2a1aa8e5ccfe964cce9c6",
-      "published_sha256": "1a6be98f653428865b580323dc4381487b5e467b17e2a1aa8e5ccfe964cce9c6",
-      "size": 5492,
+      "path": "source/installed_stages/hermes-pg-stage57-owner-turn/worker57.py",
+      "source": "hermes-pg-stage57-owner-turn/worker57.py",
+      "source_sha256": "76633e83912ae1bdfd096f2a849451b07e317ee8e088c1ab7b8db6f9e713e1ba",
+      "published_sha256": "76633e83912ae1bdfd096f2a849451b07e317ee8e088c1ab7b8db6f9e713e1ba",
+      "size": 2457,
       "ipv4_replacements": 0
     },
     {
@@ -4074,5 +1362,5 @@
   ],
   "publication_blockers": [],
   "stage41c_reconciliation": "two identical Stage35B negative-test fixtures restored after source-and-archive byte equality and all previous manifest SHA validations",
-  "updated_utc": "2026-11-28T13:03:26Z"
+  "updated_utc": "2026-11-28T13:11:23Z"
 }
