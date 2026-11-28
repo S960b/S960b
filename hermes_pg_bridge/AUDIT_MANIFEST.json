@@ -878,9 +878,9 @@
     {
       "path": "source/live/README.md",
       "source": "bridge-pg-v2/README.md",
-      "source_sha256": "714ad5e1498b0d808274226ad79e4751a3a625cd02346b9523952ad91e94583f",
-      "published_sha256": "714ad5e1498b0d808274226ad79e4751a3a625cd02346b9523952ad91e94583f",
-      "size": 7571,
+      "source_sha256": "5b6ae8a812b7e69541bb4b3ac375e958bfeddc4efb5cd5351a3f17f3acce23e0",
+      "published_sha256": "5b6ae8a812b7e69541bb4b3ac375e958bfeddc4efb5cd5351a3f17f3acce23e0",
+      "size": 3414,
       "ipv4_replacements": 0
     },
     {
@@ -1148,14 +1148,6 @@
       "ipv4_replacements": 0
     },
     {
-      "path": "source/live/tools/export_current_sources.py",
-      "source": "bridge-pg-v2/tools/export_current_sources.py",
-      "source_sha256": "24801c17fd04f9e37dd8f90b1b26ff4dbdf0470468c2442f29787423471c820a",
-      "published_sha256": "24801c17fd04f9e37dd8f90b1b26ff4dbdf0470468c2442f29787423471c820a",
-      "size": 4369,
-      "ipv4_replacements": 0
-    },
-    {
       "path": "source/live/tools/port_mt_plugin.py",
       "source": "bridge-pg-v2/tools/port_mt_plugin.py",
       "source_sha256": "6f627a2ee0d8d0d3867e62d9c86ecd1066e8d2b5576e4950524f8173a008d934",
@@ -1362,5 +1354,5 @@
   ],
   "publication_blockers": [],
   "stage41c_reconciliation": "two identical Stage35B negative-test fixtures restored after source-and-archive byte equality and all previous manifest SHA validations",
-  "updated_utc": "2026-11-28T13:11:23Z"
+  "updated_utc": "2026-11-28T13:33:49Z"
 }

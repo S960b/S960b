@@ -1,115 +1,70 @@
-# Bridge v2 / PostgreSQL (PHASE A1 — NOT YET DEPLOYABLE AS A COMPLETE MCP BRIDGE)
+# Bridge v2 / PostgreSQL — live sources
 
-**Author:** ChatGPT. **Executor:** MT/Hermes agent (commands only). **Owner:** user.
+**Status (2026-11-28): running.** This directory is the current implementation of the
+PostgreSQL-managed bridge between ChatGPT (via MCP) and the local MultiTool agent.
+It records messages, delivers them with leases and acknowledgements, and controls
+whose turn it is. It is not a copy of the private runtime.
 
-This archive contains the first self-contained backend slice: a fresh PostgreSQL schema, short-lived psycopg client, tests and conservative setup scripts. It does **not** modify the existing Git bridge or run any production service. Source contract inventory is needed before porting MCP tools, worker, UI, auth and transport.
+## What runs
 
-See `TECHNICAL_PLAN.md` for the full implementation schedule and roles.
+- MCP gateway `hermes-pg-stage35c-static-shadow.service` — `127.0.0.1:18777`, 13 tools.
+  Assembled from `stage35v` (pin checks + JSON-RPC policy) → `stage35g` (patched
+  runtime and static gate) → `stage35c` (tool implementations, Ed25519 signing).
+- Taskboard `bridge-pg-v2-taskboard.service` — `127.0.0.1:8789`, Basic authentication,
+  CSRF/Origin checks; the owner's local UI.
+- SSH tunnel `bridge-pg-v2-ssh-shadow.service` — local `15433` → PostgreSQL.
+- Managed Inbox receiver — `stage37b2c`, a plugin inside MultiTool, 30-second ticks.
+- Agent CLI — `stage34d`: `peek` / `read` / `append` / `claim` / `ack`; the agent's only
+  write path.
+- Keeper `stage39`, watchdog `stage37a`, first-turn admission `registration` (30-second timer).
 
-## Safe deployment order (only after reviewed and approved)
+## Data flow
 
-On the **PostgreSQL host** (NOT automatically the Kali host):
+ChatGPT → MCP edge → PostgreSQL (`dialogs`, `messages`, `outbox`) → receiver claims a
+message → MultiTool session → agent CLI appends a report → outbox to ChatGPT.
 
-```bash
-bash deploy/00_preflight.sh              # read-only
-sudo bash deploy/01_db_install.sh       # manual typed confirmation; creates schema
-sudo bash deploy/02_prepare_python.sh   # isolated venv, system user; no daemon
-sudo bash deploy/03_setup_pgpass.sh     # root-only password -> local service .pgpass
-sudo bash deploy/04_smoke.sh            # adds a small test dialogue
-```
+Owner browser → Taskboard → PostgreSQL. The owner can hand the turn back to the agent
+without retracting a message that has already been delivered.
 
-Preflight's `runuser` requires root; run preflight with `sudo` if needed. The database must be a fresh, dedicated `bridge` database with `bridge_app` login and secret stored at `/root/bridge-db-password.txt` (from the approved prep note). **Do not expose port 5432.** No passwords should appear in logs or message bodies.
+## Message and turn model
 
-All running old services stay untouched. Do not run the scripts on the wrong host or before ChatGPT reviews the agent's live inventory.
+- `dialogs`: state, `next_actor`, version, `last_seq`.
+- `messages`: `task` / `report` / `return` / `close`, with sender and recipient.
+- `outbox`: one delivery row per message with status, attempts, lease and acknowledgement.
+- An append requires the sender to equal `next_actor`; a successful append flips the turn
+  and bumps the version. `expected_version` makes concurrent writes conflict-safe.
+- Delivered messages are never retracted: `return_turn` cancels only a still-pending
+  delivery, while `hand_back_turn` flips the turn to the agent and keeps everything
+  already delivered.
 
-## Failure handling
+## Permission model
 
-- Don't rewrite the SQL by hand, don't delete tables.
-- Return exit code + nonsecret error and postgres version to ChatGPT.
-- A failed SQL transaction rolls back the schema, but if the overall setup is partially complete, stop and request new code from ChatGPT.
-- Smoke test creates records and requires a disposable / fresh database.
+- Local gate file `managed-writes-stage34d-armed` plus a short-lived permit
+  `managed-mcp-write-permit35c.json`.
+- The permit is either scoped to one dialogue or armed with `allow_create`
+  (create dialogues and answer any non-canary dialogue).
+- The watchdog quarantines invalid or expired permit/gate pairs. The keeper renews only
+  existing capabilities and fails closed; it never recreates what was revoked.
+
+## Deployment order
+
+1. Schema: `sql/001_init.sql` → `002_compat.sql` → `003_hand_back.sql`.
+2. Python: `requirements.txt` (psycopg 3.x) in an isolated virtual environment.
+3. Credentials, which are not part of this repository: database password, local MCP key,
+   Ed25519 signing key.
+4. Taskboard and tunnel units.
+5. The pinned gateway release (`.pyz`) and the receiver plugin.
+6. Keeper session, permit and the watchdog/admission timers.
+
+Do not run the one-shot installers or recovery scripts on a live system without
+revalidating pins, versions and authorization.
 
 ## Tests
 
-`PYTHONPATH=. BRIDGE_TEST_DSN='...' python -m pytest -q tests` on a **disposable** PostgreSQL database initialized with `001_init.sql`. Do not put secrets in shell history; use PGPASSFILE/libpq environment config instead. Without a DB, Python `compileall` is a safe syntax-only check; it is not a database integration test.
+`tests/` covers authentication, compatibility, core store behaviour, MCP transport and
+the worker. They use fake credentials and never touch a live database.
 
-## Инвентаризация 2026-11-22 (важно для развёртывания)
+## Not included
 
-- Текущий исходник старого моста: `/home/kali/agent-dialog-beta/code` на Kali. Не менять его рабочее дерево.
-- Старые порты Kali: MCP `8765`, Taskboard `8787`. Порт `8788` занят NEWS Monitor; для панели v2 выбран `8789`, после проверки доступности.
-- PostgreSQL находится на **удалённом отдельном сервере**, слушает `127.0.0.1:5432`. Нельзя запускать локальный Kali worker с прямым `Store()` к удалённому PostgreSQL. Нужен аутентифицированный HTTPS API доставки на DB-хосте и локальный durable inbox адаптер на Kali.
-- SQL отклоняет привилегированную роль `bridge_app`, переносит владельца базы на `bridge_owner NOLOGIN` перед созданием таблиц и выдаёт `bridge_app` лишь CONNECT/EXECUTE.
-- Никаких установок на DB-хост до подтверждения доступа и отдельной проверки скрипта.
-- Текущий пакет `bridge_pg.worker` — **ядро алгоритма доставки**, не MT-интеграция и не служба для Kali.
-
-## Phase A2 — actual legacy compatibility adapter (2026-11-22)
-
-The source export was confirmed at `S960b/agent-dialogs`, branch
-`migration/pg-v2-source`, commit `993107c66e51b160cc3aa06c2b9ee39759b2af8b`.
-The following **new files were authored by ChatGPT**, not the execution agent:
-
-- `sql/002_compat.sql`: creation lookup, metadata, soft deletion, individual
-  receipt retrieval and an atomic per-message MT delivery lease.
-- `bridge_pg/compat.py`: v2 operations mapped into the current 8-tool dialog
-  contract and the Taskboard API. `head` is a **synthetic 40-hex version token**,
-  never a Git SHA, and must not be presented as a Git reference.
-- `bridge_pg/cli.py`: separate MT CLI supporting list/peek/read/append/status,
-  including an explicit version check and `--body-file` to keep message content
-  out of process arguments.
-- `bridge_pg/taskboard_v2.py`: localhost-only, Basic-auth/CSRF protected
-  Taskboard API at **8789**. Deletion means *tombstoning*, not erasure.
-- `tools/port_taskboard_assets.py`: copies the **actual** existing UI's
-  HTML/CSS/JS into isolated v2 assets, changing Git-specific labels.
-- `tools/port_mt_plugin.py`: transforms a copy of the existing MT plugin into
-  the isolated `dist/mt-pg-inbox.mjs` with separate state directory, PG CLI,
-  fail-closed outbox claim and post-prompt acknowledgement.
-- `deploy/05_kali_prepare.sh` and `deploy/06_check_assets.sh`: offline checks
-  and isolated preparation on Kali only. They never start services.
-
-### Correct two-machine topology
-
-Use **SSH local port forwarding**, not an unreviewed public DB API:
-
-```text
-ChatGPT -> MCP OAuth :8766 (Kali) -> PG Store on 127.0.0.1:15432 (Kali)
-                                       | encrypted SSH localhost forward
-                                       v
-                     127.0.0.1:5432 PostgreSQL (remote DB server)
-
-MultiTool plugin (Kali) -> identical local PG Store -> same SSH tunnel
-Taskboard v2 :8789 (Kali) -> identical local PG Store -> same SSH tunnel
-```
-
-Neither PostgreSQL nor its password should be exposed over the public
-internet. SSH server host keys must be verified and pinned; port forwarding
-must bind explicitly to `127.0.0.1`, not `0.0.0.0`. `bridge_app` credentials
-must stay in local protected files, never in a command, URI or public message.
-
-### Unfinished before production rollout
-
-- PostgreSQL `001` and `002` need a disposable integration test on DB host.
-- The MCP 8766 OAuth bootstrap is awaiting export/review of the real current
-  `start_bridge.py` (not available in the committed source tree).
-- The actual Taskboard assets/plugin transforms require a dry-run on Kali and
-  must be checked against the live SHA before enabling.
-- Ownership of the cross-host SSH route, `.pgpass` provisioning and service
-  isolation must be confirmed without publishing credentials.
-- DO NOT start live v2 services or load `mt-pg-inbox.mjs` until the above gates.
-
-### Status of phase A2 package
-
-Author-supplied code is **not yet a production release**. `mcp_v2.register_mcp`
-contains nine OAuth-guarded tools, including the essential new `dialog_view`
-for reading actual MT report bodies directly from PostgreSQL. Hosting/bootstrap
-still requires the inspected existing OAuth startup wiring. The code currently
-uses the actual old UI and MT plugin as source inputs to separate *copy-once*
-transform scripts; they never modify the originals.
-
-Taskboard authentication must be initialized interactively as the Kali service
-account with `python -m bridge_pg.taskboard_v2 init-auth` before first start.
-Do not paste the chosen password into ChatGPT/Git or environment dumps.
-
-The v2 local database config is a mode-0600 file at
-`~/.config/bridge-pg-v2/conninfo` and the matching libpq passfile lives next
-to it. The new CLI uses port 15432 by default rather than ever connecting to
-remote PostgreSQL directly. See `deploy/07_config_example.txt`.
+Credentials, DSNs, SSH keys, session and permit files, runtime logs, database dumps,
+plugin builds and gateway release binaries.
