@@ -32,11 +32,11 @@ Owner browser -> loopback Taskboard :8789 -> PostgreSQL
 
 ## Audit scope
 
-The source export is intended to include: Python service and SQL routines; MCP edge and guard; managed Inbox plugin; tunnel launcher; Stage 37A permission watchdog and Stage 39 session keeper; Taskboard and UI; deployment scripts/templates; test suites; and historical implementation stages, with a manifest distinguishing installed sources from archival copies.
+The source export includes: Python service and SQL routines; MCP edge and guard; managed Inbox plugin; tunnel launcher; Stage 37A permission watchdog and Stage 39 session keeper; Taskboard and UI; deployment scripts/templates; test suites; and a manifest with provenance and exclusions.
 
 **Not included:** actual credentials, cryptographic secrets, database DSNs, SSH private keys, live systemd environment values, session/permit files, runtime logs, internal task bodies, receipts, database dumps, personal data and private repository material.
 
-Historical scripts are review material, not instructions to reinstall or replay one-shot stages. Run nothing on a live system without revalidating dependencies, versions and authorization.
+One-shot stage installers are review material, not instructions to reinstall or replay them. Run nothing on a live system without revalidating dependencies, versions and authorization.
 
 ## Known limitations
 

@@ -1,9 +1,0 @@
-[Unit]
-Description=Hermes PG v2 fail-closed local write capability watchdog (Stage 37A)
-
-[Service]
-Type=oneshot
-ExecStart=/usr/bin/python3 -IB /home/kali/hermes-pg-stage37a-permission-control/stage37a.py watchdog
-UMask=0077
-NoNewPrivileges=true
-TimeoutStartSec=20
