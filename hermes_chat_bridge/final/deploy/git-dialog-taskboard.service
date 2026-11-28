@@ -1,0 +1,14 @@
+[Unit]
+Description=Git Dialog P32 Taskboard (localhost:8787)
+After=hermes-bridge.service
+
+[Service]
+Type=simple
+WorkingDirectory=/home/kali/agent-dialog-beta/code
+Environment=PYTHONPATH=/home/kali/agent-dialog-beta/code/src
+ExecStart=/home/kali/.venvs/bridge-clean/bin/python -m git_dialog.taskboard serve
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

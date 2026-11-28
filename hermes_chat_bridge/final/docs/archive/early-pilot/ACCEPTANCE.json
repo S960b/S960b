@@ -1,0 +1,24 @@
+{
+  "schema": "git-dialog-pilot-acceptance.v1",
+  "scope": "isolated_components_not_production_deployment",
+  "repository": "S960b/agent-dialogs",
+  "implementation_branch": "implementation/git-dialog-v1",
+  "source_base_commit": "a2a43777e6b7d17772f50ee32f4eb99445e3dae9",
+  "preserved_main": "38ed706d21a0ca7520271e561e4406f777601261",
+  "preserved_dialog": "1fce8bdf815adbb448b429acfe1a8c1349197d72",
+  "offline_tests_expected": 362,
+  "previous_source_tests_verified_on_mt": 359,
+  "synthetic_http_expected_statuses": [200, 200, 405, 405, 404, 403, 400],
+  "synthetic_http_root_sha256": "05f7537abe6f81a4ef34d1a3789c2a80dcd9fb1dc5a79ab5e78ade60fbf21e11",
+  "live_worker_report_sha256": "c0205bd92c8727160ae052952e989f3cc505628cb10e4dc37e942b8313d8fb40",
+  "production_ready": false,
+  "delete_enabled": false,
+  "installed_services": false,
+  "remaining_integration": [
+    "reviewed real user authentication and bootstrap",
+    "one deployed authority for every cooperating writer including ChatGPT",
+    "read-only observation and bounded polling integration",
+    "explicitly authorized protected bridge/panel integration",
+    "human-confirmed real deletion path, never tested on the pilot branch"
+  ]
+}

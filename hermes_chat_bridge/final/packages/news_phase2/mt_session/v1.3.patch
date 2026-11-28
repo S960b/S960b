@@ -1,0 +1,217 @@
+diff --git a/packages/news_phase2/mt_session/news-mt-helpers.mjs b/packages/news_phase2/mt_session/news-mt-helpers.mjs
+index b68368f..a032528 100644
+--- a/packages/news_phase2/mt_session/news-mt-helpers.mjs
++++ b/packages/news_phase2/mt_session/news-mt-helpers.mjs
+@@ -233,9 +233,14 @@ export async function runAutoOnce({ client, directory, root, pythonRunner, slotM
+ }
+ 
+ // Label-only tick: public Binance candles, no model, no budget.
+-export async function runLabels({ root, pythonRunner, log = () => {} }) {
++// Label-only tick. Passing a slot epoch lets Python atomically claim that
++// 5-minute window, so only one of the several plugin instances does the work;
++// the rest receive a normal "already claimed" skip. No model, no budget.
++export async function runLabels({ root, pythonRunner, slotMs, log = () => {} }) {
+   const python = pythonRunner ?? makePythonRunner(root);
+-  const out = await python('labels');
+-  log('labels_tick: created=' + String(out?.labels_created));
++  const args = Number.isFinite(Number(slotMs)) ? ['--slot-ms', String(Number(slotMs))] : [];
++  const out = await python('labels', args);
++  const reason = out?.reason ? ' reason=' + String(out.reason) : '';
++  log('labels_tick: created=' + String(out?.labels_created) + reason);
+   return out;
+ }
+diff --git a/packages/news_phase2/mt_session/news-mt-plugin.mjs b/packages/news_phase2/mt_session/news-mt-plugin.mjs
+index 443503a..f9eba31 100644
+--- a/packages/news_phase2/mt_session/news-mt-plugin.mjs
++++ b/packages/news_phase2/mt_session/news-mt-plugin.mjs
+@@ -88,7 +88,8 @@ export const server = async (input = {}, options = {}) => {
+     const now = Date.now();
+     if (now - lastLabelAt < labelIntervalMs) return;
+     lastLabelAt = now;
+-    await runLabels({ root, pythonRunner: makePythonRunner(root, python), log });
++    await runLabels({ root, pythonRunner: makePythonRunner(root, python),
++                      slotMs: slotFor(now, labelIntervalMs), log });
+   };
+   const guard = fn => () => fn().catch(e => {
+     const kind = String(e?.message || 'unknown');
+diff --git a/packages/news_phase2/mt_session/news_mt_cycle.py b/packages/news_phase2/mt_session/news_mt_cycle.py
+index 13b11a8..7c4f4c3 100644
+--- a/packages/news_phase2/mt_session/news_mt_cycle.py
++++ b/packages/news_phase2/mt_session/news_mt_cycle.py
+@@ -64,6 +64,10 @@ def setup(c, base):
+         slot_ms INTEGER PRIMARY KEY,
+         claimed_ms INTEGER NOT NULL
+     )""")
++    c.execute("""CREATE TABLE IF NOT EXISTS label_slots (
++        slot_ms INTEGER PRIMARY KEY,
++        claimed_ms INTEGER NOT NULL
++    )""")
+ 
+ 
+ @contextlib.contextmanager
+@@ -294,6 +298,46 @@ def auto(c, base, slot):
+     return result
+ 
+ 
++LABEL_SLOT_MS = 5 * 60_000
++LABEL_SLOT_RETENTION_MS = 24 * 3_600_000
++
++
++def labels(c, base, slot=None):
++    """Label-only tick. Model is never consulted and budget is never touched.
++
++    With a slot: atomically claim that 5-minute slot so exactly one plugin
++    instance performs the tick across processes and restarts. A failed claim is
++    a normal skip; the next slot retries naturally, so transient Binance or
++    clock errors never block later windows. Manual callers omit the slot and
++    keep the old single-shot behaviour.
++    """
++    claimed = None
++    if slot is not None:
++        slot = int(slot)
++        if slot % LABEL_SLOT_MS:
++            raise ValueError("LABEL_SLOT_NOT_ALIGNED")
++        row = c.execute("SELECT claimed_ms FROM label_slots WHERE slot_ms=?",
++                        (slot,)).fetchone()
++        if row is not None:
++            return {"status": "skip", "reason": "label_slot_already_claimed",
++                    "slot_ms": slot, "labels_created": 0}
++        base.check_clock()
++        now = base.ms_now()
++        claimed = c.execute("INSERT OR IGNORE INTO label_slots(slot_ms,claimed_ms) VALUES(?,?)",
++                            (slot, now)).rowcount
++        if not claimed:
++            return {"status": "skip", "reason": "label_slot_already_claimed",
++                    "slot_ms": slot, "labels_created": 0}
++        # keep the table bounded; never touches predictions or auto_stop
++        c.execute("DELETE FROM label_slots WHERE claimed_ms < ?",
++                  (now - LABEL_SLOT_RETENTION_MS,))
++        c.commit()
++    else:
++        base.check_clock()
++    return {"status": "ok", "labels_created": base.label(c, base.ms_now()),
++            "slot_ms": slot}
++
++
+ def status(c, base):
+     rows = c.execute("""SELECT id,status,session_id,prediction_id FROM mt_batches
+         ORDER BY prepared_ms DESC LIMIT 10""").fetchall()
+@@ -335,8 +379,7 @@ def main(argv=None):
+             elif args.mode == "status":
+                 result = status(c, base)
+             elif args.mode == "labels":
+-                base.check_clock()
+-                result = {"status": "ok", "labels_created": base.label(c, base.ms_now())}
++                result = labels(c, base, args.slot_ms)
+             elif args.mode in ("session", "prompt"):
+                 if not args.batch_id or not args.session_id:
+                     raise ValueError("BATCH_AND_SESSION_REQUIRED")
+diff --git a/packages/news_phase2/mt_session/test_news_mt_cycle.py b/packages/news_phase2/mt_session/test_news_mt_cycle.py
+index 7b3ebe5..03e82d3 100644
+--- a/packages/news_phase2/mt_session/test_news_mt_cycle.py
++++ b/packages/news_phase2/mt_session/test_news_mt_cycle.py
+@@ -237,4 +237,70 @@ class NewsMTTests(unittest.TestCase):
+         self.assertEqual(self.db.execute("SELECT COUNT(*) FROM events WHERE kind='model_attempt'").fetchone()[0], before)
+         self.assertEqual(self.db.execute("SELECT COUNT(*) FROM predictions").fetchone()[0], 1)
+ 
++    # --- v1.3 label slots --------------------------------------------------
++    LABEL_SLOT = 1793988900000
++
++    def test_labels_slot_claim_is_atomic_across_instances(self):
++        first = a.labels(self.db, self.base, self.LABEL_SLOT)
++        self.assertEqual(first["status"], "ok")
++        second = a.labels(self.db, self.base, self.LABEL_SLOT)
++        self.assertEqual(second["status"], "skip")
++        self.assertEqual(second["reason"], "label_slot_already_claimed")
++        self.assertEqual(self.db.execute("SELECT COUNT(*) FROM label_slots").fetchone()[0], 1)
++
++    def test_labels_slot_advances_to_next_window(self):
++        a.labels(self.db, self.base, self.LABEL_SLOT)
++        nxt = a.labels(self.db, self.base, self.LABEL_SLOT + a.LABEL_SLOT_MS)
++        self.assertEqual(nxt["status"], "ok")
++
++    def test_labels_slot_rejects_unaligned_epoch(self):
++        with self.assertRaises(ValueError):
++            a.labels(self.db, self.base, self.LABEL_SLOT + 1000)
++
++    def test_labels_slot_survives_restart(self):
++        import os, tempfile, sqlite3 as sq
++        with tempfile.TemporaryDirectory() as tmp:
++            db = os.path.join(tmp, "news.sqlite")
++            with a.database(db, self.base) as c:
++                self.assertEqual(a.labels(c, self.base, self.LABEL_SLOT)["status"], "ok")
++            # brand-new connection = simulated process restart on the same DB file
++            with a.database(db, self.base) as c2:
++                again = a.labels(c2, self.base, self.LABEL_SLOT)
++            self.assertEqual(again["reason"], "label_slot_already_claimed")
++            with a.database(db, self.base) as c3:
++                nxt = a.labels(c3, self.base, self.LABEL_SLOT + a.LABEL_SLOT_MS)
++            self.assertEqual(nxt["status"], "ok")
++
++    def test_labels_never_increments_model_attempt(self):
++        self.db.execute("INSERT INTO predictions VALUES('p1',1,75000.,'UP',0.6,'r','m','a','b','[]')")
++        self.db.commit()
++        before = self.db.execute("SELECT COUNT(*) FROM events WHERE kind='model_attempt'").fetchone()[0]
++        a.labels(self.db, self.base, self.LABEL_SLOT)
++        after = self.db.execute("SELECT COUNT(*) FROM events WHERE kind='model_attempt'").fetchone()[0]
++        self.assertEqual(before, after)
++
++    def test_clock_error_does_not_burn_the_slot(self):
++        class ClockFail(FakeBase):
++            def check_clock(self):
++                raise RuntimeError("CLOCK_SKEW_GT_3S")
++        bad = ClockFail()
++        with self.assertRaises(RuntimeError):
++            a.labels(self.db, bad, self.LABEL_SLOT)
++        # slot not claimed -> next attempt in the same window still works
++        self.assertEqual(a.labels(self.db, self.base, self.LABEL_SLOT)["status"], "ok")
++
++    def test_manual_labels_without_slot_still_work(self):
++        out = a.labels(self.db, self.base)
++        self.assertEqual(out["status"], "ok")
++        self.assertIsNone(out["slot_ms"])
++        self.assertEqual(self.db.execute("SELECT COUNT(*) FROM label_slots").fetchone()[0], 0)
++
++    def test_label_slots_pruned_but_predictions_untouched(self):
++        self.db.execute("INSERT INTO predictions VALUES('p1',1,75000.,'UP',0.6,'r','m','a','b','[]')")
++        self.db.execute("INSERT INTO label_slots VALUES(?,?)", (self.LABEL_SLOT, 1))
++        self.db.commit()
++        a.labels(self.db, self.base, self.LABEL_SLOT + a.LABEL_SLOT_MS)
++        self.assertEqual(self.db.execute("SELECT COUNT(*) FROM label_slots").fetchone()[0], 1)
++        self.assertEqual(self.db.execute("SELECT COUNT(*) FROM predictions").fetchone()[0], 1)
++
+ if __name__ == '__main__': unittest.main()
+diff --git a/packages/news_phase2/mt_session/test_news_mt_plugin.mjs b/packages/news_phase2/mt_session/test_news_mt_plugin.mjs
+index 45061e3..c6e26d9 100644
+--- a/packages/news_phase2/mt_session/test_news_mt_plugin.mjs
++++ b/packages/news_phase2/mt_session/test_news_mt_plugin.mjs
+@@ -181,3 +181,29 @@ test('plugin with auto enabled keeps only server/default exports and schedules',
+   assert.equal(typeof handle.dispose, 'function');
+   await handle.dispose();
+ });
++
++test('label tick passes a slot epoch so only one instance claims', async () => {
++  const { runLabels, LABEL_INTERVAL_MS } = await import('./news-mt-helpers.mjs');
++  assert.equal(LABEL_INTERVAL_MS, 300000);
++  const seen = [];
++  const pythonRunner = async (mode, args) => {
++    seen.push([mode, args]);
++    return { status: 'skip', reason: 'label_slot_already_claimed', labels_created: 0 };
++  };
++  const out = await runLabels({ root: '/tmp', pythonRunner, slotMs: 1793988900000 });
++  assert.equal(out.reason, 'label_slot_already_claimed');
++  assert.deepEqual(seen, [['labels', ['--slot-ms', '1793988900000']]]);
++});
++
++test('manual label call still passes no slot argument', async () => {
++  const { runLabels } = await import('./news-mt-helpers.mjs');
++  const seen = [];
++  const pythonRunner = async (mode, args) => { seen.push([mode, args]); return { status: 'ok', labels_created: 0 }; };
++  await runLabels({ root: '/tmp', pythonRunner });
++  assert.deepEqual(seen, [['labels', []]]);
++});
++
++test('plugin entry still exports only default and server after v1.3', async () => {
++  const mod = await import('./news-mt-plugin.mjs');
++  assert.deepEqual(Object.keys(mod).sort(), ['default', 'server']);
++});

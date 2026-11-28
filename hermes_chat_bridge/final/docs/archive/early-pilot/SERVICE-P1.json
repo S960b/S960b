@@ -1,0 +1,46 @@
+{
+  "schema": "git-dialog-sidecar-p1.v1",
+  "source_base_commit": "b89d69da6e6ca69881338dd61916f836907c33f6",
+  "owner_installs_and_tests": true,
+  "installed_on_owner_machine": false,
+  "default_bind": "127.0.0.1:8789",
+  "protected_port_rejected": 8787,
+  "default_source": "synthetic",
+  "real_source_opt_in": "dialogs/task_3c2d37a2485b",
+  "real_git_methods": ["GET"],
+  "default_poll_seconds": 60,
+  "authentication": "local_owner_http_basic_scrypt",
+  "authority_scope": "single_process_read_only_sidecar_not_all_writers",
+  "database": "new_private_state_directory/panel.sqlite",
+  "credential_path_input": "hidden_interactive_prompt_only_not_persisted",
+  "bridge_integration": "authenticated_passive_status_endpoint_not_wired_to_existing_bridge",
+  "delete_enabled": false,
+  "mutations_enabled": false,
+  "public_network_ready": false,
+  "production_project_complete": false,
+  "local_checks": {
+    "python": "3.12.14",
+    "pytest": "9.1.1",
+    "waitress": "3.0.2",
+    "expected_offline_tests": 394,
+    "offline_tests_passed": 394,
+    "compileall": "passed",
+    "synthetic_waitress_smoke": {
+      "http_statuses": [401, 200, 200, 200, 405, 405],
+      "auth": "required_and_verified",
+      "page_sha256": "db6e8394c011a9a88dd808030b1f18d136a98fe47efd308d372846903e0595e0",
+      "shutdown": "closed",
+      "real_data_or_credentials_used": false
+    }
+  },
+  "unchanged_git_checkpoints": {
+    "main": "38ed706d21a0ca7520271e561e4406f777601261",
+    "dialog": "1fce8bdf815adbb448b429acfe1a8c1349197d72"
+  },
+  "not_performed": [
+    "owner_installation", "real_pat_polling_by_this_service", "browser_acceptance",
+    "existing_bridge_wakeup_integration", "shared_write_authority_migration",
+    "oauth_changes", "service_installation", "cron_changes", "port_8787_replacement",
+    "real_close_cancel_delete", "public_tls_deployment"
+  ]
+}

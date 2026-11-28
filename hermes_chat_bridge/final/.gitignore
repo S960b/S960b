@@ -1,0 +1,36 @@
+# Python and test artefacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.tox/
+.venv/
+venv/
+
+# Local credentials and runtime state (never version control)
+.env
+.env.*
+!.env.example
+*.sqlite
+*.sqlite3
+*.db
+*.db-shm
+*.db-wal
+*.db-journal
+*.log
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Local temporary / editor files
+.marker
+.DS_Store
+*~
+*.swp
+*.swo
+*.bak
+*.bak.*

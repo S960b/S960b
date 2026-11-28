@@ -1,0 +1,460 @@
+diff -uN a/news_mt_cycle.py b/news_mt_cycle.py
+--- a/news_mt_cycle.py	2026-11-06 21:03:19.863744363 +0300
++++ b/news_mt_cycle.py	2026-11-06 21:03:19.865454276 +0300
+@@ -60,6 +60,10 @@
+         session_id TEXT,
+         prediction_id TEXT
+     )""")
++    c.execute("""CREATE TABLE IF NOT EXISTS auto_slots (
++        slot_ms INTEGER PRIMARY KEY,
++        claimed_ms INTEGER NOT NULL
++    )""")
+ 
+ 
+ @contextlib.contextmanager
+@@ -244,12 +248,59 @@
+             "news": len(story_ids), "entry_ms": entry_ms}
+ 
+ 
++def auto_state(c):
++    """Authoritative automation state, derived from SQLite only.
++
++    Stop is irreversible once one confirmed prediction exists: this is the
++    persistent condition that survives plugin reloads and process restarts.
++    """
++    predictions = c.execute("SELECT COUNT(*) FROM predictions").fetchone()[0]
++    active = pending(c)
++    return {
++        "predictions": predictions,
++        "stopped": predictions >= 1,
++        "blocked": active is not None,
++        "pending_batch": active[0] if active else None,
++        "pending_phase": active[1] if active else None,
++    }
++
++
++def auto(c, base, slot):
++    """One automatic check. Never re-tries, never fabricates, never overrides caps.
++
++    Order matters: stop/pending/budget are evaluated before any side effect, so a
++    blocked window performs zero RSS, zero model and zero budget movement.
++    """
++    state = auto_state(c)
++    if state["stopped"]:
++        base.meta_put(c, "auto_stop", "first_prediction_completed")
++        c.commit()
++        return {"status": "skip", "reason": "auto_stopped_after_first_prediction",
++                "predictions": state["predictions"]}
++    if state["blocked"]:
++        return {"status": "skip", "reason": "blocked_pending_batch",
++                "batch_id": state["pending_batch"], "phase": state["pending_phase"]}
++    claimed = c.execute("""INSERT OR IGNORE INTO auto_slots(slot_ms,claimed_ms)
++        VALUES(?,?)""", (int(slot), base.ms_now())).rowcount
++    if not claimed:
++        return {"status": "skip", "reason": "slot_already_claimed"}
++    c.commit()
++    result = prepare(c, base)
++    if result.get("status") == "ready":
++        result = {**result, "slot_ms": int(slot)}
++    elif result.get("status") == "blocked_pending":
++        c.execute("DELETE FROM auto_slots WHERE slot_ms=?", (int(slot),))
++        c.commit()
++    return result
++
++
+ def status(c, base):
+     rows = c.execute("""SELECT id,status,session_id,prediction_id FROM mt_batches
+         ORDER BY prepared_ms DESC LIMIT 10""").fetchall()
+     return {"status": "ok", "pending": {"id": pending(c)[0], "phase": pending(c)[1]}
+             if pending(c) else None,
+             "batches": [dict(zip(("batch_id","phase","session_id","prediction_id"), row)) for row in rows],
++            "auto": auto_state(c),
+             "report": base.report(c)}
+ 
+ 
+@@ -265,17 +316,22 @@
+ 
+ def main(argv=None):
+     ap = argparse.ArgumentParser(description=__doc__)
+-    ap.add_argument("mode", choices=("prepare", "session", "prompt", "finalize", "labels", "status", "abandon"))
++    ap.add_argument("mode", choices=("prepare", "session", "prompt", "finalize", "labels", "status", "abandon", "auto"))
+     ap.add_argument("--db", default=DB_DEFAULT)
+     ap.add_argument("--batch-id")
+     ap.add_argument("--session-id")
+     ap.add_argument("--confirm-abandon", action="store_true")
++    ap.add_argument("--slot-ms", type=int)
+     args = ap.parse_args(argv)
+     try:
+         base = base_module()
+         with database(args.db, base) as c:
+             if args.mode == "prepare":
+                 result = prepare(c, base)
++            elif args.mode == "auto":
++                if args.slot_ms is None:
++                    raise ValueError("SLOT_MS_REQUIRED")
++                result = auto(c, base, args.slot_ms)
+             elif args.mode == "status":
+                 result = status(c, base)
+             elif args.mode == "labels":
+diff -uN a/news-mt-helpers.mjs b/news-mt-helpers.mjs
+--- a/news-mt-helpers.mjs	2026-11-06 21:03:19.859108880 +0300
++++ b/news-mt-helpers.mjs	2026-11-06 21:03:19.861058933 +0300
+@@ -49,7 +49,7 @@
+   if (!isAbsolute(root) || typeof python !== 'string' || !python) throw new Error('invalid_options');
+   const script = join(root, 'news_mt_cycle.py');
+   return async (mode, args=[], input='') => {
+-    if (!['prepare','session','prompt','finalize','labels','status'].includes(mode)) throw new Error('invalid_mode');
++    if (!['prepare','session','prompt','finalize','labels','status','auto'].includes(mode)) throw new Error('invalid_mode');
+     return new Promise((resolve, reject) => {
+       const env = { ...process.env };
+       delete env.APPDIR;
+@@ -178,4 +178,64 @@
+       || typeof value.rationale !== 'string' || value.rationale.length > 500)
+     throw new Error('probe_invalid_schema');
+   return { status: 'probe_ok', direction: value.direction, session_id: sessionID };
+-}
+\ No newline at end of file
++}
++
++// --- v1.2 automation -------------------------------------------------------
++// Auto forecasting stops permanently on the first confirmed prediction, and the
++// stop is derived from SQLite (authoritative), so it survives plugin reloads and
++// process restarts. Labels run independently of forecasting and never call the
++// model.
++export const AUTO_INTERVAL_MS = 900_000;
++export const LABEL_INTERVAL_MS = 300_000;
++
++export function slotFor(now, intervalMs = AUTO_INTERVAL_MS) {
++  return Math.floor(Number(now) / intervalMs) * intervalMs;
++}
++
++// One automatic attempt through the existing prepare->session->prompt->finalize
++// pipeline. `python('auto')` re-checks stop/pending/budget atomically in SQLite.
++export async function runAutoOnce({ client, directory, root, pythonRunner, slotMs, dryRun = false, log = () => {} }) {
++  if (dryRun) { log('auto_dry_run: no RSS, DB or model operation'); return { status: 'dry_run' }; }
++  const python = pythonRunner ?? makePythonRunner(root);
++  const prepared = await python('auto', ['--slot-ms', String(slotMs)]);
++  if (prepared?.status !== 'ready') {
++    log('auto_tick: ' + String(prepared?.status ?? 'unknown') + ' ' + String(prepared?.reason ?? ''));
++    return prepared;
++  }
++  const id = prepared.batch_id;
++  if (typeof id !== 'string' || !/^[a-f0-9]{24}$/.test(id) || typeof prepared.prompt !== 'string')
++    throw new Error('invalid_prepare_result');
++  if (Buffer.byteLength(prepared.prompt, 'utf8') > 16000) throw new Error('prompt_too_large');
++  log('auto_prepared batch=' + id + ' news=' + String(prepared.news));
++  if (!client?.session?.create || !client?.session?.prompt) throw new Error('session_sdk_unavailable');
++  const created = await client.session.create({
++    body: { title: `NEWS Phase 2 auto ${id}` }, query: { directory },
++  });
++  const sessionID = created?.data?.id ?? created?.id;
++  if (typeof sessionID !== 'string' || !/^[A-Za-z0-9_-]{5,160}$/.test(sessionID))
++    throw new Error('session_create_unconfirmed');
++  await python('session', ['--batch-id', id, '--session-id', sessionID]);
++  await python('prompt', ['--batch-id', id, '--session-id', sessionID]);
++  let response = await client.session.prompt({
++    path: { id: sessionID }, query: { directory },
++    body: { parts: [{ type: 'text', text: prepared.prompt }] },
++  });
++  let text = extractAssistantText(response);
++  if (!text && typeof client.session.messages === 'function') {
++    response = await client.session.messages({ path: { id: sessionID }, query: { directory } });
++    text = extractFromHistory(response);
++  }
++  if (!text) throw new Error('model_result_unconfirmed_manual_reconcile');
++  const finalized = await python('finalize', ['--batch-id', id],
++    JSON.stringify({ session_id: sessionID, response: text }));
++  log('auto_finalized batch=' + id + ' status=' + finalized.status);
++  return finalized;
++}
++
++// Label-only tick: public Binance candles, no model, no budget.
++export async function runLabels({ root, pythonRunner, log = () => {} }) {
++  const python = pythonRunner ?? makePythonRunner(root);
++  const out = await python('labels');
++  log('labels_tick: created=' + String(out?.labels_created));
++  return out;
++}
+diff -uN a/news-mt-plugin.mjs b/news-mt-plugin.mjs
+--- a/news-mt-plugin.mjs	2026-11-06 21:03:19.855225910 +0300
++++ b/news-mt-plugin.mjs	2026-11-06 21:03:19.857067264 +0300
+@@ -12,7 +12,7 @@
+ import { appendFileSync, existsSync, mkdirSync, unlinkSync } from 'node:fs';
+ import { join, dirname, isAbsolute } from 'node:path';
+ 
+-import { runOnce, probeModel, makePythonRunner } from './news-mt-helpers.mjs';
++import { runOnce, probeModel, makePythonRunner, runAutoOnce, runLabels, slotFor, AUTO_INTERVAL_MS, LABEL_INTERVAL_MS } from './news-mt-helpers.mjs';
+ 
+ const DEFAULT_ROOT = '/home/kali/research/news-phase2';
+ 
+@@ -27,6 +27,9 @@
+   const probeTrigger = typeof options.probe_trigger_file === 'string' ? options.probe_trigger_file : join(root, '.mt-news-probe-now');
+   const logFile = typeof options.log_file === 'string' ? options.log_file : join(root, 'news-mt-plugin.log');
+   const pollMs = Math.max(2000, Number(options.poll_ms) || 30_000);
++  const autoEnabled = options.auto_until_first_prediction === true;
++  const autoIntervalMs = Math.max(60_000, Number(options.auto_interval_ms) || AUTO_INTERVAL_MS);
++  const labelIntervalMs = Math.max(60_000, Number(options.label_interval_ms) || LABEL_INTERVAL_MS);
+   const client = input?.client;
+   let busy = false;
+   let closed = false;
+@@ -55,10 +58,57 @@
+       log('manual_cycle_error=' + (/^[a-zA-Z0-9_]+$/.test(kind) ? kind : 'unknown'));
+     } finally { busy = false; }
+   };
+-  log('plugin loaded manual_only=true dry_run=' + dryRun);
++  let lastAutoSlot = null;
++  let lastLabelAt = 0;
++  let autoStopped = false;
++  const autoTick = async () => {
++    if (closed || autoStopped || dryRun) return;
++    const now = Date.now();
++    const slot = slotFor(now, autoIntervalMs);
++    if (lastAutoSlot === slot) return;
++    const outcome = await runAutoOnce({
++      client, directory, root, slotMs: slot, dryRun,
++      pythonRunner: makePythonRunner(root, python), log,
++    });
++    // Nothing is claimed if the slot was skipped for budget/pending reasons:
++    // retrying the same slot would only repeat the same skip.
++    lastAutoSlot = slot;
++    if (outcome?.status === 'skip'
++        && String(outcome?.reason ?? '').startsWith('auto_stopped')) {
++      autoStopped = true;
++      log('auto_disabled_after_first_prediction');
++    }
++    if (outcome?.status === 'created') {
++      autoStopped = true;
++      log('auto_stopped: first forward prediction created');
++    }
++  };
++  const labelTick = async () => {
++    if (closed || dryRun) return;
++    const now = Date.now();
++    if (now - lastLabelAt < labelIntervalMs) return;
++    lastLabelAt = now;
++    await runLabels({ root, pythonRunner: makePythonRunner(root, python), log });
++  };
++  const guard = fn => () => fn().catch(e => {
++    const kind = String(e?.message || 'unknown');
++    log('tick_error=' + (/^[a-zA-Z0-9_]+$/.test(kind) ? kind : 'unknown'));
++  });
++  log('plugin loaded manual_only=true dry_run=' + dryRun + ' auto=' + autoEnabled
++      + ' auto_interval_ms=' + autoIntervalMs);
+   const timer = setInterval(() => { tick().catch(() => log('tick_failed')); }, pollMs);
+   timer.unref?.();
+-  return { dispose: async () => { closed = true; clearInterval(timer); log('plugin disposed'); } };
++  const timers = [timer];
++  if (autoEnabled) {
++    const autoTimer = setInterval(guard(autoTick), autoIntervalMs);
++    autoTimer.unref?.();
++    timers.push(autoTimer);
++    log('auto_schedule_active interval_ms=' + autoIntervalMs + ' next_slot_in_ms=' + (autoIntervalMs - (Date.now() % autoIntervalMs)));
++  }
++  const labelTimer = setInterval(guard(labelTick), labelIntervalMs);
++  labelTimer.unref?.();
++  timers.push(labelTimer);
++  return { dispose: async () => { closed = true; for (const t of timers) clearInterval(t); log('plugin disposed'); } };
+ };
+ 
+ export default server;
+\ No newline at end of file
+diff -uN a/NEWS_MT_SESSION_README.md b/NEWS_MT_SESSION_README.md
+--- a/NEWS_MT_SESSION_README.md	2026-11-06 21:03:19.876372967 +0300
++++ b/NEWS_MT_SESSION_README.md	2026-11-06 21:03:19.878113132 +0300
+@@ -84,3 +84,35 @@
+ - If the original baseline SHA, database schema or public feed endpoint differs from the pinned source, do not edit it silently; report exact differences.
+ - If any test, clock check, RSS collection, JSON validation or candidate state fails, don't force a real forecast. No trade/order/withdrawal API methods appear here.
+ - Config, app sessions and DB backups should remain private on Kali. Avoid logging model responses, credentials or full news payloads.
++
++---
++
++## v1.2 — опциональная автоматизация до первого прогноза
++
++Опции конфига плагина (все опциональны, по умолчанию автоматизации нет):
++
++| опция | по умолчанию | смысл |
++|---|---|---|
++| `auto_until_first_prediction` | `false` | включает авто-проверки |
++| `auto_interval_ms` | `900000` | окно авто-проверки (15 мин) |
++| `label_interval_ms` | `300000` | частота label-only проходов (5 мин) |
++| `dry_run` | `true` | как и раньше: без RSS, БД и модели |
++
++**Стоп — авторитетно из SQLite.** `auto_state()` считает `stopped = predictions >= 1`.
++После первого подтверждённого прогноза никаких авто-инференсов больше не будет,
++включая релоад плагина и перезапуск процесса, потому что условие читается из базы.
++
++**Блокировки.** Перед любым побочным эффектом проверяются: (1) стоп по прогнозам,
++(2) активный `mt_batches` в состоянии `prepared/session_created/prompt_attempted`.
++При блокировке окно не портит бюджет: ни RSS, ни `model_attempt`. Повтора промпта нет.
++
++**Один слот — один раз.** Таблица `auto_slots(slot_ms PRIMARY KEY)` + `INSERT OR IGNORE`
++дают атомарный клейм и внутри процесса, и между инстансами плагина; файловый `flock`
++на `<db>.lock` (уже есть в `database()`) сериализует запись в SQLite.
++
++**Метки отделены от прогнозов.** `labels`/`label` используют только публичные свечи
++Binance, модель не вызывают и бюджет не расходуют; ставятся не раньше +1/+4/+24 ч.
++
++**Стоп-условия, которые не обходятся:** 4 ч каденция, ≤6 `model_attempt` за 24 ч,
++≤60 прогнозов, один прогноз на батч, котировка Binance строго после инференса,
++строгий JSON, никакого синтетического бэкфилла.
+diff -uN a/test_news_mt_cycle.py b/test_news_mt_cycle.py
+--- a/test_news_mt_cycle.py	2026-11-06 21:03:19.868544745 +0300
++++ b/test_news_mt_cycle.py	2026-11-06 21:03:19.870673026 +0300
+@@ -157,4 +157,84 @@
+         self.assertEqual(self.db.execute("SELECT COUNT(*) FROM events WHERE kind='model_attempt'").fetchone()[0],0)
+ 
+ 
++    # --- v1.2 automation ---------------------------------------------------
++    def test_auto_stop_is_derived_from_db_and_survives_reload(self):
++        st = a.auto_state(self.db)
++        self.assertEqual(st["stopped"], False)
++        self.db.execute("INSERT INTO predictions VALUES('p1',1,75000.,'UP',0.6,'r','m','a','b','[]')")
++        self.db.commit()
++        st2 = a.auto_state(self.db)
++        self.assertEqual(st2["stopped"], True)
++        self.assertEqual(st2["predictions"], 1)
++        out = a.auto(self.db, self.base, 1793966400000)
++        self.assertEqual(out["status"], "skip")
++        self.assertEqual(out["reason"], "auto_stopped_after_first_prediction")
++
++    def test_auto_blocks_on_pending_batch_without_side_effects(self):
++        ready = self.prepare_ready()
++        self.assertIn("NEWS_DATA_JSON_START", ready["prompt"])
++        budget_before = self.db.execute("SELECT COUNT(*) FROM events WHERE kind='model_attempt'").fetchone()[0]
++        out = a.auto(self.db, self.base, 1793966400000 + 900000)
++        self.assertEqual(out["status"], "skip")
++        self.assertEqual(out["reason"], "blocked_pending_batch")
++        budget_after = self.db.execute("SELECT COUNT(*) FROM events WHERE kind='model_attempt'").fetchone()[0]
++        self.assertEqual(budget_before, budget_after)
++
++    def test_auto_slot_claim_is_idempotent(self):
++        self.db.execute("INSERT INTO meta VALUES('warmup_at','1793966000000')")
++        self.db.commit()
++        slot = 1793966400000
++        out = a.auto(self.db, self.base, slot)
++        self.assertEqual(out["status"], "skip")
++        self.assertEqual(out["reason"], "no_recent_new_headlines")
++        again = a.auto(self.db, self.base, slot)
++        self.assertEqual(again["reason"], "slot_already_claimed")
++        other = a.auto(self.db, self.base, slot + 900000)
++        self.assertNotEqual(other["reason"], "slot_already_claimed")
++
++    def test_auto_claims_no_slot_when_stopped(self):
++        self.db.execute("INSERT INTO predictions VALUES('p1',1,75000.,'UP',0.6,'r','m','a','b','[]')")
++        self.db.commit()
++        a.auto(self.db, self.base, 1793966400000)
++        self.assertEqual(self.db.execute("SELECT COUNT(*) FROM auto_slots").fetchone()[0], 0)
++
++    def test_auto_ready_then_exactly_one_prediction_stops_forever(self):
++        self.base.rss_next = [("s1", "feed", "Bitcoin ETF news headlines", "", "url", 1793966399000, 1793966399000)]
++        self.db.execute("INSERT INTO meta VALUES('warmup_at','1793966000000')")
++        self.db.commit()
++        slot = 1793966400000
++        ready = a.auto(self.db, self.base, slot)
++        self.assertEqual(ready["status"], "ready")
++        self.assertEqual(self.base.quoted, 0)
++        self.mark(ready["batch_id"])
++        fin = a.finalize(self.db, self.base, ready["batch_id"],
++                         json.dumps({"session_id": "ses_test123",
++                                     "response": '{"direction":"UP","confidence":0.6,"rationale":"etf"}'}).encode())
++        self.assertEqual(fin["status"], "created")
++        self.assertEqual(self.db.execute("SELECT COUNT(*) FROM predictions").fetchone()[0], 1)
++        stopped = a.auto(self.db, self.base, slot + 3600000)
++        self.assertEqual(stopped["reason"], "auto_stopped_after_first_prediction")
++        self.assertEqual(self.db.execute("SELECT COUNT(*) FROM predictions").fetchone()[0], 1)
++
++    def test_auto_respects_model_budget_cap(self):
++        for _ in range(6):
++            self.db.execute("INSERT INTO events VALUES(?,?,?,?)", (self.base.now, "model_attempt", "started", "x"))
++        self.db.commit()
++        out = a.auto(self.db, self.base, 1793966400000)
++        self.assertEqual(out["status"], "skip")
++        self.assertEqual(out["reason"], "max_6_model_calls_per_24h")
++
++    def test_auto_and_labels_are_separate_paths(self):
++        # labels mode never creates predictions and never consumes model budget
++        self.db.execute("INSERT INTO predictions VALUES('p9',1793966000000,75000.,'UP',0.6,'r','m','a','b','[]')")
++        self.db.commit()
++        before = self.db.execute("SELECT COUNT(*) FROM events WHERE kind='model_attempt'").fetchone()[0]
++        a.base_module = lambda: self.base
++        try:
++            a.main(["labels", "--db", ":memory:"])
++        finally:
++            a.base_module = __import__("news_mt_cycle").base_module
++        self.assertEqual(self.db.execute("SELECT COUNT(*) FROM events WHERE kind='model_attempt'").fetchone()[0], before)
++        self.assertEqual(self.db.execute("SELECT COUNT(*) FROM predictions").fetchone()[0], 1)
++
+ if __name__ == '__main__': unittest.main()
+diff -uN a/test_news_mt_plugin.mjs b/test_news_mt_plugin.mjs
+--- a/test_news_mt_plugin.mjs	2026-11-06 21:03:19.872586831 +0300
++++ b/test_news_mt_plugin.mjs	2026-11-06 21:03:19.874517944 +0300
+@@ -115,3 +115,69 @@
+   assert.equal(typeof plugin.dispose, 'function');
+   await plugin.dispose();
+ });
++
++test('auto slot is stable inside a 15-minute window and advances after', async () => {
++  const { slotFor, AUTO_INTERVAL_MS } = await import('./news-mt-helpers.mjs');
++  assert.equal(AUTO_INTERVAL_MS, 900000);
++  const t0 = 1793966400000;
++  assert.equal(slotFor(t0), slotFor(t0 + 899000));
++  assert.notEqual(slotFor(t0), slotFor(t0 + 900000));
++});
++
++test('auto runner skips when python reports stop and never calls the model', async () => {
++  const { runAutoOnce } = await import('./news-mt-helpers.mjs');
++  let modelCalls = 0;
++  const client = { session: {
++    create: async () => { modelCalls++; return { data: { id: 'ses_auto12345' } }; },
++    prompt: async () => { modelCalls++; return {}; },
++  } };
++  const pythonRunner = async (mode) => ({ status: 'skip', reason: 'auto_stopped_after_first_prediction' });
++  const out = await runAutoOnce({ client, directory: '/tmp', root: '/tmp',
++    pythonRunner, slotMs: 1793966400000, dryRun: false, log: () => {} });
++  assert.equal(out.reason, 'auto_stopped_after_first_prediction');
++  assert.equal(modelCalls, 0);
++});
++
++test('auto runner does nothing in dry_run', async () => {
++  const { runAutoOnce } = await import('./news-mt-helpers.mjs');
++  let touched = false;
++  const out = await runAutoOnce({
++    client: { session: { create: async () => { touched = true; }, prompt: async () => { touched = true; } } },
++    directory: '/tmp', root: '/tmp', slotMs: 1, dryRun: true, log: () => {},
++  });
++  assert.equal(out.status, 'dry_run');
++  assert.equal(touched, false);
++});
++
++test('auto runner stops after a created prediction', async () => {
++  const { runAutoOnce } = await import('./news-mt-helpers.mjs');
++  const seen = [];
++  const pythonRunner = async (mode) => {
++    seen.push(mode);
++    if (mode === 'auto') return { status: 'ready', batch_id: 'a'.repeat(24), prompt: 'P', news: 2 };
++    if (mode === 'session' || mode === 'prompt') return { status: 'ok' };
++    if (mode === 'finalize') return { status: 'created', prediction_id: 'p1' };
++    return { status: 'ok' };
++  };
++  const client = { session: {
++    create: async () => ({ data: { id: 'ses_auto67890' } }),
++    prompt: async () => ({ data: { info: { role: 'assistant' }, parts: [{ type: 'text', text: '{"direction":"UP","confidence":0.6,"rationale":"x"}' }] } }),
++  } };
++  const out = await runAutoOnce({ client, directory: '/tmp', root: '/tmp',
++    pythonRunner, slotMs: 1793966400000, dryRun: false, log: () => {} });
++  assert.equal(out.status, 'created');
++  assert.deepEqual(seen, ['auto', 'session', 'prompt', 'finalize']);
++});
++
++test('plugin with auto enabled keeps only server/default exports and schedules', async () => {
++  const mod = await import('./news-mt-plugin.mjs');
++  assert.deepEqual(Object.keys(mod).sort(), ['default', 'server']);
++  const handle = await mod.server({ client: { session: { create: async () => ({}), prompt: async () => ({}) } } }, {
++    root: '/tmp', dry_run: true, auto_until_first_prediction: true,
++    poll_ms: 60000, auto_interval_ms: 60000, label_interval_ms: 60000,
++    trigger_file: '/tmp/nonexistent-auto-1', probe_trigger_file: '/tmp/nonexistent-auto-2',
++    log_file: '/tmp/news-v12-plugin-tests.log',
++  });
++  assert.equal(typeof handle.dispose, 'function');
++  await handle.dispose();
++});
