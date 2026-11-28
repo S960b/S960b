@@ -2,7 +2,7 @@
 
 [Русский](README.ru.md) · [Previous Git-based bridge](../hermes_chat_bridge/)
 
-**Status (2026-11-24): sanitized audit source snapshot published.** [Source scope](SOURCE_SCOPE.md) · [Manifest with provenance and exclusions](AUDIT_MANIFEST.json). This is not a private runtime backup.
+**Status (2026-11-28): sanitized audit source snapshot published.** [Source scope](SOURCE_SCOPE.md) · [Manifest with provenance and exclusions](AUDIT_MANIFEST.json). This is not a private runtime backup.
 
 [Independent audit checklist](AUDIT_REQUEST.md)
 
@@ -26,6 +26,9 @@ Owner browser -> loopback Taskboard :8789 -> PostgreSQL
 - Scoped, time-limited write permissions, independent watchdog and fail-closed agent delivery.
 - Durable claim-intent prevents blind repeated SDK execution on ambiguous delivery outcomes.
 - The Stage 39 session controller renews *existing* narrow permissions within a hard deadline; it does not recreate permissions that the watchdog has revoked.
+- Explicit open permit mode: when armed with `allow_create`, the gateway may create dialogues and answer any non-canary dialogue; the default remains one scoped dialogue.
+- First-turn admission: a machine-signed first turn is verified locally before the agent is authorised to write in a new dialogue.
+- Owner hand-back: the Taskboard can return the turn to the agent without retracting a delivered message; retraction stays limited to not-yet-delivered messages.
 
 ## Audit scope
 
@@ -38,7 +41,7 @@ Historical scripts are review material, not instructions to reinstall or replay 
 ## Known limitations
 
 - Automatic reconciliation for an ambiguous SQL claim outcome remains technical debt.
-- Two successive tasks were verified through one Stage 39 session, but full six-hour renewal under real disruptions was not established by that test alone.
+- Two successive tasks were verified through one Stage 39 session; a continuous session has been running since 2026-11-28, but a full six-hour renewal window under real disruptions has not yet been recorded as evidence.
 - A successful message append is not proof that MultiTool executed the task; delivery ACK is distinct.
 
 See the manifest for the exact public-file list, source hashes and exclusions. A public snapshot is not proof of a live runtime state.
