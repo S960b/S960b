@@ -25,6 +25,13 @@ This file does not grant permission to make a model call or a real trade.
   (filter is stricter than its 900 s Tier-2 limit). Source publication-to-first-
   observation lag is also checked, independently of decision-time age.
 
+## Prospective start
+
+Both the original publisher timestamp and first recorded observation must
+be at or after the owner-approved activation started_ms. A fresh article
+published before the start remains in the RAW archive but is not a trial.
+No backdated trials or reuse of pre-start observations.
+
 ## Prediction contract
 
 - DeepSeek `deepseek-v4-flash`; exactly **three sequential arms**, N (news
