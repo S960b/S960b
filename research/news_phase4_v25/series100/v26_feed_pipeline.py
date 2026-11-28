@@ -90,7 +90,7 @@ def _read_exact_archive(path, expected_sha):
     return raw
 
 
-def candidate(*, events_db, sidecar_db, now_ms, excluded=()):
+def candidate(*, events_db, sidecar_db, now_ms, excluded=(), not_before_ms=0):
     """Return (Tier-2 event, RSS metadata, symbol) or None; fail closed.
 
     Enforces chain: v24_events -> first observation -> immutable raw manifest
@@ -99,6 +99,8 @@ def candidate(*, events_db, sidecar_db, now_ms, excluded=()):
     """
     if type(now_ms) is not int or now_ms <= 0:
         raise PipelineError("invalid_decision_clock")
+    if type(not_before_ms) is not int or not 0 <= not_before_ms <= now_ms:
+        raise PipelineError("invalid_prospective_start")
     banned = set(excluded)
     rows = events_db.execute(
         "SELECT e.content_sha256,e.source_id,e.category,e.provenance,"
@@ -108,8 +110,9 @@ def candidate(*, events_db, sidecar_db, now_ms, excluded=()):
         "FROM v24_events e "
         "JOIN v24_observations o ON o.occurrence_id=e.content_sha256 "
         "JOIN v24_raw_manifest m ON m.raw_sha256=e.raw_sha256 "
+        "WHERE e.published_ms >= ? AND e.observed_ms >= ? "
         "ORDER BY e.published_ms DESC,e.content_sha256 ASC LIMIT ?",
-        (MAX_CANDIDATES_SCANNED,)
+        (not_before_ms,not_before_ms,MAX_CANDIDATES_SCANNED)
     ).fetchall()
     for (eid,sid,cohort,provenance,title,url,pub,observed,raw_sha,
          obs_ms,obs_sha,obs_path,obs_url,obs_title,
@@ -221,6 +224,22 @@ def selftest():
         result = candidate(events_db=con,sidecar_db=sc,now_ms=observed+1000)
         assert result and result[0]["event_id"]==SC.identity(got["records"][0])
         assert result[2]=="ETHUSDT",result
+        # Inclusive boundary: a publication at the start is prospective.
+        assert candidate(events_db=con,sidecar_db=sc,now_ms=observed+1000,
+                         not_before_ms=pub) is not None
+        # A pre-start publication discovered later is not prospective.
+        assert candidate(events_db=con,sidecar_db=sc,now_ms=observed+1000,
+                         not_before_ms=pub+1) is None
+        # An item already observed before start is also excluded.
+        assert candidate(events_db=con,sidecar_db=sc,now_ms=observed+1000,
+                         not_before_ms=observed+1) is None
+        for invalid in (-1, True, observed+1001):
+            try:
+                candidate(events_db=con,sidecar_db=sc,now_ms=observed+1000,
+                          not_before_ms=invalid)
+                raise AssertionError("invalid prospective start accepted")
+            except PipelineError:
+                pass
         assert candidate(events_db=con,sidecar_db=sc,
                          now_ms=observed+700_000) is None
         assert candidate(events_db=con,sidecar_db=sc,now_ms=observed+1000,
