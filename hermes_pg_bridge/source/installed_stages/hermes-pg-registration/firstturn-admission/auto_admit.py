@@ -110,6 +110,29 @@ def keeper_session():
     return sid
 
 
+def iter_dialogs(cli_call, page=50, max_scan=2000):
+    """Walk every page of the dispatch list instead of only the first one."""
+    offset = 0
+    scanned = 0
+    while True:
+        listing = cli_call('list', '--offset', str(offset), '--limit', str(page))
+        dialogs = listing.get('dialogs') or []
+        if not dialogs:
+            return
+        for dialog in dialogs:
+            yield dialog
+        scanned += len(dialogs)
+        nxt = listing.get('next_offset')
+        if nxt is None or type(nxt) is not int or nxt <= offset:
+            if nxt is not None and (type(nxt) is not int or nxt <= offset):
+                log('scan_cursor_stall')
+            return
+        if scanned >= max_scan:
+            log('scan_cap_hit ' + str(scanned))
+            return
+        offset = nxt
+
+
 def ensure_policy(sid):
     path = AUTH / 'policy.json'
     epoch = None
@@ -124,6 +147,19 @@ def ensure_policy(sid):
     publish(path, json.dumps(record, sort_keys=True).encode())
     log('policy_renewed')
     return record['epoch']
+
+
+def revocation():
+    """Explicit, durable revocation: global flag and a list of task ids."""
+    path = AUTH / 'revoked.json'
+    if not path.exists():
+        return {'global': False, 'tasks': frozenset()}
+    doc = json.loads(private_read(path, 65536))
+    need(set(doc) == {'version', 'global', 'tasks'} and doc['version'] == 1
+         and type(doc['global']) is bool and isinstance(doc['tasks'], list)
+         and all(type(x) is str and TASK_ID.fullmatch(x) for x in doc['tasks']),
+         'revocation_shape')
+    return {'global': doc['global'], 'tasks': frozenset(doc['tasks'])}
 
 
 def private_key():
@@ -175,16 +211,29 @@ def admit(sid, epoch, public, key, task_id):
     record_path = AUTH / (task_id + '.json')
     if record_path.exists():
         return 'present'
-    page = cli('peek', '--task-id', task_id, '--limit', '1')
+    page = cli('peek', '--task-id', task_id, '--limit', '2')
     messages = page.get('messages') or []
-    need(page.get('seq') == 1 and len(messages) == 1, 'not_first_message')
-    first = messages[0]
-    need(first.get('seq') == 1 and first.get('from') == 'chatgpt'
-         and first.get('to') == 'mt' and first.get('kind') == 'task', 'first_message_shape')
+    last = page.get('seq')
+    if last == 1:
+        need(len(messages) == 1, 'not_first_message')
+        first = messages[0]
+        need(first.get('seq') == 1 and first.get('from') == 'chatgpt'
+             and first.get('to') == 'mt' and first.get('kind') == 'task', 'first_message_shape')
+    elif last == 2:
+        # MT published seq=1; the first inbound ChatGPT message is seq=2.
+        need(len(messages) == 2, 'not_first_message')
+        prior, first = messages[1], messages[0]
+        need(prior.get('seq') == 1 and prior.get('from') == 'mt'
+             and prior.get('to') == 'chatgpt', 'mt_first_shape')
+        need(first.get('seq') == 2 and first.get('from') == 'chatgpt'
+             and first.get('to') == 'mt' and first.get('kind') == 'task', 'first_message_shape')
+    else:
+        need(False, 'not_first_message')
+    first_seq = first.get('seq')
     mid = first.get('message_id')
     need(type(mid) is str and MESSAGE_ID.fullmatch(mid), 'message_id')
-    full = cli('read', '--task-id', task_id, '--seq', '1', '--message-id', mid)
-    need(full.get('seq') == 1 and full.get('message_id') == mid
+    full = cli('read', '--task-id', task_id, '--seq', str(first_seq), '--message-id', mid)
+    need(full.get('seq') == first_seq and full.get('message_id') == mid
          and isinstance(full.get('body'), str), 'message_read')
     body = verify_wire(public, task_id, mid, full['body'])
     need(0 < len(body.encode('utf8')) <= 32768, 'body_size')
@@ -209,24 +258,38 @@ def main():
         except OSError:
             log('admit_busy')
             return 0
+        revoked = revocation()
+        if revoked['global']:
+            log('revoked_global')
+            return 0
         sid = keeper_session()
         epoch = ensure_policy(sid)
         from cryptography.hazmat.primitives.serialization import load_pem_public_key
         public = load_pem_public_key(private_read(SIGNER / 'task-public.pem', 4096))
         key = private_key()
-        listing = cli('list', '--offset', '0', '--limit', '50')
-        for dialog in listing.get('dialogs') or []:
+        fcntl.flock(fd, fcntl.LOCK_UN)
+        for dialog in iter_dialogs(cli):
             task_id = dialog.get('task_id')
             if not isinstance(task_id, str) or not TASK_ID.fullmatch(task_id):
                 continue
             if task_id == LEGACY or task_id in EXCLUDED:
                 continue
+            if task_id in revoked['tasks']:
+                log('admit_revoked ' + task_id)
+                continue
+            try:
+                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except OSError:
+                log('admit_busy')
+                return 0
             try:
                 outcome = admit(sid, epoch, public, key, task_id)
             except Exception as exc:
                 log('admit_skip ' + (str(exc) if str(exc).isidentifier() else type(exc).__name__)
                     + ' ' + task_id)
                 continue
+            finally:
+                fcntl.flock(fd, fcntl.LOCK_UN)
             log('admit_' + outcome + ' ' + task_id)
         log('tick_ok')
         return 0

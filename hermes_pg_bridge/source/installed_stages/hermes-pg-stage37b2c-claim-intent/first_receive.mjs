@@ -1,7 +1,7 @@
 import {openWire} from './wire56.mjs';
 
 const retired = 'task_f2c64cfdf7894537b35a19a6def977c6';
-export function verifyFirstTurnScope(publicKey, taskId, message, state) {
+export function verifyFirstTurnScope(publicKey, taskId, message, state, priorFromAgent = false) {
   if (taskId === retired || message.from !== 'chatgpt' || message.to !== 'mt'
       || message.kind !== 'task' || message.returned !== false) {
     throw Error('new_dialogue_message_identity');
@@ -9,7 +9,9 @@ export function verifyFirstTurnScope(publicKey, taskId, message, state) {
   const hasCursor = Object.hasOwn(state.seen, taskId);
   const hasSession = Object.hasOwn(state.sessions, taskId);
   if (!hasCursor && !hasSession) {
-    if (message.seq !== 1) throw Error('new_dialogue_missing_cursor');
+    // seq=1 — ChatGPT starts the dialogue; seq=2 — MT started and ChatGPT answers.
+    const firstInbound = message.seq === 1 || (message.seq === 2 && priorFromAgent === true);
+    if (!firstInbound) throw Error('new_dialogue_missing_cursor');
   } else if (!hasCursor || !hasSession || !Number.isSafeInteger(state.seen[taskId])
              || state.seen[taskId] < 1 || message.seq <= state.seen[taskId]) {
     throw Error('new_dialogue_cursor_mismatch');

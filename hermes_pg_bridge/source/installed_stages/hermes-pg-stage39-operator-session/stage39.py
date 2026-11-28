@@ -38,8 +38,8 @@ LOCAL_STATE = HOME / '.local/state/mt-pg-inbox-managed-stage34e/state.json'
 INTENTS = HOME / '.local/state/mt-pg-inbox-managed-stage34e/claim-intents37b2c'
 TASK = 'task_b6c26aa18220412bafdbf32393f16568'
 CFG_SHA = '9e98eeca933c447831e214212267219440392ce4e6a7ec8e3b8ffa3e26c0796b'
-CANDIDATE_SHA256 = 'aae583255db7cca72b4090bb23fb65a91354d486287fe8cfa4291c611680d10f'
-WATCHDOG_SHA = '3c08be36ce5dc7fc615429a9ce43840a85d863cef0516f39e134caf04e0304c2'
+CANDIDATE_SHA256 = '7c04efa626cb4fafd4713b912830303340aed743e0f7bca5874e98e4f433ca6f'
+WATCHDOG_SHA = 'b1e8e99cd7ed5746862ea6f721ddb124c71462625407cd81987f0413ac067604'
 GATE_BYTES = b'ALLOW_MANAGED_WRITES_AFTER_EXCLUSIVE_SDK_REVIEW\n'
 MAX_SESSION_SECONDS = 6 * 3600
 PERMIT_LIFETIME_SECONDS = 3600
@@ -187,14 +187,15 @@ def check_config():
     require(digest(read_private(Path('/home/kali/hermes-pg-stage57-owner-turn/adapter57.py'),250000)) == '1d4285acb71113244b6a8417d92785634ed59b0893880342f8c87b4257e1b494', "OWNER_TURN57_SOURCE_CHANGED")
     require(digest(read_private(Path('/home/kali/hermes-pg-stage57-owner-turn/worker57.py'),250000)) == '76633e83912ae1bdfd096f2a849451b07e317ee8e088c1ab7b8db6f9e713e1ba', "OWNER_TURN57_SOURCE_CHANGED")
     require(digest(read_private(Path('/home/kali/bridge-pg-v2/bridge_pg/owner_http57.py'),250000)) == 'ea25b42fcf5c6ed9eae39334314a3c9dbf9c5a3f42dcfae1121c9f4efd43a637', "OWNER_TURN57_SOURCE_CHANGED")
-    require(digest(read_private(Path('/home/kali/bridge-pg-v2/bridge_pg/taskboard_v2.py'),250000)) == 'b81d5306941e32c0c4d2a3faa8f82f1cbc39981ea5d024d1cd24d4c624a3681d', "OWNER_TURN57_SOURCE_CHANGED")
-    require(digest(read_private(Path('/home/kali/bridge-pg-v2/bridge_pg/static/taskboard.js'),250000)) == '9175c98f40a1aa16be594929aaf707d172a512bc6429373a55623e9a8c9f3dbc', "OWNER_TURN57_SOURCE_CHANGED")
+    require(digest(read_private(Path('/home/kali/bridge-pg-v2/bridge_pg/taskboard_v2.py'),250000)) == '29ef18d9990673e6a2f77890472e4e4e24c4934540db848ba7c992a6dd9efb6b', "OWNER_TURN57_SOURCE_CHANGED")
+    require(digest(read_private(Path('/home/kali/bridge-pg-v2/bridge_pg/static/taskboard.js'),250000)) == '197a0a1ebe92af67a8baeb7cc018f23478bac5f2ad64aae0969fd80127c03f5a', "OWNER_TURN57_SOURCE_CHANGED")
     require(digest(read_private(Path('/home/kali/bridge-pg-v2/bridge_pg/adapter64.py'),250000)) == '78e59f75d98952352ee4d4079ded26d4ef83ce6358817d5528904e795316547d', "OWNER_TURN57_SOURCE_CHANGED")
     require(digest(read_private(Path('/home/kali/hermes-pg-stage37b2c-claim-intent/owner_turn57.mjs'),250000)) == '8e6ed3a4c82a18dc68387b8ca663c418061b7bbcdadde4a0fee5d8d4593f47ae', "OWNER_TURN57_SOURCE_CHANGED")
     _owner57_dir = Path('/home/kali/.local/state/mt-pg-inbox-managed-stage34e/owner-turn57-revocations').lstat()
     require(stat.S_ISDIR(_owner57_dir.st_mode) and _owner57_dir.st_uid==os.geteuid() and stat.S_IMODE(_owner57_dir.st_mode)==0o700, "OWNER_TURN57_STATE_UNSAFE")
     _owner57_dir = Path('/home/kali/.local/state/mt-pg-inbox-managed-stage34e/owner-turn57-requests').lstat()
     require(stat.S_ISDIR(_owner57_dir.st_mode) and _owner57_dir.st_uid==os.geteuid() and stat.S_IMODE(_owner57_dir.st_mode)==0o700, "OWNER_TURN57_STATE_UNSAFE")
+    require(digest(read_private(CANDIDATE.parent / 'first_receive.mjs', 250000)) == 'f4438b4bc70439174d7d852151a4228453b6ff4f7bb335ec992fd105f17c2d16', 'FIRST_RECEIVE_SOURCE_CHANGED')
     require(digest(read_private(CANDIDATE.parent / 'signed_receive56.mjs', 250000)) == '85265a1e20ca0efad43ad8a7c827df178d058905e7561c086b50af67bc9644f9', 'SIGNED_HELPER_SOURCE_CHANGED')
     require(digest(read_private(CANDIDATE.parent / 'wire56.mjs', 250000)) == '8382681c811efd38efa9ac5fa4e9f51544f837e7ce7e57592ac640112f22dfbe', 'SIGNED_HELPER_SOURCE_CHANGED')
     require(digest(read_private(CANDIDATE.parent / 'intent37b2c.mjs', 250000)) == '338a92a6f6d94c4e062230db48b449610f2dedc2a969866783908aa2da5ece7f', 'SIGNED_HELPER_SOURCE_CHANGED')

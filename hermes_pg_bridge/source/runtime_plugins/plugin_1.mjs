@@ -389,6 +389,27 @@ function latestPending(snapshot, seenSeq) {
       last.seq <= seenSeq || typeof last.message_id !== "string") return null;
   return last;
 }
+function firstTurnAllowedLive(ctx, taskId) {
+  // Re-read on every tick: revocation must survive plugin reloads and keeper restarts.
+  try {
+    const m = join(HOME, ".config/bridge-pg-v2/first-turn-admission/enabled");
+    const s = lstatSync(m);
+    if (!(s.isFile() && s.uid === process.getuid() && (s.mode & 0o777) === 0o600)) return false;
+  } catch { return false; }
+  let doc;
+  try {
+    const raw = readFileSync(join(HOME, ".config/bridge-pg-v2/first-turn-admission/revoked.json"), "utf8");
+    if (typeof raw !== "string" || raw.length > 65536) return false;
+    doc = JSON.parse(raw);
+  } catch (e) {
+    if (e && e.code === "ENOENT") return true;
+    return false;
+  }
+  if (!doc || doc.version !== 1 || typeof doc.global !== "boolean" || !Array.isArray(doc.tasks)) return false;
+  if (doc.global === true) return false;
+  return !doc.tasks.includes(taskId);
+}
+
 async function listAll(cliCall) {
   const all = [];
   let offset = 0;
@@ -770,7 +791,7 @@ export async function runTick(ctx) {
     const dialogs = await listAll(ctx.cliCall);  // SQL ag_dispatch_list only
     for (const dialog of dialogs) {
       const legacy = ctx.taskIds.includes(dialog?.task_id);
-      if (!legacy && ctx.firstTurnEnabled !== true) continue;
+      if (!legacy && !firstTurnAllowedLive(ctx, dialog.task_id)) continue;
       if (dispatched >= MAX_DISPATCH_PER_TICK) break;
       if (!dialog?.task_id || !/^task_[0-9a-f]{32}$/.test(dialog.task_id) ||
           (dialog.lifecycle && dialog.lifecycle !== "active")) continue;
@@ -799,9 +820,19 @@ export async function runTick(ctx) {
       } catch { ctx.log("managed_task_read_failed " + dialog.task_id); continue; }
       if (ctx.dryRun) { ctx.log("managed_dry_run " + dialog.task_id + " seq=" + msg.seq); continue; }
       try {
+        let priorFromAgent = false;
+        if (!legacy && full.seq === 2 && !Object.hasOwn(state.seen, dialog.task_id) &&
+            !Object.hasOwn(state.sessions, dialog.task_id)) {
+          try {
+            const two = await ctx.cliCall({op:"view", task_id:dialog.task_id, offset:0, limit:2});
+            const prior = Array.isArray(two?.history) ? two.history[1] : null;
+            priorFromAgent = !!prior && prior.seq === 1 && prior.from === "mt" &&
+                             prior.to === "chatgpt";
+          } catch { priorFromAgent = false; }
+        }
         const verified = legacy
           ? verifiedMessage(signedPublic,dialog,full,state)
-          : verifyFirstTurnScope(signedPublic,dialog.task_id,full,state);
+          : verifyFirstTurnScope(signedPublic,dialog.task_id,full,state,priorFromAgent);
         if (!legacy) {
           const admission = await ctx.cliCall({op:"authorize", task_id:dialog.task_id});
           if (admission?.authorized !== true) continue;

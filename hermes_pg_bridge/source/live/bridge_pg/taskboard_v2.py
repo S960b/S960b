@@ -169,7 +169,6 @@ class App:
                 else:
                     if set(obj)!={'task_id','head'}:raise BridgeError('request_rejected')
                     result=self.cat.hand_back(obj['task_id'],obj['head'])
-                    result['created']=True
                 data=_json(result);code=200;ctype='application/json; charset=utf-8'
             else:
                 code,data=404,b'Not found'

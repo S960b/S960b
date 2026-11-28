@@ -72,8 +72,8 @@ function canHandBack(last, receipt, detailStatus) {
   if (last.kind === 'return' || last.kind === 'close' || last.returned) return false;
   if (detailStatus === 'done' || detailStatus === 'closing') return false;
   if (last.from !== 'mt') return false;
-  return Boolean(receipt && receipt.source === 'ok' &&
-    (receipt.seen_seq != null || receipt.inflight_seq != null));
+  // The contract is "after delivery": the report must be acknowledged as seen.
+  return Boolean(receipt && receipt.source === 'ok' && receipt.seen_seq != null);
 }
 function lastAction(last, receipt) {
   if (!last) return {label: 'Пока нет сообщений', time: '', hint: 'В PostgreSQL нет сообщений'};
@@ -245,10 +245,11 @@ async function load(next = offset) {
           const handback = !retract && canHandBack(last, delivery[item.task_id], d.status);
           item._returnButton.disabled = !(retract || handback);
           item._returnButton.textContent = handback ? 'Передать ход агенту' : 'Вернуть ход';
+          const started = delivery[item.task_id] && delivery[item.task_id].inflight_seq != null;
           item._returnButton.title = retract ? '' :
             (handback
               ? 'Сообщение уже доставлено и останется в PostgreSQL. Кнопка вернёт ход агенту, чтобы он дописал новое сообщение.'
-              : '');
+              : (started ? 'Ждём подтверждения доставки отчёта — после этого ход можно передать агенту.' : ''));
         }
         if (last) {
           item._job.append(elem('code', last.message_id),
@@ -410,7 +411,14 @@ async function returnTurn(item) {
         headers: {'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
         body: JSON.stringify({task_id: item.task_id, head: d.head})
       });
-      if (handed.next_actor !== 'mt' || handed.created !== true)
+      if (handed.changed === false) {
+        clearCache();
+        $('notice').textContent = 'Ход уже у агента — изменений нет';
+        await load(offset);
+        if (selectedTask === item.task_id) history(item.task_id, 0);
+        return;
+      }
+      if (handed.next_actor !== 'mt' || handed.changed !== true)
         throw new Error('Передача хода не подтверждена');
       clearCache();
       $('notice').textContent = 'Ход передан агенту';

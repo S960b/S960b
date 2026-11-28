@@ -226,10 +226,15 @@ def watchdog(home: Path,now: float | None = None) -> dict:
                 # Order matters: CLI gate first, then invalid/expired MCP permit.
                 result=_revoke_both_independently(fd)
                 return {'action':'REVOKED_INVALID','reason':code,**result}
-            if gate and (code not in ('VALID_SCOPED', 'VALID_CREATE') or gs != 'VALID'):
-                reason=code if code!='VALID_SCOPED' else gs
-                return {'action':'REVOKED_UNSAFE_GATE','reason':reason,
-                        'gate_quarantined':quarantine(fd,GATE_NAME),'permit_quarantined':False}
+            if not gate:
+                # Permit without the agent gate lets the gateway enqueue while the agent
+                # cannot execute. Both capabilities must live and die together.
+                result=_revoke_both_independently(fd)
+                return {'action':'REVOKED_MISSING_GATE','reason':'gate_absent',**result}
+            if code not in ('VALID_SCOPED', 'VALID_CREATE') or gs != 'VALID':
+                reason=code if code not in ('VALID_SCOPED', 'VALID_CREATE') else gs
+                result=_revoke_both_independently(fd)
+                return {'action':'REVOKED_UNSAFE_GATE','reason':reason,**result}
             return {'action':'RETAINED_VALID','reason':code,'gate_quarantined':False,'permit_quarantined':False}
     finally:
         os.close(fd)

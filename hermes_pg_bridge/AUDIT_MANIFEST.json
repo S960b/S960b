@@ -38,9 +38,9 @@
     {
       "path": "source/installed_stages/hermes-pg-registration/firstturn-admission/auto_admit.py",
       "source": "hermes-pg-registration/firstturn-admission/auto_admit.py",
-      "source_sha256": "f17e06b4a57181c716fc3d33da07f772cf2ff5f87f2d14c22017a37c0dab1525",
-      "published_sha256": "f17e06b4a57181c716fc3d33da07f772cf2ff5f87f2d14c22017a37c0dab1525",
-      "size": 9067,
+      "source_sha256": "edbfbee6b24879dcae6d11ba9a56083653403c7a1d1fb532e44ce29c341e2ca7",
+      "published_sha256": "edbfbee6b24879dcae6d11ba9a56083653403c7a1d1fb532e44ce29c341e2ca7",
+      "size": 11523,
       "ipv4_replacements": 0
     },
     {
@@ -57,6 +57,14 @@
       "source_sha256": "f893e11b4bd7ccd188c1706604cf2ca4cf7e6858ed9e4dc6d0a31f65f00c16c6",
       "published_sha256": "f893e11b4bd7ccd188c1706604cf2ca4cf7e6858ed9e4dc6d0a31f65f00c16c6",
       "size": 3153,
+      "ipv4_replacements": 0
+    },
+    {
+      "path": "source/installed_stages/hermes-pg-registration/firstturn-admission/revoke.py",
+      "source": "hermes-pg-registration/firstturn-admission/revoke.py",
+      "source_sha256": "39563f9d1ace0769761b85030d7a8b3ee9dbc0441841dc82cd09e367c95d7bce",
+      "published_sha256": "39563f9d1ace0769761b85030d7a8b3ee9dbc0441841dc82cd09e367c95d7bce",
+      "size": 3164,
       "ipv4_replacements": 0
     },
     {
@@ -654,9 +662,9 @@
     {
       "path": "source/installed_stages/hermes-pg-stage37a-permission-control/stage37a.py",
       "source": "hermes-pg-stage37a-permission-control/stage37a.py",
-      "source_sha256": "3c08be36ce5dc7fc615429a9ce43840a85d863cef0516f39e134caf04e0304c2",
-      "published_sha256": "3c08be36ce5dc7fc615429a9ce43840a85d863cef0516f39e134caf04e0304c2",
-      "size": 10872,
+      "source_sha256": "b1e8e99cd7ed5746862ea6f721ddb124c71462625407cd81987f0413ac067604",
+      "published_sha256": "b1e8e99cd7ed5746862ea6f721ddb124c71462625407cd81987f0413ac067604",
+      "size": 11189,
       "ipv4_replacements": 0
     },
     {
@@ -670,9 +678,9 @@
     {
       "path": "source/installed_stages/hermes-pg-stage37b2c-claim-intent/first_receive.mjs",
       "source": "hermes-pg-stage37b2c-claim-intent/first_receive.mjs",
-      "source_sha256": "8c80519b10d16ac1896bd68a4ad00a5e54c2d2026850e27cff865bc59c228026",
-      "published_sha256": "8c80519b10d16ac1896bd68a4ad00a5e54c2d2026850e27cff865bc59c228026",
-      "size": 1043,
+      "source_sha256": "f4438b4bc70439174d7d852151a4228453b6ff4f7bb335ec992fd105f17c2d16",
+      "published_sha256": "f4438b4bc70439174d7d852151a4228453b6ff4f7bb335ec992fd105f17c2d16",
+      "size": 1245,
       "ipv4_replacements": 0
     },
     {
@@ -694,9 +702,9 @@
     {
       "path": "source/installed_stages/hermes-pg-stage37b2c-claim-intent/mt-pg-inbox-managed-stage37b2c-unregistered.mjs",
       "source": "hermes-pg-stage37b2c-claim-intent/mt-pg-inbox-managed-stage37b2c-unregistered.mjs",
-      "source_sha256": "aae583255db7cca72b4090bb23fb65a91354d486287fe8cfa4291c611680d10f",
-      "published_sha256": "aae583255db7cca72b4090bb23fb65a91354d486287fe8cfa4291c611680d10f",
-      "size": 47715,
+      "source_sha256": "7c04efa626cb4fafd4713b912830303340aed743e0f7bca5874e98e4f433ca6f",
+      "published_sha256": "7c04efa626cb4fafd4713b912830303340aed743e0f7bca5874e98e4f433ca6f",
+      "size": 49187,
       "ipv4_replacements": 0
     },
     {
@@ -814,9 +822,9 @@
     {
       "path": "source/installed_stages/hermes-pg-stage39-operator-session/stage39.py",
       "source": "hermes-pg-stage39-operator-session/stage39.py",
-      "source_sha256": "c29a26f38e4a650be765dc0ad2b57525c22c6da02fdea87708d0a33403430883",
-      "published_sha256": "c29a26f38e4a650be765dc0ad2b57525c22c6da02fdea87708d0a33403430883",
-      "size": 23561,
+      "source_sha256": "d8ab3945cd1d265ebec9803c01178a83efac34d92833badb984915e163bd2af7",
+      "published_sha256": "d8ab3945cd1d265ebec9803c01178a83efac34d92833badb984915e163bd2af7",
+      "size": 23745,
       "ipv4_replacements": 0
     },
     {
@@ -878,9 +886,9 @@
     {
       "path": "source/live/README.md",
       "source": "bridge-pg-v2/README.md",
-      "source_sha256": "41e74bd39f0f08b207b64295d0bc8ee9f17ff429eb1d7409bf0b6e8c71a88cf7",
-      "published_sha256": "41e74bd39f0f08b207b64295d0bc8ee9f17ff429eb1d7409bf0b6e8c71a88cf7",
-      "size": 3658,
+      "source_sha256": "a9c637a2deaff31915a357cff69caef6d55aeabf13aa8c9cec90650627f811a1",
+      "published_sha256": "a9c637a2deaff31915a357cff69caef6d55aeabf13aa8c9cec90650627f811a1",
+      "size": 3719,
       "ipv4_replacements": 0
     },
     {
@@ -918,9 +926,9 @@
     {
       "path": "source/live/bridge_pg/compat.py",
       "source": "bridge-pg-v2/bridge_pg/compat.py",
-      "source_sha256": "32139c65d0ceef9335e83d22564ca1801e816000240d6799554be532a9b3aa5b",
-      "published_sha256": "32139c65d0ceef9335e83d22564ca1801e816000240d6799554be532a9b3aa5b",
-      "size": 12617,
+      "source_sha256": "81d44a4688477e846a242c1653ba1305231a187cff88ff4acf921d3b309a8621",
+      "published_sha256": "81d44a4688477e846a242c1653ba1305231a187cff88ff4acf921d3b309a8621",
+      "size": 12682,
       "ipv4_replacements": 0
     },
     {
@@ -974,9 +982,9 @@
     {
       "path": "source/live/bridge_pg/static/taskboard.js",
       "source": "bridge-pg-v2/bridge_pg/static/taskboard.js",
-      "source_sha256": "9175c98f40a1aa16be594929aaf707d172a512bc6429373a55623e9a8c9f3dbc",
-      "published_sha256": "9175c98f40a1aa16be594929aaf707d172a512bc6429373a55623e9a8c9f3dbc",
-      "size": 25215,
+      "source_sha256": "197a0a1ebe92af67a8baeb7cc018f23478bac5f2ad64aae0969fd80127c03f5a",
+      "published_sha256": "197a0a1ebe92af67a8baeb7cc018f23478bac5f2ad64aae0969fd80127c03f5a",
+      "size": 25789,
       "ipv4_replacements": 0
     },
     {
@@ -990,9 +998,9 @@
     {
       "path": "source/live/bridge_pg/taskboard_v2.py",
       "source": "bridge-pg-v2/bridge_pg/taskboard_v2.py",
-      "source_sha256": "b81d5306941e32c0c4d2a3faa8f82f1cbc39981ea5d024d1cd24d4c624a3681d",
-      "published_sha256": "b81d5306941e32c0c4d2a3faa8f82f1cbc39981ea5d024d1cd24d4c624a3681d",
-      "size": 11579,
+      "source_sha256": "29ef18d9990673e6a2f77890472e4e4e24c4934540db848ba7c992a6dd9efb6b",
+      "published_sha256": "29ef18d9990673e6a2f77890472e4e4e24c4934540db848ba7c992a6dd9efb6b",
+      "size": 11536,
       "ipv4_replacements": 0
     },
     {
@@ -1124,6 +1132,14 @@
       "ipv4_replacements": 0
     },
     {
+      "path": "source/live/sql/011_hand_back_delivery.sql",
+      "source": "bridge-pg-v2/sql/011_hand_back_delivery.sql",
+      "source_sha256": "477eaa08dade6f43f4328a9784e355888df37182c9c83c7f7dc3aa8b06a854de",
+      "published_sha256": "477eaa08dade6f43f4328a9784e355888df37182c9c83c7f7dc3aa8b06a854de",
+      "size": 2337,
+      "ipv4_replacements": 0
+    },
+    {
       "path": "source/live/tests/test_auth_unit.py",
       "source": "bridge-pg-v2/tests/test_auth_unit.py",
       "source_sha256": "5cb8101287a7e364f3dd5a5c5c552513401ee2ff5a5a2d1e9011a4dc7c63bc18",
@@ -1190,9 +1206,9 @@
     {
       "path": "source/runtime_plugins/plugin_1.mjs",
       "source": "hermes-pg-stage37b2c-claim-intent/mt-pg-inbox-managed-stage37b2c-unregistered.mjs",
-      "source_sha256": "aae583255db7cca72b4090bb23fb65a91354d486287fe8cfa4291c611680d10f",
-      "published_sha256": "aae583255db7cca72b4090bb23fb65a91354d486287fe8cfa4291c611680d10f",
-      "size": 47715,
+      "source_sha256": "7c04efa626cb4fafd4713b912830303340aed743e0f7bca5874e98e4f433ca6f",
+      "published_sha256": "7c04efa626cb4fafd4713b912830303340aed743e0f7bca5874e98e4f433ca6f",
+      "size": 49187,
       "ipv4_replacements": 0
     }
   ],
@@ -1370,5 +1386,5 @@
   ],
   "publication_blockers": [],
   "stage41c_reconciliation": "two identical Stage35B negative-test fixtures restored after source-and-archive byte equality and all previous manifest SHA validations",
-  "updated_utc": "2026-11-28T14:11:57Z"
+  "updated_utc": "2026-11-28T14:24:29Z"
 }

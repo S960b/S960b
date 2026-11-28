@@ -24,7 +24,7 @@ ChatGPT → MCP edge → PostgreSQL (`dialogs`, `messages`, `outbox`) → receiv
 message → MultiTool session → agent CLI appends a report → outbox to ChatGPT.
 
 Owner browser → Taskboard → PostgreSQL. The owner can hand the turn back to the agent
-without retracting a message that has already been delivered.
+without retracting a message — only after that message is confirmed delivered.
 
 ## Message and turn model
 
@@ -35,7 +35,7 @@ without retracting a message that has already been delivered.
   and bumps the version. `expected_version` makes concurrent writes conflict-safe.
 - Delivered messages are never retracted: `return_turn` cancels only a still-pending
   delivery, while `hand_back_turn` flips the turn to the agent and keeps everything
-  already delivered.
+  already delivered; the last message must be delivered first.
 
 ## Permission model
 

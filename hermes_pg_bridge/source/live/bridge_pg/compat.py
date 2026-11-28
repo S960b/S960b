@@ -234,7 +234,8 @@ class Catalog:
         result=self.store.hand_back_turn(task_id,d['version'])
         new_head=version_token(task_id,result['version'])
         return {'task_id':task_id,'head':new_head,'next_actor':_actor_external(result['next_actor']),
-                'changed':result['changed'],'new_head':new_head}
+                'changed':result['changed'],'delivery_status':result.get('delivery_status'),
+                'new_head':new_head}
 
     def delivery_status(self,task_id:str,seq:int) -> dict|None:
         return self._one('SELECT bridge.delivery_status(%s,%s) AS result',(task_id,seq))
