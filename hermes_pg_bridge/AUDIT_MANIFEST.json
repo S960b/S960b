@@ -878,9 +878,9 @@
     {
       "path": "source/live/README.md",
       "source": "bridge-pg-v2/README.md",
-      "source_sha256": "5b6ae8a812b7e69541bb4b3ac375e958bfeddc4efb5cd5351a3f17f3acce23e0",
-      "published_sha256": "5b6ae8a812b7e69541bb4b3ac375e958bfeddc4efb5cd5351a3f17f3acce23e0",
-      "size": 3414,
+      "source_sha256": "41e74bd39f0f08b207b64295d0bc8ee9f17ff429eb1d7409bf0b6e8c71a88cf7",
+      "published_sha256": "41e74bd39f0f08b207b64295d0bc8ee9f17ff429eb1d7409bf0b6e8c71a88cf7",
+      "size": 3658,
       "ipv4_replacements": 0
     },
     {
@@ -1068,6 +1068,14 @@
       "ipv4_replacements": 0
     },
     {
+      "path": "source/live/deploy/08_restore_check.sh",
+      "source": "bridge-pg-v2/deploy/08_restore_check.sh",
+      "source_sha256": "43d00a8a91c5e5a33e6a1ff6ecd391759d0960391be021289f51ff6f8ad23083",
+      "published_sha256": "43d00a8a91c5e5a33e6a1ff6ecd391759d0960391be021289f51ff6f8ad23083",
+      "size": 2441,
+      "ipv4_replacements": 0
+    },
+    {
       "path": "source/live/requirements-dev.txt",
       "source": "bridge-pg-v2/requirements-dev.txt",
       "source_sha256": "8636f9ab1a075be9f3039e2a6471837259c4f36b625bcaf7a3d9a1edd2419c6d",
@@ -1105,6 +1113,14 @@
       "source_sha256": "b9cdb65594af284cac8e7cca84885091fe83e368fd3f037c42514a94bd945b07",
       "published_sha256": "b9cdb65594af284cac8e7cca84885091fe83e368fd3f037c42514a94bd945b07",
       "size": 1730,
+      "ipv4_replacements": 0
+    },
+    {
+      "path": "source/live/sql/010_schema_full.sql",
+      "source": "bridge-pg-v2/sql/010_schema_full.sql",
+      "source_sha256": "0250b7fbbdd6485a48dae01f738868b06710943b10b5b85a470c9b00ce9a2e55",
+      "published_sha256": "0250b7fbbdd6485a48dae01f738868b06710943b10b5b85a470c9b00ce9a2e55",
+      "size": 106864,
       "ipv4_replacements": 0
     },
     {
@@ -1354,5 +1370,5 @@
   ],
   "publication_blockers": [],
   "stage41c_reconciliation": "two identical Stage35B negative-test fixtures restored after source-and-archive byte equality and all previous manifest SHA validations",
-  "updated_utc": "2026-11-28T13:33:49Z"
+  "updated_utc": "2026-11-28T14:11:57Z"
 }

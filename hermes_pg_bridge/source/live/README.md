@@ -48,7 +48,10 @@ without retracting a message that has already been delivered.
 
 ## Deployment order
 
-1. Schema: `sql/001_init.sql` → `002_compat.sql` → `003_hand_back.sql`.
+1. Schema: `sql/010_schema_full.sql` on an empty database — the complete skeleton
+   (roles, tables, functions, owners and final grants, no data). `001_init.sql` →
+   `003_hand_back.sql` are kept as the historical evolution, not as a restore path.
+   Verify with `deploy/08_restore_check.sh` on the PostgreSQL host.
 2. Python: `requirements.txt` (psycopg 3.x) in an isolated virtual environment.
 3. Credentials, which are not part of this repository: database password, local MCP key,
    Ed25519 signing key.
