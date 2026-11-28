@@ -153,7 +153,7 @@ def poll_one_cycle():
             "model_calls":0, "counts":outcome}
 
 
-def choose(con, now):
+def choose(con, now, *, not_before_ms=0):
     current = con.execute(
         "SELECT event_id,semantic_cluster_id FROM series_claims").fetchall()
     claimed_stories = {v[0] for v in con.execute(
@@ -170,7 +170,7 @@ def choose(con, now):
         for _ in range(PIPE.MAX_CANDIDATES_SCANNED):
             result = PIPE.candidate(
                 events_db=feed, sidecar_db=meta, now_ms=now,
-                excluded=excluded)
+                excluded=excluded, not_before_ms=not_before_ms)
             if result is None:
                 return None
             event, rss_row, symbol = result
@@ -376,10 +376,14 @@ def execute_one():
         counters=G.counters(con)
         if counters["sealed"]>=G.SERIES_LIMIT or counters["calls_reserved"]>=G.CALL_LIMIT:
             return {"status":"budget_exhausted","counts":counters}
-        result=choose(con,ms())
+        result=choose(con,ms(),not_before_ms=activation['started_ms'])
         if result is None:
             return {"status":"no_eligible","counts":counters}
         event,row,symbol,semantic,story=result
+        # Defense in depth: selection must not consume pre-series news.
+        if (event["published_ms"] < activation["started_ms"]
+                or row["first_observed_ms"] < activation["started_ms"]):
+            raise SeriesV26Error("candidate_before_series_start")
         if len(event["event_id"])!=64:
             raise SeriesV26Error("bad_event_id")
         trial_id="evt-"+event["event_id"]
@@ -401,7 +405,7 @@ def execute_one():
         d=NF.decide(row,now_ms=decision)
         if not d.accepted or d.symbol!=symbol:
             raise SeriesV26Error("candidate_no_longer_eligible")
-        if approved()["series_id"]!=activation["series_id"]:
+        if approved()!=activation:
             raise SeriesV26Error("activation_changed")
         STORY.claim(con,event_id=event["event_id"],
                     semantic_cluster_id=semantic,story=story,
